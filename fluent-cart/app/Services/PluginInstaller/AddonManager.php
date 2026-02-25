@@ -14,16 +14,13 @@ class AddonManager
         if ($sourceType === 'wordpress') {
             $result = $backgroundInstaller->installPlugin($pluginSlug);
         } else if ($sourceType === 'github') {
+
             $result = $backgroundInstaller->installFromGithub($sourceLink, $pluginSlug, $path);
         } else {
             return new \WP_Error('invalid_source', __('Invalid addon source type.', 'fluent-cart'));
         }
 
-        if (is_wp_error($result)) {
-            return $result;
-        }
-
-        return true;
+        return $result;
     }
 
     public function activateAddon($pluginFile)
@@ -128,11 +125,11 @@ class AddonManager
 
         return [
             'current_version' => $currentVersion,
-            'latest_version' => $latestVersion,
-            'has_update' => $hasUpdate,
-            'download_url' => $latestVersionInfo['download_url'],
-            'release_notes' => $latestVersionInfo['release_notes'] ?? '',
-            'source_type' => 'github'
+            'latest_version'  => $latestVersion,
+            'has_update'      => $hasUpdate,
+            'download_url'    => $latestVersionInfo['download_url'],
+            'release_notes'   => $latestVersionInfo['release_notes'] ?? '',
+            'source_type'     => 'github'
         ];
     }
 
@@ -161,22 +158,22 @@ class AddonManager
 
             return [
                 'current_version' => $currentVersion,
-                'latest_version' => $update->new_version,
-                'has_update' => true,
-                'download_url' => $update->package ?? '',
-                'release_notes' => $update->upgrade_notice ?? '',
-                'source_type' => 'wordpress'
+                'latest_version'  => $update->new_version,
+                'has_update'      => true,
+                'download_url'    => $update->package ?? '',
+                'release_notes'   => $update->upgrade_notice ?? '',
+                'source_type'     => 'wordpress'
             ];
         }
 
         // No update available
         return [
             'current_version' => $currentVersion,
-            'latest_version' => $currentVersion,
-            'has_update' => false,
-            'download_url' => '',
-            'release_notes' => '',
-            'source_type' => 'wordpress'
+            'latest_version'  => $currentVersion,
+            'has_update'      => false,
+            'download_url'    => '',
+            'release_notes'   => '',
+            'source_type'     => 'wordpress'
         ];
     }
 
@@ -221,7 +218,7 @@ class AddonManager
         $response = wp_remote_get($api_url, [
             'timeout' => 30,
             'headers' => [
-                'Accept' => 'application/vnd.github.v3+json',
+                'Accept'     => 'application/vnd.github.v3+json',
                 'User-Agent' => 'FluentCart/' . FLUENTCART_VERSION
             ]
         ]);
@@ -246,8 +243,8 @@ class AddonManager
         $version = ltrim($data['tag_name'], 'vV');
 
         return [
-            'version' => $version,
-            'download_url' => $data['zipball_url'],
+            'version'       => $version,
+            'download_url'  => $data['zipball_url'],
             'release_notes' => $data['body'] ?? ''
         ];
     }
@@ -259,7 +256,7 @@ class AddonManager
      * @param string $sourceLink Source URL (for github)
      * @param string $pluginSlug Plugin slug
      * @param string $pluginFile Plugin file path
-     * @return bool|\WP_Error
+     * @return bool|\WP_Error|array
      */
     public function updateAddon($sourceType, $sourceLink, $pluginSlug, $pluginFile)
     {
@@ -270,7 +267,21 @@ class AddonManager
         // Route to appropriate update method
         switch ($sourceType) {
             case 'github':
-                return $this->updateFromGitHub($sourceLink, $pluginSlug, $pluginFile);
+                $isHandeled = apply_filters('fluent_cart/outside_addon/handle_update', null, [
+                    'source_link' => $sourceLink,
+                    'plugin_slug' => $pluginSlug,
+                    'plugin_file' => $pluginFile
+                ]);
+
+                if ($isHandeled) {
+                    return $isHandeled;
+                }
+
+                return [
+                    'action' => 'copy',
+                    'url'    => $sourceLink
+                ];
+
 
             case 'wordpress':
                 return $this->updateFromWordPress($pluginFile);
@@ -288,127 +299,7 @@ class AddonManager
      * @param string $pluginFile Plugin file path
      * @return bool|\WP_Error
      */
-    private function updateFromGitHub($sourceLink, $pluginSlug, $pluginFile)
-    {
-        if (!function_exists('get_plugin_data')) {
-            require_once ABSPATH . 'wp-admin/includes/plugin.php';
-        }
 
-        $pluginPath = WP_PLUGIN_DIR . '/' . $pluginFile;
-        if (!file_exists($pluginPath)) {
-            return new \WP_Error('plugin_not_found', __('Plugin file not found.', 'fluent-cart'));
-        }
-
-        $pluginData = get_plugin_data($pluginPath);
-        $currentVersion = $pluginData['Version'] ?? '1.0.0';
-
-        $updateCheck = $this->checkUpdateFromGitHub($sourceLink, $currentVersion);
-
-        if (is_wp_error($updateCheck)) {
-            return $updateCheck;
-        }
-
-        if (!$updateCheck['has_update']) {
-            return new \WP_Error('no_update', __('Plugin is already up to date.', 'fluent-cart'));
-        }
-
-        require_once ABSPATH . 'wp-admin/includes/file.php';
-        require_once ABSPATH . 'wp-admin/includes/class-wp-upgrader.php';
-        require_once ABSPATH . 'wp-admin/includes/plugin.php';
-
-        // Deactivate plugin before updating
-        if (!function_exists('deactivate_plugins')) {
-            require_once ABSPATH . 'wp-admin/includes/plugin.php';
-        }
-        
-        // Check if plugin is currently active
-        $was_active = is_plugin_active($pluginFile);
-
-        if ($was_active) {
-            deactivate_plugins($pluginFile, true);
-        }
-
-        // Initialize WordPress file system
-        WP_Filesystem();
-
-        $skin = new \Automatic_Upgrader_Skin();
-        $upgrader = new \WP_Upgrader($skin);
-
-        ob_start();
-
-        try {
-            $download = $upgrader->download_package($updateCheck['download_url']);
-
-            if (is_wp_error($download)) {
-                ob_end_clean();
-                if ($was_active) {
-                    activate_plugin($pluginFile);
-                }
-                return new \WP_Error('download_failed', $download->get_error_message());
-            }
-
-            $working_dir = $upgrader->unpack_package($download, true);
-
-            if (is_wp_error($working_dir)) {
-                ob_end_clean();
-                if ($was_active) {
-                    activate_plugin($pluginFile);
-                }
-                return new \WP_Error('unpack_failed', $working_dir->get_error_message());
-            }
-
-            // Now that download is successful, delete the old plugin directory
-            $pluginDir = WP_PLUGIN_DIR . '/' . $pluginSlug;
-            if (file_exists($pluginDir)) {
-                global $wp_filesystem;
-                if (!$wp_filesystem->delete($pluginDir, true)) {
-                    ob_end_clean();
-                    if ($was_active) {
-                        activate_plugin($pluginFile);
-                    }
-                    return new \WP_Error('delete_failed', __('Could not delete old plugin version.', 'fluent-cart'));
-                }
-            }
-
-            // Install the new version
-            $result = $upgrader->install_package(
-                array(
-                    'source'                      => $working_dir,
-                    'destination'                 => WP_PLUGIN_DIR . '/' . $pluginSlug,
-                    'clear_destination'           => false,
-                    'abort_if_destination_exists' => false,
-                    'clear_working'               => true,
-                    'hook_extra'                  => array(
-                        'type'   => 'plugin',
-                        'action' => 'update',
-                    ),
-                )
-            );
-
-            if (is_wp_error($result)) {
-                ob_end_clean();
-                return new \WP_Error('install_failed', $result->get_error_message());
-            }
-            ob_end_clean();
-
-            wp_clean_plugins_cache();
-
-            if ($was_active) {
-                $activate_result = activate_plugin($pluginFile);
-            }
-
-            if (is_wp_error($activate_result)) {
-                return new \WP_Error('activation_failed', $activate_result->get_error_message());
-            }
-
-            return true;
-
-        } catch (\Exception $e) {
-            ob_end_clean();
-            activate_plugin($pluginFile);
-            return new \WP_Error('update_failed', $e->getMessage());
-        }
-    }
 
     /**
      * Update addon from WordPress.org

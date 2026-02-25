@@ -150,9 +150,7 @@ class ModuleSettingsController extends Controller
             ]);
         }
 
-        return $this->sendSuccess([
-            'message' => __('Addon installed and activated successfully.', 'fluent-cart')
-        ]);
+        return $this->sendSuccess($result);
     }
 
     public function activatePluginAddon(Request $request): \WP_REST_Response
@@ -275,9 +273,7 @@ class ModuleSettingsController extends Controller
             ]);
         }
 
-        return $this->sendSuccess([
-            'message' => __('Addon updated successfully.', 'fluent-cart')
-        ]);
+        return $result;
     }
 
     private function getRegisteredPluginAddons(): array
@@ -293,7 +289,8 @@ class ModuleSettingsController extends Controller
                 'source_type' => 'github',
                 'source_link' => 'https://github.com/WPManageNinja/fluent-cart-elementor-blocks/releases/latest',
                 'asset_path'  => 'assets.0.browser_download_url',
-                'upcoming' => false
+                'upcoming' => false,
+                'repo_link' => 'https://github.com/WPManageNinja/fluent-cart-elementor-blocks'
             ]
         ];
 

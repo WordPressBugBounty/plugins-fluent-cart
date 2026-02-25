@@ -213,9 +213,7 @@ public function saveDesign(Request $request)
                 ], 423);
             }
 
-            return $this->sendSuccess([
-                'message' => __('Payment addon installed and activated successfully!', 'fluent-cart')
-            ]);
+            return $result;
         } catch (\Exception $e) {
             return $this->sendError([
                 'message' => $e->getMessage()
@@ -338,9 +336,7 @@ public function saveDesign(Request $request)
                 ], 423);
             }
 
-            return $this->sendSuccess([
-                'message' => __('Payment addon updated successfully!', 'fluent-cart')
-            ]);
+            return $result;
         } catch (\Exception $e) {
             return $this->sendError([
                 'message' => $e->getMessage()

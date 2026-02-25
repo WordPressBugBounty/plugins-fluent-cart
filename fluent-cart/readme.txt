@@ -4,7 +4,7 @@ Tags: ecommerce, cart, checkout, subscriptions, payments
 Requires at least: 6.7
 Tested up to: 6.9
 Requires PHP: 7.4
-Stable tag: 1.3.11
+Stable tag: 1.3.12
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -313,12 +313,15 @@ This service is provided by PayPal: [Terms of Service](https://www.paypal.com/le
 
 == Changelog ==
 
+= 1.3.12 (Feb 26, 2026) =
+- Fixes caching issue during new version upgrades
+
 = 1.3.11 (Feb 25, 2026) =
 - Adds GB Blocks: Related Products, Customer Dashboard Button, Store Logo
 - Adds Media Carousel Block
-- Adds Product SKU feature
 - Adds Elementor Widgets: Checkout, Add to Cart, Buy Now Button, Mini Cart, Products, Product Carousel, Product Categories List
 - Adds Razorpay Subscription Supports
+- Adds Product SKU feature
 - Adds Customer LTV recalculation action
 - Adds Sync order statuses action
 - Adds Test Data Cleanup Tool

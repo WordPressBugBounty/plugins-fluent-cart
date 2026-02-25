@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: FluentCart\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-02-25 09:51+0000\n"
+"POT-Creation-Date: 2026-02-25 19:28+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: \n"
@@ -708,25 +708,25 @@ msgid ""
 "Bancontact, and more. Popular in Europe with seamless checkout experience."
 msgstr ""
 
-#: app/Modules/PaymentMethods/PromoGateways/Addons/FlutterwaveAddon.php:85
+#: app/Modules/PaymentMethods/PromoGateways/Addons/FlutterwaveAddon.php:86
 msgid ""
 "Accept payments with Flutterwave - Card, Bank Transfer, Mobile Money, USSD, "
 "M-Pesa and more. Perfect for businesses in Africa."
 msgstr ""
 
-#: app/Modules/PaymentMethods/PromoGateways/Addons/MercadoPagoAddon.php:85
+#: app/Modules/PaymentMethods/PromoGateways/Addons/MercadoPagoAddon.php:86
 msgid ""
 "Accept payments with Mercado Pago - Cards, Pix, Boleto, OXXO, and more. "
 "Perfect for businesses in Latin America."
 msgstr ""
 
-#: app/Modules/PaymentMethods/PromoGateways/Addons/PaystackAddon.php:85
+#: app/Modules/PaymentMethods/PromoGateways/Addons/PaystackAddon.php:86
 msgid ""
 "Accept payments with Paystack - Cards, Bank Transfer, USSD, and Mobile Money."
 " Perfect for businesses in Africa."
 msgstr ""
 
-#: app/Modules/PaymentMethods/PromoGateways/Addons/RazorpayAddon.php:85
+#: app/Modules/PaymentMethods/PromoGateways/Addons/RazorpayAddon.php:86
 msgid ""
 "Accept payments with Razorpay - UPI, Cards, NetBanking, and Wallets. Perfect "
 "for businesses in India."
@@ -766,7 +766,7 @@ msgid "Activate"
 msgstr ""
 
 #: app/Services/Translations/admin-translation.php:63
-#: app/Modules/PaymentMethods/PromoGateways/Addons/AddonGatewaySettings.php:186
+#: app/Modules/PaymentMethods/PromoGateways/Addons/AddonGatewaySettings.php:187
 msgid "Activate Addon"
 msgstr ""
 
@@ -838,8 +838,8 @@ msgstr ""
 #: app/Modules/Templating/Bricks/Elements/ProductAddToCart.php:226
 #: app/Modules/Templating/Bricks/Elements/ProductGallery.php:164
 #: app/Modules/Templating/Bricks/Elements/ProductGallery.php:189
-#: app/Modules/PaymentMethods/PromoGateways/Addons/AddonGatewaySettings.php:198
-#: app/Modules/PaymentMethods/PromoGateways/Addons/AddonGatewaySettings.php:259
+#: app/Modules/PaymentMethods/PromoGateways/Addons/AddonGatewaySettings.php:199
+#: app/Modules/PaymentMethods/PromoGateways/Addons/AddonGatewaySettings.php:261
 msgid "Active"
 msgstr ""
 
@@ -1282,7 +1282,7 @@ msgstr ""
 msgid "Addon activated successfully!"
 msgstr ""
 
-#: app/Http/Controllers/ModuleSettingsController.php:179
+#: app/Http/Controllers/ModuleSettingsController.php:177
 msgid "Addon activated successfully."
 msgstr ""
 
@@ -1294,10 +1294,6 @@ msgstr ""
 msgid "Addon installed and activated successfully!"
 msgstr ""
 
-#: app/Http/Controllers/ModuleSettingsController.php:154
-msgid "Addon installed and activated successfully."
-msgstr ""
-
 #: app/Services/Translations/admin-translation.php:140
 msgid "Addon installed successfully"
 msgstr ""
@@ -1306,17 +1302,9 @@ msgstr ""
 msgid "Addon Settings"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:141
-msgid "Addon updated successfully!"
-msgstr ""
-
-#: app/Http/Controllers/ModuleSettingsController.php:279
-msgid "Addon updated successfully."
-msgstr ""
-
 #: app/Helpers/CartCheckoutHelper.php:486
 #: app/Services/Renderer/AddressSelectRenderer.php:223
-#: app/Services/Translations/admin-translation.php:142
+#: app/Services/Translations/admin-translation.php:141
 #: app/Services/Translations/block-editor-translation.php:29
 msgid "Address"
 msgstr ""
@@ -1344,7 +1332,7 @@ msgid "Address ID is required"
 msgstr ""
 
 #: app/Services/Renderer/AddressSelectRenderer.php:231
-#: app/Services/Translations/admin-translation.php:143
+#: app/Services/Translations/admin-translation.php:142
 #: app/Services/Translations/block-editor-translation.php:30
 msgid "Address Label"
 msgstr ""
@@ -1415,11 +1403,11 @@ msgstr ""
 msgid "Adjumani"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:145
+#: app/Services/Translations/admin-translation.php:144
 msgid "Adjust by"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:144
+#: app/Services/Translations/admin-translation.php:143
 msgid "Adjust Quantity"
 msgstr ""
 
@@ -1435,7 +1423,7 @@ msgstr ""
 msgid "Admin Email"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:146
+#: app/Services/Translations/admin-translation.php:145
 msgid "Admin Email Address"
 msgstr ""
 
@@ -1443,7 +1431,7 @@ msgstr ""
 msgid "Admin Email field is required."
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:147
+#: app/Services/Translations/admin-translation.php:146
 msgid "Administrator"
 msgstr ""
 
@@ -1451,15 +1439,15 @@ msgstr ""
 msgid "Adrar"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:148
+#: app/Services/Translations/admin-translation.php:147
 msgid "Advanced Filter"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:150
+#: app/Services/Translations/admin-translation.php:149
 msgid "Advanced filter is only available in pro version"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:149
+#: app/Services/Translations/admin-translation.php:148
 msgid "Advanced Filters"
 msgstr ""
 
@@ -1479,7 +1467,7 @@ msgstr ""
 msgid "Africa"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:151
+#: app/Services/Translations/admin-translation.php:150
 msgid "After"
 msgstr ""
 
@@ -1495,7 +1483,7 @@ msgstr ""
 msgid "Agago"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:152
+#: app/Services/Translations/admin-translation.php:151
 msgid "Agent"
 msgstr ""
 
@@ -1664,7 +1652,7 @@ msgid "Alignment"
 msgstr ""
 
 #: app/Services/Translations/TransStrings.php:260
-#: app/Services/Translations/admin-translation.php:153
+#: app/Services/Translations/admin-translation.php:152
 msgid "All"
 msgstr ""
 
@@ -1684,19 +1672,19 @@ msgstr ""
 msgid "All Categories"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:154
+#: app/Services/Translations/admin-translation.php:153
 msgid "All Customers"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:155
+#: app/Services/Translations/admin-translation.php:154
 msgid "All Data"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:158
+#: app/Services/Translations/admin-translation.php:157
 msgid "All filters selected"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:159
+#: app/Services/Translations/admin-translation.php:158
 msgid "All must match"
 msgstr ""
 
@@ -1710,15 +1698,15 @@ msgstr ""
 msgid "all product types"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:160
+#: app/Services/Translations/admin-translation.php:159
 msgid "All products ${actionText} successfully"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:156
+#: app/Services/Translations/admin-translation.php:155
 msgid "All Tickets"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:157
+#: app/Services/Translations/admin-translation.php:156
 msgid "All Time"
 msgstr ""
 
@@ -1805,7 +1793,7 @@ msgstr ""
 msgid "Amolatar"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:161
+#: app/Services/Translations/admin-translation.php:160
 #: app/Services/Translations/customer-profile-translation.php:28
 #: app/Views/invoice/receipt_slip.php:278
 #: app/Views/invoice/receipt_slip.php:436
@@ -1818,7 +1806,7 @@ msgstr ""
 msgid "Amount is required."
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:162
+#: app/Services/Translations/admin-translation.php:161
 msgid "Amount off Products"
 msgstr ""
 
@@ -1827,7 +1815,7 @@ msgstr ""
 msgid "Amount Paid"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:163
+#: app/Services/Translations/admin-translation.php:162
 #: app/Services/Translations/customer-profile-translation.php:29
 msgid "Amount to pay"
 msgstr ""
@@ -1953,12 +1941,12 @@ msgstr ""
 msgid "Antofagasta"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:164
+#: app/Services/Translations/admin-translation.php:163
 msgid "Any Category"
 msgstr ""
 
 #. %s - maximum upload size
-#: app/Services/Translations/admin-translation.php:166
+#: app/Services/Translations/admin-translation.php:165
 #, php-format
 msgid "Any Format upto %s"
 msgstr ""
@@ -2020,21 +2008,21 @@ msgstr ""
 msgid "Applied Successfully"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:167
+#: app/Services/Translations/admin-translation.php:166
 msgid "Applied To All Countries"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:168
+#: app/Services/Translations/admin-translation.php:167
 msgid "Applied To All States"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:170
+#: app/Services/Translations/admin-translation.php:169
 msgid ""
 "Applies to micro-businesses located in one EU country making less than €10,"
 "000 in cross-border EU sales yearly."
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:169
+#: app/Services/Translations/admin-translation.php:168
 msgid "Applies to Whole World"
 msgstr ""
 
@@ -2042,7 +2030,7 @@ msgstr ""
 #: app/Services/Renderer/ModalCheckoutRenderer.php:232
 #: app/Services/Renderer/CartSummaryRender.php:367
 #: app/Services/Renderer/EUVatRenderer.php:62
-#: app/Services/Translations/admin-translation.php:171
+#: app/Services/Translations/admin-translation.php:170
 #: app/Services/Translations/block-editor-translation.php:40
 #: app/Modules/Tax/TaxModule.php:485
 #: app/Hooks/Handlers/BlockEditors/Checkout/CheckoutBlockEditor.php:159
@@ -2055,13 +2043,13 @@ msgid "Apply Button Text"
 msgstr ""
 
 #: app/Services/Renderer/ShopAppRenderer.php:426
-#: app/Services/Translations/admin-translation.php:172
+#: app/Services/Translations/admin-translation.php:171
 #: app/Services/Translations/block-editor-translation.php:42
 #: app/Hooks/Handlers/BlockEditors/ShopApp/InnerBlocks/InnerBlocks.php:663
 msgid "Apply Filter"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:173
+#: app/Services/Translations/admin-translation.php:172
 msgid "Apply Filters"
 msgstr ""
 
@@ -2076,7 +2064,7 @@ msgstr ""
 msgid "Apply selected address"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:174
+#: app/Services/Translations/admin-translation.php:173
 msgid "Apply to quantity"
 msgstr ""
 
@@ -2098,7 +2086,7 @@ msgstr ""
 #: app/Services/Renderer/CheckoutFieldsSchema.php:486
 #: app/Services/Renderer/CheckoutFieldsSchema.php:528
 #: app/Services/Renderer/AddressSelectRenderer.php:325
-#: app/Services/Translations/admin-translation.php:175
+#: app/Services/Translations/admin-translation.php:174
 #: app/Services/Translations/customer-profile-translation.php:30
 msgid "Apt, suite, unit"
 msgstr ""
@@ -2135,31 +2123,31 @@ msgstr ""
 msgid "Ardahan"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:176
+#: app/Services/Translations/admin-translation.php:175
 msgid "Are you sure to cancel the subscription?"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:177
+#: app/Services/Translations/admin-translation.php:176
 msgid "Are you sure to cancel this coupon? This action is not recoverable"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:178
+#: app/Services/Translations/admin-translation.php:177
 msgid "Are you sure to delete this shipping class?"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:179
+#: app/Services/Translations/admin-translation.php:178
 msgid "Are you sure to delete this shipping method?"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:180
+#: app/Services/Translations/admin-translation.php:179
 msgid "Are you sure to delete this shipping zone?"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:181
+#: app/Services/Translations/admin-translation.php:180
 msgid "Are you sure to delete this user?"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:182
+#: app/Services/Translations/admin-translation.php:181
 msgid "Are you sure to detach user?"
 msgstr ""
 
@@ -2167,91 +2155,91 @@ msgstr ""
 msgid "Are you sure to disconnect the site"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:183
+#: app/Services/Translations/admin-translation.php:182
 #: app/Services/Translations/customer-profile-translation.php:32
 msgid "Are you sure to disconnect?"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:184
+#: app/Services/Translations/admin-translation.php:183
 msgid "Are you sure to regenerate?"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:185
+#: app/Services/Translations/admin-translation.php:184
 msgid "Are you sure to reset all notifications?"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:186
+#: app/Services/Translations/admin-translation.php:185
 msgid ""
 "Are you sure you want to change the order status to Cancel? This action is "
 "irreversible and cannot be undone."
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:187
+#: app/Services/Translations/admin-translation.php:186
 msgid "Are you sure you want to complete this order!"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:188
+#: app/Services/Translations/admin-translation.php:187
 msgid "Are you sure you want to delete these orders?"
 msgstr ""
 
 #. %s - coupon title
-#: app/Services/Translations/admin-translation.php:190
+#: app/Services/Translations/admin-translation.php:189
 #, php-format
 msgid ""
 "Are you sure you want to delete this %s coupon. This action is not "
 "recoverable"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:191
+#: app/Services/Translations/admin-translation.php:190
 #: app/Services/Translations/customer-profile-translation.php:33
 msgid "Are you sure you want to delete this address?"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:192
+#: app/Services/Translations/admin-translation.php:191
 msgid ""
 "Are you sure you want to delete this file? This action is not recoverable."
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:193
+#: app/Services/Translations/admin-translation.php:192
 msgid "Are you sure you want to delete this order bump?"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:194
+#: app/Services/Translations/admin-translation.php:193
 msgid ""
 "Are you sure you want to delete this order? This action can not be undone!"
 msgstr ""
 
 #. %s - product title
-#: app/Services/Translations/admin-translation.php:196
+#: app/Services/Translations/admin-translation.php:195
 #, php-format
 msgid "Are you sure you want to delete this product : %s ?"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:197
+#: app/Services/Translations/admin-translation.php:196
 msgid "Are you sure you want to delete this product?"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:198
+#: app/Services/Translations/admin-translation.php:197
 msgid "Are you sure you want to delete this tax class?"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:199
+#: app/Services/Translations/admin-translation.php:198
 msgid "Are you sure you want to delete this tax rate?"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:200
+#: app/Services/Translations/admin-translation.php:199
 msgid "Are you sure you want to delete this?. This action is not recoverable"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:201
+#: app/Services/Translations/admin-translation.php:200
 msgid "Are you sure you want to generate missing licenses!"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:202
+#: app/Services/Translations/admin-translation.php:201
 msgid "Are you sure you want to mark license as lifetime?"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:203
+#: app/Services/Translations/admin-translation.php:202
 msgid "Are you sure you want to mark limit as unlimited?"
 msgstr ""
 
@@ -2259,19 +2247,19 @@ msgstr ""
 msgid "Are you sure you want to remove VAT?"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:204
+#: app/Services/Translations/admin-translation.php:203
 msgid "Are you sure you want to revert back processing this order!"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:205
+#: app/Services/Translations/admin-translation.php:204
 msgid "Are you sure, you want to delete this activity?"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:206
+#: app/Services/Translations/admin-translation.php:205
 msgid "Are you sure, you want to delete this price?"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:207
+#: app/Services/Translations/admin-translation.php:206
 msgid "Are you sure?"
 msgstr ""
 
@@ -2359,7 +2347,7 @@ msgstr ""
 msgid "ASC"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:208
+#: app/Services/Translations/admin-translation.php:207
 #: app/Modules/Templating/Bricks/Elements/ProductsCollection.php:118
 msgid "Ascending"
 msgstr ""
@@ -2404,15 +2392,15 @@ msgstr ""
 msgid "At least one address must remain. Address deletion failed!"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:209
+#: app/Services/Translations/admin-translation.php:208
 msgid "At least one matches"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:210
+#: app/Services/Translations/admin-translation.php:209
 msgid "At subtotal level"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:211
+#: app/Services/Translations/admin-translation.php:210
 msgid "At the date"
 msgstr ""
 
@@ -2444,11 +2432,11 @@ msgstr ""
 msgid "Atlántida"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:212
+#: app/Services/Translations/admin-translation.php:211
 msgid "Attach Role"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:214
+#: app/Services/Translations/admin-translation.php:213
 msgid ""
 "Attach the WordPress-supported digital files that customers will receive "
 "after purchasing this product. If this downloadable file is only for a "
@@ -2459,7 +2447,7 @@ msgid ""
 "accessible to both existing and new orders."
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:213
+#: app/Services/Translations/admin-translation.php:212
 msgid "Attach User"
 msgstr ""
 
@@ -2489,7 +2477,7 @@ msgstr ""
 msgid "Attribute term successfully deleted!"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:215
+#: app/Services/Translations/admin-translation.php:214
 msgid "Attributes"
 msgstr ""
 
@@ -2545,11 +2533,11 @@ msgstr ""
 msgid "Auto renews on %s"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:216
+#: app/Services/Translations/admin-translation.php:215
 msgid "Auto-cancellation"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:217
+#: app/Services/Translations/admin-translation.php:216
 msgid "Auto-enabled for offline payments"
 msgstr ""
 
@@ -2566,12 +2554,12 @@ msgstr ""
 msgid "Automatically use the current page's product context."
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:218
+#: app/Services/Translations/admin-translation.php:217
 msgid "Available"
 msgstr ""
 
 #. %s - number of items available
-#: app/Services/Translations/admin-translation.php:220
+#: app/Services/Translations/admin-translation.php:219
 #, php-format
 msgid "Available %s"
 msgstr ""
@@ -2581,17 +2569,17 @@ msgid "Available on Backorder"
 msgstr ""
 
 #. %s - date
-#: app/Services/Translations/admin-translation.php:222
+#: app/Services/Translations/admin-translation.php:221
 #, php-format
 msgid "Available On: %s"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:223
+#: app/Services/Translations/admin-translation.php:222
 msgid "Available Operators"
 msgstr ""
 
 #. %s is the available stock
-#: app/Services/Translations/admin-translation.php:225
+#: app/Services/Translations/admin-translation.php:224
 #, php-format
 msgid "Available: %s in stock"
 msgstr ""
@@ -2600,79 +2588,79 @@ msgstr ""
 msgid "Avellino"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:226
+#: app/Services/Translations/admin-translation.php:225
 msgid "Average Customer LTV"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:227
+#: app/Services/Translations/admin-translation.php:226
 msgid "Average Customer Orders"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:228
+#: app/Services/Translations/admin-translation.php:227
 msgid "Average Gross"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:229
+#: app/Services/Translations/admin-translation.php:228
 msgid "Average Gross Sales"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:244
+#: app/Services/Translations/admin-translation.php:243
 msgid "Average gross sales per order in this period."
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:245
+#: app/Services/Translations/admin-translation.php:244
 msgid "Average in period"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:230
+#: app/Services/Translations/admin-translation.php:229
 msgid "Average Monthly Gross"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:231
+#: app/Services/Translations/admin-translation.php:230
 msgid "Average Monthly Items"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:232
+#: app/Services/Translations/admin-translation.php:231
 msgid "Average Monthly Orders"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:233
+#: app/Services/Translations/admin-translation.php:232
 msgid "Average Monthly Revenue"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:246
+#: app/Services/Translations/admin-translation.php:245
 msgid "Average number of items per order in this period."
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:234
+#: app/Services/Translations/admin-translation.php:233
 msgid "Average Order"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:235
+#: app/Services/Translations/admin-translation.php:234
 msgid "Average Order Gross"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:236
+#: app/Services/Translations/admin-translation.php:235
 msgid "Average Order Gross "
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:237
+#: app/Services/Translations/admin-translation.php:236
 msgid "Average Order Gross grouped by date period."
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:238
+#: app/Services/Translations/admin-translation.php:237
 msgid "Average Order Items"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:239
+#: app/Services/Translations/admin-translation.php:238
 msgid "Average Order Items "
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:240
+#: app/Services/Translations/admin-translation.php:239
 msgid "Average Order Items grouped by date period."
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:241
+#: app/Services/Translations/admin-translation.php:240
 msgid "Average Order Net"
 msgstr ""
 
@@ -2680,41 +2668,41 @@ msgstr ""
 msgid "Average Order Value"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:242
+#: app/Services/Translations/admin-translation.php:241
 msgid "Average Refund"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:243
+#: app/Services/Translations/admin-translation.php:242
 msgid "Average Revenue"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:247
+#: app/Services/Translations/admin-translation.php:246
 msgid "Average revenue per order in this period."
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:248
+#: app/Services/Translations/admin-translation.php:247
 msgid ""
 "Average total spend by customers that first ordered in this period, over "
 "their lifetime (not just from orders the customers made in this period)."
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:249
+#: app/Services/Translations/admin-translation.php:248
 msgid "Avg. Order Gross"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:250
+#: app/Services/Translations/admin-translation.php:249
 msgid "Avg. Order Items"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:251
+#: app/Services/Translations/admin-translation.php:250
 msgid "Avg. Order Net"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:252
+#: app/Services/Translations/admin-translation.php:251
 msgid "Avgerage Amount"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:253
+#: app/Services/Translations/admin-translation.php:252
 msgid "Awesome"
 msgstr ""
 
@@ -2767,7 +2755,7 @@ msgid "Ağrı"
 msgstr ""
 
 #: app/Services/Translations/TransStrings.php:284
-#: app/Services/Translations/admin-translation.php:254
+#: app/Services/Translations/admin-translation.php:253
 msgid "Back"
 msgstr ""
 
@@ -2775,12 +2763,12 @@ msgstr ""
 msgid "Back to Customer List"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:255
+#: app/Services/Translations/admin-translation.php:254
 #: app/Http/Controllers/Controller.php:32
 msgid "Back to Dashboard"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:256
+#: app/Services/Translations/admin-translation.php:255
 msgid "Back to Gateway Settings"
 msgstr ""
 
@@ -2788,7 +2776,7 @@ msgstr ""
 msgid "Back to orders"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:258
+#: app/Services/Translations/admin-translation.php:257
 msgid "Back to processing"
 msgstr ""
 
@@ -2796,7 +2784,7 @@ msgstr ""
 msgid "Back to Product List"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:257
+#: app/Services/Translations/admin-translation.php:256
 msgid "Back to Shipping Zones"
 msgstr ""
 
@@ -2935,7 +2923,7 @@ msgstr ""
 msgid "Bangladeshi Taka"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:259
+#: app/Services/Translations/admin-translation.php:258
 msgid "Banner URL"
 msgstr ""
 
@@ -2999,7 +2987,7 @@ msgstr ""
 msgid "Basarabeasca"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:260
+#: app/Services/Translations/admin-translation.php:259
 msgid ""
 "Based on an average monthly subscription retention rate of "
 "${avgRetentionPercent.toFixed(1)}%, your expected subscription lifetime is "
@@ -3014,11 +3002,11 @@ msgstr ""
 msgid "Basel-Stadt"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:261
+#: app/Services/Translations/admin-translation.php:260
 msgid "Basic Info"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:262
+#: app/Services/Translations/admin-translation.php:261
 msgid "Basic Information"
 msgstr ""
 
@@ -3070,7 +3058,7 @@ msgstr ""
 msgid "Bayelsa"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:263
+#: app/Services/Translations/admin-translation.php:262
 msgid "Before"
 msgstr ""
 
@@ -3186,11 +3174,11 @@ msgstr ""
 msgid "Berrechid"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:264
+#: app/Services/Translations/admin-translation.php:263
 msgid "Best Price"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:265
+#: app/Services/Translations/admin-translation.php:264
 #: app/Services/Translations/customer-profile-translation.php:37
 msgid "Beta"
 msgstr ""
@@ -3241,7 +3229,7 @@ msgstr ""
 msgid "Bill To"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:266
+#: app/Services/Translations/admin-translation.php:265
 msgid "Billing"
 msgstr ""
 
@@ -3251,7 +3239,7 @@ msgstr ""
 #: app/Services/Renderer/CheckoutRenderer.php:341
 #: app/Services/Renderer/CheckoutRenderer.php:455
 #: app/Services/Renderer/CheckoutRenderer.php:468
-#: app/Services/Translations/admin-translation.php:267
+#: app/Services/Translations/admin-translation.php:266
 #: app/Services/Translations/customer-profile-translation.php:38
 #: app/Services/Translations/block-editor-translation.php:50
 #: app/Views/emails/parts/addresses.php:26
@@ -3287,11 +3275,11 @@ msgstr ""
 msgid "Billing address updated successfully!"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:268
+#: app/Services/Translations/admin-translation.php:267
 msgid "Billing Country"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:269
+#: app/Services/Translations/admin-translation.php:268
 msgid "Billing Cycle"
 msgstr ""
 
@@ -3307,7 +3295,7 @@ msgstr ""
 msgid "Billing Subscriptions:"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:270
+#: app/Services/Translations/admin-translation.php:269
 msgid "Billing summary"
 msgstr ""
 
@@ -3315,11 +3303,11 @@ msgstr ""
 msgid "Billing Terms"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:271
+#: app/Services/Translations/admin-translation.php:270
 msgid "Billing:"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:272
+#: app/Services/Translations/admin-translation.php:271
 msgid "Bills Count"
 msgstr ""
 
@@ -3609,7 +3597,7 @@ msgstr ""
 msgid "Brong-Ahafo"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:273
+#: app/Services/Translations/admin-translation.php:272
 msgid "Browse"
 msgstr ""
 
@@ -3617,7 +3605,7 @@ msgstr ""
 msgid "Browse products and continue shopping"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:274
+#: app/Services/Translations/admin-translation.php:273
 msgid "Browse/Upload"
 msgstr ""
 
@@ -3684,7 +3672,7 @@ msgid ""
 "WordPress dashboard."
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:275
+#: app/Services/Translations/admin-translation.php:274
 msgid "Builder"
 msgstr ""
 
@@ -3728,19 +3716,19 @@ msgstr ""
 msgid "Buliisa"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:276
+#: app/Services/Translations/admin-translation.php:275
 msgid "Bulk Actions"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:277
+#: app/Services/Translations/admin-translation.php:276
 msgid "Bump Description"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:278
+#: app/Services/Translations/admin-translation.php:277
 msgid "Bump Name"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:279
+#: app/Services/Translations/admin-translation.php:278
 msgid "Bump Title"
 msgstr ""
 
@@ -3748,19 +3736,19 @@ msgstr ""
 msgid "Bundibugyo"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:280
+#: app/Services/Translations/admin-translation.php:279
 msgid "Bundle"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:284
+#: app/Services/Translations/admin-translation.php:283
 msgid "Bundle info saved successfully"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:281
+#: app/Services/Translations/admin-translation.php:280
 msgid "Bundle Items"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:282
+#: app/Services/Translations/admin-translation.php:281
 msgid "Bundle Of"
 msgstr ""
 
@@ -3770,7 +3758,7 @@ msgstr ""
 msgid "Bundle of"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:283
+#: app/Services/Translations/admin-translation.php:282
 msgid "Bundle Title"
 msgstr ""
 
@@ -3906,7 +3894,7 @@ msgid "Buzău"
 msgstr ""
 
 #. %s - user name
-#: app/Services/Translations/admin-translation.php:286
+#: app/Services/Translations/admin-translation.php:285
 #, php-format
 msgid "By %s"
 msgstr ""
@@ -3919,7 +3907,7 @@ msgid ""
 "purchases."
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:287
+#: app/Services/Translations/admin-translation.php:286
 msgid "By Email Address"
 msgstr ""
 
@@ -4006,11 +3994,11 @@ msgstr ""
 msgid "Cajamarca"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:289
+#: app/Services/Translations/admin-translation.php:288
 msgid "Calculate profit/cost"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:288
+#: app/Services/Translations/admin-translation.php:287
 msgid "Calculate Tax Based On"
 msgstr ""
 
@@ -4058,7 +4046,7 @@ msgstr ""
 msgid "Campobasso"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:290
+#: app/Services/Translations/admin-translation.php:289
 msgid "Can close the window - product will continue to insert."
 msgstr ""
 
@@ -4091,7 +4079,7 @@ msgstr ""
 #: app/Services/Renderer/AddressSelectRenderer.php:393
 #: app/Services/Translations/TransStrings.php:134
 #: app/Services/Translations/TransStrings.php:241
-#: app/Services/Translations/admin-translation.php:291
+#: app/Services/Translations/admin-translation.php:290
 #: app/Services/Translations/customer-profile-translation.php:43
 #: app/Services/Translations/block-editor-translation.php:61
 #: app/Hooks/Handlers/BlockEditors/Checkout/CheckoutBlockEditor.php:161
@@ -4102,20 +4090,20 @@ msgstr ""
 msgid "Cancel Button Text"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:292
+#: app/Services/Translations/admin-translation.php:291
 msgid "Cancel Order"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:293
+#: app/Services/Translations/admin-translation.php:292
 #: app/Services/Translations/customer-profile-translation.php:44
 msgid "Cancel Subscription"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:295
+#: app/Services/Translations/admin-translation.php:294
 msgid "Cancel subscription"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:294
+#: app/Services/Translations/admin-translation.php:293
 msgid "Cancel Subscription (if any)"
 msgstr ""
 
@@ -4125,7 +4113,7 @@ msgstr ""
 
 #: app/Helpers/Status.php:163 app/Helpers/Status.php:175
 #: app/Helpers/Status.php:260 app/Services/Filter/OrderFilter.php:229
-#: app/Services/Translations/admin-translation.php:296
+#: app/Services/Translations/admin-translation.php:295
 #: app/Services/Translations/customer-profile-translation.php:45
 msgid "Canceled"
 msgstr ""
@@ -4134,7 +4122,7 @@ msgstr ""
 msgid "canceled on customer request"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:297
+#: app/Services/Translations/admin-translation.php:296
 msgid "Cancellation reason"
 msgstr ""
 
@@ -4155,12 +4143,12 @@ msgid "Canindeyú"
 msgstr ""
 
 #. %s is the order number
-#: app/Services/Translations/admin-translation.php:299
+#: app/Services/Translations/admin-translation.php:298
 #, php-format
 msgid "Cannot delete order %s due to status: completed"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:300
+#: app/Services/Translations/admin-translation.php:299
 msgid "Cant upload the file"
 msgstr ""
 
@@ -4201,7 +4189,7 @@ msgstr ""
 msgid "Capiz"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:301
+#: app/Services/Translations/admin-translation.php:300
 msgid "Capture"
 msgstr ""
 
@@ -4254,9 +4242,9 @@ msgstr ""
 msgid "Card Number"
 msgstr ""
 
-#: app/Modules/PaymentMethods/PromoGateways/Addons/PaystackAddon.php:87
-#: app/Modules/PaymentMethods/PromoGateways/Addons/FlutterwaveAddon.php:87
-#: app/Modules/PaymentMethods/PromoGateways/Addons/MercadoPagoAddon.php:87
+#: app/Modules/PaymentMethods/PromoGateways/Addons/PaystackAddon.php:88
+#: app/Modules/PaymentMethods/PromoGateways/Addons/FlutterwaveAddon.php:88
+#: app/Modules/PaymentMethods/PromoGateways/Addons/MercadoPagoAddon.php:88
 msgid "Card payments & Bank transfers"
 msgstr ""
 
@@ -4301,11 +4289,11 @@ msgstr ""
 
 #: api/StoreSettings.php:626 api/StoreSettings.php:636
 #: app/Services/Renderer/MiniCartRenderer.php:111
-#: app/Services/Translations/admin-translation.php:302
+#: app/Services/Translations/admin-translation.php:301
 msgid "Cart"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:303
+#: app/Services/Translations/admin-translation.php:302
 msgid "Cart & Checkout"
 msgstr ""
 
@@ -4313,7 +4301,7 @@ msgstr ""
 msgid "Cart & checkout"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:305
+#: app/Services/Translations/admin-translation.php:304
 msgid "Cart and Checkout"
 msgstr ""
 
@@ -4338,7 +4326,7 @@ msgstr ""
 msgid "Cart Item Summary"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:304
+#: app/Services/Translations/admin-translation.php:303
 msgid "Cart Items"
 msgstr ""
 
@@ -4408,7 +4396,7 @@ msgid "Categories"
 msgstr ""
 
 #: app/CPT/FluentProducts.php:277
-#: app/Services/Translations/admin-translation.php:306
+#: app/Services/Translations/admin-translation.php:305
 #: app/Services/Translations/block-editor-translation.php:69
 msgid "Category"
 msgstr ""
@@ -4437,7 +4425,7 @@ msgstr ""
 msgid "Cañar"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:307
+#: app/Services/Translations/admin-translation.php:306
 msgid "Cc:"
 msgstr ""
 
@@ -4532,7 +4520,7 @@ msgid "Chandpur"
 msgstr ""
 
 #: app/Services/Renderer/AddressSelectRenderer.php:104
-#: app/Services/Translations/admin-translation.php:308
+#: app/Services/Translations/admin-translation.php:307
 #: app/Services/Translations/block-editor-translation.php:71
 #: app/Hooks/Handlers/BlockEditors/Checkout/CheckoutBlockEditor.php:157
 msgid "Change"
@@ -4542,31 +4530,31 @@ msgstr ""
 msgid "Change Address"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:309
+#: app/Services/Translations/admin-translation.php:308
 msgid "Change Customer"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:317
+#: app/Services/Translations/admin-translation.php:316
 msgid "Change customer"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:310
+#: app/Services/Translations/admin-translation.php:309
 msgid "Change Customer Status"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:311
+#: app/Services/Translations/admin-translation.php:310
 msgid "Change Order Status"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:312
+#: app/Services/Translations/admin-translation.php:311
 msgid "Change Payment Status"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:313
+#: app/Services/Translations/admin-translation.php:312
 msgid "Change Plan"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:314
+#: app/Services/Translations/admin-translation.php:313
 msgid "Change Plan to"
 msgstr ""
 
@@ -4578,25 +4566,25 @@ msgstr ""
 msgid "Change Quantity"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:315
+#: app/Services/Translations/admin-translation.php:314
 msgid "Change Registration"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:316
+#: app/Services/Translations/admin-translation.php:315
 msgid "Change Shipping Status"
 msgstr ""
 
 #. %s: theme name
-#: app/Services/Translations/admin-translation.php:319
+#: app/Services/Translations/admin-translation.php:318
 #, php-format
 msgid "Change theme to %s"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:320
+#: app/Services/Translations/admin-translation.php:319
 msgid "Changelog Description"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:321
+#: app/Services/Translations/admin-translation.php:320
 msgid "Changelog Page URL"
 msgstr ""
 
@@ -4608,11 +4596,11 @@ msgstr ""
 msgid "Charge"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:322
+#: app/Services/Translations/admin-translation.php:321
 msgid "Charge per item"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:323
+#: app/Services/Translations/admin-translation.php:322
 msgid "Charge per item in the cart."
 msgstr ""
 
@@ -4620,7 +4608,7 @@ msgstr ""
 msgid "Chattogram"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:324
+#: app/Services/Translations/admin-translation.php:323
 msgid "Check Global Integration Settings"
 msgstr ""
 
@@ -4632,7 +4620,7 @@ msgstr ""
 msgid "Check Storage Settings"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:326
+#: app/Services/Translations/admin-translation.php:325
 msgid ""
 "Check this box if you want the Cost to be multiplied by the quantity of "
 "items in the cart that belong to this shipping class. For example, if the "
@@ -4642,7 +4630,7 @@ msgid ""
 "this class"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:325
+#: app/Services/Translations/admin-translation.php:324
 msgid "Check Update"
 msgstr ""
 
@@ -4666,12 +4654,12 @@ msgstr ""
 msgid "Checkbox Text Color"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:327
+#: app/Services/Translations/admin-translation.php:326
 msgid ""
 "Checked means the coupon code will be displayed on the checkout to the users"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:328
+#: app/Services/Translations/admin-translation.php:327
 msgid "Checking..."
 msgstr ""
 
@@ -4681,7 +4669,7 @@ msgstr ""
 
 #: api/StoreSettings.php:44 api/StoreSettings.php:700 api/StoreSettings.php:710
 #: app/Services/Renderer/ModalCheckoutRenderer.php:108
-#: app/Services/Translations/admin-translation.php:329
+#: app/Services/Translations/admin-translation.php:328
 #: app/Http/Routes/WebRoutes.php:324
 msgid "Checkout"
 msgstr ""
@@ -4706,7 +4694,7 @@ msgstr ""
 msgid "Checkout Currency"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:330
+#: app/Services/Translations/admin-translation.php:329
 msgid "Checkout Customization"
 msgstr ""
 
@@ -4714,7 +4702,7 @@ msgstr ""
 msgid "Checkout design settings saved"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:331
+#: app/Services/Translations/admin-translation.php:330
 msgid "Checkout Fields"
 msgstr ""
 
@@ -4727,20 +4715,20 @@ msgstr ""
 msgid "Checkout Form"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:332
+#: app/Services/Translations/admin-translation.php:331
 msgid "Checkout Instructions"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:333
+#: app/Services/Translations/admin-translation.php:332
 msgid ""
 "Checkout Instructions will be displayed on the checkout page gateway section."
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:334
+#: app/Services/Translations/admin-translation.php:333
 msgid "Checkout Label"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:335
+#: app/Services/Translations/admin-translation.php:334
 msgid "Checkout Logo"
 msgstr ""
 
@@ -4911,7 +4899,7 @@ msgid ""
 "mode)"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:336
+#: app/Services/Translations/admin-translation.php:335
 msgid "Choose File"
 msgstr ""
 
@@ -4919,23 +4907,23 @@ msgstr ""
 msgid "Choose from fast & secure online and offline payment."
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:337
+#: app/Services/Translations/admin-translation.php:336
 msgid "Choose how to round tax calculations."
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:338
+#: app/Services/Translations/admin-translation.php:337
 msgid "Choose how you collect VAT in the EU"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:339
+#: app/Services/Translations/admin-translation.php:338
 msgid "Choose variant"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:340
+#: app/Services/Translations/admin-translation.php:339
 msgid "Choose whether product prices are entered including or excluding tax."
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:341
+#: app/Services/Translations/admin-translation.php:340
 msgid ""
 "Choosing the Type will impact your order status change flow upon successful "
 "payment. For physical items, the status changes from On-Hold to Processing, "
@@ -4970,15 +4958,15 @@ msgstr ""
 msgid "Chuquisaca"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:342
+#: app/Services/Translations/admin-translation.php:341
 msgid "Churn Analytics"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:343
+#: app/Services/Translations/admin-translation.php:342
 msgid "Churn Rate"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:344
+#: app/Services/Translations/admin-translation.php:343
 msgid "Churn Rates Over Time"
 msgstr ""
 
@@ -5006,7 +4994,7 @@ msgstr ""
 #: app/Helpers/EditorShortCodeHelper.php:141
 #: app/Services/Renderer/CheckoutFieldsSchema.php:491
 #: app/Services/Renderer/CheckoutFieldsSchema.php:533
-#: app/Services/Translations/admin-translation.php:345
+#: app/Services/Translations/admin-translation.php:344
 msgid "City"
 msgstr ""
 
@@ -5022,7 +5010,7 @@ msgstr ""
 msgid "City field is required."
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:346
+#: app/Services/Translations/admin-translation.php:345
 #: app/Services/Translations/customer-profile-translation.php:50
 msgid "City/Town"
 msgstr ""
@@ -5047,19 +5035,19 @@ msgstr ""
 msgid "Clarendon"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:347
+#: app/Services/Translations/admin-translation.php:346
 msgid "Class Aggregation"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:348
+#: app/Services/Translations/admin-translation.php:347
 msgid "Class Details"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:349
+#: app/Services/Translations/admin-translation.php:348
 msgid "Class Name"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:350
+#: app/Services/Translations/admin-translation.php:349
 msgid "Classic Editor"
 msgstr ""
 
@@ -5069,7 +5057,7 @@ msgstr ""
 msgid "Clear"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:351
+#: app/Services/Translations/admin-translation.php:350
 msgid "Clear and Add Products"
 msgstr ""
 
@@ -5080,19 +5068,19 @@ msgstr ""
 msgid "Clear search"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:352
+#: app/Services/Translations/admin-translation.php:351
 msgid "Click Generate Snapshots above to view cohort data."
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:354
+#: app/Services/Translations/admin-translation.php:353
 msgid "Click here"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:353
+#: app/Services/Translations/admin-translation.php:352
 msgid "Click Here to Renew your License"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:355
+#: app/Services/Translations/admin-translation.php:354
 msgid "Click to try"
 msgstr ""
 
@@ -5101,7 +5089,7 @@ msgid "Client ID and API Key are required"
 msgstr ""
 
 #: app/Services/Renderer/AddressSelectRenderer.php:120
-#: app/Services/Translations/admin-translation.php:356
+#: app/Services/Translations/admin-translation.php:355
 msgid "Close"
 msgstr ""
 
@@ -5171,7 +5159,7 @@ msgstr ""
 msgid "Cocos (Keeling) Islands"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:357
+#: app/Services/Translations/admin-translation.php:356
 msgid "Code"
 msgstr ""
 
@@ -5179,7 +5167,7 @@ msgstr ""
 msgid "Code is required."
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:358
+#: app/Services/Translations/admin-translation.php:357
 msgid "Cohorts"
 msgstr ""
 
@@ -5195,31 +5183,31 @@ msgstr ""
 msgid "Collapsed"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:359
+#: app/Services/Translations/admin-translation.php:358
 msgid "Collect Payments"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:360
+#: app/Services/Translations/admin-translation.php:359
 msgid "Collect specific country rate"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:361
+#: app/Services/Translations/admin-translation.php:360
 msgid "Collect using a One Stop Shop (OSS) registration"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:362
+#: app/Services/Translations/admin-translation.php:361
 msgid "Collect using your home country registration"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:363
+#: app/Services/Translations/admin-translation.php:362
 msgid "Collecting in 27 regions"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:364
+#: app/Services/Translations/admin-translation.php:363
 msgid "Collection"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:365
+#: app/Services/Translations/admin-translation.php:364
 msgid "Collection Method"
 msgstr ""
 
@@ -5255,7 +5243,7 @@ msgstr ""
 msgid "Column gap"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:366
+#: app/Services/Translations/admin-translation.php:365
 #: app/Services/Translations/block-editor-translation.php:83
 #: app/Modules/Templating/Bricks/Elements/ProductsCollection.php:59
 msgid "Columns"
@@ -5270,11 +5258,11 @@ msgstr ""
 msgid "Comayagua"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:367
+#: app/Services/Translations/admin-translation.php:366
 msgid "Combine multiple items into one package"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:368
+#: app/Services/Translations/admin-translation.php:367
 msgid "Combined Cost"
 msgstr ""
 
@@ -5284,11 +5272,11 @@ msgstr ""
 msgid "Combiner \"%s\" not supported."
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:369
+#: app/Services/Translations/admin-translation.php:368
 msgid "Coming Soon"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:370
+#: app/Services/Translations/admin-translation.php:369
 msgid "Coming Soon!"
 msgstr ""
 
@@ -5296,11 +5284,11 @@ msgstr ""
 msgid "Comma & Dot (eg 10,000.00)"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:371
+#: app/Services/Translations/admin-translation.php:370
 msgid "Comment"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:372
+#: app/Services/Translations/admin-translation.php:371
 msgid "Comment Status"
 msgstr ""
 
@@ -5321,7 +5309,7 @@ msgid "Comoros"
 msgstr ""
 
 #: app/Services/Renderer/CheckoutFieldsSchema.php:464
-#: app/Services/Translations/admin-translation.php:373
+#: app/Services/Translations/admin-translation.php:372
 msgid "Company"
 msgstr ""
 
@@ -5329,7 +5317,7 @@ msgstr ""
 #: app/Services/Renderer/CheckoutFieldsSchema.php:22
 #: app/Services/Renderer/AddressSelectRenderer.php:251
 #: app/Services/Renderer/AddressSelectRenderer.php:255
-#: app/Services/Translations/admin-translation.php:374
+#: app/Services/Translations/admin-translation.php:373
 #: app/Services/Translations/customer-profile-translation.php:52
 #: app/Services/Translations/block-editor-translation.php:84
 msgid "Company Name"
@@ -5340,7 +5328,7 @@ msgstr ""
 msgid "Company name"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:378
+#: app/Services/Translations/admin-translation.php:377
 msgid "Compare at price"
 msgstr ""
 
@@ -5350,11 +5338,11 @@ msgstr ""
 msgid "Compare at: %1$s%2$s"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:375
+#: app/Services/Translations/admin-translation.php:374
 msgid "Compare Price"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:379
+#: app/Services/Translations/admin-translation.php:378
 msgid "Compare price"
 msgstr ""
 
@@ -5368,57 +5356,57 @@ msgstr ""
 msgid "Compare price must be greater than or equal to item price."
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:376
+#: app/Services/Translations/admin-translation.php:375
 msgid "Compare Range"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:377
+#: app/Services/Translations/admin-translation.php:376
 msgid "Compare Revenue"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:380
+#: app/Services/Translations/admin-translation.php:379
 msgid "Compare to"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:381
+#: app/Services/Translations/admin-translation.php:380
 msgid "Compare-at Price"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:382
+#: app/Services/Translations/admin-translation.php:381
 msgid "Compared to the previous 30 days"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:383
+#: app/Services/Translations/admin-translation.php:382
 msgid "Compared to the previous 7 days"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:384
+#: app/Services/Translations/admin-translation.php:383
 msgid "Compared to the previous Month"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:385
+#: app/Services/Translations/admin-translation.php:384
 msgid "Compared to yesterday"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:386
+#: app/Services/Translations/admin-translation.php:385
 #, php-format
 msgid "Comparing %s with %s"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:387
+#: app/Services/Translations/admin-translation.php:386
 msgid "Comparison"
 msgstr ""
 
 #: app/Helpers/Status.php:161 app/Helpers/Status.php:173
 #: app/Helpers/Status.php:264 app/Helpers/Helper.php:143
 #: app/Helpers/Helper.php:154 app/Services/Filter/OrderFilter.php:226
-#: app/Services/Translations/admin-translation.php:388
+#: app/Services/Translations/admin-translation.php:387
 #: app/Services/Translations/customer-profile-translation.php:53
 #: app/Services/Translations/block-editor-translation.php:86
 msgid "Completed"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:389
+#: app/Services/Translations/admin-translation.php:388
 msgid "Completed (EOT)"
 msgstr ""
 
@@ -5430,7 +5418,7 @@ msgstr ""
 msgid "Compostela Valley"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:390
+#: app/Services/Translations/admin-translation.php:389
 #: app/Modules/Tax/TaxModule.php:168
 msgid "Compound"
 msgstr ""
@@ -5439,11 +5427,11 @@ msgstr ""
 msgid "Concepción"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:391
+#: app/Services/Translations/admin-translation.php:390
 msgid "Condition Value"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:392
+#: app/Services/Translations/admin-translation.php:391
 msgid "Conditions"
 msgstr ""
 
@@ -5451,7 +5439,7 @@ msgstr ""
 msgid "Config Keys Copied To Clipboard"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:393
+#: app/Services/Translations/admin-translation.php:392
 msgid "Configuration & Classes"
 msgstr ""
 
@@ -5459,34 +5447,34 @@ msgstr ""
 msgid "Configuration Error"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:394
+#: app/Services/Translations/admin-translation.php:393
 msgid "Configure Countries"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:395
+#: app/Services/Translations/admin-translation.php:394
 msgid "Configure EU VAT Settings"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:396
+#: app/Services/Translations/admin-translation.php:395
 msgid "Configure Modules"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:397
+#: app/Services/Translations/admin-translation.php:396
 msgid "Configure Rate"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:398
+#: app/Services/Translations/admin-translation.php:397
 msgid "Configure VAT handling for customers in the European Union."
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:399
+#: app/Services/Translations/admin-translation.php:398
 msgid ""
 "Configure your integrations and extend FluentCart to enhance your store's "
 "functionality."
 msgstr ""
 
 #: app/Services/Translations/TransStrings.php:258
-#: app/Services/Translations/admin-translation.php:400
+#: app/Services/Translations/admin-translation.php:399
 #: app/Services/Translations/customer-profile-translation.php:54
 msgid "Confirm"
 msgstr ""
@@ -5498,15 +5486,15 @@ msgid ""
 msgstr ""
 
 #. %s - product title
-#: app/Services/Translations/admin-translation.php:402
+#: app/Services/Translations/admin-translation.php:401
 msgid "Confirm Delete!"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:403
+#: app/Services/Translations/admin-translation.php:402
 msgid "Confirm Deleting"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:404
+#: app/Services/Translations/admin-translation.php:403
 msgid "Confirm!"
 msgstr ""
 
@@ -5526,15 +5514,15 @@ msgstr ""
 msgid "Congolese Franc"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:405
+#: app/Services/Translations/admin-translation.php:404
 msgid "Congratulations"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:406
+#: app/Services/Translations/admin-translation.php:405
 msgid "Congratulations!"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:407
+#: app/Services/Translations/admin-translation.php:406
 msgid "Congratulations! Your license key is valid and activated"
 msgstr ""
 
@@ -5553,13 +5541,13 @@ msgid ""
 msgstr ""
 
 #. %s: payment method name
-#: app/Services/Translations/admin-translation.php:411
+#: app/Services/Translations/admin-translation.php:410
 #, php-format
 msgid "Connect with %s"
 msgstr ""
 
 #. %s: payment method name
-#: app/Services/Translations/admin-translation.php:409
+#: app/Services/Translations/admin-translation.php:408
 #, php-format
 msgid "Connect Your %s Account to your website to accept Payments"
 msgstr ""
@@ -5592,7 +5580,7 @@ msgstr ""
 msgid "Contact ID: "
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:412
+#: app/Services/Translations/admin-translation.php:411
 msgid "Contact Information"
 msgstr ""
 
@@ -5606,12 +5594,12 @@ msgstr ""
 msgid "Contains the block elements used to render a product."
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:413
+#: app/Services/Translations/admin-translation.php:412
 msgid "Content"
 msgstr ""
 
 #: app/Services/Translations/TransStrings.php:249
-#: app/Services/Translations/admin-translation.php:414
+#: app/Services/Translations/admin-translation.php:413
 msgid "Continue"
 msgstr ""
 
@@ -5619,7 +5607,7 @@ msgstr ""
 msgid "Continue Shopping"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:415
+#: app/Services/Translations/admin-translation.php:414
 msgid ""
 "Control available upgrade options and offer tailored discounts when moving "
 "between plans."
@@ -5633,11 +5621,11 @@ msgstr ""
 msgid "Cook Islands"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:416
+#: app/Services/Translations/admin-translation.php:415
 msgid "Copied to clipboard"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:417
+#: app/Services/Translations/admin-translation.php:416
 msgid "Copied!"
 msgstr ""
 
@@ -5645,28 +5633,28 @@ msgstr ""
 msgid "Copperbelt"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:418
+#: app/Services/Translations/admin-translation.php:417
 #: app/Services/Translations/customer-profile-translation.php:56
 msgid "Copy"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:424
+#: app/Services/Translations/admin-translation.php:423
 msgid "Copy address"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:419
+#: app/Services/Translations/admin-translation.php:418
 msgid "Copy Direct Checkout Link"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:425
+#: app/Services/Translations/admin-translation.php:424
 msgid "Copy discount code"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:420
+#: app/Services/Translations/admin-translation.php:419
 msgid "Copy Download Link"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:426
+#: app/Services/Translations/admin-translation.php:425
 msgid "Copy email"
 msgstr ""
 
@@ -5674,7 +5662,7 @@ msgstr ""
 msgid "Copy Key"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:421
+#: app/Services/Translations/admin-translation.php:420
 msgid "Copy License"
 msgstr ""
 
@@ -5682,11 +5670,11 @@ msgstr ""
 msgid "Copy license key to clipboard"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:422
+#: app/Services/Translations/admin-translation.php:421
 msgid "Copy Link"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:427
+#: app/Services/Translations/admin-translation.php:426
 msgid "Copy to Billing"
 msgstr ""
 
@@ -5694,11 +5682,11 @@ msgstr ""
 msgid "Copy to clipboard"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:428
+#: app/Services/Translations/admin-translation.php:427
 msgid "Copy to Shipping"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:423
+#: app/Services/Translations/admin-translation.php:422
 msgid "Copy Variation ID"
 msgstr ""
 
@@ -5730,24 +5718,24 @@ msgstr ""
 msgid "Cosenza"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:429
+#: app/Services/Translations/admin-translation.php:428
 msgid "Cost"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:431
+#: app/Services/Translations/admin-translation.php:430
 msgid "Cost of the highest class among all the classes."
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:432
+#: app/Services/Translations/admin-translation.php:431
 msgid "Cost per item"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:430
+#: app/Services/Translations/admin-translation.php:429
 msgid "Cost Type"
 msgstr ""
 
 #. %s is the cost of the shipping class
-#: app/Services/Translations/admin-translation.php:434
+#: app/Services/Translations/admin-translation.php:433
 #, php-format
 msgid "Cost: %s"
 msgstr ""
@@ -5780,10 +5768,6 @@ msgstr ""
 msgid "Could not confirm subscription switch"
 msgstr ""
 
-#: app/Services/PluginInstaller/AddonManager.php:369
-msgid "Could not delete old plugin version."
-msgstr ""
-
 #: app/Http/Controllers/FrontendControllers/CustomerSubscriptionController.php:229
 msgid "Could not get or create plan"
 msgstr ""
@@ -5804,11 +5788,11 @@ msgstr ""
 msgid "Could not update payment method"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:435
+#: app/Services/Translations/admin-translation.php:434
 msgid "Count"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:436
+#: app/Services/Translations/admin-translation.php:435
 msgid "Countries"
 msgstr ""
 
@@ -5821,7 +5805,7 @@ msgstr ""
 #: app/Services/Filter/TaxFilter.php:77
 #: app/Services/Renderer/CheckoutFieldsSchema.php:471
 #: app/Services/Renderer/CheckoutFieldsSchema.php:513
-#: app/Services/Translations/admin-translation.php:437
+#: app/Services/Translations/admin-translation.php:436
 msgid "Country"
 msgstr ""
 
@@ -5859,15 +5843,15 @@ msgstr ""
 msgid "Country is required."
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:439
+#: app/Services/Translations/admin-translation.php:438
 msgid "Country of OSS registration *"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:440
+#: app/Services/Translations/admin-translation.php:439
 msgid "Country of registration *"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:438
+#: app/Services/Translations/admin-translation.php:437
 msgid "Country Rates"
 msgstr ""
 
@@ -5900,7 +5884,7 @@ msgstr ""
 msgid "Coupon \"%1$s\" updated by %2$s"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:442
+#: app/Services/Translations/admin-translation.php:441
 #: app/Services/Coupon/Concerns/CanValidateCoupon.php:44
 msgid "Coupon already applied"
 msgstr ""
@@ -5914,7 +5898,7 @@ msgstr ""
 msgid "Coupon cannot be applied"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:443
+#: app/Services/Translations/admin-translation.php:442
 msgid "Coupon code"
 msgstr ""
 
@@ -5966,7 +5950,7 @@ msgstr ""
 msgid "Coupon not found, please reload the page and try again!"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:441
+#: app/Services/Translations/admin-translation.php:440
 msgid "Coupon Priority"
 msgstr ""
 
@@ -6000,7 +5984,7 @@ msgid "Coupon Uses Limit Exceeded"
 msgstr ""
 
 #: app/Helpers/AdminHelper.php:132
-#: app/Services/Translations/admin-translation.php:444
+#: app/Services/Translations/admin-translation.php:443
 #: app/Hooks/Handlers/MenuHandler.php:247
 msgid "Coupons"
 msgstr ""
@@ -6009,7 +5993,7 @@ msgstr ""
 msgid "coupons"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:445
+#: app/Services/Translations/admin-translation.php:444
 msgid ""
 "Coupons will be calculated based on their priority. The lower the number the "
 "higher the priority is."
@@ -6023,17 +6007,17 @@ msgstr ""
 msgid "Cox's Bazar"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:446
+#: app/Services/Translations/admin-translation.php:445
 msgid "Create"
 msgstr ""
 
 #. %s - page name
-#: app/Services/Translations/admin-translation.php:448
+#: app/Services/Translations/admin-translation.php:447
 #, php-format
 msgid "Create %s Page"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:449
+#: app/Services/Translations/admin-translation.php:448
 msgid "Create & Attach Customer"
 msgstr ""
 
@@ -6041,7 +6025,7 @@ msgstr ""
 msgid "Create / Update WP User with Custom Roles on order events"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:457
+#: app/Services/Translations/admin-translation.php:456
 msgid "Create a custom checkout page to generate custom links."
 msgstr ""
 
@@ -6070,15 +6054,15 @@ msgstr ""
 msgid "Create an account?"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:458
+#: app/Services/Translations/admin-translation.php:457
 msgid "Create as wordpress user"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:450
+#: app/Services/Translations/admin-translation.php:449
 msgid "Create Customer"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:451
+#: app/Services/Translations/admin-translation.php:450
 msgid "Create Dummy Product"
 msgstr ""
 
@@ -6091,19 +6075,19 @@ msgstr ""
 msgid "Create my user account"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:452
+#: app/Services/Translations/admin-translation.php:451
 msgid "Create New Customer"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:453
+#: app/Services/Translations/admin-translation.php:452
 msgid "Create New Order Bump"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:459
+#: app/Services/Translations/admin-translation.php:458
 msgid "Create new transaction & link"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:454
+#: app/Services/Translations/admin-translation.php:453
 msgid "Create Order"
 msgstr ""
 
@@ -6111,12 +6095,12 @@ msgstr ""
 msgid "Create Orders"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:455
+#: app/Services/Translations/admin-translation.php:454
 msgid "Create Page"
 msgstr ""
 
 #: app/Services/Permission/PermissionManager.php:185
-#: app/Services/Translations/admin-translation.php:456
+#: app/Services/Translations/admin-translation.php:455
 msgid "Create Products"
 msgstr ""
 
@@ -6125,12 +6109,12 @@ msgid ""
 "Create User Account Automatically after payment\n"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:460
+#: app/Services/Translations/admin-translation.php:459
 #: app/Modules/Subscriptions/Services/Filter/SubscriptionFilter.php:166
 msgid "Created At"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:461
+#: app/Services/Translations/admin-translation.php:460
 msgid "Created at"
 msgstr ""
 
@@ -6139,7 +6123,7 @@ msgstr ""
 msgid "Created successfully!"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:462
+#: app/Services/Translations/admin-translation.php:461
 msgid "Creating"
 msgstr ""
 
@@ -6257,7 +6241,7 @@ msgid "Cura&ccedil;ao"
 msgstr ""
 
 #: app/Helpers/EditorShortCodeHelper.php:180
-#: app/Services/Translations/admin-translation.php:463
+#: app/Services/Translations/admin-translation.php:462
 msgid "Currency"
 msgstr ""
 
@@ -6265,7 +6249,7 @@ msgstr ""
 msgid "Currency Formatting"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:464
+#: app/Services/Translations/admin-translation.php:463
 msgid "Current"
 msgstr ""
 
@@ -6273,7 +6257,7 @@ msgstr ""
 msgid "current color is {color}. press enter to select a new color."
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:465
+#: app/Services/Translations/admin-translation.php:464
 msgid "Current Plan"
 msgstr ""
 
@@ -6282,11 +6266,11 @@ msgstr ""
 msgid "Current price"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:466
+#: app/Services/Translations/admin-translation.php:465
 msgid "Current Range"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:467
+#: app/Services/Translations/admin-translation.php:466
 msgid "Current Revenue"
 msgstr ""
 
@@ -6295,20 +6279,20 @@ msgid "Current Tab"
 msgstr ""
 
 #. %s is the order number
-#: app/Services/Translations/admin-translation.php:469
+#: app/Services/Translations/admin-translation.php:468
 #, php-format
 msgid "Currently processing: %s"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:470
+#: app/Services/Translations/admin-translation.php:469
 msgid "Currently there is no data!"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:471
+#: app/Services/Translations/admin-translation.php:470
 msgid "Currently there is no failed order!"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:472
+#: app/Services/Translations/admin-translation.php:471
 msgid "Currently there is no item!"
 msgstr ""
 
@@ -6320,16 +6304,16 @@ msgstr ""
 msgid "Cusco"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:473
+#: app/Services/Translations/admin-translation.php:472
 #: app/Services/Translations/block-editor-translation.php:95
 msgid "Custom"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:474
+#: app/Services/Translations/admin-translation.php:473
 msgid "Custom Payment Link"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:475
+#: app/Services/Translations/admin-translation.php:474
 msgid "Custom payment link"
 msgstr ""
 
@@ -6343,7 +6327,7 @@ msgstr ""
 msgid "Custom Width"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:476
+#: app/Services/Translations/admin-translation.php:475
 msgid "Customer"
 msgstr ""
 
@@ -6372,11 +6356,11 @@ msgstr ""
 msgid "Customer already exists."
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:477
+#: app/Services/Translations/admin-translation.php:476
 msgid "Customer Billing Address"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:491
+#: app/Services/Translations/admin-translation.php:490
 msgid "Customer can see this reason"
 msgstr ""
 
@@ -6394,7 +6378,7 @@ msgstr ""
 msgid "Customer changed successfully"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:478
+#: app/Services/Translations/admin-translation.php:477
 msgid "Customer Count"
 msgstr ""
 
@@ -6425,7 +6409,7 @@ msgstr ""
 msgid "Customer Dashboard Navigation"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:479
+#: app/Services/Translations/admin-translation.php:478
 msgid "Customer Details"
 msgstr ""
 
@@ -6443,11 +6427,11 @@ msgstr ""
 msgid "Customer first name"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:480
+#: app/Services/Translations/admin-translation.php:479
 msgid "Customer Growth"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:481
+#: app/Services/Translations/admin-translation.php:480
 msgid "Customer ID"
 msgstr ""
 
@@ -6470,11 +6454,11 @@ msgstr ""
 msgid "Customer Info"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:482
+#: app/Services/Translations/admin-translation.php:481
 msgid "Customer Information"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:483
+#: app/Services/Translations/admin-translation.php:482
 msgid "Customer Informations"
 msgstr ""
 
@@ -6493,11 +6477,11 @@ msgstr ""
 
 #: app/Services/Filter/CustomerFilter.php:114
 #: app/Services/Filter/OrderFilter.php:313
-#: app/Services/Translations/admin-translation.php:484
+#: app/Services/Translations/admin-translation.php:483
 msgid "Customer Name"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:485
+#: app/Services/Translations/admin-translation.php:484
 msgid "Customer Not Found"
 msgstr ""
 
@@ -6526,7 +6510,7 @@ msgstr ""
 msgid "Customer order history"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:486
+#: app/Services/Translations/admin-translation.php:485
 msgid "Customer Profile"
 msgstr ""
 
@@ -6545,7 +6529,7 @@ msgstr ""
 msgid "Customer Property"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:492
+#: app/Services/Translations/admin-translation.php:491
 msgid "Customer request"
 msgstr ""
 
@@ -6553,19 +6537,19 @@ msgstr ""
 msgid "Customer selection is required"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:487
+#: app/Services/Translations/admin-translation.php:486
 msgid "Customer Shipping Address"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:488
+#: app/Services/Translations/admin-translation.php:487
 msgid "Customer Since"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:489
+#: app/Services/Translations/admin-translation.php:488
 msgid "Customer Since:"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:490
+#: app/Services/Translations/admin-translation.php:489
 msgid "Customer Status"
 msgstr ""
 
@@ -6591,13 +6575,13 @@ msgid "Customer's Details:"
 msgstr ""
 
 #. %s is the customer name
-#: app/Services/Translations/admin-translation.php:494
+#: app/Services/Translations/admin-translation.php:493
 #, php-format
 msgid "Customer: %s"
 msgstr ""
 
 #: app/Helpers/AdminHelper.php:91
-#: app/Services/Translations/admin-translation.php:495
+#: app/Services/Translations/admin-translation.php:494
 #: app/Hooks/Handlers/MenuHandler.php:197
 msgid "Customers"
 msgstr ""
@@ -6606,7 +6590,7 @@ msgstr ""
 msgid "customers"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:496
+#: app/Services/Translations/admin-translation.php:495
 msgid "Customers must enter this code at checkout."
 msgstr ""
 
@@ -6615,7 +6599,7 @@ msgstr ""
 msgid "Customers selection is required"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:497
+#: app/Services/Translations/admin-translation.php:496
 msgid "Customers that first ordered "
 msgstr ""
 
@@ -6623,16 +6607,16 @@ msgstr ""
 msgid "Customers to find what they're looking for by organising."
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:498
+#: app/Services/Translations/admin-translation.php:497
 msgid "Customers won't see this"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:499
+#: app/Services/Translations/admin-translation.php:498
 msgid "Customization"
 msgstr ""
 
 #. %s is the URL
-#: app/Services/Translations/admin-translation.php:501
+#: app/Services/Translations/admin-translation.php:500
 #, php-format
 msgid ""
 "Customize the product's URL ending. Remember, this will affect SEO and "
@@ -6647,7 +6631,7 @@ msgid ""
 "FluentSecurity integration."
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:502
+#: app/Services/Translations/admin-translation.php:501
 msgid "Customized Body"
 msgstr ""
 
@@ -6718,7 +6702,7 @@ msgstr ""
 msgid "Daily"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:503
+#: app/Services/Translations/admin-translation.php:502
 msgid "Daily Signups"
 msgstr ""
 
@@ -6758,12 +6742,12 @@ msgstr ""
 msgid "Darién"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:504
+#: app/Services/Translations/admin-translation.php:503
 msgid "Dark"
 msgstr ""
 
 #: app/Helpers/AdminHelper.php:82
-#: app/Services/Translations/admin-translation.php:505
+#: app/Services/Translations/admin-translation.php:504
 #: app/Services/Translations/customer-profile-translation.php:69
 #: app/Services/Translations/block-editor-translation.php:98
 #: app/Hooks/Handlers/MenuHandler.php:177
@@ -6771,7 +6755,7 @@ msgstr ""
 msgid "Dashboard"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:506
+#: app/Services/Translations/admin-translation.php:505
 msgid "Data"
 msgstr ""
 
@@ -6781,7 +6765,7 @@ msgstr ""
 msgid "Data saved successfully"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:507
+#: app/Services/Translations/admin-translation.php:506
 #: app/Services/Translations/customer-profile-translation.php:70
 #: app/Services/Translations/block-editor-translation.php:99
 #: app/Views/invoice/receipt_slip.php:433
@@ -6797,7 +6781,7 @@ msgstr ""
 msgid "Date (Oldest First)"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:508
+#: app/Services/Translations/admin-translation.php:507
 #: app/Views/invoice/invoice_template.php:57
 #: app/Views/invoice/dispatch_slip.php:48
 #: app/Views/invoice/dispatch_slip.php:160
@@ -6832,15 +6816,15 @@ msgstr[1] ""
 msgid "Daykundi"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:509
+#: app/Services/Translations/admin-translation.php:508
 msgid "Days"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:510
+#: app/Services/Translations/admin-translation.php:509
 msgid "Days before"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:511
+#: app/Services/Translations/admin-translation.php:510
 msgid "Days of the week"
 msgstr ""
 
@@ -6857,7 +6841,7 @@ msgid "decrease number"
 msgstr ""
 
 #. %s - YoY growth percentage
-#: app/Services/Translations/admin-translation.php:513
+#: app/Services/Translations/admin-translation.php:512
 #, php-format
 msgid "Decrease of %s year-over-year"
 msgstr ""
@@ -6869,14 +6853,14 @@ msgstr ""
 msgid "Decrease Quantity"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:514
+#: app/Services/Translations/admin-translation.php:513
 #: app/Services/Translations/customer-profile-translation.php:71
 #: app/Services/Translations/block-editor-translation.php:100
 #: app/Modules/Templating/Bricks/Elements/ProductsCollection.php:110
 msgid "Default"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:515
+#: app/Services/Translations/admin-translation.php:514
 msgid "Default Body"
 msgstr ""
 
@@ -6888,11 +6872,11 @@ msgstr ""
 msgid "Default tax class for most products."
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:516
+#: app/Services/Translations/admin-translation.php:515
 msgid "Default Variant"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:517
+#: app/Services/Translations/admin-translation.php:516
 msgid "Define categories to group products with similar tax treatment."
 msgstr ""
 
@@ -6900,11 +6884,11 @@ msgstr ""
 msgid "Defines how product variations are visually presented to customers."
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:518
+#: app/Services/Translations/admin-translation.php:517
 msgid "Defines the action that initiates the workflow or process."
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:519
+#: app/Services/Translations/admin-translation.php:518
 msgid ""
 "Defines the structure and method used to send data in the webhook request."
 msgstr ""
@@ -6914,7 +6898,7 @@ msgid "Delaware"
 msgstr ""
 
 #: app/Services/Translations/TransStrings.php:247
-#: app/Services/Translations/admin-translation.php:520
+#: app/Services/Translations/admin-translation.php:519
 #: app/Services/Translations/customer-profile-translation.php:72
 #: app/Services/Translations/block-editor-translation.php:102
 msgid "Delete"
@@ -6924,7 +6908,7 @@ msgstr ""
 msgid "Delete activation for site"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:521
+#: app/Services/Translations/admin-translation.php:520
 msgid "Delete Activity"
 msgstr ""
 
@@ -6944,7 +6928,7 @@ msgstr ""
 msgid "Delete Labels"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:522
+#: app/Services/Translations/admin-translation.php:521
 msgid "Delete License"
 msgstr ""
 
@@ -6952,11 +6936,11 @@ msgstr ""
 msgid "Delete Licenses"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:525
+#: app/Services/Translations/admin-translation.php:524
 msgid "Delete media"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:526
+#: app/Services/Translations/admin-translation.php:525
 msgid "Delete order"
 msgstr ""
 
@@ -6968,12 +6952,12 @@ msgstr ""
 msgid "Delete Products"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:527
+#: app/Services/Translations/admin-translation.php:526
 msgid "Delete selected"
 msgstr ""
 
 #. %s - number of selected orders
-#: app/Services/Translations/admin-translation.php:524
+#: app/Services/Translations/admin-translation.php:523
 #, php-format
 msgid "Delete Selected (%s)"
 msgstr ""
@@ -6982,21 +6966,21 @@ msgstr ""
 msgid "Delete Subscriptions"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:528
+#: app/Services/Translations/admin-translation.php:527
 msgid "Deleting Orders"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:529
+#: app/Services/Translations/admin-translation.php:528
 msgid ""
 "Deleting this asset will break the download link in existing purchase emails."
 " To update the file, edit the asset instead of deleting it."
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:530
+#: app/Services/Translations/admin-translation.php:529
 msgid "Deleting..."
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:531
+#: app/Services/Translations/admin-translation.php:530
 msgid "Deletion completed"
 msgstr ""
 
@@ -7006,11 +6990,11 @@ msgstr ""
 
 #: app/Helpers/Status.php:235 app/Helpers/Status.php:245
 #: app/Helpers/Helper.php:173 app/Helpers/Helper.php:183
-#: app/Services/Translations/admin-translation.php:532
+#: app/Services/Translations/admin-translation.php:531
 msgid "Delivered"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:533
+#: app/Services/Translations/admin-translation.php:532
 #: app/Http/Controllers/TemplateController.php:17
 msgid "Delivery Slip Template"
 msgstr ""
@@ -7046,19 +7030,19 @@ msgstr ""
 msgid "DESC"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:534
+#: app/Services/Translations/admin-translation.php:533
 #: app/Modules/Templating/Bricks/Elements/ProductsCollection.php:119
 #: app/Modules/Templating/Bricks/Elements/ProductsCollection.php:122
 msgid "Descending"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:535
+#: app/Services/Translations/admin-translation.php:534
 #: app/Views/invoice/receipt_slip.php:269
 #: app/Services/Renderer/Receipt/ReceiptRenderer.php:466
 msgid "Description"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:536
+#: app/Services/Translations/admin-translation.php:535
 msgid "Description ..."
 msgstr ""
 
@@ -7069,20 +7053,20 @@ msgid "Description may not be greater than 255 characters."
 msgstr ""
 
 #. %s is the description of the tax class
-#: app/Services/Translations/admin-translation.php:538
+#: app/Services/Translations/admin-translation.php:537
 #, php-format
 msgid "Description: %s"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:539
+#: app/Services/Translations/admin-translation.php:538
 msgid "Detach User"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:540
+#: app/Services/Translations/admin-translation.php:539
 msgid "Details"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:541
+#: app/Services/Translations/admin-translation.php:540
 msgid "Determine the location used for tax calculations."
 msgstr ""
 
@@ -7099,12 +7083,12 @@ msgid "Dibër"
 msgstr ""
 
 #: app/Helpers/Helper.php:588
-#: app/Services/Translations/admin-translation.php:542
+#: app/Services/Translations/admin-translation.php:541
 #: app/Modules/Templating/Bricks/Elements/ProductsCollection.php:141
 msgid "Digital"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:543
+#: app/Services/Translations/admin-translation.php:542
 msgid "Digital Product"
 msgstr ""
 
@@ -7124,11 +7108,11 @@ msgstr ""
 msgid "Direct Buy Button"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:544
+#: app/Services/Translations/admin-translation.php:543
 msgid "Direct Checkout"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:545
+#: app/Services/Translations/admin-translation.php:544
 msgid "Direct Checkout Button"
 msgstr ""
 
@@ -7136,18 +7120,18 @@ msgstr ""
 msgid "Direction"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:546
+#: app/Services/Translations/admin-translation.php:545
 msgid "Disable"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:547
+#: app/Services/Translations/admin-translation.php:546
 msgid "Disable Editing"
 msgstr ""
 
 #: app/Helpers/Helper.php:826 app/Services/Filter/LicenseFilter.php:176
 #: app/Services/Filter/OrderFilter.php:447
 #: app/Services/Filter/OrderBumpFilter.php:160
-#: app/Services/Translations/admin-translation.php:548
+#: app/Services/Translations/admin-translation.php:547
 #: app/Services/Translations/customer-profile-translation.php:74
 #: app/Modules/Subscriptions/Services/Filter/SubscriptionFilter.php:253
 msgid "Disabled"
@@ -7157,12 +7141,12 @@ msgstr ""
 msgid "disabled"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:549
+#: app/Services/Translations/admin-translation.php:548
 msgid "Discard"
 msgstr ""
 
 #. %s: payment method name
-#: app/Services/Translations/admin-translation.php:551
+#: app/Services/Translations/admin-translation.php:550
 #, php-format
 msgid "Disconnect %s"
 msgstr ""
@@ -7174,7 +7158,7 @@ msgid ""
 msgstr ""
 
 #: app/Services/Renderer/CartSummaryRender.php:217
-#: app/Services/Translations/admin-translation.php:552
+#: app/Services/Translations/admin-translation.php:551
 #: app/Views/invoice/thank_you.php:190 app/Views/invoice/receipt_slip.php:333
 #: app/Services/Renderer/Receipt/ReceiptRenderer.php:561
 #: app/Services/Renderer/Receipt/ThankYouRender.php:404
@@ -7183,7 +7167,7 @@ msgid "Discount"
 msgstr ""
 
 #. %s - discount percentage
-#: app/Services/Translations/admin-translation.php:554
+#: app/Services/Translations/admin-translation.php:553
 msgid "Discount Amount"
 msgstr ""
 
@@ -7191,38 +7175,38 @@ msgstr ""
 msgid "Discount amount is should be a number."
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:555
+#: app/Services/Translations/admin-translation.php:554
 msgid "Discount Details"
 msgstr ""
 
 #. %s - discount percentage
-#: app/Services/Translations/admin-translation.php:557
+#: app/Services/Translations/admin-translation.php:556
 msgid "Discount Percentage (%)"
 msgstr ""
 
 #. %s - order total amount
-#: app/Services/Translations/admin-translation.php:560
+#: app/Services/Translations/admin-translation.php:559
 #, php-format
 msgid "Discount should not exceed the full product price (%s)."
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:561
+#: app/Services/Translations/admin-translation.php:560
 msgid "Discount should not exceed the full product price (100%)."
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:562
+#: app/Services/Translations/admin-translation.php:561
 msgid "Discount type"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:558
+#: app/Services/Translations/admin-translation.php:557
 msgid "Discount Value"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:563
+#: app/Services/Translations/admin-translation.php:562
 msgid "Discount value"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:564
+#: app/Services/Translations/admin-translation.php:563
 #: app/Http/Controllers/TemplateController.php:19
 msgid "Dispatch Slip Template"
 msgstr ""
@@ -7247,7 +7231,7 @@ msgstr ""
 msgid "Display child categories nested under their parents."
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:565
+#: app/Services/Translations/admin-translation.php:564
 msgid "Display Conditions"
 msgstr ""
 
@@ -7301,7 +7285,7 @@ msgid "Displays Single FluentCart Product."
 msgstr ""
 
 #: app/Services/Filter/OrderFilter.php:379
-#: app/Services/Translations/admin-translation.php:566
+#: app/Services/Translations/admin-translation.php:565
 #: app/Services/Translations/customer-profile-translation.php:75
 msgid "Dispute"
 msgstr ""
@@ -7537,11 +7521,11 @@ msgstr ""
 msgid "Dodoma"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:567
+#: app/Services/Translations/admin-translation.php:566
 msgid "Doesn't equal"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:568
+#: app/Services/Translations/admin-translation.php:567
 msgid "Doesn't includes"
 msgstr ""
 
@@ -7565,11 +7549,11 @@ msgstr ""
 msgid "Dominican Republic"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:569
+#: app/Services/Translations/admin-translation.php:568
 msgid "Don't Forget to Save Your Tax File"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:570
+#: app/Services/Translations/admin-translation.php:569
 msgid "Don't have a license key?"
 msgstr ""
 
@@ -7577,7 +7561,7 @@ msgstr ""
 msgid "Dondușeni"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:571
+#: app/Services/Translations/admin-translation.php:570
 msgid "Done"
 msgstr ""
 
@@ -7604,16 +7588,20 @@ msgstr ""
 msgid "Download"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:572
+#: app/Services/Translations/admin-translation.php:571
 msgid "Download & Continue"
 msgstr ""
 
-#: app/Services/Translations/admin-translation.php:573
+#: app/Services/Translations/admin-translation.php:572
 msgid "Download Again"
 msgstr ""
 
 #: app/Helpers/CustomerHelper.php:159
 msgid "Download date has been expired"
+msgstr ""
+
+#: app/Services/Translations/admin-translation.php:573
+msgid "Download link copied to your clipboard"
 msgstr ""
 
 #: api/Resource/FrontendResource/OrderDownloadPermissionResource.php:69
@@ -8069,7 +8057,7 @@ msgstr ""
 msgid "Element not provided"
 msgstr ""
 
-#: app/Http/Controllers/ModuleSettingsController.php:287
+#: app/Http/Controllers/ModuleSettingsController.php:283
 msgid "Elementor Blocks"
 msgstr ""
 
@@ -8569,7 +8557,7 @@ msgstr ""
 msgid "Enable this Order Bump"
 msgstr ""
 
-#: app/Http/Controllers/ModuleSettingsController.php:288
+#: app/Http/Controllers/ModuleSettingsController.php:284
 msgid ""
 "Enable to get Elementor Blocks for FluentCart. Minimum Requirement: "
 "Elementor V3.34"
@@ -9969,7 +9957,7 @@ msgstr ""
 msgid "FluentCart Logo"
 msgstr ""
 
-#: app/Http/Controllers/PaymentMethodController.php:249
+#: app/Http/Controllers/PaymentMethodController.php:247
 msgid ""
 "FluentCart Pro activated successfully! All premium features are now "
 "available."
@@ -10040,8 +10028,8 @@ msgstr ""
 msgid "FluentSupport"
 msgstr ""
 
-#: app/Modules/PaymentMethods/PromoGateways/Addons/FlutterwaveAddon.php:84
-#: app/Modules/PaymentMethods/PromoGateways/Addons/FlutterwaveAddon.php:112
+#: app/Modules/PaymentMethods/PromoGateways/Addons/FlutterwaveAddon.php:85
+#: app/Modules/PaymentMethods/PromoGateways/Addons/FlutterwaveAddon.php:114
 msgid "Flutterwave Payment Gateway"
 msgstr ""
 
@@ -10141,21 +10129,21 @@ msgstr ""
 msgid "Free"
 msgstr ""
 
-#: app/Modules/PaymentMethods/PromoGateways/Addons/PaystackAddon.php:90
-#: app/Modules/PaymentMethods/PromoGateways/Addons/FlutterwaveAddon.php:89
-#: app/Modules/PaymentMethods/PromoGateways/Addons/MercadoPagoAddon.php:89
+#: app/Modules/PaymentMethods/PromoGateways/Addons/PaystackAddon.php:91
+#: app/Modules/PaymentMethods/PromoGateways/Addons/FlutterwaveAddon.php:90
+#: app/Modules/PaymentMethods/PromoGateways/Addons/MercadoPagoAddon.php:90
 msgid "Free & Open Source addon"
 msgstr ""
 
-#: app/Modules/PaymentMethods/PromoGateways/Addons/RazorpayAddon.php:88
+#: app/Modules/PaymentMethods/PromoGateways/Addons/RazorpayAddon.php:89
 msgid "Free & Open Source addon."
 msgstr ""
 
-#: app/Modules/PaymentMethods/PromoGateways/Addons/PaystackAddon.php:96
-#: app/Modules/PaymentMethods/PromoGateways/Addons/AddonGatewaySettings.php:236
-#: app/Modules/PaymentMethods/PromoGateways/Addons/FlutterwaveAddon.php:95
-#: app/Modules/PaymentMethods/PromoGateways/Addons/RazorpayAddon.php:94
-#: app/Modules/PaymentMethods/PromoGateways/Addons/MercadoPagoAddon.php:95
+#: app/Modules/PaymentMethods/PromoGateways/Addons/PaystackAddon.php:98
+#: app/Modules/PaymentMethods/PromoGateways/Addons/AddonGatewaySettings.php:237
+#: app/Modules/PaymentMethods/PromoGateways/Addons/FlutterwaveAddon.php:97
+#: app/Modules/PaymentMethods/PromoGateways/Addons/RazorpayAddon.php:96
+#: app/Modules/PaymentMethods/PromoGateways/Addons/MercadoPagoAddon.php:97
 msgid "Free addon - Click the button above to get started"
 msgstr ""
 
@@ -11999,7 +11987,7 @@ msgstr ""
 
 #: app/Services/Translations/admin-translation.php:872
 #: app/Modules/Integrations/AddOnModule.php:49
-#: app/Modules/PaymentMethods/PromoGateways/Addons/AddonGatewaySettings.php:172
+#: app/Modules/PaymentMethods/PromoGateways/Addons/AddonGatewaySettings.php:173
 msgid "Install & Activate"
 msgstr ""
 
@@ -12007,7 +11995,7 @@ msgstr ""
 msgid "Install Addon"
 msgstr ""
 
-#: app/Modules/PaymentMethods/PromoGateways/Addons/AddonGatewaySettings.php:255
+#: app/Modules/PaymentMethods/PromoGateways/Addons/AddonGatewaySettings.php:257
 msgid "Installed - Not Active"
 msgstr ""
 
@@ -12122,7 +12110,7 @@ msgstr ""
 msgid "Intibucá"
 msgstr ""
 
-#: app/Services/PluginInstaller/AddonManager.php:19
+#: app/Services/PluginInstaller/AddonManager.php:20
 msgid "Invalid addon source type."
 msgstr ""
 
@@ -12199,8 +12187,7 @@ msgstr ""
 msgid "Invalid fulfillment type."
 msgstr ""
 
-#: app/Services/PluginInstaller/AddonManager.php:213
-#: app/Services/PluginInstaller/BackgroundInstaller.php:229
+#: app/Services/PluginInstaller/AddonManager.php:210
 msgid "Invalid GitHub releases URL"
 msgstr ""
 
@@ -12318,8 +12305,8 @@ msgstr ""
 msgid "Invalid signup fee. It must be a non-negative number."
 msgstr ""
 
-#: app/Http/Controllers/PaymentMethodController.php:283
-#: app/Http/Controllers/PaymentMethodController.php:328
+#: app/Http/Controllers/PaymentMethodController.php:281
+#: app/Http/Controllers/PaymentMethodController.php:326
 msgid "Invalid source type"
 msgstr ""
 
@@ -15314,8 +15301,8 @@ msgstr ""
 msgid "Men’s Shoes"
 msgstr ""
 
-#: app/Modules/PaymentMethods/PromoGateways/Addons/MercadoPagoAddon.php:84
-#: app/Modules/PaymentMethods/PromoGateways/Addons/MercadoPagoAddon.php:112
+#: app/Modules/PaymentMethods/PromoGateways/Addons/MercadoPagoAddon.php:85
+#: app/Modules/PaymentMethods/PromoGateways/Addons/MercadoPagoAddon.php:114
 msgid "Mercado Pago Payment Gateway"
 msgstr ""
 
@@ -15511,7 +15498,7 @@ msgstr ""
 msgid "MM/YY"
 msgstr ""
 
-#: app/Modules/PaymentMethods/PromoGateways/Addons/FlutterwaveAddon.php:88
+#: app/Modules/PaymentMethods/PromoGateways/Addons/FlutterwaveAddon.php:89
 msgid "Mobile Money, USSD & M-Pesa"
 msgstr ""
 
@@ -17328,7 +17315,7 @@ msgstr ""
 msgid "not Includes"
 msgstr ""
 
-#: app/Modules/PaymentMethods/PromoGateways/Addons/AddonGatewaySettings.php:246
+#: app/Modules/PaymentMethods/PromoGateways/Addons/AddonGatewaySettings.php:247
 msgid "Not Installed"
 msgstr ""
 
@@ -18991,16 +18978,8 @@ msgstr ""
 msgid "Payment Activation"
 msgstr ""
 
-#: app/Http/Controllers/PaymentMethodController.php:247
+#: app/Http/Controllers/PaymentMethodController.php:245
 msgid "Payment addon activated successfully!"
-msgstr ""
-
-#: app/Http/Controllers/PaymentMethodController.php:217
-msgid "Payment addon installed and activated successfully!"
-msgstr ""
-
-#: app/Http/Controllers/PaymentMethodController.php:342
-msgid "Payment addon updated successfully!"
 msgstr ""
 
 #: app/Services/Translations/admin-translation.php:1205
@@ -19296,8 +19275,8 @@ msgstr ""
 msgid "Paysandú"
 msgstr ""
 
-#: app/Modules/PaymentMethods/PromoGateways/Addons/PaystackAddon.php:84
-#: app/Modules/PaymentMethods/PromoGateways/Addons/PaystackAddon.php:113
+#: app/Modules/PaymentMethods/PromoGateways/Addons/PaystackAddon.php:85
+#: app/Modules/PaymentMethods/PromoGateways/Addons/PaystackAddon.php:115
 msgid "Paystack Payment Gateway"
 msgstr ""
 
@@ -19583,7 +19562,7 @@ msgstr ""
 msgid "Piura"
 msgstr ""
 
-#: app/Modules/PaymentMethods/PromoGateways/Addons/MercadoPagoAddon.php:88
+#: app/Modules/PaymentMethods/PromoGateways/Addons/MercadoPagoAddon.php:89
 msgid "Pix, Boleto & Virtual Debit Card"
 msgstr ""
 
@@ -19917,16 +19896,15 @@ msgstr ""
 msgid "Plugin Banner URL"
 msgstr ""
 
-#: app/Http/Controllers/ModuleSettingsController.php:164
+#: app/Http/Controllers/ModuleSettingsController.php:162
 msgid "Plugin file is required."
 msgstr ""
 
-#: app/Services/PluginInstaller/AddonManager.php:88
-#: app/Services/PluginInstaller/AddonManager.php:299
+#: app/Services/PluginInstaller/AddonManager.php:85
 msgid "Plugin file not found."
 msgstr ""
 
-#: app/Http/Controllers/PaymentMethodController.php:233
+#: app/Http/Controllers/PaymentMethodController.php:231
 msgid "Plugin file path is required"
 msgstr ""
 
@@ -19934,12 +19912,8 @@ msgstr ""
 msgid "Plugin Icon URL"
 msgstr ""
 
-#: app/Services/PluginInstaller/AddonManager.php:312
-msgid "Plugin is already up to date."
-msgstr ""
-
-#: app/Http/Controllers/ModuleSettingsController.php:192
-#: app/Http/Controllers/ModuleSettingsController.php:242
+#: app/Http/Controllers/ModuleSettingsController.php:190
+#: app/Http/Controllers/ModuleSettingsController.php:240
 msgid "Plugin slug and plugin file are required."
 msgstr ""
 
@@ -19951,7 +19925,7 @@ msgstr ""
 msgid "Plugin slug, source type are required"
 msgstr ""
 
-#: app/Services/PluginInstaller/AddonManager.php:449
+#: app/Services/PluginInstaller/AddonManager.php:340
 msgid "Plugin update failed."
 msgstr ""
 
@@ -21330,8 +21304,8 @@ msgstr ""
 msgid "Razgrad"
 msgstr ""
 
-#: app/Modules/PaymentMethods/PromoGateways/Addons/RazorpayAddon.php:84
-#: app/Modules/PaymentMethods/PromoGateways/Addons/RazorpayAddon.php:111
+#: app/Modules/PaymentMethods/PromoGateways/Addons/RazorpayAddon.php:85
+#: app/Modules/PaymentMethods/PromoGateways/Addons/RazorpayAddon.php:113
 msgid "Razorpay Payment Gateway"
 msgstr ""
 
@@ -21436,7 +21410,7 @@ msgid "Recurring Coupon"
 msgstr ""
 
 #: app/Modules/PaymentMethods/PromoGateways/Pro/MolliePromo.php:63
-#: app/Modules/PaymentMethods/PromoGateways/Addons/PaystackAddon.php:89
+#: app/Modules/PaymentMethods/PromoGateways/Addons/PaystackAddon.php:90
 msgid "Recurring payments & subscriptions"
 msgstr ""
 
@@ -25268,13 +25242,13 @@ msgstr ""
 msgid "Souk Ahras"
 msgstr ""
 
-#: app/Services/PluginInstaller/AddonManager.php:117
+#: app/Services/PluginInstaller/AddonManager.php:114
 #: app/Http/Controllers/PaymentMethodController.php:203
 msgid "Source link is required"
 msgstr ""
 
-#: app/Http/Controllers/PaymentMethodController.php:276
-#: app/Http/Controllers/PaymentMethodController.php:321
+#: app/Http/Controllers/PaymentMethodController.php:274
+#: app/Http/Controllers/PaymentMethodController.php:319
 msgid "Source type and plugin slug are required"
 msgstr ""
 
@@ -27231,11 +27205,11 @@ msgstr ""
 msgid "This addon cannot be installed."
 msgstr ""
 
-#: app/Http/Controllers/ModuleSettingsController.php:258
+#: app/Http/Controllers/ModuleSettingsController.php:256
 msgid "This addon cannot be updated."
 msgstr ""
 
-#: app/Http/Controllers/ModuleSettingsController.php:208
+#: app/Http/Controllers/ModuleSettingsController.php:206
 msgid "This addon is not registered."
 msgstr ""
 
@@ -28570,7 +28544,7 @@ msgstr ""
 msgid "Unable to adjust quantity"
 msgstr ""
 
-#: app/Services/PluginInstaller/AddonManager.php:155
+#: app/Services/PluginInstaller/AddonManager.php:152
 msgid "Unable to check for updates from WordPress.org"
 msgstr ""
 
@@ -28785,7 +28759,7 @@ msgstr ""
 msgid "Update Category"
 msgstr ""
 
-#: app/Services/PluginInstaller/AddonManager.php:196
+#: app/Services/PluginInstaller/AddonManager.php:193
 #, php-format
 msgid "Update check for source type \"%s\" is not currently available."
 msgstr ""
@@ -28806,7 +28780,7 @@ msgstr ""
 msgid "Update File (Choose the source file to get automatic updates)"
 msgstr ""
 
-#: app/Services/PluginInstaller/AddonManager.php:474
+#: app/Services/PluginInstaller/AddonManager.php:365
 #, php-format
 msgid "Update for source type \"%s\" is not currently available."
 msgstr ""
@@ -28932,7 +28906,7 @@ msgstr ""
 msgid "Upgraded To"
 msgstr ""
 
-#: app/Modules/PaymentMethods/PromoGateways/Addons/RazorpayAddon.php:87
+#: app/Modules/PaymentMethods/PromoGateways/Addons/RazorpayAddon.php:88
 msgid "UPI, Cards, NetBanking, and Wallets"
 msgstr ""
 
@@ -29216,7 +29190,7 @@ msgstr ""
 msgid "Using One-Stop Shop (OSS) registration"
 msgstr ""
 
-#: app/Modules/PaymentMethods/PromoGateways/Addons/PaystackAddon.php:88
+#: app/Modules/PaymentMethods/PromoGateways/Addons/PaystackAddon.php:89
 msgid "USSD & Mobile Money support"
 msgstr ""
 
@@ -30745,7 +30719,7 @@ msgstr ""
 msgid "You do not have permission to access this resource"
 msgstr ""
 
-#: app/Services/PluginInstaller/AddonManager.php:32
+#: app/Services/PluginInstaller/AddonManager.php:29
 msgid "You do not have permission to activate plugins."
 msgstr ""
 
@@ -30758,7 +30732,7 @@ msgstr ""
 msgid "You do not have permission to perform this action."
 msgstr ""
 
-#: app/Services/PluginInstaller/AddonManager.php:267
+#: app/Services/PluginInstaller/AddonManager.php:264
 msgid "You do not have permission to update plugins."
 msgstr ""
 
