@@ -17,18 +17,40 @@ class ProductTitleBlockEditor extends BlockEditor
     public function supports(): array
     {
         return [
-            'html'       => false,
-            'align' => true,
-            'typography' => [
-                'fontSize'   => true,
-                'lineHeight' => true
+            'html'                 => false,
+            'align'                => true,
+            'typography'           => [
+                'fontSize'                      => true,
+                'lineHeight'                    => true,
+                '__experimentalFontFamily'      => true,
+                '__experimentalFontWeight'      => true,
+                '__experimentalFontStyle'       => true,
+                '__experimentalTextTransform'   => true,
+                '__experimentalTextDecoration'  => true,
+                '__experimentalLetterSpacing'   => true,
+                '__experimentalDefaultControls' => [
+                    'fontSize'   => true,
+                    'lineHeight' => true,
+                    'fontWeight' => true,
+                ],
             ],
-            'spacing'    => [
-                'margin' => true
+            'color'                => [
+                'text'       => true,
+                'background' => true,
+                'link'       => true,
+                'gradients'   => true,
             ],
-            'color'      => [
-                'text' => true,
-            ]
+            'spacing'              => [
+                'margin'  => true,
+                'padding' => true,
+            ],
+            '__experimentalBorder' => [
+                'color'  => true,
+                'radius' => true,
+                'style'  => true,
+                'width'  => true,
+            ],
+            'shadow'               => true,
         ];
     }
 
@@ -79,14 +101,22 @@ class ProductTitleBlockEditor extends BlockEditor
             }
         }
 
-
-
         if (!$product) {
             return '';
         }
 
+        $isLink = Arr::get($shortCodeAttribute, 'isLink', true);
+        $target = Arr::get($shortCodeAttribute, 'linkTarget', '_self');
+
+        $wrapper_attributes = get_block_wrapper_attributes([
+            'class' => 'fct-product-card-title wc-block-grid__product-title',
+        ]);
+
         ob_start();
-        (new ProductCardRender($product))->renderTitle();
+        (new ProductCardRender($product))->renderTitle($wrapper_attributes, [
+            'isLink' => $isLink,
+            'target' => $target,
+        ]);
         return ob_get_clean();
     }
 }

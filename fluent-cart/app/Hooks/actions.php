@@ -1,4 +1,4 @@
-<?php if ( ! defined( 'ABSPATH' ) ) exit; ?>
+<?php if (!defined('ABSPATH')) exit; ?>
 <?php
 
 /**
@@ -14,12 +14,7 @@
  * @var $app FluentCart\Framework\Foundation\Application
  */
 
-use FluentCart\App\App;
 use FluentCart\App\Http\Routes\WebRoutes;
-use FluentCart\App\Models\Cart;
-use FluentCart\App\Modules\Templating\AssetLoader;
-use FluentCart\App\Services\FileSystem\Drivers\Local\LocalDriver;
-use FluentCart\Framework\Support\Arr;
 
 (new \FluentCart\App\CPT\FluentProducts)->register();
 (new \FluentCart\App\Services\Email\EmailNotificationMailer)->register();
@@ -53,6 +48,7 @@ use FluentCart\Framework\Support\Arr;
 
 \FluentCart\App\Hooks\Handlers\BlockEditors\ShopApp\ShopAppBlockEditor::register();
 \FluentCart\App\Hooks\Handlers\BlockEditors\ProductCarousel\ProductCarouselBlockEditor::register();
+\FluentCart\App\Hooks\Handlers\BlockEditors\MediaCarousel\MediaCarouselBlockEditor::register();
 
 \FluentCart\App\Hooks\Handlers\ShortCodes\SearchBarShortCode::register();
 \FluentCart\App\Hooks\Handlers\BlockEditors\SearchBarBlockEditor::register();
@@ -77,10 +73,21 @@ use FluentCart\Framework\Support\Arr;
 
 \FluentCart\App\Hooks\Handlers\BlockEditors\MiniCartBlockEditor::register();
 \FluentCart\App\Hooks\Handlers\BlockEditors\ProductCategoriesListBlockEditor::register();
+\FluentCart\App\Hooks\Handlers\BlockEditors\RelatedProduct\RelatedProductBlockEditor::register();
 \FluentCart\App\Hooks\Handlers\ShortCodes\Buttons\DirectCheckoutShortcode::register();
 \FluentCart\App\Hooks\Handlers\ShortCodes\Buttons\AddToCartShortcode::register();
 \FluentCart\App\Hooks\Handlers\ShortCodes\MiniCartShortcode::register();
 \FluentCart\App\Hooks\Handlers\ShortCodes\ProductCategoriesListShortcode::register();
+\FluentCart\App\Hooks\Handlers\ShortCodes\ProductTitleShortCode::register();
+\FluentCart\App\Hooks\Handlers\ShortCodes\ProductImageShortCode::register();
+
+
+\FluentCart\App\Hooks\Handlers\BlockEditors\StoreLogoBlockEditor::register();
+\FluentCart\App\Hooks\Handlers\ShortCodes\StoreLogoShortCode::register();
+\FluentCart\App\Hooks\Handlers\BlockEditors\CustomerDashboardButtonBlockEditor::register();
+\FluentCart\App\Hooks\Handlers\ShortCodes\CustomerDashboardButtonShortcode::register();
+
+(new \FluentCart\App\Modules\StockManagement\StockManagement())->register(fluentCart());
 
 if (\FluentCart\Api\ModuleSettings::isActive('stock_management')) {
     \FluentCart\App\Hooks\Handlers\BlockEditors\StockBlock::register();
@@ -107,8 +114,6 @@ if (\FluentCart\Api\ModuleSettings::isActive('stock_management')) {
 (new \FluentCart\App\Services\FileSystem\DownloadService)->register();
 
 (new \FluentCart\App\Hooks\Handlers\UserHandler())->register();
-
-\FluentCart\App\Http\Routes\AjaxRoute::register();
 
 
 add_action('fluent_cart/order_paid_ansyc_private_handle', function ($data) {
@@ -193,9 +198,6 @@ add_action('after_setup_theme', function () {
     \FluentCart\App\Modules\Templating\TemplateLoader::registerBlockParts();
     (new \FluentCart\App\Modules\Templating\Bricks\BricksLoader())->register();
 });
-
-
-
 
 
 /**

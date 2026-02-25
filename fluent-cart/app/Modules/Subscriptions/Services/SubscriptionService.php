@@ -4,6 +4,7 @@ namespace FluentCart\App\Modules\Subscriptions\Services;
 
 use FluentCart\App\Events\Subscription\SubscriptionEOT;
 use FluentCart\App\Events\Subscription\SubscriptionRenewed;
+use FluentCart\App\Events\Subscription\SubscriptionValidityExpired;
 use FluentCart\App\Helpers\Status;
 use FluentCart\App\Helpers\StatusHelper;
 use FluentCart\App\Models\Order;
@@ -316,6 +317,12 @@ class SubscriptionService
             'old_status' => $oldStatus,
             'new_status' => $subscriptionModel->status
         ]);
+
+        // note: we needed this event, currently being used in integrations
+        if ($subscriptionModel->status === Status::SUBSCRIPTION_EXPIRED) {
+            $subscriptionModel->updateMeta('validity_expired_at', DateTime::now()->format('Y-m-d H:i:s'));
+            (new SubscriptionValidityExpired($subscriptionModel,$subscriptionModel->order,$subscriptionModel->customer))->dispatch();
+        }
 
         return $subscriptionModel;
     }

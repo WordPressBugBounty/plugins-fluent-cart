@@ -38,6 +38,7 @@ class ProductVariation extends Model
         'sold_individually',
         'variation_title',
         'variation_identifier',
+        'sku',
         'manage_stock',
         'payment_type',
         'stock_status',

@@ -4,7 +4,7 @@ Tags: ecommerce, cart, checkout, subscriptions, payments
 Requires at least: 6.7
 Tested up to: 6.9
 Requires PHP: 7.4
-Stable tag: 1.3.10
+Stable tag: 1.3.11
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -313,10 +313,27 @@ This service is provided by PayPal: [Terms of Service](https://www.paypal.com/le
 
 == Changelog ==
 
+= 1.3.11 (Feb 25, 2026) =
+- Adds GB Blocks: Related Products, Customer Dashboard Button, Store Logo
+- Adds Media Carousel Block
+- Adds Product SKU feature
+- Adds Elementor Widgets: Checkout, Add to Cart, Buy Now Button, Mini Cart, Products, Product Carousel, Product Categories List
+- Adds Razorpay Subscription Supports
+- Adds Customer LTV recalculation action
+- Adds Sync order statuses action
+- Adds Test Data Cleanup Tool
+- Adds First Name & Last Name Field Settings
+- Improvements Inventory Manager Free (Previously Pro)
+- Improvements New Settings UI
+- Fixes Gallery Image Overflow Issue
+- Fixes Subscription validity expire events issue
+- Fixes Minor issues
+- Schedule security audit for all modules
+
 = 1.3.10 (Feb 04, 2026) = 
 - Adds FSE Block Theme Support
-- Adds Blocks: Mini cart, Product Carousel, title, image
-- Adds shortcodes: Mini cart, product categories
+- Adds Blocks & shortcodes: Mini cart, Product Carousel, title, image
+- Adds Shortcode product categories
 - Improves Guttenberg Blocks into latest version (v3)
 - Fixes Missing tax breakdown on renewal email
 - Fixes Missing VAT info on renewal order

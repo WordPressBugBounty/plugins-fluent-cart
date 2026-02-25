@@ -762,4 +762,9 @@ class Product extends Model
             throw $e;
         }
     }
+
+    public function integrations(): \FluentCart\Framework\Database\Orm\Relations\HasMany
+    {
+        return $this->hasMany(ProductMeta::class, 'object_id')->where('object_type', 'product_integration');
+    }
 }

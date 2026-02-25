@@ -132,13 +132,15 @@ class InnerBlocks
                 'uses_context' => [
                     'fluent-cart/carousel_settings',
                     'fluent-cart/product_ids',
+                    'fluent-cart/has_controls',
+                    'fluent-cart/has_pagination',
                 ],
             ],
             [
                 'title'        => __('Carousel Controls', 'fluent-cart'),
                 'slug'         => 'fluent-cart/product-carousel-controls',
                 'component'    => 'CarouselControlsBlock',
-                'icon'         => 'screenoptions',
+                'icon'         => 'controls-repeat',
                 'parent'       => ['fluent-cart/product-carousel'],
                 'supports'     => ['html' => false],
                 'uses_context' => [
@@ -188,8 +190,8 @@ class InnerBlocks
             'arrowsSize'      => 'md',        // sm | md | lg
 
             // Pagination
-            'dots'                => 'yes',
-            'paginationType'      => 'bullets', // bullets | fraction | progress
+            'pagination'          => 'yes',
+            'paginationType'      => 'bullets', // bullets | fraction | progress | segmented
         ];
     }
 
@@ -344,6 +346,17 @@ class InnerBlocks
     {
         $carouselSettings = $this->getCarouselSettingsFromContext($block);
 
+        $hasControls   = Arr::get($block->context, 'fluent-cart/has_controls', 'yes');
+        $hasPagination = Arr::get($block->context, 'fluent-cart/has_pagination', 'yes');
+
+        if ($hasControls !== 'yes') {
+            $carouselSettings['arrows'] = 'no';
+        }
+
+        if ($hasPagination !== 'yes') {
+            $carouselSettings['pagination'] = 'no';
+        }
+
         $productIds = Arr::get($block->context,'fluent-cart/product_ids', []);
 
         $clientId = Arr::get($attributes, 'wp_client_id', '');
@@ -396,10 +409,14 @@ class InnerBlocks
         $innerBlocksContent .= '</div>';
 
         // Navigation arrows (INSIDE swiper, OUTSIDE wrapper)
-        $innerBlocksContent .= $this->renderCarouselControls([], '', $block);
+        if ($hasControls === 'yes') {
+            $innerBlocksContent .= $this->renderCarouselControls([], '', $block);
+        }
 
         // Pagination (INSIDE swiper, OUTSIDE wrapper)
-        $innerBlocksContent .= $this->renderCarouselPagination([], '', $block);
+        if ($hasPagination === 'yes') {
+            $innerBlocksContent .= $this->renderCarouselPagination([], '', $block);
+        }
 
         $innerBlocksContent .= '</div></div>';
 
@@ -446,7 +463,9 @@ class InnerBlocks
     {
         $settings = $this->getCarouselSettingsFromContext($block);
 
-        if (Arr::get($settings, 'dots') !== 'yes') {
+        // Backward compatibility: check both 'pagination' and legacy 'dots'
+        $hasPagination = Arr::get($settings, 'pagination', Arr::get($settings, 'dots', 'no'));
+        if ($hasPagination !== 'yes') {
             return '';
         }
 

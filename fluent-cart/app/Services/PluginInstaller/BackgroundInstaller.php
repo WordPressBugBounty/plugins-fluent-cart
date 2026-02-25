@@ -2,6 +2,8 @@
 
 namespace FluentCart\App\Services\PluginInstaller;
 
+use FluentCart\Framework\Support\Arr;
+
 class BackgroundInstaller
 {
 
@@ -136,8 +138,9 @@ class BackgroundInstaller
         }
     }
 
-    public function installFromGithub($githubUrl, $pluginSlug)
+    public function installFromGithub($githubUrl, $pluginSlug, $path = 'zipball_url')
     {
+
         require_once ABSPATH . 'wp-admin/includes/file.php';
         require_once ABSPATH . 'wp-admin/includes/class-wp-upgrader.php';
         require_once ABSPATH . 'wp-admin/includes/plugin.php';
@@ -150,16 +153,14 @@ class BackgroundInstaller
         ob_start();
 
         $download = null;
-
         try {
             if (strpos($githubUrl, '/releases/latest') !== false) {
-                $downloadUrl = $this->getLatestReleaseDownloadUrl($githubUrl);
+                $downloadUrl = $this->getLatestReleaseDownloadUrl($githubUrl, $path);
                 if (is_wp_error($downloadUrl)) {
                     throw new \Exception($downloadUrl->get_error_message());
                 }
                 $githubUrl = $downloadUrl;
             }
-
 
             $download = $upgrader->download_package($githubUrl);
 
@@ -220,7 +221,7 @@ class BackgroundInstaller
         }
     }
 
-    private function getLatestReleaseDownloadUrl($releasesUrl)
+    private function getLatestReleaseDownloadUrl($releasesUrl, $path = 'zipball_url')
     {
         preg_match('#github\.com/([^/]+)/([^/]+)/releases#', $releasesUrl, $matches);
 
@@ -236,28 +237,33 @@ class BackgroundInstaller
         $response = wp_remote_get($api_url, [
             'timeout' => 30,
             'headers' => [
-                'Accept' => 'application/vnd.github.v3+json',
+                'Accept'     => 'application/vnd.github.v3+json',
                 'User-Agent' => 'FluentCart/' . FLUENTCART_VERSION
             ]
         ]);
+
 
         if (is_wp_error($response)) {
             return new \WP_Error('api_error', $response->get_error_message());
         }
 
+
         $code = wp_remote_retrieve_response_code($response);
+
         if ($code !== 200) {
             return new \WP_Error('api_error', 'Github API error with status code: ' . $code);
         }
 
         $body = wp_remote_retrieve_body($response);
+
         $data = json_decode($body, true);
 
 
-        if (empty($data['zipball_url'])) {
+        $url = Arr::get($data, $path);
+        if (empty($url)) {
             return new \WP_Error('no_release', 'No release found. Please ensure the repository has published releases.');
         }
 
-        return $data['zipball_url'];
+        return $url;
     }
 }

@@ -53,7 +53,7 @@ class AssetLoader
                 self::loadCheckoutAssets();
                 break;
             default:
-                return; // No need to load any assets
+                return;
         }
     }
 
@@ -151,7 +151,9 @@ class AssetLoader
         Vite::enqueueScript(
             'fluent-cart-product-card-js',
             'public/product-card/product-card.js',
-            []
+            [],
+            null,
+            true
         );
     }
 
@@ -163,6 +165,7 @@ class AssetLoader
         }
         $isLoaded = true;
         static::loadProductCardAssets();
+
         $app = App::getInstance();
         $slug = $app->config->get('app.slug');
         Vite::enqueueStyle(
@@ -535,6 +538,12 @@ class AssetLoader
 
     public static function loadMiniCartAssets()
     {
+        static $isLoaded = false;
+        if ($isLoaded) {
+            return;
+        }
+        $isLoaded = true;
+
         $app = fluentCart();
         $slug = $app->config->get('app.slug');
 

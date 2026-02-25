@@ -11,6 +11,7 @@ use FluentCart\App\Helpers\Status;
 use FluentCart\App\Models\Concerns\CanUpdateBatch;
 use FluentCart\App\Models\Concerns\HasActivity;
 use FluentCart\App\Services\Payments\PaymentHelper;
+use FluentCart\App\Services\Payments\SubscriptionHelper;
 use FluentCart\App\Services\TemplateService;
 use FluentCart\Framework\Database\Orm\Relations\BelongsTo;
 use FluentCart\Framework\Database\Orm\Relations\HasMany;
@@ -662,6 +663,153 @@ class Subscription extends Model
         }
 
         return $nextBillingDate;
+    }
+
+    /**
+     * Check and expire subscriptions past their grace period
+     *
+     * This method is called by the hourly scheduler to automatically expire
+     * subscriptions that have missed payments and are past their grace period.
+     *
+     * Processes all candidates in batches to avoid memory issues.
+     * The query example works as follows:
+     * SELECT * FROM subscriptions WHERE
+            status IN ('active', 'trialing', 'canceled')
+            AND next_billing_date IS NOT NULL
+            AND id > 0                          -- last processed ID for batch cursor
+            AND next_billing_date < DATE_SUB(
+                '2026-02-17 10:00:00',
+                INTERVAL (
+                    CASE billing_interval
+                        WHEN 'daily'       THEN 1
+                        WHEN 'weekly'      THEN 3
+                        WHEN 'monthly'     THEN 7
+                        WHEN 'quarterly'   THEN 15
+                        WHEN 'half_yearly' THEN 15
+                        WHEN 'yearly'      THEN 15
+                        ELSE 7
+                    END
+                ) DAY
+            )
+        ORDER BY id ASC
+        LIMIT 100;
+     *
+     * @param int $batchSize Number of subscriptions to process per batch
+     * @return array Statistics about processed subscriptions
+     */
+    public static function checkAndExpireSubscriptions($batchSize = 100)
+    {
+        $stats = [
+            'checked' => 0,
+            'validity_expired' => 0,
+            'batches' => 0,
+        ];
+
+        $lastId = 0;
+
+        $gracePeriodDays = SubscriptionHelper::getSubscriptionsGracePeriodDays();
+
+        $caseSql  = 'CASE billing_interval ';
+        $bindings = [];
+
+        foreach ($gracePeriodDays as $interval => $days) {
+            $caseSql   .= 'WHEN ? THEN ? ';
+            $bindings[] = $interval;
+            $bindings[] = $days;
+        }
+
+        $caseSql   .= 'ELSE ? END';
+        $bindings[] = 7;
+
+        $cutoffSql = "DATE_SUB(?, INTERVAL ($caseSql) DAY)";
+
+        do {
+            // Include canceled subscriptions to check if validity is yet to expired
+            $subscriptions = Subscription::query()
+                ->whereIn('status', [
+                    Status::SUBSCRIPTION_ACTIVE,
+                    Status::SUBSCRIPTION_TRIALING,
+                    Status::SUBSCRIPTION_CANCELED,
+                ])
+                ->whereNotNull('next_billing_date')
+                ->where('id', '>', $lastId)
+                ->whereRaw(
+                    "next_billing_date < $cutoffSql",
+                    array_merge(
+                        [gmdate('Y-m-d H:i:s', time())],
+                        $bindings
+                    )
+                )
+                ->orderBy('id', 'ASC')
+                ->limit($batchSize)
+                ->with(['order', 'customer'])
+                ->get();
+
+            if ($subscriptions->isEmpty()) {
+                break; // No more subscriptions to process
+            }
+
+            $stats['batches']++;
+            $stats['checked'] += $subscriptions->count();
+
+            foreach ($subscriptions as $subscription) {
+                if ($subscription->status === Status::SUBSCRIPTION_CANCELED) {
+                    if (isset($subscription->config['upgraded_to_sub_id'])) {
+                        continue;
+                    }
+                }
+                $gracePeriod = $gracePeriodDays[$subscription->billing_interval] ?? 7;
+                $cutoff = gmdate('Y-m-d H:i:s', time() - ($gracePeriod * DAY_IN_SECONDS));
+
+                if ($subscription->next_billing_date < $cutoff) {
+                    $updateData = [
+                        'next_billing_date' => NULL,
+                    ];
+
+                    // Only change status to EXPIRED for active/trialing subscriptions
+                    if ($subscription->status !== Status::SUBSCRIPTION_CANCELED) {
+                        $updateData['status'] = Status::SUBSCRIPTION_EXPIRED;
+                    }
+
+                    $subscription->updateMeta('validity_expired_at', gmdate('Y-m-d H:i:s'));
+
+                    $subscription->fill($updateData);
+                    $subscription->save();
+
+                    $event = new \FluentCart\App\Events\Subscription\SubscriptionValidityExpired(
+                        $subscription,
+                        $subscription->order,
+                        $subscription->customer,
+                    );
+
+                    $event->dispatch();
+
+                    $stats['validity_expired']++;
+                }
+
+            }
+
+            $lastId = $subscriptions->last()->id;
+
+            unset($subscriptions);
+
+        } while (true);
+
+        if ($stats['checked'] > 0) {
+            fluent_cart_add_log(
+                'Subscription Validity Expiration Check',
+                sprintf(
+                    'Checked: %d subscriptions, Status changed to Expired: %d, Batches: %d',
+                    $stats['checked'],
+                    $stats['validity_expired'],
+                    $stats['batches']
+                ),
+                'info',
+                $stats
+            );
+        }
+
+        return $stats;
     }
 
 }

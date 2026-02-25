@@ -82,19 +82,10 @@ class BuyNowButtonBlockEditor extends BlockEditor
 
     public function render(array $shortCodeAttribute, $block = null)
     {
-
-        $enabledModalCheckout = Arr::get($shortCodeAttribute, 'enable_modal_checkout', false);
         AssetLoader::loadSingleProductAssets();
 
         $variantIds = Arr::get($shortCodeAttribute, 'variant_ids', []);
         $variantId  = Arr::get($variantIds, 0);
-
-        if($enabledModalCheckout){
-            add_action('wp_footer', function (){
-                WebRoutes::renderModalCheckout();
-                AssetLoader::loadModalCheckoutAssets();
-            });
-        }
 
         if (!$variantId) {
             if(Helper::isAdminUser()){

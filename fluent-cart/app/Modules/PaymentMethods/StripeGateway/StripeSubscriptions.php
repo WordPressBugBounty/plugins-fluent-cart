@@ -3,6 +3,7 @@
 namespace FluentCart\App\Modules\PaymentMethods\StripeGateway;
 
 use FluentCart\App\Helpers\Status;
+use FluentCart\App\Helpers\StatusHelper;
 use FluentCart\App\Models\OrderTransaction;
 use FluentCart\App\Models\Subscription;
 use FluentCart\App\Modules\PaymentMethods\Core\AbstractSubscriptionModule;
@@ -116,6 +117,8 @@ class StripeSubscriptions extends AbstractSubscriptionModule
                     'status'           => Status::TRANSACTION_SUCCEEDED,
                     'total'            => (int)Arr::get($invoice, 'amount_paid')
                 ]);
+
+                (new StatusHelper($transaction->order))->syncOrderStatuses($transaction);
             }
         }
 

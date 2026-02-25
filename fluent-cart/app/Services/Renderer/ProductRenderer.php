@@ -35,6 +35,10 @@ class ProductRenderer
 
     protected $defaultVariationId = '';
 
+    protected $defaultGalleryImageId = 0;
+
+    protected $galleryActiveSet = false;
+
     protected $paymentTypes = [];
 
     protected $variantsByPaymentTypes = [];
@@ -74,17 +78,23 @@ class ProductRenderer
         ]);
 
 
+        $hasExplicitDefault = true;
+
         if (!$defaultVariationId) {
             $variationIds = $product->variants->pluck('id')->toArray();
             $defaultVariationId = $product->detail->default_variation_id;
 
             if (!$defaultVariationId || !in_array($defaultVariationId, $variationIds)) {
                 $defaultVariationId = Arr::get($variationIds, '0');
+                $hasExplicitDefault = false;
             }
         }
 
         // Always set resolved default variation id
         $this->defaultVariationId = $defaultVariationId;
+
+        // Gallery defaults to featured image (key 0) when no explicit default variation is set
+        $this->defaultGalleryImageId = $hasExplicitDefault ? $defaultVariationId : 0;
 
 
         $this->product->variants->load('bundleChildren.product');
@@ -267,117 +277,6 @@ class ProductRenderer
         }
     }
 
-    public function renderGalleryCarousel(array $carouselSettings = [])
-    {
-
-        $images = [];
-
-        $featuredMedia = $this->product->thumbnail ?? Vite::getAssetUrl('images/placeholder.svg');
-
-        // Add gallery images from product meta
-        $galleryImage = get_post_meta($this->product->ID, 'fluent-products-gallery-image', true);
-        if (!empty($galleryImage) && is_array($galleryImage)) {
-            foreach ($galleryImage as $media) {
-                $images[] = [
-                    'url'   => Arr::get($media, 'url', $featuredMedia),
-                    'title' => Arr::get($media, 'title', ''),
-                ];
-            }
-        }
-
-        // Add variant images
-        foreach ($this->variants as $variant) {
-            $variantMedia = Arr::get($variant, 'media.meta_value', '');
-            if (!empty($variantMedia) && is_array($variantMedia)) {
-                foreach ($variantMedia as $media) {
-                    $images[] = [
-                        'url'   => Arr::get($media, 'url', $featuredMedia),
-                        'title' => Arr::get($media, 'title', Arr::get($variant, 'variation_title', '')),
-                        'variation_id' => $variant['id'],
-                    ];
-                }
-            }
-        }
-
-        // If no images at all, add placeholder
-        if (empty($images)) {
-            $images[] = [
-                'url'   => $featuredMedia,
-                'title' => '',
-            ];
-        }
-
-        ?>
-        <div
-            class="swiper fct-product-gallery-carousel"
-            data-fluent-cart-gallery-carousel
-            data-carousel-settings='<?php echo esc_attr(wp_json_encode($carouselSettings)); ?>'
-        >
-            <div class="swiper-wrapper">
-                <?php foreach ($images as $img): ?>
-                    <div class="swiper-slide" <?php echo isset($img['variation_id']) ? 'data-variation-id="'.esc_attr($img['variation_id']).'"' : ''; ?>>
-                        <img
-                            src="<?php echo esc_url($img['url']); ?>"
-                            alt="<?php echo esc_attr($img['title']); ?>"
-                            data-fluent-cart-single-product-page-product-thumbnail
-                        />
-                    </div>
-                <?php endforeach; ?>
-            </div>
-
-            <?php if (Arr::get($carouselSettings, 'arrows', 'no') === 'yes'): ?>
-                <div class="swiper-button-prev">
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <polyline points="15 18 9 12 15 6"/>
-                    </svg>
-                </div>
-                <div class="swiper-button-next">
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <polyline points="9 18 15 12 9 6"/>
-                    </svg>
-                </div>
-            <?php endif; ?>
-
-            <?php if (Arr::get($carouselSettings, 'dots', 'no') === 'yes'): ?>
-                <div class="swiper-pagination"></div>
-            <?php endif; ?>
-        </div>
-        <?php
-    }
-
-    public function renderCarousel($args = [])
-    {
-
-        $defaults = [
-            'thumbnail_mode' => 'all', // horizontal, vertical
-            'thumb_position' => 'bottom' // bottom, left, right, top
-        ];
-
-        $atts = wp_parse_args($args, $defaults);
-
-        $thumbnailMode = $atts['thumbnail_mode'];
-
-        $carouselSettings = Arr::get($atts, 'carouselSettings', []);
-
-        $wrapperAtts = [
-            'class'                                    => 'fct-product-gallery-wrapper ' . 'thumb-pos-' . $atts['thumb_position'] . ' thumb-mode-' . $thumbnailMode,
-            'data-fct-product-gallery'                 => '',
-            'data-fluent-cart-product-gallery-wrapper' => '',
-            'data-thumbnail-mode'                      => $thumbnailMode,
-            'data-product-id'                          => $this->product->ID,
-        ];
-
-        ?>
-
-        <div <?php RenderHelper::renderAtts($wrapperAtts); ?>>
-            <?php
-                $this->renderGalleryCarousel($carouselSettings ?? []);
-            ?>
-        </div>
-
-        <?php
-    }
-
     public function renderGalleryThumb()
     {
         $thumbnails = [];
@@ -414,8 +313,7 @@ class ProductRenderer
         $this->images = $images;
 
         if (!empty($images)) {
-            $variationId = $this->defaultVariationId;
-            $imageId = $variationId;
+            $imageId = $this->defaultGalleryImageId;
 
             if (isset($images[$imageId])) {
                 $imageMetaValue = $images[$imageId];
@@ -437,23 +335,41 @@ class ProductRenderer
         <?php
     }
 
-    public function renderGalleryThumbControls()
+    public function renderGalleryThumbControls($maxThumbnails = null)
     {
         $totalThumbImages = Arr::pluck($this->images, 'media.*.url');
 
         if(count($totalThumbImages) == 1 && count($totalThumbImages[0]) == 1){
-            
+
             return '';
         }
 
+        // Collect ALL gallery images as JSON for lightbox (even when max thumbnails limits visible thumbs)
+        $allGalleryImages = [];
+        foreach ($this->images as $imageId => $image) {
+            if (empty($image['media']) || !is_array($image['media'])) {
+                continue;
+            }
+            foreach ($image['media'] as $item) {
+                $url = Arr::get($item, 'url', '');
+                if (empty($url)) {
+                    continue;
+                }
+                $allGalleryImages[] = [
+                    'url'          => $url,
+                    'title'        => Arr::get($item, 'title', ''),
+                    'variation_id' => (string) $imageId,
+                ];
+            }
+        }
 
         ?>
 
+        <div class="fct-gallery-thumb-controls"
+             data-fluent-cart-single-product-page-product-thumbnail-controls
+             data-all-gallery-images="<?php echo esc_attr(wp_json_encode($allGalleryImages) ?: '[]'); ?>">
 
-
-        <div class="fct-gallery-thumb-controls" data-fluent-cart-single-product-page-product-thumbnail-controls>
-
-            <?php $this->renderGalleryThumbControl(); ?>
+            <?php $this->renderGalleryThumbControl($maxThumbnails); ?>
 
         </div>
 
@@ -461,8 +377,28 @@ class ProductRenderer
 
     }
 
-    public function renderGalleryThumbControl()
+    public function renderGalleryThumbControl($maxThumbnails = null)
     {
+        if ($maxThumbnails !== null && $maxThumbnails <= 0) {
+            $maxThumbnails = null; // treat invalid value as "no limit"
+        }
+
+        $count = 0;
+        $totalImages = 0;
+
+        // First, count total renderable images
+        foreach ($this->images as $imageId => $image) {
+            if (empty($image['media']) || !is_array($image['media'])) {
+                continue;
+            }
+            foreach ($image['media'] as $item) {
+                if (!empty(Arr::get($item, 'url', ''))) {
+                    $totalImages++;
+                }
+            }
+        }
+
+        // Then render up to max
         foreach ($this->images as $imageId => $image) {
             if (empty($image['media']) || !is_array($image['media'])) {
                 continue;
@@ -473,12 +409,47 @@ class ProductRenderer
                     continue;
                 }
 
-                $this->renderGalleryThumbControlButton($item, $imageId);
+                if ($maxThumbnails !== null && $count >= (int) $maxThumbnails) {
+                    $this->renderGallerySeeMoreButton($totalImages - (int) $maxThumbnails);
+                    return;
+                }
 
+                $this->renderGalleryThumbControlButton($item, $imageId);
+                $count++;
             }
 
         }
 
+    }
+
+    public function renderGallerySeeMoreButton($remainingCount)
+    {
+        ?>
+        <button
+            type="button"
+            class="fct-gallery-see-more-button"
+            data-fluent-cart-gallery-see-more
+            aria-label="<?php echo esc_attr(
+                sprintf(
+                    /* translators: %d number of remaining images */
+                    __('View all %d more images', 'fluent-cart'),
+                    $remainingCount
+                )
+            ); ?>"
+        >
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M2.58078 19.0103L2.56078 19.0303C2.29078 18.4403 2.12078 17.7703 2.05078 17.0303C2.12078 17.7603 2.31078 18.4203 2.58078 19.0103Z" fill="#9D9FAC"/>
+                <path d="M8.99914 10.3801C10.3136 10.3801 11.3791 9.31456 11.3791 8.00012C11.3791 6.68568 10.3136 5.62012 8.99914 5.62012C7.6847 5.62012 6.61914 6.68568 6.61914 8.00012C6.61914 9.31456 7.6847 10.3801 8.99914 10.3801Z" fill="#9D9FAC"/>
+                <path d="M16.19 2H7.81C4.17 2 2 4.17 2 7.81V16.19C2 17.28 2.19 18.23 2.56 19.03C3.42 20.93 5.26 22 7.81 22H16.19C19.83 22 22 19.83 22 16.19V13.9V7.81C22 4.17 19.83 2 16.19 2ZM20.37 12.5C19.59 11.83 18.33 11.83 17.55 12.5L13.39 16.07C12.61 16.74 11.35 16.74 10.57 16.07L10.23 15.79C9.52 15.17 8.39 15.11 7.59 15.65L3.85 18.16C3.63 17.6 3.5 16.95 3.5 16.19V7.81C3.5 4.99 4.99 3.5 7.81 3.5H16.19C19.01 3.5 20.5 4.99 20.5 7.81V12.61L20.37 12.5Z" fill="#9D9FAC"/>
+                <script xmlns=""/></svg>
+
+            <span class="fct-see-more-text">
+                <?php echo esc_html__('See', 'fluent-cart'); ?>
+                <span class="fct-see-more-count"><?php echo esc_html($remainingCount); ?></span>
+                <?php echo esc_html__('More', 'fluent-cart'); ?>
+            </span>
+        </button>
+        <?php
     }
 
     public function renderGalleryThumbControlButton($item, $imageId)
@@ -487,12 +458,15 @@ class ProductRenderer
         $isHidden = ''; //$imageId != $this->defaultVariationId ? 'is-hidden' : '';
         $itemUrl = Arr::get($item, 'url', '');
         $itemTitle = Arr::get($item, 'title', '');
-        $isSelected = $imageId == $this->defaultVariationId ? 'true' : 'false';
+        $isSelected = !$this->galleryActiveSet && $imageId == $this->defaultGalleryImageId;
+        if ($isSelected) {
+            $this->galleryActiveSet = true;
+        }
         ?>
 
         <button
                 type="button"
-                class="fct-gallery-thumb-control-button <?php echo esc_attr($isHidden); ?>"
+                class="fct-gallery-thumb-control-button <?php echo $isSelected ? 'active' : ''; ?> <?php echo esc_attr($isHidden); ?>"
                 data-fluent-cart-thumb-control-button
                 data-url="<?php echo esc_url($itemUrl); ?>"
                 data-variation-id="<?php echo esc_attr($imageId); ?>"
@@ -500,7 +474,7 @@ class ProductRenderer
                     /* translators: %s image title */
                 esc_attr(sprintf(__('View %s image', 'fluent-cart'), $itemTitle));
                 ?>"
-                aria-pressed="<?php echo esc_attr($isSelected); ?>"
+                aria-pressed="<?php echo $isSelected ? 'true' : 'false'; ?>"
         >
             <img
                     class="fct-gallery-control-thumb"
@@ -519,16 +493,15 @@ class ProductRenderer
     {
 
         $defaults = [
-                'thumbnail_mode' => 'all', // horizontal, vertical
-                'thumb_position' => 'bottom' // bottom, left, right, top
+                'thumbnail_mode'    => 'all', // horizontal, vertical
+                'thumb_position'    => 'bottom', // bottom, left, right, top
+                'scrollable_thumbs' => 'no', // yes / no
+                'max_thumbnails'    => null, // null = no limit, integer = max visible
         ];
 
         $atts = wp_parse_args($args, $defaults);
 
         $thumbnailMode = $atts['thumbnail_mode'];
-
-        // $enableCarousel = Arr::get($atts, 'enableCarousel', 'yes');
-        // $carouselSettings = Arr::get($atts, 'carouselSettings', []);
 
         $wrapperAtts = [
                 'class'                                    => 'fct-product-gallery-wrapper ' . 'thumb-pos-' . $atts['thumb_position'] . ' thumb-mode-' . $thumbnailMode,
@@ -536,6 +509,7 @@ class ProductRenderer
                 'data-fluent-cart-product-gallery-wrapper' => '',
                 'data-thumbnail-mode'                      => $thumbnailMode,
                 'data-product-id'                          => $this->product->ID,
+                'data-scrollable-thumbs'                   => $atts['scrollable_thumbs'],
         ];
 
         ?>
@@ -543,15 +517,8 @@ class ProductRenderer
         <div <?php RenderHelper::renderAtts($wrapperAtts); ?>>
 
             <?php
-            // var_dump($enableCarousel);
-            // die();
-
-                // if ($enableCarousel === 'yes') {
-                //     $this->renderGalleryCarousel($carouselSettings ?? []);
-                // } else {
-                    $this->renderGalleryThumb();
-                    $this->renderGalleryThumbControls();
-                // }
+                $this->renderGalleryThumb();
+                $this->renderGalleryThumbControls($atts['max_thumbnails']);
             ?>
         </div>
 
@@ -780,7 +747,7 @@ class ProductRenderer
                 } else {
 
                     $atts = [
-                            'class'                                 => 'fct-product-payment-type fluent-cart-product-variation-content ' . ( $this->defaultVariant->id != $variant->id ? ' is-hidden' : ''),
+                            'class'                                 => 'fct-product-payment-type fluent-cart-product-variation-content' . ($this->defaultVariant->id != $variant->id ? ' is-hidden' : ''),
                             'data-fluent-cart-product-payment-type' => '',
                             'data-variation-id'                     => $variant->id
                     ];
@@ -864,9 +831,11 @@ class ProductRenderer
     public function renderVariantPricingWrapperStart($variant)
     { ?>
         <div
-        class="fct-product-item-price fluent-cart-product-variation-content <?php echo $this->defaultVariant->id != $variant->id ? ' is-hidden' : '' ?>"
+        class="fct-product-item-price fluent-cart-product-variation-content <?php echo esc_attr($this->defaultVariant->id != $variant->id ? ' is-hidden' : ''); ?>"
         data-fluent-cart-product-item-price
         data-variation-id="<?php echo esc_attr($variant->id); ?>"
+        aria-live="polite"
+        role="status"
         >
     <?php }
 
@@ -890,7 +859,7 @@ class ProductRenderer
 
         $total = count($bundleProducts);
         ?>
-        <div class="fluent-cart-product-variation-content fct-bundle-products <?php echo $this->defaultVariant->id != $variant->id ? ' is-hidden' : '' ?>"
+        <div class="fluent-cart-product-variation-content fct-bundle-products <?php echo esc_attr($this->defaultVariant->id != $variant->id ? ' is-hidden' : ''); ?>"
              data-variation-id="<?php echo esc_attr($variant->id); ?>"
              data-fluent-cart-collapsibles
         >
@@ -901,7 +870,7 @@ class ProductRenderer
             <div class="fct-bundle-products-list">
                 <?php foreach (array_slice($bundleProducts, 0, 2) as $product): ?>
                     <p>
-                        <?php echo Arr::get($product, 'product.post_title'); ?> -
+                        <?php echo esc_html(Arr::get($product, 'product.post_title')); ?> -
                         <?php echo esc_html($product['variation_title']); ?>
                     </p>
                 <?php endforeach; ?>
@@ -911,7 +880,7 @@ class ProductRenderer
                         <div class="fct-bundle-products-more-list">
                             <?php foreach (array_slice($bundleProducts, 2) as $product): ?>
                                 <p>
-                                    <?php echo Arr::get($product, 'product.post_title'); ?> -
+                                    <?php echo esc_html(Arr::get($product, 'product.post_title')); ?> -
                                     <?php echo esc_html($product['variation_title']); ?>
                                 </p>
                             <?php endforeach; ?>
@@ -921,7 +890,7 @@ class ProductRenderer
             </div>
 
             <?php if ($total > 2) : ?>
-                <a href="#" class="fct-see-more-btn" data-fluent-cart-collapsible-toggle>
+                <button type="button" class="fct-see-more-btn" data-fluent-cart-collapsible-toggle>
                     <span class="see-more-text">
                         <?php echo esc_html__('See More', 'fluent-cart'); ?>
                         <svg xmlns="http://www.w3.org/2000/svg" width="12" height="7" viewBox="0 0 12 7" fill="none">
@@ -934,7 +903,7 @@ class ProductRenderer
                             <path d="M0.75 6.54297L6.04289 1.25008C6.37623 0.916742 6.54289 0.750076 6.75 0.750076C6.95711 0.750076 7.12377 0.916742 7.45711 1.25008L12.75 6.54297" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
                         </svg>
                     </span>
-                </a>
+                </button>
             <?php endif; ?>
         </div>
     <?php }
@@ -989,7 +958,9 @@ class ProductRenderer
                         <?php echo $soldIndividually ? 'max="1"' : ''; ?>
                         class="fct-quantity-input"
                         data-fluent-cart-single-product-page-product-quantity-input
-                        type="text"
+                        type="number"
+                        inputmode="numeric"
+                        pattern="[0-9]*"
                         placeholder="<?php esc_attr_e('Quantity', 'fluent-cart'); ?>"
                         value="1"
                         aria-label="<?php esc_attr_e('Product quantity', 'fluent-cart'); ?>"
@@ -1072,7 +1043,18 @@ class ProductRenderer
                 'product' => $this->product
         ]);
         ?>
-        <a <?php $this->renderAttributes($buyNowAttributes); ?> aria-label="<?php echo esc_attr($buyButtonText); ?>">
+        <?php
+        $variantTitle = $this->defaultVariant ? $this->defaultVariant->variation_title : '';
+        $buyNowAriaLabel = $variantTitle
+            ? sprintf(
+                /* translators: 1: Button text (e.g. "Buy Now"), 2: Variant name */
+                __('%1$s - %2$s', 'fluent-cart'),
+                $buyButtonText,
+                $variantTitle
+            )
+            : $buyButtonText;
+        ?>
+        <a <?php $this->renderAttributes($buyNowAttributes); ?> aria-label="<?php echo esc_attr($buyNowAriaLabel); ?>">
             <?php echo wp_kses_post($buyButtonText); ?>
         </a>
         <?php
@@ -1081,17 +1063,8 @@ class ProductRenderer
     public function renderBuyNowButtonBlock($atts = [])
     {
         $text = Arr::get($atts, 'text', __('Buy Now', 'fluent-cart'));
-
-
-        // Stock management check using isStock() method
-//        if (ModuleSettings::isActive('stock_management')) {
-//            if ($this->product->detail->variation_type === 'simple' && $this->defaultVariant) {
-//                if (!$this->defaultVariant->isStock()) {
-//                    echo '<span aria-disabled="true">' . esc_html__('Out of stock', 'fluent-cart') . '</span>';
-//                    return;
-//                }
-//            }
-//        }
+        $variantIds = Arr::get($atts, 'variant_ids', []);
+        $variantId  = Arr::get($variantIds, 0);
 
         $defaults = [
                 'buy_now_text' => $text,
@@ -1110,10 +1083,11 @@ class ProductRenderer
             $stockStatus = $this->defaultVariant->isStock() ? 'in-stock' : 'out-of-stock';
         }
 
-        $variationClass = 'fluent-cart-direct-checkout-button';
-        if (!$this->defaultVariant->isStock()) {
-            $variationClass .= ' is-hidden ';
-        }
+        $checkoutUrl = add_query_arg([
+                'fluent-cart' => $enableModalCheckout ? 'modal_checkout' : 'instant_checkout',
+                'item_id'     => $variantId ?? '',
+                'quantity'    => 1
+        ], site_url());
 
         $buyNowAttributes = [
                 'data-fluent-cart-direct-checkout-button' => '',
@@ -1121,9 +1095,9 @@ class ProductRenderer
                 'class'                                   => trim('wp-block-button__link wp-element-button ' . Arr::get($atts, 'class', '')),
                 'data-stock-availability'                 => $stockStatus,
                 'data-quantity'                           => '1',
-                'href'                                    => site_url('?fluent-cart=instant_checkout&item_id=') . ($this->defaultVariant ? $this->defaultVariant->id : '') . '&quantity=1',
-                'data-cart-id'                            => $this->defaultVariant ? $this->defaultVariant->id : '',
-                'data-url'                                => site_url('?fluent-cart=instant_checkout&item_id='),
+                'href'                                    => $checkoutUrl,
+                'data-cart-id'                            => $variantId ?? '',
+                'data-url'                                => $checkoutUrl,
         ];
 
         $target = Arr::get($atts, 'target');
@@ -1202,8 +1176,19 @@ class ProductRenderer
         // Only render add to cart if the product supports onetime
         if ($this->hasOnetime) :
             ?>
+            <?php
+            $variantTitle = $this->defaultVariant ? $this->defaultVariant->variation_title : '';
+            $addToCartAriaLabel = $variantTitle
+                ? sprintf(
+                    /* translators: 1: Button text (e.g. "Add To Cart"), 2: Variant name */
+                    __('%1$s - %2$s', 'fluent-cart'),
+                    $addToCartText,
+                    $variantTitle
+                )
+                : $addToCartText;
+            ?>
             <button <?php $this->renderAttributes($cartAttributes); ?>
-                    aria-label="<?php echo esc_attr($addToCartText); ?>">
+                    aria-label="<?php echo esc_attr($addToCartAriaLabel); ?>">
                 <span class="text">
                     <?php echo wp_kses_post($addToCartText); ?>
                 </span>
@@ -1413,7 +1398,7 @@ class ProductRenderer
         <div
                 <?php $this->renderAttributes($renderingAttributes); ?>
                 role="radio"
-                tabindex="0"
+                tabindex="<?php echo $variant->id == $defaultId ? '0' : '-1'; ?>"
                 aria-checked="<?php echo $variant->id == $defaultId ? 'true' : 'false'; ?>"
                 aria-label="<?php echo esc_attr($variant->variation_title); ?>"
         >
@@ -1538,7 +1523,7 @@ class ProductRenderer
                         class="fct-product-tab-nav-item <?php echo esc_attr($this->activeTab === $typeKey ? 'active' : ''); ?>"
                         data-tab="<?php echo esc_attr($typeKey); ?>"
                         role="tab"
-                        tabindex="0"
+                        tabindex="<?php echo $this->activeTab === $typeKey ? '0' : '-1'; ?>"
                         aria-selected="<?php echo $this->activeTab === $typeKey ? 'true' : 'false'; ?>"
                         aria-controls="<?php echo esc_attr($typeKey); ?>"
                 >
@@ -1567,7 +1552,8 @@ class ProductRenderer
                     role="tabpanel"
                     aria-labelledby="<?php echo esc_attr($variantKey); ?>"
             >
-                <div class="<?php echo esc_attr(implode(' ', $variantsClasses)); ?>">
+                <div class="<?php echo esc_attr(implode(' ', $variantsClasses)); ?>" role="radiogroup"
+                     aria-label="<?php esc_attr_e('Product Variants', 'fluent-cart'); ?>">
                     <?php
                     //Convert to collection safely before sorting
                     $variants = (new Collection($variants))->sortBy('serial_index')->values();

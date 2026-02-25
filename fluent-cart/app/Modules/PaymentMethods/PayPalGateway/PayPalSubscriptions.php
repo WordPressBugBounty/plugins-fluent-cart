@@ -37,9 +37,12 @@ class PayPalSubscriptions extends AbstractSubscriptionModule
 
         $subscriptionUpdateData = array_filter([
             'current_payment_method' => 'paypal',
-            'status'                 => $subscriptionStatus,
-            'next_billing_date'      => $nextBillingDate
+            'status'                 => $subscriptionStatus
         ]);
+
+        if ($nextBillingDate) {
+            $subscriptionUpdateData['next_billing_date'] = $nextBillingDate;
+        }
 
         if (Arr::get($paypalSubscription, 'status') === 'CANCELLED') {
             $statusUpdateTime = Arr::get($paypalSubscription, 'status_update_time');

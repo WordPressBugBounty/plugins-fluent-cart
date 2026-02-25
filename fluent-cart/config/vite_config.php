@@ -325,7 +325,8 @@
             'resources/admin/Bits/Components/Icons/Wallet.vue',
             'resources/admin/Bits/Components/Icons/Warning.vue',
             'resources/admin/Bits/Components/Icons/WarningFill.vue',
-            'resources/admin/Bits/Components/Icons/Webhooks.vue'
+            'resources/admin/Bits/Components/Icons/Webhooks.vue',
+            'resources/admin/Bits/Components/Icons/Window.vue'
         ]
     ],
     '_EditorPanel.js' => [
@@ -346,8 +347,9 @@
         'file' => 'chunks/Empty.js',
         'name' => 'Empty',
         'imports' => [
+            '_DynamicIcon.js',
             '_vue.esm-bundler.js',
-            '_DynamicIcon.js'
+            '__plugin-vue_export-helper.js'
         ]
     ],
     '_ErrorBoundary.js' => [
@@ -417,15 +419,19 @@
     ],
     '_ProductContainerContext.js' => [
         'file' => 'chunks/ProductContainerContext.js',
-        'name' => 'ProductContainerContext',
-        'imports' => [
-            '_BlockEditorTranslator.js',
-            '_SingleProductContext.js'
-        ]
+        'name' => 'ProductContainerContext'
     ],
     '_ProductContext.js' => [
         'file' => 'chunks/ProductContext.js',
         'name' => 'ProductContext'
+    ],
+    '_ProductExcerptBlock.js' => [
+        'file' => 'chunks/ProductExcerptBlock.js',
+        'name' => 'ProductExcerptBlock',
+        'imports' => [
+            '_BlockEditorTranslator.js',
+            '_SingleProductContext.js'
+        ]
     ],
     '_ProductListItem.js' => [
         'file' => 'chunks/ProductListItem.js',
@@ -517,10 +523,6 @@
         'file' => 'chunks/SingleProductContext.js',
         'name' => 'SingleProductContext'
     ],
-    '_SingleProductContext2.js' => [
-        'file' => 'chunks/SingleProductContext2.js',
-        'name' => 'SingleProductContext'
-    ],
     '_Str.js' => [
         'file' => 'chunks/Str.js',
         'name' => 'Str',
@@ -577,8 +579,10 @@
         'file' => 'chunks/countries.js',
         'name' => 'countries',
         'imports' => [
-            '_vue.esm-bundler.js',
             '_Translator.js',
+            '_DynamicIcon.js',
+            '_vue.esm-bundler.js',
+            '__plugin-vue_export-helper.js',
             '_Rest.js',
             '_Notify.js',
             '_NotFound.js'
@@ -2771,6 +2775,16 @@
             '__plugin-vue_export-helper.js'
         ]
     ],
+    'resources/admin/Bits/Components/Icons/Window.vue' => [
+        'file' => 'chunks/Window.js',
+        'name' => 'Window',
+        'src' => 'resources/admin/Bits/Components/Icons/Window.vue',
+        'isDynamicEntry' => true,
+        'imports' => [
+            '_vue.esm-bundler.js',
+            '__plugin-vue_export-helper.js'
+        ]
+    ],
     'resources/admin/BlockEditor/Buttons/AddToCartButtonBlockEditor.jsx' => [
         'file' => 'AddToCartButtonBlockEditor.js',
         'name' => 'AddToCartButtonBlockEditor',
@@ -2823,7 +2837,6 @@
             '_EditorPanelRow.js',
             '_CustomSelect.js',
             '_SelectProductModal.js',
-            '_SingleProductContext2.js',
             '_Icons.js',
             '_add-query-args.js',
             '_index5.js',
@@ -2893,6 +2906,21 @@
         'src' => 'resources/admin/BlockEditor/Components/style/fct-global-block-editor.scss',
         'isEntry' => true
     ],
+    'resources/admin/BlockEditor/CustomerDashboardButton/CustomerDashboardButtonBlockEditor.jsx' => [
+        'file' => 'CustomerDashboardButtonBlockEditor.js',
+        'name' => 'CustomerDashboardButtonBlockEditor',
+        'src' => 'resources/admin/BlockEditor/CustomerDashboardButton/CustomerDashboardButtonBlockEditor.jsx',
+        'isEntry' => true,
+        'imports' => [
+            '_BlockEditorTranslator.js',
+            '_Icons.js'
+        ]
+    ],
+    'resources/admin/BlockEditor/CustomerDashboardButton/style/customer-dashboard-button-block-editor.scss' => [
+        'file' => 'assets/customer-dashboard-button-block-editor.css',
+        'src' => 'resources/admin/BlockEditor/CustomerDashboardButton/style/customer-dashboard-button-block-editor.scss',
+        'isEntry' => true
+    ],
     'resources/admin/BlockEditor/CustomerProfile/CustomerProfile.png' => [
         'file' => 'assets/CustomerProfile.png',
         'src' => 'resources/admin/BlockEditor/CustomerProfile/CustomerProfile.png'
@@ -2923,21 +2951,33 @@
         'imports' => [
             '_BlockEditorTranslator.js',
             '_index4.js',
+            '_SelectProductModal.js',
             '_EditorPanel.js',
             '_EditorPanelRow.js',
-            '_CustomSelect.js',
-            '_SelectProductModal.js',
-            '_SingleProductContext2.js',
+            '_SingleProductContext.js',
             '_Icons.js',
             '_add-query-args.js',
-            '_index5.js',
-            '_ProductListItem.js'
+            '_ProductListItem.js',
+            '_index5.js'
         ]
     ],
     'resources/admin/BlockEditor/Excerpt/style/excerpt-block-editor.scss' => [
         'file' => 'assets/excerpt-block-editor.css',
         'src' => 'resources/admin/BlockEditor/Excerpt/style/excerpt-block-editor.scss',
         'isEntry' => true
+    ],
+    'resources/admin/BlockEditor/MediaCarousel/InnerBlocks/InnerBlocks.jsx' => [
+        'file' => 'InnerBlocks4.js',
+        'name' => 'InnerBlocks',
+        'src' => 'resources/admin/BlockEditor/MediaCarousel/InnerBlocks/InnerBlocks.jsx',
+        'isEntry' => true,
+        'imports' => [
+            '_BlockEditorTranslator.js',
+            '_SingleProductContext.js',
+            '_Icons.js',
+            '_ProductContext.js',
+            '_ProductContainerContext.js'
+        ]
     ],
     'resources/admin/BlockEditor/MediaCarousel/MediaCarouselBlockEditor.jsx' => [
         'file' => 'MediaCarouselBlockEditor.js',
@@ -2950,21 +2990,20 @@
             '_index4.js',
             '_EditorPanel.js',
             '_EditorPanelRow.js',
-            '_CustomSelect.js',
-            '_SelectProductModal.js',
             '_SelectVariationModal.js',
             '_SingleProductContext.js',
+            '_ProductContext.js',
             '_add-query-args.js',
-            '_index5.js',
-            '_ProductListItem.js'
+            '_ProductListItem.js',
+            '_index5.js'
         ],
         'assets' => [
             'assets/ProductGallery.png'
         ]
     ],
-    'resources/admin/BlockEditor/MediaCarousel/ProductGallery.png' => [
+    'resources/admin/BlockEditor/MediaCarousel/ProductCarousel.png' => [
         'file' => 'assets/ProductGallery.png',
-        'src' => 'resources/admin/BlockEditor/MediaCarousel/ProductGallery.png'
+        'src' => 'resources/admin/BlockEditor/MediaCarousel/ProductCarousel.png'
     ],
     'resources/admin/BlockEditor/MediaCarousel/style/media-carousel-block-editor.scss' => [
         'file' => 'assets/media-carousel-block-editor.css',
@@ -2979,20 +3018,19 @@
         'imports' => [
             '_BlockEditorTranslator.js',
             '_index4.js',
+            '_SelectProductModal.js',
             '_EditorPanel.js',
             '_EditorPanelRow.js',
-            '_CustomSelect.js',
-            '_SelectProductModal.js',
             '_SingleProductContext.js',
             '_Icons.js',
             '_add-query-args.js',
-            '_index5.js',
-            '_ProductListItem.js'
+            '_ProductListItem.js',
+            '_index5.js'
         ]
     ],
     'resources/admin/BlockEditor/PriceRange/style/price-range-block-editor.scss' => [
-        'file' => 'assets/price-range-block-editor.css',
-        'src' => 'resources/admin/BlockEditor/PriceRange/style/price-range-block-editor.scss',
+        'file' => 'assets/excerpt-block-editor.css',
+        'src' => 'resources/admin/BlockEditor/Excerpt/style/excerpt-block-editor.scss',
         'isEntry' => true
     ],
     'resources/admin/BlockEditor/PricingTable/PricingTable.png' => [
@@ -3063,14 +3101,15 @@
         'isEntry' => true,
         'imports' => [
             '_BlockEditorTranslator.js',
-            '_ProductContainerContext.js',
+            '_ProductExcerptBlock.js',
             '_ProductContext.js',
-            '_SingleProductContext.js'
+            '_SingleProductContext.js',
+            '_ProductContainerContext.js'
         ]
     ],
     'resources/admin/BlockEditor/ProductCarousel/ProductCarousel.png' => [
         'file' => 'assets/ProductGallery.png',
-        'src' => 'resources/admin/BlockEditor/MediaCarousel/ProductGallery.png'
+        'src' => 'resources/admin/BlockEditor/MediaCarousel/ProductCarousel.png'
     ],
     'resources/admin/BlockEditor/ProductCarousel/ProductCarouselBlockEditor.jsx' => [
         'file' => 'ProductCarouselBlockEditor.js',
@@ -3117,7 +3156,7 @@
     ],
     'resources/admin/BlockEditor/ProductGallery/ProductGallery.png' => [
         'file' => 'assets/ProductGallery.png',
-        'src' => 'resources/admin/BlockEditor/MediaCarousel/ProductGallery.png'
+        'src' => 'resources/admin/BlockEditor/MediaCarousel/ProductCarousel.png'
     ],
     'resources/admin/BlockEditor/ProductGallery/ProductGalleryBlockEditor.jsx' => [
         'file' => 'ProductGalleryBlockEditor.js',
@@ -3155,15 +3194,14 @@
         'imports' => [
             '_BlockEditorTranslator.js',
             '_index4.js',
+            '_SelectProductModal.js',
             '_EditorPanel.js',
             '_EditorPanelRow.js',
-            '_CustomSelect.js',
-            '_SelectProductModal.js',
             '_SingleProductContext.js',
             '_Icons.js',
             '_add-query-args.js',
-            '_index5.js',
-            '_ProductListItem.js'
+            '_ProductListItem.js',
+            '_index5.js'
         ]
     ],
     'resources/admin/BlockEditor/ProductImage/style/product-image-block-editor.scss' => [
@@ -3187,7 +3225,6 @@
             '_SelectProductModal.js',
             '_EditorPanel.js',
             '_EditorPanelRow.js',
-            '_CustomSelect.js',
             '_SingleProductContext.js',
             '_add-query-args.js',
             '_ProductListItem.js',
@@ -3210,15 +3247,14 @@
         'imports' => [
             '_BlockEditorTranslator.js',
             '_index4.js',
+            '_SelectProductModal.js',
             '_EditorPanel.js',
             '_EditorPanelRow.js',
-            '_CustomSelect.js',
-            '_SelectProductModal.js',
             '_SingleProductContext.js',
             '_Icons.js',
             '_add-query-args.js',
-            '_index5.js',
-            '_ProductListItem.js'
+            '_ProductListItem.js',
+            '_index5.js'
         ]
     ],
     'resources/admin/BlockEditor/ProductTitle/style/product-title-block-editor.scss' => [
@@ -3230,6 +3266,24 @@
         'file' => 'ReactSupport.js',
         'name' => 'ReactSupport',
         'src' => 'resources/admin/BlockEditor/ReactSupport.js',
+        'isEntry' => true
+    ],
+    'resources/admin/BlockEditor/RelatedProduct/RelatedProductBlockEditor.jsx' => [
+        'file' => 'RelatedProductBlockEditor.js',
+        'name' => 'RelatedProductBlockEditor',
+        'src' => 'resources/admin/BlockEditor/RelatedProduct/RelatedProductBlockEditor.jsx',
+        'isEntry' => true,
+        'imports' => [
+            '_BlockEditorTranslator.js',
+            '_Icons.js',
+            '_index4.js',
+            '_add-query-args.js',
+            '_SingleProductContext.js'
+        ]
+    ],
+    'resources/admin/BlockEditor/RelatedProduct/style/related-product-block-editor.scss' => [
+        'file' => 'assets/related-product-block-editor.css',
+        'src' => 'resources/admin/BlockEditor/RelatedProduct/style/related-product-block-editor.scss',
         'isEntry' => true
     ],
     'resources/admin/BlockEditor/SearchBar/ProductSearch.png' => [
@@ -3257,9 +3311,10 @@
         'isEntry' => true,
         'imports' => [
             '_BlockEditorTranslator.js',
-            '_ProductContainerContext.js',
+            '_ProductExcerptBlock.js',
             '_ProductContext.js',
             '_SingleProductContext.js',
+            '_ProductContainerContext.js',
             '_EditorPanel.js',
             '_EditorPanelRow.js'
         ]
@@ -3303,12 +3358,21 @@
             '_SelectProductModal.js',
             '_EditorPanel.js',
             '_EditorPanelRow.js',
-            '_CustomSelect.js',
             '_index4.js',
             '_SingleProductContext.js',
             '_add-query-args.js',
             '_ProductListItem.js',
             '_index5.js'
+        ]
+    ],
+    'resources/admin/BlockEditor/StoreLogo/StoreLogoBlockEditor.jsx' => [
+        'file' => 'StoreLogoBlockEditor.js',
+        'name' => 'StoreLogoBlockEditor',
+        'src' => 'resources/admin/BlockEditor/StoreLogo/StoreLogoBlockEditor.jsx',
+        'isEntry' => true,
+        'imports' => [
+            '_BlockEditorTranslator.js',
+            '_Icons.js'
         ]
     ],
     'resources/admin/Modules/Reports/Subscription/Cohort.vue' => [
@@ -3345,9 +3409,9 @@
             '_BundleProducts.js',
             '_dateShortCuts.js',
             '_index3.js',
+            '_countries.js',
             '_index2.js',
             '_ProductVariationSelector.js',
-            '_countries.js',
             '_defaults.js',
             'resources/admin/Bits/Components/Icons/Screenshot.vue',
             '_useElementPlusComponents.js'
@@ -3372,9 +3436,9 @@
             '_Notify.js',
             '__plugin-vue_export-helper.js',
             '_Str.js',
+            '_countries.js',
             '_index.js',
             '_NotFound.js',
-            '_countries.js',
             '_Model.js',
             '_Url.js',
             '_dayjs.min.js',
@@ -3394,13 +3458,13 @@
         'imports' => [
             '_vue.esm-bundler.js',
             '_RouteCell.js',
+            '_Empty.js',
             '_Translator.js',
             '_Arr.js',
             '_CancelSubscription.js',
             '__plugin-vue_export-helper.js',
             '_index.js',
             '_CopyToClipboard.js',
-            '_Empty.js',
             '_OrderCustomerInformation.js',
             '_Str.js',
             '_DynamicIcon.js',
@@ -3437,10 +3501,10 @@
             '_RouteCell.js',
             '_Translator.js',
             '_Arr.js',
+            '_Empty.js',
             '_OrderCustomerInformation.js',
             '_productService.js',
             '_CancelSubscription.js',
-            '_Empty.js',
             '__plugin-vue_export-helper.js',
             '_Badge.js',
             '_common.js',
@@ -3450,6 +3514,7 @@
             '_index.js',
             '_dateShortCuts.js',
             '_Notify.js',
+            '_countries.js',
             '_NotFound.js',
             '_Asset.js',
             '_index2.js',
@@ -3459,7 +3524,6 @@
             '_CopyToClipboard.js',
             '_ProductVariationSelector.js',
             '_BundleProducts.js',
-            '_countries.js',
             '_defaults.js',
             'resources/admin/Bits/Components/Icons/Screenshot.vue',
             '_useElementPlusComponents.js',
@@ -3742,6 +3806,17 @@
         'src' => 'resources/public/buttons/product-details/style/style.scss',
         'isEntry' => true
     ],
+    'resources/public/carousel/media/media-carousel.js' => [
+        'file' => 'media-carousel2.js',
+        'name' => 'media-carousel',
+        'src' => 'resources/public/carousel/media/media-carousel.js',
+        'isEntry' => true
+    ],
+    'resources/public/carousel/media/style/media-carousel.scss' => [
+        'file' => 'assets/media-carousel.css',
+        'src' => 'resources/public/carousel/media/style/media-carousel.scss',
+        'isEntry' => true
+    ],
     'resources/public/carousel/products/product-carousel.js' => [
         'file' => 'product-carousel2.js',
         'name' => 'product-carousel',
@@ -3829,6 +3904,11 @@
     'resources/public/components/select/style/style.scss' => [
         'file' => 'assets/style7.css',
         'src' => 'resources/public/components/select/style/style.scss',
+        'isEntry' => true
+    ],
+    'resources/public/customer-dashboard-button/customer-dashboard-button.scss' => [
+        'file' => 'assets/customer-dashboard-button-block-editor.css',
+        'src' => 'resources/admin/BlockEditor/CustomerDashboardButton/style/customer-dashboard-button-block-editor.scss',
         'isEntry' => true
     ],
     'resources/public/customer-profile/Start.js' => [

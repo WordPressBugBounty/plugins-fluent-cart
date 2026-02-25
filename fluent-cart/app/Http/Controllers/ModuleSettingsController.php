@@ -73,6 +73,16 @@ class ModuleSettingsController extends Controller
 
         // Add installation status for each addon
         foreach ($addons as $key => &$addon) {
+            $isUpcoming = Arr::get($addon, 'upcoming', false);
+            if($isUpcoming){
+                $addon['is_installed'] = false;
+                $addon['is_active'] = false;
+                $addon['plugin_file'] = '';
+                $addon['plugin_file'] = '';
+                $addon['source_link'] = '';
+                $addon['source_type'] = '';
+                continue;
+            }
             if (!empty($addon['plugin_file']) && !empty($addon['plugin_slug'])) {
                 $status = (new AddonManager())->getAddonStatus($addon['plugin_slug'], $addon['plugin_file']);
                 $addon['is_installed'] = $status['is_installed'];
@@ -84,8 +94,7 @@ class ModuleSettingsController extends Controller
         }
 
         return $this->sendSuccess([
-            'addons' => [],
-            //'addons' => $addons,
+            'addons' => $addons,
         ]);
     }
 
@@ -94,6 +103,12 @@ class ModuleSettingsController extends Controller
         $pluginSlug = $request->getSafe('plugin_slug', 'sanitize_text_field');
         $sourceType = $request->getSafe('source_type', 'sanitize_text_field', 'wordpress');
         $sourceLink = $request->getSafe('source_link', 'sanitize_url', '');
+        $assetPath = $request->getSafe('asset_path', 'sanitize_text_field', '');
+        $assetPath = trim($assetPath);
+        if(empty($assetPath)){
+            $assetPath = 'zipball_url';
+        }
+
 
         if (!$pluginSlug) {
             return $this->sendError([
@@ -127,7 +142,7 @@ class ModuleSettingsController extends Controller
         }
 
         $addonManager = new AddonManager();
-        $result = $addonManager->installAddon($sourceType, $sourceLink, $pluginSlug);
+        $result = $addonManager->installAddon($sourceType, $sourceLink, $pluginSlug, $assetPath);
 
         if (is_wp_error($result)) {
             return $this->sendError([
@@ -165,17 +180,120 @@ class ModuleSettingsController extends Controller
         ]);
     }
 
+    public function checkPluginAddonUpdate(Request $request): \WP_REST_Response
+    {
+        $pluginSlug = $request->getSafe('plugin_slug', 'sanitize_text_field');
+        $pluginFile = $request->getSafe('plugin_file', 'sanitize_text_field');
+        $sourceType = $request->getSafe('source_type', 'sanitize_text_field', 'wordpress');
+        $sourceLink = $request->getSafe('source_link', 'sanitize_url', '');
+
+        if (!$pluginSlug || !$pluginFile) {
+            return $this->sendError([
+                'message' => __('Plugin slug and plugin file are required.', 'fluent-cart')
+            ]);
+        }
+
+        $registeredAddons = $this->getRegisteredPluginAddons();
+        $allowedAddon = null;
+
+        foreach ($registeredAddons as $addon) {
+            if ($addon['plugin_slug'] === $pluginSlug) {
+                $allowedAddon = $addon;
+                break;
+            }
+        }
+
+        if (!$allowedAddon) {
+            return $this->sendError([
+                'message' => __('This addon is not registered.', 'fluent-cart')
+            ]);
+        }
+
+        if (empty($sourceType) && !empty($allowedAddon['source_type'])) {
+            $sourceType = $allowedAddon['source_type'];
+        }
+        if (empty($sourceLink) && !empty($allowedAddon['source_link'])) {
+            $sourceLink = $allowedAddon['source_link'];
+        }
+
+        $addonManager = new AddonManager();
+        $result = $addonManager->checkForUpdate($sourceType, $sourceLink, $pluginFile, $pluginSlug);
+
+        if (is_wp_error($result)) {
+            return $this->sendError([
+                'message' => $result->get_error_message()
+            ]);
+        }
+
+        return $this->sendSuccess([
+            'update_info' => $result
+        ]);
+    }
+
+    public function updatePluginAddon(Request $request): \WP_REST_Response
+    {
+        $pluginSlug = $request->getSafe('plugin_slug', 'sanitize_text_field');
+        $pluginFile = $request->getSafe('plugin_file', 'sanitize_text_field');
+        $sourceType = $request->getSafe('source_type', 'sanitize_text_field', 'wordpress');
+        $sourceLink = $request->getSafe('source_link', 'sanitize_url', '');
+
+        if (!$pluginSlug || !$pluginFile) {
+            return $this->sendError([
+                'message' => __('Plugin slug and plugin file are required.', 'fluent-cart')
+            ]);
+        }
+
+        $registeredAddons = $this->getRegisteredPluginAddons();
+        $allowedAddon = null;
+
+        foreach ($registeredAddons as $addon) {
+            if ($addon['plugin_slug'] === $pluginSlug) {
+                $allowedAddon = $addon;
+                break;
+            }
+        }
+
+        if (!$allowedAddon) {
+            return $this->sendError([
+                'message' => __('This addon cannot be updated.', 'fluent-cart')
+            ]);
+        }
+
+        if (empty($sourceType) && !empty($allowedAddon['source_type'])) {
+            $sourceType = $allowedAddon['source_type'];
+        }
+        if (empty($sourceLink) && !empty($allowedAddon['source_link'])) {
+            $sourceLink = $allowedAddon['source_link'];
+        }
+
+        $addonManager = new AddonManager();
+        $result = $addonManager->updateAddon($sourceType, $sourceLink, $pluginSlug, $pluginFile);
+
+        if (is_wp_error($result)) {
+            return $this->sendError([
+                'message' => $result->get_error_message()
+            ]);
+        }
+
+        return $this->sendSuccess([
+            'message' => __('Addon updated successfully.', 'fluent-cart')
+        ]);
+    }
+
     private function getRegisteredPluginAddons(): array
     {
         $addons = [
             'elementor-block' => [
-                'title'       => __('Elementor Block', 'fluent-cart'),
-                'description' => __('Elementor Block Support From Fluent Cart.', 'fluent-cart'),
-                'logo'        => 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQAMjHkRaMrCJSrZ3YvAWQGjqIFCQjjYp6bxg&s',
-                'plugin_slug' => 'fluent-cart-elementor',
-                'plugin_file' => 'my-github-addon/my-github-addon.php',
+                'title'       => __('Elementor Blocks', 'fluent-cart'),
+                'description' => __('Enable to get Elementor Blocks for FluentCart. Minimum Requirement: Elementor V3.34', 'fluent-cart'),
+                'logo'        => Vite::getAssetUrl('images/elementor/black.svg'),
+                'dark_logo'   => Vite::getAssetUrl('images/elementor/white.svg'),
+                'plugin_slug' => 'fluent-cart-elementor-blocks',
+                'plugin_file' => 'fluent-cart-elementor-blocks/fluent-cart-elementor-blocks.php',
                 'source_type' => 'github',
-                'source_link' => 'https://github.com/owner/repo/releases/latest',
+                'source_link' => 'https://github.com/WPManageNinja/fluent-cart-elementor-blocks/releases/latest',
+                'asset_path'  => 'assets.0.browser_download_url',
+                'upcoming' => false
             ]
         ];
 

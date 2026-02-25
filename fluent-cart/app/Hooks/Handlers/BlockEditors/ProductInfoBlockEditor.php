@@ -49,6 +49,11 @@ class ProductInfoBlockEditor extends BlockEditor
     }
 
 
+    protected function skipInnerBlocks(): bool
+    {
+        return true;
+    }
+
     public function render(array $shortCodeAttribute, $block = null)
     {
         AssetLoader::loadSingleProductAssets();

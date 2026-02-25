@@ -432,17 +432,6 @@ class ProductResource extends BaseResourceApi
 
     }
 
-    public static function setThumbnail($productId, $data = [])
-    {
-
-        $productMeta = ProductMetaResource::find($productId);
-
-        if (empty($productMeta)) {
-            return ProductMetaResource::Create($data['thumbnail'], ['product_id' => $productId]);
-        }
-        return ProductMetaResource::update($data['thumbnail'], $productId);
-    }
-
     /**
      *
      * @param $productId

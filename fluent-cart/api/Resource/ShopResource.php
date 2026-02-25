@@ -267,7 +267,7 @@ class ShopResource extends BaseResourceApi
      * @param int $id The ID of the post.
      *
      */
-    public static function getSimilarProducts($id, $asArray = true)
+    public static function getSimilarProducts($id, $asArray = true, $config = [])
     {
         $post = get_post($id);
 
@@ -275,42 +275,43 @@ class ShopResource extends BaseResourceApi
             return [];
         }
 
-        $taxonomies = get_object_taxonomies($post->post_type);
+        $relatedBy = Arr::get($config, 'related_by');
+        $orderBy = Arr::get($config, 'order_by', 'title_asc');
+        $postsPerPage = (int) Arr::get($config, 'posts_per_page', 6);
+        $postsPerPage = max(1, min($postsPerPage, 24));
 
-        $termIds = [];
+        $taxQuery = static::buildTaxQuery($id, $post->post_type, $relatedBy);
 
-        foreach ($taxonomies as $taxonomy) {
-            $terms = wp_get_post_terms($id, $taxonomy, ['fields' => 'ids']);
-            if (!empty($terms)) {
-                $termIds[$taxonomy] = $terms;
-            }
-        }
-
-        if (empty($termIds)) {
+        if (!$taxQuery) {
             return [];
         }
 
-        $taxQuery = ['relation' => 'OR'];
-
-        foreach ($termIds as $taxonomy => $ids) {
-            $taxQuery[] = [
-                'taxonomy' => $taxonomy,
-                'field'    => 'term_id',
-                'terms'    => $ids,
-                'operator' => 'IN'
-            ];
-        }
+        [$orderField, $orderDir] = static::parseOrderBy($orderBy);
 
         $args = [
             'post_type'      => $post->post_type,
             'post_status'    => 'publish',
-            'posts_per_page' => 5,
+            'posts_per_page' => $postsPerPage,
             'post__not_in'   => [$id],
             'tax_query'      => $taxQuery,
             'fields'         => 'ids'
         ];
 
+        // Price ordering needs custom SQL
+        $priceFilter = null;
+        if ($orderField === 'price') {
+            $priceFilter = static::applyPriceOrdering($orderDir);
+        } else {
+            $args['orderby'] = $orderField;
+            $args['order']   = $orderDir;
+        }
+
         $query = new \WP_Query($args);
+
+        // Remove the price filter if applied
+        if ($priceFilter) {
+            remove_filter('posts_clauses', $priceFilter);
+        }
 
         if (empty($query->posts)) {
             return [];
@@ -322,7 +323,7 @@ class ShopResource extends BaseResourceApi
 
             // Convert WP Post → Product Model
             $similarProduct = static::getQuery()
-                ->with(['postmeta', 'detail'])
+                ->with(['postmeta', 'detail', 'detail.galleryImage'])
                 ->find($postId);
 
             if ($similarProduct) {
@@ -337,6 +338,93 @@ class ShopResource extends BaseResourceApi
         }
 
         return $results;
+    }
+
+    private static function applyPriceOrdering(string $orderDir): \Closure
+    {
+        global $wpdb;
+        $detailsTable = $wpdb->prefix . 'fct_product_details';
+        $postsTable   = $wpdb->posts;
+
+        $orderDir = strtoupper($orderDir);
+        $orderDir = in_array($orderDir, ['ASC', 'DESC'], true) ? $orderDir : 'ASC';
+
+        $filter = function ($clauses) use ($detailsTable, $postsTable, $orderDir) {
+            // Prevent duplicate join
+            if (strpos($clauses['join'], $detailsTable) === false) {
+                $clauses['join']    .= " LEFT JOIN {$detailsTable} ON {$detailsTable}.post_id = {$postsTable}.ID";
+            }
+
+            $clauses['orderby']  = "{$detailsTable}.min_price {$orderDir}";
+            return $clauses;
+        };
+
+        add_filter('posts_clauses', $filter);
+
+        return $filter;
+    }
+
+    private static function buildTaxQuery($productId, $postType, $relatedBy): ?array
+    {
+        // null = no filter, use all taxonomies
+        // empty array = filters provided but none selected, return empty
+        if (is_array($relatedBy) && empty($relatedBy)) {
+            return null;
+        }
+
+        $taxonomies = $relatedBy ?: get_object_taxonomies($postType);
+        $termIds = [];
+
+        foreach ($taxonomies as $taxonomy) {
+            $terms = wp_get_post_terms($productId, $taxonomy, ['fields' => 'ids']);
+            if ($terms) {
+                $termIds[$taxonomy] = $terms;
+            }
+        }
+
+        if (!$termIds) {
+            return null;
+        }
+
+        $taxQuery = ['relation' => 'OR'];
+        foreach ($termIds as $taxonomy => $ids) {
+            $taxQuery[] = [
+                'taxonomy' => $taxonomy,
+                'field'    => 'term_id',
+                'terms'    => $ids,
+                'operator' => 'IN',
+            ];
+        }
+
+        return $taxQuery;
+    }
+
+    private static function parseOrderBy(string $orderBy): array
+    {
+        // Parse combined value like "date_desc", "title_asc", "price_desc", "rand"
+        $allowedFields = ['date', 'title', 'price', 'rand'];
+        $allowedOrders = ['asc', 'desc'];
+
+        $field = 'title';
+        $dir = 'ASC';
+
+        if ($orderBy === 'rand') {
+            return ['rand', 'ASC'];
+        }
+
+        if (strpos($orderBy, '_') !== false) {
+            [$f, $d] = explode('_', $orderBy, 2);
+
+            if (in_array($f, $allowedFields, true)) {
+                $field = $f;
+            }
+
+            if (in_array($d, $allowedOrders, true)) {
+                $dir = strtoupper($d);
+            }
+        }
+
+        return [$field, $dir];
     }
 
     public static function create($data, $params = [])

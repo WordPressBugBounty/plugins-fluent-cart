@@ -603,10 +603,14 @@ class CheckoutProcessor
                 $childDiscountTotal = 0;
                 $signupFeeSubtotal = $signupFeeAmount * $quantity;
 
-                if ($discountTotal) {
-                    // Distribute discount with signup fee and item
+                $hasTrialDays = Arr::get($cartItem, 'other_info.trial_days', 0) > 0;
+
+                if ($discountTotal && !$hasTrialDays) {
                     $childDiscountTotal = (float) ($discountTotal / ($subtotal + $signupFeeSubtotal) * $signupFeeSubtotal);
                     $discountTotal -= $childDiscountTotal;
+                } elseif ($discountTotal && $hasTrialDays) { // if trial days , then discount should be applied on signup fee only
+                    $childDiscountTotal = min($discountTotal, $signupFeeSubtotal);
+                    $discountTotal = 0;
                 }
 
                 $childItem = [
@@ -966,37 +970,46 @@ class CheckoutProcessor
 
         // Calculate signup fee logic
         if ($totalDiscount > 0) {
-
-            $firstCycleCost = $recurringAmount + $signupFee - $totalDiscount;
-
-            if (Arr::get($inputData, 'is_recurring_coupon', 'no') === 'yes') {
-                $recurringAmount -= $totalDiscount; // as now discount applied on recurring amount
-            }
-
-            if ($firstCycleCost < $recurringAmount) {
-                $adjustedTrialDays = Helper::calculateAdjustedTrialDaysForInterval($trialDays, $repeatInterval);
-
-                $result['trial_days'] = $adjustedTrialDays;
-                $result['is_trial_days_simulated'] = 'yes';
-                $result['signup_fee'] = $firstCycleCost;
+            // case: discount applied on subscription with trial days and have signup_fee, otherise discount can't be applied on subscription with trial days.
+            if ($trialDays > 0 && $signupFee > 0) {
+                $result['signup_fee'] = max(0, $signupFee - $totalDiscount);
                 $result['manage_setup_fee'] = 'yes';
-                $result['times'] = $times > 0 ? $times - 1 : 0;
-            } else if ($firstCycleCost > $recurringAmount) {
-                $result['trial_days'] = 0;
-                $result['signup_fee'] = $firstCycleCost - $recurringAmount;
-                $result['manage_setup_fee'] = 'yes';
-            } else if ($firstCycleCost == $recurringAmount) {
-                $result['trial_days'] = 0;
-                $result['signup_fee'] = 0;
-                $result['manage_setup_fee'] = 'no';
-            }
 
-            // only the signup fee is adjustable on our system, so we can adjust that to our needs
-            if (Arr::get($inputData, 'tax_behavior', 0) == 1 && $firstIterationTax) {
-                if ($result['trial_days'] > 0) {
+                if (Arr::get($inputData, 'tax_behavior', 0) == 1 && $firstIterationTax) {
                     $result['signup_fee'] += $firstIterationTax;
-                } else {
-                    $result['signup_fee'] += ($firstIterationTax - $recurringTax); // need to minus the recurring tax as it would add automatically to the payable amount as no trial days
+                }
+            } else {
+                $firstCycleCost = $recurringAmount + $signupFee - $totalDiscount;
+
+                if (Arr::get($inputData, 'is_recurring_coupon', 'no') === 'yes') {
+                    $recurringAmount -= $totalDiscount; // as now discount applied on recurring amount
+                }
+
+                if ($firstCycleCost < $recurringAmount) {
+                    $adjustedTrialDays = Helper::calculateAdjustedTrialDaysForInterval($trialDays, $repeatInterval);
+
+                    $result['trial_days'] = $adjustedTrialDays;
+                    $result['is_trial_days_simulated'] = 'yes';
+                    $result['signup_fee'] = $firstCycleCost;
+                    $result['manage_setup_fee'] = 'yes';
+                    $result['times'] = $times > 0 ? $times - 1 : 0;
+                } else if ($firstCycleCost > $recurringAmount) {
+                    $result['trial_days'] = 0;
+                    $result['signup_fee'] = $firstCycleCost - $recurringAmount;
+                    $result['manage_setup_fee'] = 'yes';
+                } else if ($firstCycleCost == $recurringAmount) {
+                    $result['trial_days'] = 0;
+                    $result['signup_fee'] = 0;
+                    $result['manage_setup_fee'] = 'no';
+                }
+
+                // only the signup fee is adjustable on our system, so we can adjust that to our needs
+                if (Arr::get($inputData, 'tax_behavior', 0) == 1 && $firstIterationTax) {
+                    if ($result['trial_days'] > 0) {
+                        $result['signup_fee'] += $firstIterationTax;
+                    } else {
+                        $result['signup_fee'] += ($firstIterationTax - $recurringTax); // need to minus the recurring tax as it would add automatically to the payable amount as no trial days
+                    }
                 }
             }
 

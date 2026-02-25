@@ -82,7 +82,7 @@ abstract class BlockEditor
             }
         });
 
-        register_block_type($this->slugPrefix . '/' . static::getEditorName(), [
+        $blockArgs = [
             'api_version'      => 3,
             'version'          => 3,
             'editor_script'    => $this->getScriptName(),
@@ -91,7 +91,13 @@ abstract class BlockEditor
             'provides_context' => $this->provideContext(),
             'uses_context'     => $this->useContext(),
             'supports'         => $this->supports()
-        ]);
+        ];
+
+        if ($this->skipInnerBlocks()) {
+            $blockArgs['skip_inner_blocks'] = true;
+        }
+
+        register_block_type($this->slugPrefix . '/' . static::getEditorName(), $blockArgs);
 
     }
 
@@ -112,6 +118,19 @@ abstract class BlockEditor
     public function useContext()
     {
         return null;
+    }
+
+    /**
+     * Whether to skip automatic inner block rendering in WP_Block::render().
+     *
+     * Override to return true in blocks that manually render their inner blocks
+     * in the render callback. This prevents WordPress from auto-rendering inner
+     * blocks before the callback runs (which causes double rendering and can
+     * trigger WP 6.x's empty-block script dequeue mechanism).
+     */
+    protected function skipInnerBlocks(): bool
+    {
+        return false;
     }
 
     public function render_block($attributes, $content, $block)

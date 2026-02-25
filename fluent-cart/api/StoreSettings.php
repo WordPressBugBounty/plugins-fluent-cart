@@ -114,6 +114,7 @@ class StoreSettings implements ArrayableInterface
                 'schema'          => [
                     'store_setup'          => [
                         'title'           => __('Store Setup', 'fluent-cart'),
+                        'show_title'      => false,
                         'type'            => 'section',
                         'disable_nesting' => true,
                         'columns'         => [
@@ -524,6 +525,7 @@ class StoreSettings implements ArrayableInterface
 //                    ],
                     'pages_setup'          => [
                         'title'           => __('Pages Setup', 'fluent-cart'),
+                        'show_title'      => false,
                         'type'            => 'section',
                         'disable_nesting' => true,
                         'columns'         => [
@@ -714,6 +716,7 @@ class StoreSettings implements ArrayableInterface
                     ],
                     'single_product_setup' => [
                         'title'           => __('Product Page', 'fluent-cart'),
+                        'show_title'      => false,
                         'type'            => 'section',
                         'disable_nesting' => true,
                         'columns'         => [
@@ -919,6 +922,7 @@ class StoreSettings implements ArrayableInterface
                     ],
                     'cart_and_checkout'    => [
                         'title'           => __('Cart & checkout', 'fluent-cart'),
+                        'show_title'      => false,
                         'type'            => 'section',
                         'disable_nesting' => true,
                         'columns'         => [
