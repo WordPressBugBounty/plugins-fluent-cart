@@ -83,6 +83,10 @@ $router->prefix('products')->withPolicy('ProductPolicy')->group(function (Router
         'permissions' => 'products/view'
     ]);
 
+    $router->get('/suggest-sku', [ProductController::class, 'suggestSku'])->meta([
+        'permissions' => 'products/view'
+    ]);
+
     $router->get('/searchVariantByName', [ProductController::class, 'searchVariantByName'])->meta([
         'permissions' => 'products/view'
     ]);

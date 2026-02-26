@@ -145,6 +145,23 @@ class PayPalSubscriptions extends AbstractSubscriptionModule
             return new \WP_Error('invalid_subscription', __('Invalid vendor subscription ID.', 'fluent-cart'));
         }
 
+        // first check , before canceling the subscription
+        $paypalSubscription = (new API())->verifySubscription($vendorSubscriptionId, Arr::get($args, 'mode', ''));
+
+        if (is_wp_error($paypalSubscription)) {
+            return $paypalSubscription;
+        }
+
+        $subscriptionStatus = (new SubscriptionManager)->getCorrectSubscriptionStatus(Arr::get($paypalSubscription, 'status'));
+
+       if ($subscriptionStatus === Status::SUBSCRIPTION_CANCELED) {
+            $statusUpdateTime = Arr::get($paypalSubscription, 'status_update_time');
+            return [
+                'status' => Status::SUBSCRIPTION_CANCELED,
+                'canceled_at' => $statusUpdateTime ? gmdate('Y-m-d H:i:s', strtotime($statusUpdateTime)) : NULL
+            ];
+        }
+
         $response = API::createResource('billing/subscriptions/' . $vendorSubscriptionId . '/cancel', [
             'reason' => Arr::get($args, 'reason', __('Subscription canceled.', 'fluent-cart')),
         ], Arr::get($args, 'mode', ''));

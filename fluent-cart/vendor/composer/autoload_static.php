@@ -274,6 +274,7 @@ class ComposerStaticInitb2eff533900bbaf3c7b668b284ce4755
         'FluentCart\\App\\Hooks\\Handlers\\BlockEditors\\ProductGalleryBlockEditor' => __DIR__ . '/../..' . '/app/Hooks/Handlers/BlockEditors/ProductGalleryBlockEditor.php',
         'FluentCart\\App\\Hooks\\Handlers\\BlockEditors\\ProductImageBlockEditor' => __DIR__ . '/../..' . '/app/Hooks/Handlers/BlockEditors/ProductImageBlockEditor.php',
         'FluentCart\\App\\Hooks\\Handlers\\BlockEditors\\ProductInfoBlockEditor' => __DIR__ . '/../..' . '/app/Hooks/Handlers/BlockEditors/ProductInfoBlockEditor.php',
+        'FluentCart\\App\\Hooks\\Handlers\\BlockEditors\\ProductSkuBlockEditor' => __DIR__ . '/../..' . '/app/Hooks/Handlers/BlockEditors/ProductSkuBlockEditor.php',
         'FluentCart\\App\\Hooks\\Handlers\\BlockEditors\\ProductTitleBlockEditor' => __DIR__ . '/../..' . '/app/Hooks/Handlers/BlockEditors/ProductTitleBlockEditor.php',
         'FluentCart\\App\\Hooks\\Handlers\\BlockEditors\\RelatedProduct\\InnerBlocks\\InnerBlocks' => __DIR__ . '/../..' . '/app/Hooks/Handlers/BlockEditors/RelatedProduct/InnerBlocks/InnerBlocks.php',
         'FluentCart\\App\\Hooks\\Handlers\\BlockEditors\\RelatedProduct\\RelatedProductBlockEditor' => __DIR__ . '/../..' . '/app/Hooks/Handlers/BlockEditors/RelatedProduct/RelatedProductBlockEditor.php',

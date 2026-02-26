@@ -3239,6 +3239,30 @@
         'src' => 'resources/admin/BlockEditor/ProductInfo/style/product-info-block-editor.scss',
         'isEntry' => true
     ],
+    'resources/admin/BlockEditor/ProductSku/ProductSkuBlockEditor.jsx' => [
+        'file' => 'ProductSkuBlockEditor.js',
+        'name' => 'ProductSkuBlockEditor',
+        'src' => 'resources/admin/BlockEditor/ProductSku/ProductSkuBlockEditor.jsx',
+        'isEntry' => true,
+        'imports' => [
+            '_BlockEditorTranslator.js',
+            '_index4.js',
+            '_SelectVariationModal.js',
+            '_EditorPanel.js',
+            '_EditorPanelRow.js',
+            '_ErrorBoundary.js',
+            '_SingleProductContext.js',
+            '_Icons.js',
+            '_add-query-args.js',
+            '_ProductListItem.js',
+            '_index5.js'
+        ]
+    ],
+    'resources/admin/BlockEditor/ProductSku/style/product-sku-block-editor.scss' => [
+        'file' => 'assets/product-sku-block-editor.css',
+        'src' => 'resources/admin/BlockEditor/ProductSku/style/product-sku-block-editor.scss',
+        'isEntry' => true
+    ],
     'resources/admin/BlockEditor/ProductTitle/ProductTitleBlockEditor.jsx' => [
         'file' => 'ProductTitleBlockEditor.js',
         'name' => 'ProductTitleBlockEditor',

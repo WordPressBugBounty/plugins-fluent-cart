@@ -214,6 +214,7 @@ class ProductRenderer
                     <?php
                     $this->renderTitle();
                     $this->renderStockAvailability();
+                    $this->renderSku();
                     $this->renderExcerpt();
                     $this->renderPrices();
 
@@ -339,7 +340,7 @@ class ProductRenderer
     {
         $totalThumbImages = Arr::pluck($this->images, 'media.*.url');
 
-        if(count($totalThumbImages) == 1 && count($totalThumbImages[0]) == 1){
+        if(count($totalThumbImages) == 1 && is_countable($totalThumbImages[0]) && count($totalThumbImages[0]) == 1){
 
             return '';
         }
@@ -557,14 +558,47 @@ class ProductRenderer
         echo sprintf(
                 '<div class="fct-product-stock %1$s" role="status" aria-live="polite">
                     <div %2$s>
+                        <span class="fct-stock-label">%3$s</span>
                         <span class="fct-stock-status fct_status_badge_%1$s" data-fluent-cart-product-stock>
-                            %3$s
+                            %4$s
                         </span>
                     </div>
                 </div>',
                 esc_attr($statusClass),
                 $wrapper_attributes, // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+                esc_html__('Availability:', 'fluent-cart'),
                 esc_html($stockLabel)
+        );
+    }
+
+    public function renderSku($wrapper_attributes = '', $showLabel = true, $label = '', $variant = null)
+    {
+        if (!$variant) {
+            $variant = $this->defaultVariant ?: $this->product->variants->first();
+        }
+
+        if (!$variant || empty($variant->sku)) {
+            return;
+        }
+
+        if (!$label) {
+            $label = __('SKU:', 'fluent-cart');
+        }
+
+        $labelHtml = '';
+        if ($showLabel && $label) {
+            $labelHtml = sprintf('<span class="fct-product-sku__label">%s</span> ', esc_html($label));
+        }
+
+        echo sprintf(
+                '<div class="fct-product-sku">
+                    <div %s>
+                        %s<span class="fct-product-sku__value" data-fluent-cart-product-sku>%s</span>
+                    </div>
+                </div>',
+                $wrapper_attributes, // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+                $labelHtml,
+                esc_html($variant->sku)
         );
     }
 
@@ -1368,6 +1402,7 @@ class ProductRenderer
                 'data-compare-price'               => $comparePrice,
                 'data-price-suffix'                => $priceSuffix,
                 'data-stock-management'            => ModuleSettings::isActive('stock_management') ? 'yes' : 'no',
+                'data-sku'                         => $variant->sku ?? '',
         ];
 
         if ($paymentType === 'subscription') {

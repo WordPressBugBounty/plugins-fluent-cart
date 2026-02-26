@@ -240,6 +240,7 @@ class SubscriptionService
         $billsCount = OrderTransaction::query()
             ->where('subscription_id', $subscriptionModel->id)
             ->where('transaction_type', Status::TRANSACTION_TYPE_CHARGE)
+            ->where('status', Status::TRANSACTION_SUCCEEDED)
             ->where('total', '>', 0)
             ->count();
 

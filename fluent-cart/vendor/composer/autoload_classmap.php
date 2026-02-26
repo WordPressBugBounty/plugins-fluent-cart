@@ -139,6 +139,7 @@ return array(
     'FluentCart\\App\\Hooks\\Handlers\\BlockEditors\\ProductGalleryBlockEditor' => $baseDir . '/app/Hooks/Handlers/BlockEditors/ProductGalleryBlockEditor.php',
     'FluentCart\\App\\Hooks\\Handlers\\BlockEditors\\ProductImageBlockEditor' => $baseDir . '/app/Hooks/Handlers/BlockEditors/ProductImageBlockEditor.php',
     'FluentCart\\App\\Hooks\\Handlers\\BlockEditors\\ProductInfoBlockEditor' => $baseDir . '/app/Hooks/Handlers/BlockEditors/ProductInfoBlockEditor.php',
+    'FluentCart\\App\\Hooks\\Handlers\\BlockEditors\\ProductSkuBlockEditor' => $baseDir . '/app/Hooks/Handlers/BlockEditors/ProductSkuBlockEditor.php',
     'FluentCart\\App\\Hooks\\Handlers\\BlockEditors\\ProductTitleBlockEditor' => $baseDir . '/app/Hooks/Handlers/BlockEditors/ProductTitleBlockEditor.php',
     'FluentCart\\App\\Hooks\\Handlers\\BlockEditors\\RelatedProduct\\InnerBlocks\\InnerBlocks' => $baseDir . '/app/Hooks/Handlers/BlockEditors/RelatedProduct/InnerBlocks/InnerBlocks.php',
     'FluentCart\\App\\Hooks\\Handlers\\BlockEditors\\RelatedProduct\\RelatedProductBlockEditor' => $baseDir . '/app/Hooks/Handlers/BlockEditors/RelatedProduct/RelatedProductBlockEditor.php',

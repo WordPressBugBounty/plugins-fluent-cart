@@ -583,6 +583,7 @@ class Subscription extends Model
                     ->where('subscription_id', $this->id)
                     ->where('transaction_type', Status::TRANSACTION_TYPE_CHARGE)
                     ->where('status', Status::TRANSACTION_SUCCEEDED)
+                    ->where('total', '>', 0)
                     ->count();
 
                 if ($transacactionsCount != $this->bill_count) {
@@ -634,6 +635,11 @@ class Subscription extends Model
     public function guessNextBillingDate($forced = false)
     {
         if ($this->next_billing_date && !$forced) {
+            return $this->next_billing_date;
+        }
+
+        // preserve it during reactivation to maintain the billing cycle
+        if ($this->next_billing_date && $this->status === Status::SUBSCRIPTION_CANCELED) {
             return $this->next_billing_date;
         }
 

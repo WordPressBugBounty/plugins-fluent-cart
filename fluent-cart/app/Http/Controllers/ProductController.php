@@ -1142,12 +1142,25 @@ class ProductController extends Controller
     {
         $variation = ProductVariation::query()->findOrFail($variationId);
 
+        $childIds = $request->get('bundle_child_ids');
+
+        if (!empty($childIds) && is_array($childIds)) {
+            // Reject any child variations that belong to a bundle product
+            $bundleChildVariations = ProductVariation::whereIn('id', $childIds)
+                ->get(['id', 'post_id']);
+
+            foreach ($bundleChildVariations as $childVariation) {
+                if ($childVariation->product && $childVariation->product->isBundleProduct()) {
+                    return wp_send_json([
+                        'message' => __('A bundle product cannot be added as a bundle child.', 'fluent-cart'),
+                    ], 422);
+                }
+            }
+        }
+
         $otherInfo = $variation->other_info ?? [];
-
-        $otherInfo['bundle_child_ids'] = $request->get('bundle_child_ids');
-
+        $otherInfo['bundle_child_ids'] = $childIds;
         $variation->other_info = $otherInfo;
-
 
         return [$variation->update()];
     }
@@ -1282,5 +1295,125 @@ class ProductController extends Controller
         return $this->response->sendSuccess([
             'message' => __('Manage stock updated successfully', 'fluent-cart')
         ]);
+    }
+
+    /**
+     * Suggest a unique SKU based on product title and optional variant title.
+     *
+     * @param Request $request
+     * @return WP_REST_Response
+     */
+    public function suggestSku(Request $request)
+    {
+        $title = sanitize_text_field($request->get('title', ''));
+        $variantTitle = sanitize_text_field($request->get('variant_title', ''));
+        $excludeId = absint($request->get('exclude_id', 0));
+
+        if (empty($title)) {
+            return $this->sendError([
+                'message' => __('Product title is required to generate SKU.', 'fluent-cart')
+            ]);
+        }
+
+        $sku = $this->generateSkuFromTitle($title, $variantTitle);
+
+        if (empty($sku)) {
+            return $this->sendError([
+                'message' => __('Could not generate SKU from the given title.', 'fluent-cart')
+            ]);
+        }
+
+        $sku = $this->ensureUniqueSku($sku, $excludeId);
+
+        return $this->sendSuccess([
+            'sku' => $sku,
+        ]);
+    }
+
+    /**
+     * Generate a SKU string from a product title and optional variant title.
+     *
+     * @param string $title
+     * @param string $variantTitle
+     * @return string
+     */
+    private function generateSkuFromTitle($title, $variantTitle = '')
+    {
+        $stopWords = ['the', 'and', 'for', 'with', 'a', 'an', 'of', 'in', 'on', 'to', 'is', 'it', 'by', 'or', 'at', 'from'];
+
+        $fullTitle = trim($title);
+        if (!empty($variantTitle) && strtolower(trim($variantTitle)) !== strtolower(trim($title))) {
+            $fullTitle .= ' ' . trim($variantTitle);
+        }
+
+        $cleaned = strtoupper($fullTitle);
+        $cleaned = preg_replace('/[^A-Z0-9\s]/', '', $cleaned);
+        $words = array_values(array_filter(explode(' ', $cleaned), function ($word) use ($stopWords) {
+            return strlen($word) > 0 && !in_array(strtolower($word), $stopWords);
+        }));
+
+        if (empty($words)) {
+            return '';
+        }
+
+        $parts = array_map(function ($word) {
+            return substr($word, 0, 3);
+        }, $words);
+
+        $base = implode('-', $parts);
+
+        // Keep base within 25 chars to leave room for uniqueness suffix
+        if (strlen($base) > 25) {
+            $base = substr($base, 0, 25);
+            $base = rtrim($base, '-');
+        }
+
+        return $base;
+    }
+
+    /**
+     * Ensure the SKU is unique in the database, appending a numeric suffix if needed.
+     *
+     * @param string $sku
+     * @param int|null $excludeId
+     * @return string
+     */
+    private function ensureUniqueSku($sku, $excludeId = null)
+    {
+        $original = $sku;
+        $suffix = 0;
+        $batchSize = 10;
+
+        while ($suffix < 100) {
+            // Build a batch of candidate SKUs to check at once
+            $candidates = [];
+            for ($i = $suffix; $i < $suffix + $batchSize && $i < 100; $i++) {
+                if ($i === 0) {
+                    $candidates[] = $original;
+                } else {
+                    $maxBaseLen = 30 - strlen('-' . $i);
+                    $candidates[] = substr($original, 0, $maxBaseLen) . '-' . $i;
+                }
+            }
+
+            $query = ProductVariation::query()->whereIn('sku', $candidates);
+            if ($excludeId) {
+                $query->where('id', '!=', $excludeId);
+            }
+            $taken = $query->get()->pluck('sku')->toArray();
+
+            // Return the first candidate that isn't taken
+            foreach ($candidates as $candidate) {
+                if (!in_array($candidate, $taken)) {
+                    return $candidate;
+                }
+            }
+
+            $suffix += $batchSize;
+        }
+
+        // All candidates exhausted — fallback to timestamp-based suffix
+        $maxBaseLen = 30 - 1 - 10; // hyphen + 10-digit timestamp
+        return substr($original, 0, $maxBaseLen) . '-' . substr(time(), -10);
     }
 }
