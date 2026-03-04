@@ -146,6 +146,41 @@ class ShopResource extends BaseResourceApi
                     });
                 }
             })
+            // Shortcode filter: include specific product IDs
+            ->when(!empty(Arr::get($params, 'include_ids')), function ($query) use ($params) {
+                return $query->whereIn('ID', Arr::get($params, 'include_ids'));
+            })
+            // Shortcode filter: exclude specific product IDs
+            ->when(!empty(Arr::get($params, 'exclude_ids')), function ($query) use ($params) {
+                return $query->whereNotIn('ID', Arr::get($params, 'exclude_ids'));
+            })
+            // Shortcode filter: product type (unified: fulfillment_type, payment_type on variants; variation_type on detail) 
+            ->when(!empty(Arr::get($params, 'product_type')), function ($query) use ($params) {
+                $type = Arr::get($params, 'product_type');
+                if (in_array($type, ['physical', 'digital'])) {
+                    return $query->whereHas('variants', function ($q) use ($type) {
+                        $q->where('fulfillment_type', $type);
+                    });
+                }
+                if (in_array($type, ['subscription', 'onetime'])) {
+                    return $query->whereHas('variants', function ($q) use ($type) {
+                        $q->where('payment_type', $type);
+                    });
+                }
+                if (in_array($type, ['simple', 'simple_variations'])) {
+                    return $query->whereHas('detail', function ($q) use ($type) {
+                        $q->where('variation_type', $type);
+                    });
+                }
+                return $query;
+            })
+            // Shortcode filter: on sale
+            ->when(!empty(Arr::get($params, 'on_sale')), function ($query) {
+                return $query->whereHas('variants', function ($q) {
+                    $q->where('compare_price', '>', 0)
+                      ->whereRaw('item_price < compare_price');
+                });
+            })
             ->when($adminFilters, function ($query) use ($adminFilters) {
                 return $query->whereHas('detail', function ($query) use ($adminFilters) {
                     return $query->search($adminFilters);
@@ -181,11 +216,13 @@ class ShopResource extends BaseResourceApi
             $sortColumn = Arr::get($mapping, 'column');
             $sortOrder = Arr::get($mapping, 'order');
 
-            // Sorting by price
+            // Sorting by price - use COALESCE to handle NULL min_price for cursor pagination
             if ($sortColumn == 'min_price') {
                 $query->leftJoin('fct_product_details as pd', 'posts.ID', '=', 'pd.post_id')
-                    ->orderBy("pd.$sortColumn", $sortOrder)
-                    ->select('posts.*');
+                    ->select('posts.*')
+                    ->selectRaw('COALESCE(pd.min_price, 0) as sort_price')
+                    ->orderBy('sort_price', $sortOrder)
+                    ->orderBy('posts.ID', 'ASC');
             } elseif ($sortColumn == 'post_title') {
                 //Extract number from start of title (e.g., "30 Day Retreat" → 30)
                 global $wpdb;

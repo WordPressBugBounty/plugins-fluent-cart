@@ -549,17 +549,17 @@ class ProductRenderer
 
         $isStock = $this->product->isStock();
 
-        if ($this->product->detail->variation_type === 'simple' && $this->defaultVariant) {
-            $isStock = $this->defaultVariant->isStock();
+        // Check default variant stock for both simple and variable products
+        if ($this->defaultVariant) {
+            $isStock = $isStock && $this->defaultVariant->isStock();
         }
-        $stockLabel = $isStock ? $stockAvailability['availability'] : __('Out of stock', 'fluent-cart');
+        $stockLabel = $isStock ? $stockAvailability['availability'] : __('Out of Stock', 'fluent-cart');
         $statusClass = $isStock ? ($stockAvailability['class'] ?? '') : 'out-of-stock';
-
         echo sprintf(
                 '<div class="fct-product-stock %1$s" role="status" aria-live="polite">
                     <div %2$s>
                         <span class="fct-stock-label">%3$s</span>
-                        <span class="fct-stock-status fct_status_badge_%1$s" data-fluent-cart-product-stock>
+                        <span class="fct-stock-status fct-stock-badge fct_status_badge_%1$s" data-fluent-cart-product-stock>
                             %4$s
                         </span>
                     </div>
@@ -1047,14 +1047,16 @@ class ProductRenderer
 
         $enableModalCheckout = Helper::isModalCheckoutEnabled();
 
-        $stockStatus = 'in-stock';
+        $isInStock = true;
         if (ModuleSettings::isActive('stock_management')) {
-            $stockStatus = $this->defaultVariant->isStock() ? 'in-stock' : 'out-of-stock';
+            $isInStock = $this->product->isStock() && ($this->defaultVariant && $this->defaultVariant->isStock());
         }
 
+        $stockStatus = $isInStock ? 'in-stock' : 'out-of-stock';
+
         $variationClass = 'fluent-cart-direct-checkout-button';
-        if (!$this->defaultVariant->isStock()) {
-            $variationClass .= ' is-hidden ';
+        if (!$isInStock) {
+            $variationClass .= ' is-hidden';
         }
 
         $buyNowAttributes = [
@@ -1063,10 +1065,13 @@ class ProductRenderer
                 'class'                                   => $variationClass,
                 'data-stock-availability'                 => $stockStatus,
                 'data-quantity'                           => '1',
-                'href'                                    => site_url('?fluent-cart=instant_checkout&item_id=') . ($this->defaultVariant ? $this->defaultVariant->id : '') . '&quantity=1',
                 'data-cart-id'                            => $this->defaultVariant ? $this->defaultVariant->id : '',
                 'data-url'                                => site_url('?fluent-cart=instant_checkout&item_id='),
         ];
+
+        if ($isInStock) {
+            $buyNowAttributes['href'] = site_url('?fluent-cart=instant_checkout&item_id=') . ($this->defaultVariant ? $this->defaultVariant->id : '') . '&quantity=1';
+        }
 
         if ($enableModalCheckout) {
             $buyNowAttributes['data-fct-instant-checkout-button'] = '';
@@ -1076,6 +1081,7 @@ class ProductRenderer
         $buyButtonText = apply_filters('fluent_cart/product/buy_now_button_text', $atts['buy_now_text'], [
                 'product' => $this->product
         ]);
+
         ?>
         <?php
         $variantTitle = $this->defaultVariant ? $this->defaultVariant->variation_title : '';
@@ -1112,10 +1118,11 @@ class ProductRenderer
 
         $enableModalCheckout = Arr::get($atts, 'enable_modal_checkout', false);
 
-        $stockStatus = 'in-stock';
+        $isInStock = true;
         if (ModuleSettings::isActive('stock_management')) {
-            $stockStatus = $this->defaultVariant->isStock() ? 'in-stock' : 'out-of-stock';
+            $isInStock = $this->product->isStock() && ($this->defaultVariant && $this->defaultVariant->isStock());
         }
+        $stockStatus = $isInStock ? 'in-stock' : 'out-of-stock';
 
         $checkoutUrl = add_query_arg([
                 'fluent-cart' => $enableModalCheckout ? 'modal_checkout' : 'instant_checkout',
@@ -1123,16 +1130,26 @@ class ProductRenderer
                 'quantity'    => 1
         ], site_url());
 
+        $buyNowClass = trim('wp-block-button__link wp-element-button ' . Arr::get($atts, 'class', ''));
+        if ($stockStatus === 'out-of-stock') {
+            $buyNowClass .= ' out-of-stock';
+        }
+
         $buyNowAttributes = [
                 'data-fluent-cart-direct-checkout-button' => '',
                 'data-variation-type'                     => $this->product->detail->variation_type,
-                'class'                                   => trim('wp-block-button__link wp-element-button ' . Arr::get($atts, 'class', '')),
+                'class'                                   => $buyNowClass,
                 'data-stock-availability'                 => $stockStatus,
                 'data-quantity'                           => '1',
-                'href'                                    => $checkoutUrl,
                 'data-cart-id'                            => $variantId ?? '',
                 'data-url'                                => $checkoutUrl,
         ];
+
+        if ($stockStatus === 'out-of-stock') {
+            $buyNowAttributes['aria-disabled'] = 'true';
+        } else {
+            $buyNowAttributes['href'] = $checkoutUrl;
+        }
 
         $target = Arr::get($atts, 'target');
         if ($target) {
@@ -1195,20 +1212,23 @@ class ProductRenderer
             $cartAttributes['class'] .= ' is-hidden';
         }
 
-        // Check stock availability using isStock() method
-        if (ModuleSettings::isActive('stock_management') && $this->defaultVariant) {
-            if (!$this->defaultVariant->isStock()) {
+        // Check stock availability using both product-level and variant-level
+        $isOutOfStock = false;
+        if (ModuleSettings::isActive('stock_management')) {
+            if (!$this->product->isStock() || ($this->defaultVariant && !$this->defaultVariant->isStock())) {
+                $isOutOfStock = true;
                 $cartAttributes['disabled'] = 'disabled';
                 $cartAttributes['class'] .= ' out-of-stock';
                 $cartAttributes['aria-disabled'] = 'true';
+                $atts['add_to_cart_text'] = __('Not Available', 'fluent-cart');
             }
         }
 
         $addToCartText = apply_filters('fluent_cart/product/add_to_cart_text', $atts['add_to_cart_text'], [
                 'product' => $this->product
         ]);
-        // Only render add to cart if the product supports onetime
-        if ($this->hasOnetime) :
+        // Render add to cart if product supports onetime, or if out of stock (to show "Not Available")
+        if ($this->hasOnetime || $isOutOfStock) :
             ?>
             <?php
             $variantTitle = $this->defaultVariant ? $this->defaultVariant->variation_title : '';
@@ -1281,12 +1301,13 @@ class ProductRenderer
             return;
         }
 
-        // Check stock availability using isStock() method
+        // Check stock availability using both product-level and variant-level
         if (ModuleSettings::isActive('stock_management')) {
-            if (!$this->defaultVariant->isStock()) {
+            if (!$this->product->isStock() || ($this->defaultVariant && !$this->defaultVariant->isStock())) {
                 $cartAttributes['disabled'] = 'disabled';
                 $cartAttributes['class'] .= ' out-of-stock';
                 $cartAttributes['aria-disabled'] = 'true';
+                $atts['add_to_cart_text'] = __('Not Available', 'fluent-cart');
             }
         }
 
@@ -1335,7 +1356,6 @@ class ProductRenderer
 
         <?php
     }
-
 
     public static function renderNoProductFound()
     {

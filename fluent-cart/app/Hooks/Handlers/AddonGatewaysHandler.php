@@ -18,7 +18,7 @@ class AddonGatewaysHandler
         'paystack' => PaystackAddon::class,
         'razorpay' => RazorpayAddon::class,
         'mercado_pago' => MercadoPagoAddon::class,
-        // 'flutterwave' => FlutterwaveAddon::class,
+        'flutterwave' => FlutterwaveAddon::class,
     ];
     
     public function register()

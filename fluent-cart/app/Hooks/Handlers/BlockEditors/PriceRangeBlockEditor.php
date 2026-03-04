@@ -115,7 +115,9 @@ class PriceRangeBlockEditor extends BlockEditor
         if (is_singular('fluent-products') && TemplateService::getCurrentFcPageType() === 'single_product') {
             $defaultPriceFormat = 'range';
         }
-        $priceFormat = $block ? Arr::get($block->context ?? [], 'fluent-cart/price_format', $defaultPriceFormat) : $defaultPriceFormat;
+        // Context from parent (ShopApp) takes priority, then block's own attribute, then default
+        $attrPriceFormat = Arr::get($shortCodeAttribute, 'price_format', $defaultPriceFormat);
+        $priceFormat = $block ? Arr::get($block->context ?? [], 'fluent-cart/price_format', $attrPriceFormat) : $attrPriceFormat;
 
         $wrapper_attributes = get_block_wrapper_attributes([
             'class' => 'fct-product-card-prices',

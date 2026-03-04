@@ -95,7 +95,6 @@ class ProductInfoBlockEditor extends BlockEditor
             wp_reset_postdata();
         }
 
-
         return $innerBlocksContent;
     }
 

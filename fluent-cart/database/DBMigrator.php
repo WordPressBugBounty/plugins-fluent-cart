@@ -458,6 +458,7 @@ class DBMigrator
                     $table_name
                 ));
             }
+
         }
     }
 

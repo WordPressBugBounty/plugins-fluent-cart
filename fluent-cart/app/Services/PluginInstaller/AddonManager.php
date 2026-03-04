@@ -13,8 +13,9 @@ class AddonManager
         $backgroundInstaller = new BackgroundInstaller();
         if ($sourceType === 'wordpress') {
             $result = $backgroundInstaller->installPlugin($pluginSlug);
+        } else if ($sourceType === 'cdn') {
+            $result = $backgroundInstaller->installFromCdn($sourceLink, $pluginSlug);
         } else if ($sourceType === 'github') {
-
             $result = $backgroundInstaller->installFromGithub($sourceLink, $pluginSlug, $path);
         } else {
             return new \WP_Error('invalid_source', __('Invalid addon source type.', 'fluent-cart'));
@@ -248,57 +249,6 @@ class AddonManager
             'release_notes' => $data['body'] ?? ''
         ];
     }
-
-    /**
-     * Update addon based on source type
-     *
-     * @param string $sourceType Source type (github, wordpress, other)
-     * @param string $sourceLink Source URL (for github)
-     * @param string $pluginSlug Plugin slug
-     * @param string $pluginFile Plugin file path
-     * @return bool|\WP_Error|array
-     */
-    public function updateAddon($sourceType, $sourceLink, $pluginSlug, $pluginFile)
-    {
-        if (!current_user_can('update_plugins')) {
-            return new \WP_Error('permission_denied', __('You do not have permission to update plugins.', 'fluent-cart'));
-        }
-
-        // Route to appropriate update method
-        switch ($sourceType) {
-            case 'github':
-                $isHandeled = apply_filters('fluent_cart/outside_addon/handle_update', null, [
-                    'source_link' => $sourceLink,
-                    'plugin_slug' => $pluginSlug,
-                    'plugin_file' => $pluginFile
-                ]);
-
-                if ($isHandeled) {
-                    return $isHandeled;
-                }
-
-                return [
-                    'action' => 'copy',
-                    'url'    => $sourceLink
-                ];
-
-
-            case 'wordpress':
-                return $this->updateFromWordPress($pluginFile);
-
-            default:
-                return $this->updateFromOther($sourceType);
-        }
-    }
-
-    /**
-     * Update addon from GitHub
-     *
-     * @param string $sourceLink GitHub releases URL
-     * @param string $pluginSlug Plugin slug
-     * @param string $pluginFile Plugin file path
-     * @return bool|\WP_Error
-     */
 
 
     /**

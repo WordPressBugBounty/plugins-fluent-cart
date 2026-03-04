@@ -66,7 +66,9 @@ use FluentCart\App\Http\Routes\WebRoutes;
 \FluentCart\App\Hooks\Handlers\BlockEditors\ProductTitleBlockEditor::register();
 \FluentCart\App\Hooks\Handlers\BlockEditors\ProductImageBlockEditor::register();
 \FluentCart\App\Hooks\Handlers\BlockEditors\PriceRangeBlockEditor::register();
+\FluentCart\App\Hooks\Handlers\BlockEditors\SaleBadgeBlockEditor::register();
 \FluentCart\App\Hooks\Handlers\BlockEditors\ExcerptBlockEditor::register();
+\FluentCart\App\Hooks\Handlers\BlockEditors\ProductDescriptionBlockEditor::register();
 \FluentCart\App\Hooks\Handlers\ShortCodes\ProductCardShortCode::register();
 \FluentCart\App\Hooks\Handlers\BlockEditors\Buttons\BuyNowButtonBlockEditor::register();
 \FluentCart\App\Hooks\Handlers\BlockEditors\Buttons\AddToCartButtonBlockEditor::register();
@@ -88,10 +90,12 @@ use FluentCart\App\Http\Routes\WebRoutes;
 \FluentCart\App\Hooks\Handlers\BlockEditors\CustomerDashboardButtonBlockEditor::register();
 \FluentCart\App\Hooks\Handlers\ShortCodes\CustomerDashboardButtonShortcode::register();
 
+
 (new \FluentCart\App\Modules\StockManagement\StockManagement())->register(fluentCart());
 
 if (\FluentCart\Api\ModuleSettings::isActive('stock_management')) {
     \FluentCart\App\Hooks\Handlers\BlockEditors\StockBlock::register();
+    \FluentCart\App\Hooks\Handlers\BlockEditors\SoldOutBadgeBlockEditor::register();
 }
 
 (new \FluentCart\App\Hooks\Cart\CartLoader)->register();
@@ -115,7 +119,6 @@ if (\FluentCart\Api\ModuleSettings::isActive('stock_management')) {
 (new \FluentCart\App\Services\FileSystem\DownloadService)->register();
 
 (new \FluentCart\App\Hooks\Handlers\UserHandler())->register();
-
 
 add_action('fluent_cart/order_paid_ansyc_private_handle', function ($data) {
     $orderId = \FluentCart\Framework\Support\Arr::get($data, 'order_id');

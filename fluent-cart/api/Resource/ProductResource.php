@@ -194,6 +194,18 @@ class ProductResource extends BaseResourceApi
 
                 unset($variant['rowId']);
                 unset($variant['media']);
+
+                // Recalculate stock_status and sync total_stock from available
+                if (isset($variant['manage_stock'])) {
+                    if ($variant['manage_stock']) {
+                        $avail = intval(Arr::get($variant, 'available', 0));
+                        $variant['stock_status'] = $avail > 0 ? Helper::IN_STOCK : Helper::OUT_OF_STOCK;
+                        $variant['total_stock'] = $avail;
+                    } else {
+                        $variant['stock_status'] = Helper::IN_STOCK;
+                    }
+                }
+
                 $variantData = $variant;
 
                 // Handle other_info
@@ -235,6 +247,18 @@ class ProductResource extends BaseResourceApi
                     }
                     unset($variant['rowId']);
                     $variant['serial_index'] = $index + 1;
+
+                    // Recalculate stock_status from available and manage_stock
+                    if (isset($variant['manage_stock'])) {
+                        if ($variant['manage_stock']) {
+                            $avail = intval(Arr::get($variant, 'available', 0));
+                            $variant['stock_status'] = $avail > 0 ? Helper::IN_STOCK : Helper::OUT_OF_STOCK;
+                            $variant['total_stock'] = $avail;
+                        } else {
+                            $variant['stock_status'] = Helper::IN_STOCK;
+                        }
+                    }
+
                     if (!empty($otherInfo)) {
                         if (Arr::get($otherInfo, 'payment_type') == 'subscription') {
                             if (Arr::get($otherInfo, 'manage_setup_fee') == 'yes') {
@@ -261,6 +285,18 @@ class ProductResource extends BaseResourceApi
 
         $defaultVariationId = Arr::get($detail, 'default_variation_id');
         $detail['default_variation_id'] = $defaultVariationId;
+
+        // Recalculate min_price / max_price from current variant prices
+        $variantPriceRange = ProductVariation::query()
+            ->where('post_id', $postId)
+            ->selectRaw('MIN(item_price) as min_price, MAX(item_price) as max_price')
+            ->first();
+
+        if ($variantPriceRange) {
+            $detail['min_price'] = $variantPriceRange->min_price ?: 0;
+            $detail['max_price'] = $variantPriceRange->max_price ?: 0;
+        }
+
         ProductDetailResource::update($detail, Arr::get($detail, 'id'), ['action' => 'variant_modified']);
 
         (new StockChanged([$postId]))->dispatch();

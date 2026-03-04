@@ -119,9 +119,9 @@ class ProductImageBlockEditor extends BlockEditor
 
         if (!empty($innerBlocksContent)) {
             return sprintf(
-                "<div %s style='position: relative;'>
-                    <div>%s</div>
-                    <div style='position: absolute; top: 0; left: 0; width: 100%%; height: 100%%;'>
+                "<div %s style='position: relative; overflow: hidden;'>
+                    %s
+                    <div style='position: absolute; inset: 0; pointer-events: none;'>
                         %s
                     </div>
                 </div>",

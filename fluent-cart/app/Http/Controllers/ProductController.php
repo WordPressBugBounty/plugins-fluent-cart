@@ -24,6 +24,8 @@ use FluentCart\App\Models\ShippingClass;
 use FluentCart\App\Models\TaxClass;
 use FluentCart\App\Modules\ReportingModule\ProductReport;
 use FluentCart\App\Services\Async\DummyProductService;
+use FluentCart\App\Services\BulkProductInsertService;
+use FluentCart\App\Services\BulkProductUpdateService;
 use FluentCart\App\Services\Filter\ProductFilter;
 use FluentCart\App\Services\PlanUpgradeService;
 use FluentCart\Framework\Database\Orm\Builder;
@@ -176,6 +178,54 @@ class ProductController extends Controller
 
         return $this->sendError(['code' => 400, 'message' => __('Product creation failed!', 'fluent-cart')]);
 
+    }
+
+    /**
+     * Bulk insert products from import/manual entry.
+     *
+     * @param Request $request
+     * @return WP_REST_Response
+     */
+    public function bulkInsert(Request $request): WP_REST_Response
+    {
+        $products = $request->get('products', []);
+
+        if (empty($products) || !is_array($products)) {
+            return $this->sendError([
+                'message' => __('No products provided', 'fluent-cart'),
+            ]);
+        }
+
+        if (count($products) > 10) {
+            return $this->sendError([
+                'message' => __('Maximum 10 products per chunk allowed', 'fluent-cart'),
+            ]);
+        }
+
+        try {
+            $service = new BulkProductInsertService();
+            $result = $service->insertChunk($products);
+
+            if (empty($result['created']) && !empty($result['errors'])) {
+                return $this->sendError([
+                    'message' => __('All products failed to insert', 'fluent-cart'),
+                    'errors'  => $result['errors'],
+                ]);
+            }
+
+            return $this->sendSuccess([
+                'message' => sprintf(
+                    __('%d product(s) created successfully', 'fluent-cart'),
+                    count($result['created'])
+                ),
+                'created' => $result['created'],
+                'errors'  => $result['errors'],
+            ]);
+        } catch (\Throwable $e) {
+            return $this->sendError([
+                'message' => __('Bulk insert failed: ', 'fluent-cart') . $e->getMessage(),
+            ]);
+        }
     }
 
     /**
@@ -1415,5 +1465,67 @@ class ProductController extends Controller
         // All candidates exhausted — fallback to timestamp-based suffix
         $maxBaseLen = 30 - 1 - 10; // hyphen + 10-digit timestamp
         return substr($original, 0, $maxBaseLen) . '-' . substr(time(), -10);
+    }
+
+    /**
+     * Fetch products formatted for bulk editing.
+     */
+    public function bulkEditFetch(Request $request): WP_REST_Response
+    {
+        try {
+            $service = new BulkProductUpdateService();
+            $result = $service->fetchForBulkEdit($request);
+
+            return $this->sendSuccess($result);
+        } catch (\Throwable $e) {
+            return $this->sendError([
+                'message' => __('Failed to fetch products: ', 'fluent-cart') . $e->getMessage(),
+            ]);
+        }
+    }
+
+    /**
+     * Bulk update products from the bulk edit spreadsheet.
+     */
+    public function bulkUpdate(Request $request): WP_REST_Response
+    {
+        $products = $request->get('products', []);
+
+        if (empty($products) || !is_array($products)) {
+            return $this->sendError([
+                'message' => __('No products provided', 'fluent-cart'),
+            ]);
+        }
+
+        if (count($products) > 10) {
+            return $this->sendError([
+                'message' => __('Maximum 10 products per chunk allowed', 'fluent-cart'),
+            ]);
+        }
+
+        try {
+            $service = new BulkProductUpdateService();
+            $result = $service->updateChunk($products);
+
+            if (empty($result['updated']) && !empty($result['errors'])) {
+                return $this->sendError([
+                    'message' => __('All products failed to update', 'fluent-cart'),
+                    'errors'  => $result['errors'],
+                ]);
+            }
+
+            return $this->sendSuccess([
+                'message' => sprintf(
+                    __('%d product(s) updated successfully', 'fluent-cart'),
+                    count($result['updated'])
+                ),
+                'updated' => $result['updated'],
+                'errors'  => $result['errors'],
+            ]);
+        } catch (\Throwable $e) {
+            return $this->sendError([
+                'message' => __('Bulk update failed: ', 'fluent-cart') . $e->getMessage(),
+            ]);
+        }
     }
 }

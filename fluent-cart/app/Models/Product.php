@@ -672,6 +672,7 @@ class Product extends Model
 
                     unset($variantData['id'], $variantData['created_at'], $variantData['updated_at']);
                     $variantData['post_id'] = $newProductId;
+                    $variantData['sku'] = null; // Use NULL to avoid unique constraint violations (empty string '' would conflict)
 
                     if (!$importStockManagement) {
                         $variantData['manage_stock'] = 0;

@@ -3,7 +3,6 @@
 namespace FluentCart\App\Services\Coupon;
 
 use FluentCart\App\Helpers\Helper;
-use FluentCart\App\Helpers\Status;
 use FluentCart\App\Models\AppliedCoupon;
 use FluentCart\App\Models\Cart;
 use FluentCart\App\Models\Coupon;
@@ -577,23 +576,54 @@ class DiscountService
             return new \WP_Error('coupon_max_uses_exceeded', __('This coupon has reached its maximum number of uses.', 'fluent-cart'));
         }
         $maxPerCustomer = Arr::get($conditions, 'max_per_customer', 0);
-        if ($maxPerCustomer && $useCount) {
-            $customer = $this->getCustomer();
-            // we will find out how many times this customer has used this coupon
-            if ($customer) {
-                $usedCount = AppliedCoupon::query()->whereHas('order', function ($query) use ($customer) {
-                    $query->whereIn('payment_status', Status::getOrderPaymentSuccessStatuses());
-                })
-                    ->where('customer_id', $customer->id)
-                    ->where('coupon_id', $coupon->id)->count();
+        if ($maxPerCustomer) {
+            if (!is_user_logged_in()) {
+                return new \WP_Error('coupon_login_required', __('Please log in to use this coupon.', 'fluent-cart'));
+            }
 
-                if ($usedCount && $usedCount >= $maxPerCustomer) {
+            $customer = $this->resolveCustomerForUsageLimit();
+            if ($customer) {
+                $usageQuery = AppliedCoupon::query()
+                    ->where('coupon_id', $coupon->id)
+                    ->whereHas('order', function ($orderQuery) use ($customer) {
+                        $orderQuery->where('customer_id', $customer->id);
+                    });
+
+                $usageQuery = apply_filters('fluent_cart/coupon/per_customer_usage_query', $usageQuery, [
+                    'coupon'   => $coupon,
+                    'customer' => $customer,
+                    'cart'     => $this->cart,
+                ]);
+
+                $usedCount = $usageQuery->count();
+
+                if ($usedCount >= $maxPerCustomer) {
                     return new \WP_Error('coupon_max_uses_exceeded', __('You have reached the maximum number of uses for this coupon.', 'fluent-cart'));
                 }
             }
         }
 
         return $coupon;
+    }
+
+    protected function resolveCustomerForUsageLimit()
+    {
+        if (!is_user_logged_in()) {
+            return null;
+        }
+
+        $customer = $this->getCustomer();
+        if ($customer) {
+            return $customer;
+        }
+
+        $customer = Customer::query()->where('user_id', get_current_user_id())->first();
+        if ($customer) {
+            $this->customer = $customer;
+            return $customer;
+        }
+
+        return null;
     }
 
     public function setCustomer(Customer $customer)

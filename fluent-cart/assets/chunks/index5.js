@@ -1,1 +1,1 @@
-import{r}from"./BlockEditorTranslator.js?ver=1.3.13";r();
+import{r}from"./BlockEditorTranslator.js?ver=1.3.14";r();

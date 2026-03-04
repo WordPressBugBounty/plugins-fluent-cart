@@ -473,6 +473,13 @@ class Confirmations
         // in race conditions between webhook and AJAX confirmation
         $transaction = OrderTransaction::query()->where('id', $transaction->id)->first();
         if ($transaction->status === Status::TRANSACTION_SUCCEEDED) {
+            if ($transaction->subscription_id) {
+                $subscription = Subscription::query()->where('id', $transaction->subscription_id)->first();
+                if ($subscription) {
+                    $subscription->reSyncFromRemote();
+                }
+            }
+
             return (new StatusHelper($order))->syncOrderStatuses($transaction);
         }
 

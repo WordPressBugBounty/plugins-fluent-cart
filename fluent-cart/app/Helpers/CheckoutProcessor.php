@@ -257,7 +257,7 @@ class CheckoutProcessor
 
         if ($newShippingCharge != $oldShippingCharge) {
             $orderData['shipping_total'] = $newShippingCharge;
-            $orderData['total_amount'] = $prevOrder->total_amount + ($newShippingCharge - $oldShippingCharge);
+            $orderData['total_amount'] = $orderData['total_amount'] + ($newShippingCharge - $oldShippingCharge);
         }
 
         $oldTaxTotal = $prevOrder->tax_total;
@@ -266,7 +266,7 @@ class CheckoutProcessor
         if ($newTaxTotal != $oldTaxTotal) {
             $orderData['tax_total'] = $newTaxTotal;
             if (Arr::get($this->args, 'tax_behavior', 0) == 1) {
-                $orderData['total_amount'] = $prevOrder->total_amount + ($newTaxTotal - $oldTaxTotal);
+                $orderData['total_amount'] = $orderData['total_amount'] + ($newTaxTotal - $oldTaxTotal);
             }
         }
 
@@ -421,6 +421,9 @@ class CheckoutProcessor
                 Subscription::query()->where('parent_order_id', $this->orderModel->id)->delete();
             }
         }
+
+        // Reload the order to get fresh item data after updates
+        $this->orderModel = $this->orderModel->fresh();
 
         // Let's create the transaction
         $transactionData = [

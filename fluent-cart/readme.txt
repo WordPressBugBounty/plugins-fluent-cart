@@ -4,7 +4,7 @@ Tags: ecommerce, cart, checkout, subscriptions, payments
 Requires at least: 6.7
 Tested up to: 6.9
 Requires PHP: 7.4
-Stable tag: 1.3.13
+Stable tag: 1.3.14
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -312,6 +312,18 @@ This service is provided by PayPal: [Terms of Service](https://www.paypal.com/le
 
 
 == Changelog ==
+
+= 1.3.14 (Mar 04, 2026) =
+- Adds Flutterwave for fluentCart
+- Adds Early Payment for installment
+- Adds Bulk product import
+- Adds Customizable product shortcodes
+- Adds Sale badge for guttenberg
+- Adds OutofStock badge guttenberg
+- Adds Product description guttenberg block
+- Adds Product imagae CDN support
+- Fixes Coupon per user limit issue
+- Fixes Modal checkout cart not found issue
 
 = 1.3.13 (Feb 26, 2026) =
 - Adds SKU Gutenberg block

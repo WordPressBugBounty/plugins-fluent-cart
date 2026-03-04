@@ -2,6 +2,7 @@
 
 namespace FluentCart\App\Services\Renderer;
 
+use FluentCart\Api\ModuleSettings;
 use FluentCart\App\Helpers\Helper;
 use FluentCart\App\Models\Product;
 use FluentCart\App\Modules\Templating\AssetLoader;
@@ -242,11 +243,23 @@ class ProductCardRender
         ]);
     }
 
-    /*
-     * @todo: Implement Stock Check
-     */
     public function showBuyButton($atts = '')
     {
+        $isOutOfStock = ModuleSettings::isActive('stock_management') && !$this->product->isStock();
+
+        if ($isOutOfStock) {
+            $soldOutText = __('Not Available', 'fluent-cart');
+            ?>
+            <button type="button" class="fct-product-view-button out-of-stock" disabled aria-disabled="true"
+                    aria-label="<?php echo esc_attr($soldOutText); ?>">
+                <span class="fct-button-text">
+                    <?php echo esc_html($soldOutText); ?>
+                </span>
+            </button>
+            <?php
+            return;
+        }
+
         $enableModalCheckout = Helper::isModalCheckoutEnabled();
         $isSimple = $this->product->detail->variation_type === 'simple';
         $firstVariant = null;

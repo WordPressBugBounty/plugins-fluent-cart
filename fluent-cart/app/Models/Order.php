@@ -783,7 +783,7 @@ class Order extends Model
 
 
 
-        if (!is_wp_error($canBeDeleted) && $this->mode === Status::ORDER_MODE_TEST) {
+        if (!is_wp_error($canBeDeleted) && $this->mode !== Status::ORDER_MODE_TEST) {
             // Handle subscription relationship
             $parentOrderId = $this->parent_id ? $this->parent_id : $this->id;
 
@@ -795,8 +795,7 @@ class Order extends Model
             if (
                 $subscription &&
                 $subscription->status === Status::SUBSCRIPTION_ACTIVE &&
-                $this->type === 'subscription' &&
-                $this->mode !== Status::ORDER_MODE_TEST
+                $this->type === 'subscription'
             ) {
                 $canBeDeleted = new \WP_Error(
                     'order_cannot_be_deleted',

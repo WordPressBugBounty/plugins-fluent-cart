@@ -101,6 +101,7 @@ class InnerBlocks
                 'api_version'     => 3,
                 'version'         => 3,
                 'title'           => $block['title'],
+                'category'        => 'fluent-cart',
                 'parent'          => array_merge($block['parent'] ?? [], [static::$parentBlock]),
                 'render_callback' => $block['callback'],
                 'supports'        => Arr::get($block, 'supports', []),
@@ -983,7 +984,7 @@ class InnerBlocks
             'fluentcart_single_product_vars' => [
                 'trans'                      => TransStrings::singleProductPageString(),
                 'cart_button_text'           => App::storeSettings()->get('cart_button_text', __('Add To Cart', 'fluent-cart')),
-                'out_of_stock_button_text'   => App::storeSettings()->get('out_of_stock_button_text', __('Out of Stock', 'fluent-cart')),
+                'out_of_stock_button_text'   => App::storeSettings()->get('out_of_stock_button_text', __('Not Available', 'fluent-cart')),
                 'in_stock_status'            => Helper::IN_STOCK,
                 'out_of_stock_status'        => Helper::OUT_OF_STOCK,
                 'enable_image_zoom'          => (new StoreSettings())->get('enable_image_zoom_in_single_product'),

@@ -23,6 +23,10 @@ $router->prefix('orders')->withPolicy('OrderPolicy')->group(function (Router $ro
         'permissions' => 'subscriptions/view'
     ]);
 
+    $router->post('/{order}/subscriptions/{subscription}/early-payment-link', [SubscriptionController::class, 'generateEarlyPaymentLink'])->meta([
+        'permissions' => 'subscriptions/manage'
+    ]);
+
     // Not available these 3
     $router->put('/{order}/subscriptions/{subscription}/reactivate', [SubscriptionController::class, 'reactivateSubscription'])->meta([
         'permissions' => 'subscriptions/manage'

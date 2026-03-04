@@ -26,6 +26,7 @@ class InnerBlocks
                 'api_version'  => 3,
                 'version'      => 3,
                 'title'        => $block['title'],
+                'category'     => 'fluent-cart',
                 'parent'       => array_merge($block['parent'] ?? [], [static::$parentBlock]),
                 'supports'     => Arr::get($block, 'supports', []),
                 'attributes'   => Arr::get($block, 'attributes', []),

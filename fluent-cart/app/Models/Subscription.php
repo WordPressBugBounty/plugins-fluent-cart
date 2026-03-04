@@ -586,6 +586,14 @@ class Subscription extends Model
                     ->where('total', '>', 0)
                     ->count();
 
+                $earlyPaymentHistory = $this->getMeta('early_payment_history', []);
+                foreach ($earlyPaymentHistory as $earlyPayment) {
+                    $paidCount = (int) Arr::get($earlyPayment, 'count', 1);
+                    if ($paidCount > 1) {
+                        $transacactionsCount += ($paidCount - 1);
+                    }
+                }
+
                 if ($transacactionsCount != $this->bill_count) {
                     $this->bill_count = $transacactionsCount;
                     $this->save();

@@ -244,6 +244,15 @@ class SubscriptionService
             ->where('total', '>', 0)
             ->count();
 
+
+        $earlyPaymentHistory = $subscriptionModel->getMeta('early_payment_history', []);
+        foreach ($earlyPaymentHistory as $earlyPayment) {
+            $paidCount = (int) Arr::get($earlyPayment, 'count', 1);
+            if ($paidCount > 1) {
+                $billsCount += ($paidCount - 1);
+            }
+        }
+
         $subscriptionUpdateArgs['bill_count'] = $billsCount;
         $billTimes = $subscriptionModel->bill_times;
         $oldStatus = $subscriptionModel->status;

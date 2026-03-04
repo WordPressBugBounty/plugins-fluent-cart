@@ -111,6 +111,15 @@ $router->prefix('products')->withPolicy('ProductPolicy')->group(function (Router
     $router->post('/', [ProductController::class, 'create'])->meta([
         'permissions' => 'products/create'
     ]);
+    $router->post('/bulk-insert', [ProductController::class, 'bulkInsert'])->meta([
+        'permissions' => 'products/create'
+    ]);
+    $router->get('/bulk-edit-data', [ProductController::class, 'bulkEditFetch'])->meta([
+        'permissions' => 'products/edit'
+    ]);
+    $router->post('/bulk-update', [ProductController::class, 'bulkUpdate'])->meta([
+        'permissions' => 'products/edit'
+    ]);
     $router->get('/get-max-excerpt-word-count', [ProductController::class, 'getMaxExcerptWordCount'])->meta([
         'permissions' => 'products/view'
     ]);
@@ -354,14 +363,6 @@ $router->prefix('settings/')
             'permissions' => 'is_super_admin'
         ]);
 
-        $router->post('payment-methods/check-addon-update', [PaymentMethodController::class, 'checkAddonUpdate'])->meta([
-            'permissions' => 'is_super_admin'
-        ]);
-
-        $router->post('payment-methods/update-addon', [PaymentMethodController::class, 'updateAddon'])->meta([
-            'permissions' => 'is_super_admin'
-        ]);
-
         // permissions get and store
 
         $router->get('/permissions', [SettingsController::class, 'getPermissions'])
@@ -394,13 +395,6 @@ $router->prefix('settings/')
         $router->post('modules/plugin-addons/activate', [ModuleSettingsController::class, 'activatePluginAddon'])->meta([
             'permissions' => 'is_super_admin'
         ]);
-        $router->post('modules/plugin-addons/check-update', [ModuleSettingsController::class, 'checkPluginAddonUpdate'])->meta([
-            'permissions' => 'is_super_admin'
-        ]);
-        $router->post('modules/plugin-addons/update', [ModuleSettingsController::class, 'updatePluginAddon'])->meta([
-            'permissions' => 'is_super_admin'
-        ]);
-
         $router->get('modules', [ModuleSettingsController::class, 'getSettings'])->meta([
             'permissions' => 'is_super_admin'
         ]);
