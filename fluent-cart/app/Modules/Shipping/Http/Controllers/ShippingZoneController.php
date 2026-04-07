@@ -25,7 +25,7 @@ class ShippingZoneController extends Controller
     public function store(ShippingZoneRequest $request)
     {
         $data = $request->getSafe($request->sanitize());
-
+        $data['meta'] = $this->buildMeta([], Arr::get($data, 'meta'), Arr::get($data, 'region'));
 
         $shippingZone = ShippingZone::query()->create($data);
 
@@ -48,9 +48,21 @@ class ShippingZoneController extends Controller
     {
         $data = $request->getSafe($request->sanitize());
         $shippingZone = ShippingZone::query()->findOrFail($id);
-        if (Arr::get($data, 'region') !== $shippingZone->region) {
+
+        $regionChanged = Arr::get($data, 'region') !== $shippingZone->region;
+        if (!$regionChanged && Arr::get($data, 'region') === 'selection') {
+            $oldCountries = Arr::get($shippingZone->meta, 'countries', []);
+            $newCountries = Arr::get($data, 'meta.countries', []);
+            $regionChanged = $oldCountries !== $newCountries;
+        }
+
+        if ($regionChanged) {
             ShippingMethod::where('zone_id', $id)->update(['states' => []]);
         }
+
+        $existingMeta = is_array($shippingZone->meta) ? $shippingZone->meta : [];
+        $data['meta'] = $this->buildMeta($existingMeta, Arr::get($data, 'meta'), Arr::get($data, 'region'));
+
         $shippingZone->update($data);
 
         return $this->sendSuccess([
@@ -93,6 +105,37 @@ class ShippingZoneController extends Controller
         ]);
     }
 
+    public function getCountriesByContinent()
+    {
+        $continents = LocalizationManager::getContinents();
+        $allCountries = LocalizationManager::getCountries();
+
+        $grouped = [];
+        foreach ($continents as $code => $continent) {
+            $countryCodes = Arr::get($continent, 'countries', []);
+            $countries = [];
+            foreach ($countryCodes as $countryCode) {
+                if (isset($allCountries[$countryCode])) {
+                    $countries[] = [
+                        'code' => $countryCode,
+                        'name' => $allCountries[$countryCode],
+                    ];
+                }
+            }
+            if (!empty($countries)) {
+                $grouped[] = [
+                    'code'      => $code,
+                    'name'      => Arr::get($continent, 'name', $code),
+                    'countries' => $countries,
+                ];
+            }
+        }
+
+        return $this->sendSuccess([
+            'continents' => $grouped,
+        ]);
+    }
+
     public function getZoneStates(Request $request)
     {
         $country_code = sanitize_text_field(Arr::get($request->all(), 'country_code', ''));
@@ -102,5 +145,22 @@ class ShippingZoneController extends Controller
         return $this->sendSuccess([
             'data' => $countryInfo
         ]);
+    }
+
+    /**
+     * Build meta array by merging new country selection data into existing meta.
+     * For 'selection' regions, sets countries and selection_type.
+     * For other regions, removes country selection keys but preserves any other meta.
+     */
+    private function buildMeta(array $existing, $incoming, $region): array
+    {
+        if ($region === 'selection' && is_array($incoming)) {
+            $existing['countries'] = Arr::get($incoming, 'countries', []);
+            $existing['selection_type'] = Arr::get($incoming, 'selection_type', 'included');
+        } else {
+            unset($existing['countries'], $existing['selection_type']);
+        }
+
+        return $existing;
     }
 }

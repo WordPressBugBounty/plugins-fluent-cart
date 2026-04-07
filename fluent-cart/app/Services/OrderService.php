@@ -185,9 +185,9 @@ class OrderService
             // get order_items from OrderItems
             $orderItems = $prevOrder->order_items;
 
-            // filter payment_type is not signup_fee
+            // filter payment_type is not signup_fee or fee
             $orderItems = $orderItems->filter(function ($item) {
-                return $item->payment_type !== 'signup_fee';
+                return !in_array($item->payment_type, ['signup_fee', 'fee']);
             });
 
             $stockMovement = OrderMeta::where('order_id', $prevOrder->id)
@@ -269,7 +269,7 @@ class OrderService
 
 
             $orderItems = $orderItems->filter(function ($item) {
-                return $item->payment_type !== 'signup_fee';
+                return !in_array($item->payment_type, ['signup_fee', 'fee']);
             });
 
             // get stock movement for this order
@@ -428,7 +428,15 @@ class OrderService
 
         $total += $shippingTotal;
 
-        return $formatted ? Helper::toDecimal($total, $withCurrency) : intval($total);
+        $total = apply_filters('fluent_cart/cart/items_total', $total, [
+            'items'          => $items,
+            'shipping_total' => $shippingTotal,
+        ]);
+
+        // Ensure filtered total is non-negative
+        $total = max(0, (int)round((float)$total));
+
+        return $formatted ? Helper::toDecimal($total, $withCurrency) : $total;
     }
 
     private static function calculateItemAmount(array $cartItem, $price, $paymentType, $formatted, $withCurrency)

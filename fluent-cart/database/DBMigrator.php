@@ -7,7 +7,6 @@ use FluentCart\App\Models\Product;
 
 require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
 
-use FluentCart\App\Models\Subscription;
 use FluentCart\Database\Migrations\AttributeGroupsMigrator;
 use FluentCart\Database\Migrations\AttributeObjectRelationsMigrator;
 use FluentCart\Database\Migrations\AttributeTermsMigrator;
@@ -41,7 +40,6 @@ use FluentCart\Database\Migrations\LabelMigrator;
 use FluentCart\Database\Migrations\LabelRelationshipsMigrator;
 use FluentCart\Database\Migrations\ActivityMigrator;
 use FluentCart\Database\Migrations\WebhookLogger;
-use FluentCart\Framework\Database\Schema;
 use FluentCartPro\App\Modules\Licensing\Models\License;
 use FluentCartPro\App\Modules\Licensing\Models\LicenseActivation;
 use FluentCartPro\App\Modules\Licensing\Models\LicenseMeta;
@@ -116,7 +114,7 @@ class DBMigrator
     {
         self::migrate();
         self::maybeMigrateDBChanges();
-        update_option('_fluent_cart_db_version', FLUENTCART_DB_VERSION, 'no');
+        update_option('_fluent_cart_db_version', FLUENTCART_DB_VERSION, 'yes');
     }
 
     public static function migrate()
@@ -131,349 +129,83 @@ class DBMigrator
 
     public static function maybeMigrateDBChanges()
     {
-
-        /*
-         * TODO We will remove this after final release
-         */
         $currentDBVersion = get_option('_fluent_cart_db_version');
 
+        // Always add recent changes at the top
         if (!$currentDBVersion || version_compare($currentDBVersion, FLUENTCART_DB_VERSION, '<')) {
 
-            update_option('_fluent_cart_db_version', FLUENTCART_DB_VERSION, 'no');
+            update_option('_fluent_cart_db_version', FLUENTCART_DB_VERSION, 'yes');
 
-            // let's check the orders table sequence number
-            global $wpdb;
+            // 2026-05-27
+            OrdersMigrator::addFeeTotalColumn();
 
-            // Product Meta unique index removal
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange
-            $hasProductMetaUnqIndex = $wpdb->get_col($wpdb->prepare("SELECT * FROM information_schema.STATISTICS WHERE TABLE_SCHEMA=DATABASE() AND INDEX_NAME='" . $wpdb->prefix . "fct_pm__comp_unq' AND TABLE_NAME=%s", $wpdb->prefix . 'fct_product_meta'));
-            if ($hasProductMetaUnqIndex) {
+            // 2026-03-29
+            ShippingZonesMigrator::addMetaColumn();
+            ShippingMethodsMigrator::changeAmountToDecimal();
 
-                $table_name = $wpdb->prefix . 'fct_product_meta';
-                $index_name = 'fct_pm__comp_unq';
+            // 2026-02-28
+            OrdersMigrator::addPaymentStatusIndex();
 
-                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange
-                $wpdb->query(
-                    $wpdb->prepare(
-                    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange
-                    "ALTER TABLE %i DROP INDEX %i",
-                    $table_name,
-                    $index_name
-                ));
+            // 2026-02-06
+            ProductVariationMigrator::addSkuColumn();
 
-            }
+            // 2025-10-29
+            ProductMetaMigrator::dropCompositeUniqueIndex();
 
-            if (!Schema::hasColumn('tax_behavior', 'fct_orders')) {
-                $table_name = $wpdb->prefix . 'fct_orders';
-                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange
-                $wpdb->query($wpdb->prepare(
-                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange
-                    "ALTER TABLE %i ADD COLUMN `tax_behavior` TINYINT(1) NOT NULL DEFAULT 0 COMMENT '0 => no_tax, 1 => exclusive, 2 => inclusive' AFTER `rate`",
-                    $table_name
-                ));
-            }
+            // 2025-10-12
+            OrderAddressesMigrator::addMetaColumn();
+            CustomerAddressesMigrator::addMetaColumn();
 
-            if (!Schema::hasColumn('slug', 'fct_tax_classes')) {
-                $table_name = $wpdb->prefix . 'fct_tax_classes';
-                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange
-                $wpdb->query($wpdb->prepare(
-                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange
-                    "ALTER TABLE %i ADD COLUMN `slug` VARCHAR(100) NULL AFTER `title`",
-                    $table_name
-                ));
-            }
+            // 2025-10-02
+            ShippingMethodsMigrator::modifyStatesToJson();
 
-            $ordersTable = $wpdb->prefix . 'fct_orders';
+            // 2025-09-30
+            TaxClassesMigrator::addSlugColumn();
+            ShippingMethodsMigrator::addMetaColumn();
 
-            // check if scheduled_at is exist or not
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange
-            $isReceiptNumberMigrated = $wpdb->get_col($wpdb->prepare("SELECT * FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND COLUMN_NAME='receipt_number' AND TABLE_NAME=%s", $ordersTable));
-            if (!$isReceiptNumberMigrated) {
-                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange
-                $wpdb->query($wpdb->prepare(
-                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange
-                    "ALTER TABLE %i ADD COLUMN `receipt_number` BIGINT NULL AFTER `parent_id`",
-                    $ordersTable
-                ));
-            }
+            // 2025-09-29
+            TaxClassesMigrator::addMetaColumn();
 
-            /**
-             * Changing fct_meta.key to fct_meta.meta_key
-             */
-            if (Schema::hasColumn('discount_total', 'fct_orders')) {
-                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange
-                $wpdb->query($wpdb->prepare(
-                    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange
-                    "ALTER TABLE %i CHANGE `discount_total` `manual_discount_total` BIGINT NOT NULL DEFAULT '0'",
-                    $ordersTable
-                ));
-            }
+            // Old fallbacks — handled by migrated() on reactivation.
+            // Safe to remove after next major release.
 
-            /**
-             * Changing fct_meta.key to fct_meta.meta_key
-             */
-            if (Schema::hasColumn('key', 'fct_meta')) {
-                $table_name = $wpdb->prefix . 'fct_meta';
-                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange
-                $wpdb->query($wpdb->prepare(
-                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange
-                    "ALTER TABLE %i CHANGE `key` `meta_key` VARCHAR(192)",
-                    $table_name
-                ));
-            }
+            // // 2025-09-26
+            // TaxClassesMigrator::renameCategoriesToMeta();
+            // TaxClassesMigrator::addDescriptionColumn();
+            // OrderTaxRateMigrator::addFiledAtColumn();
 
-            /**
-             * Changing fct_meta.value to fct_meta.meta_value
-             */
-            if (Schema::hasColumn('value', 'fct_meta')) {
-                $table_name = $wpdb->prefix . 'fct_meta';
-                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange
-                $wpdb->query($wpdb->prepare(
-                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange
-                    "ALTER TABLE %i CHANGE `value` `meta_value` LONGTEXT",
-                    $table_name
-                ));
-            }
+            // // 2025-09-23
+            // OrderTaxRateMigrator::addMetaColumn();
 
-            /**
-             * Changing fct_order_meta.key to fct_order_meta.meta_key and fct_order_meta.value to fct_order_meta.meta_value
-             */
-            if (Schema::hasColumn('key', 'fct_order_meta')) {
-                $table_name = $wpdb->prefix . 'fct_order_meta';
-                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange
-                $wpdb->query($wpdb->prepare(
-                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange
-                    "ALTER TABLE %i CHANGE `key` `meta_key` VARCHAR(192)",
-                    $table_name
-                ));
-            }
-            /**
-             * Changing fct_meta.key to fct_meta.meta_key and fct_meta.value to fct_meta.meta_value
-             */
-            if (Schema::hasColumn('value', 'fct_order_meta')) {
-                $table_name = $wpdb->prefix . 'fct_order_meta';
-                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange
-                $wpdb->query($wpdb->prepare(
-                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange
-                    "ALTER TABLE %i CHANGE `value` `meta_value` LONGTEXT",
-                    $table_name
-                ));
-            }
+            // // 2025-09-22
+            // OrdersMigrator::addTaxBehaviorColumn();
 
-            /**
-             * adding ltv column to fct_customers table
-             */
-            if (!Schema::hasColumn('ltv', 'fct_customers')) {
-                $table_name = $wpdb->prefix . 'fct_customers';
-                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange
-                $wpdb->query($wpdb->prepare(
-                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange
-                    "ALTER TABLE %i ADD COLUMN `ltv` BIGINT NOT NULL DEFAULT '0' AFTER `purchase_count`",
-                    $table_name
-                ));
-            }
+            // // 2025-09-10
+            // TaxRatesMigrator::addGroupColumn();
 
-            /**
-             *  adding states column to fct_shipping_methods table
-             */
-            if (!Schema::hasColumn('states', 'fct_shipping_methods')) {
-                $table_name = $wpdb->prefix . 'fct_shipping_methods';
-                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange
-                $wpdb->query($wpdb->prepare(
-                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange
-                    "ALTER TABLE %i ADD COLUMN `states` LONGTEXT NULL AFTER `is_enabled`",
-                    $table_name
-                ));
-            }
+            // // 2025-09-02
+            // ShippingMethodsMigrator::addStatesColumn();
+            // ShippingZonesMigrator::renameRegionsToRegion();
 
-            /**
-             *  modify states column to json in fct_shipping_methods table
-             */
-            if (Schema::hasColumn('states', 'fct_shipping_methods')) {
-                $table_name = $wpdb->prefix . 'fct_shipping_methods';
-                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange
-                $wpdb->query($wpdb->prepare(
-                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange
-                    "ALTER TABLE %i MODIFY COLUMN `states` JSON NULL",
-                    $table_name
-                ));
-            }
+            // // 2025-07-23
+            // SubscriptionsMigrator::addUuidColumn();
+            // SubscriptionsMigrator::renameInitialAmountToSignupFee();
+            // SubscriptionsMigrator::backfillEmptyUuids();
 
-            /**
-             * Changing fct_shipping_zones.regions to fct_shipping_zones.region
-             */
-            if (Schema::hasColumn('regions', 'fct_shipping_zones')) {
-                $table_name = $wpdb->prefix . 'fct_shipping_zones';
-                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange
-                $wpdb->query($wpdb->prepare(
-                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange
-                    "ALTER TABLE %i CHANGE `regions` `region` VARCHAR(192) NOT NULL",
-                    $table_name
-                ));
-            }
+            // // 2025-07-18
+            // CustomersMigrator::addLtvColumn();
 
-            /**
-             * adding uuid column to fct_subscriptions table
-             */
+            // // 2025-07-16
+            // OrdersMigrator::renameDiscountTotalColumn();
+            // OrderMetaMigrator::renameKeyToMetaKey();
+            // OrderMetaMigrator::renameValueToMetaValue();
 
-            if (!Schema::hasColumn('uuid', 'fct_subscriptions')) {
-                $table_name = $wpdb->prefix . 'fct_subscriptions';
-                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange
-                $wpdb->query($wpdb->prepare(
-                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange
-                    "ALTER TABLE %i ADD COLUMN `uuid` VARCHAR(100) NOT NULL AFTER `id`",
-                    $table_name
-                ));
-            }
+            // // 2025-07-11
+            // MetaMigrator::renameKeyToMetaKey();
+            // MetaMigrator::renameValueToMetaValue();
 
-            if (Schema::hasColumn('initial_amount', 'fct_subscriptions')) {
-                $table_name = $wpdb->prefix . 'fct_subscriptions';
-                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange
-                $wpdb->query($wpdb->prepare(
-                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange
-                    "ALTER TABLE %i CHANGE `initial_amount` `signup_fee` BIGINT UNSIGNED NOT NULL DEFAULT 0",
-                    $table_name
-                ));
-            }
-
-            $subscriptions = fluentCart('db')->table('fct_subscriptions')->select('id')->where('uuid', '')->orWhereNull('uuid');
-            if ($subscriptions && $subscriptions->count() > 0) {
-                $subscriptions = fluentCart('db')->table('fct_subscriptions')->select('id')->get()->keyBy('id')->toArray();
-                $uuids = [];
-                foreach ($subscriptions as $id => $subscription) {
-                    $uuids[] = [
-                        'id'   => $id,
-                        'uuid' => md5(time() . wp_generate_uuid4())
-                    ];
-
-                }
-
-                (new Subscription())->batchUpdate($uuids);
-            }
-
-            if (!Schema::hasColumn('meta', 'fct_order_addresses')) {
-                $table_name = $wpdb->prefix . 'fct_order_addresses';
-                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange
-                $wpdb->query($wpdb->prepare(
-                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange
-                    "ALTER TABLE %i ADD COLUMN `meta` JSON DEFAULT NULL AFTER `country`",
-                    $table_name
-                ));
-            }
-
-            if (!Schema::hasColumn('meta', 'fct_customer_addresses')) {
-                $table_name = $wpdb->prefix . 'fct_customer_addresses';
-                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange
-                $wpdb->query($wpdb->prepare(
-                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange
-                    "ALTER TABLE %i ADD COLUMN `meta` JSON DEFAULT NULL AFTER `country`",
-                    $table_name
-                ));
-            }
-
-            if (!Schema::hasColumn('meta', 'fct_order_tax_rate')) {
-                $table_name = $wpdb->prefix . 'fct_order_tax_rate';
-                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange
-                $wpdb->query($wpdb->prepare(
-                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange
-                    "ALTER TABLE %i ADD COLUMN `meta` JSON",
-                    $table_name
-                ));
-            }
-
-            if (!Schema::hasColumn('filed_at', 'fct_order_tax_rate')) {
-                $table_name = $wpdb->prefix . 'fct_order_tax_rate';
-                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange
-                $wpdb->query($wpdb->prepare(
-                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange
-                    "ALTER TABLE %i ADD COLUMN `filed_at` DATETIME NULL AFTER `meta`",
-                    $table_name
-                ));
-            }
-
-            if (Schema::hasColumn('categories', 'fct_tax_classes') && !Schema::hasColumn('meta', 'fct_tax_classes')) {
-                $table_name = $wpdb->prefix . 'fct_tax_classes';
-                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange
-                $wpdb->query($wpdb->prepare(
-                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange
-                    "ALTER TABLE %i CHANGE `categories` `meta` JSON",
-                    $table_name
-                ));
-            }
-
-            if (!Schema::hasColumn('meta', 'fct_tax_classes')) {
-                $table_name = $wpdb->prefix . 'fct_tax_classes';
-                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange
-                $wpdb->query($wpdb->prepare(
-                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange
-                    "ALTER TABLE %i ADD COLUMN `meta` JSON",
-                    $table_name
-                ));
-            }
-
-            if (!Schema::hasColumn('description', 'fct_tax_classes')) {
-                $table_name = $wpdb->prefix . 'fct_tax_classes';
-                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange
-                $wpdb->query($wpdb->prepare(
-                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange
-                    "ALTER TABLE %i ADD COLUMN `description` LONGTEXT NULL AFTER `title`",
-                    $table_name
-                ));
-            }
-
-            if (!Schema::hasColumn('group', 'fct_tax_rates')) {
-                $table_name = $wpdb->prefix . 'fct_tax_rates';
-                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange
-                $wpdb->query($wpdb->prepare(
-                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange
-                    "ALTER TABLE %i ADD COLUMN `group` VARCHAR(45) NULL AFTER `name`",
-                    $table_name
-                ));
-            }
-
-            if (!Schema::hasColumn('meta', 'fct_shipping_methods')) {
-                $table_name = $wpdb->prefix . 'fct_shipping_methods';
-                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange
-                $wpdb->query($wpdb->prepare(
-                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange
-                    "ALTER TABLE %i ADD COLUMN `meta` JSON NULL AFTER `order`",
-                    $table_name
-                ));
-
-            }
-
-            // Add payment_status index for reminder scan performance
-            $ordersTable = $wpdb->prefix . 'fct_orders';
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-            $existingIndex = $wpdb->get_results($wpdb->prepare(
-                "SHOW INDEX FROM %i WHERE Key_name = 'fct_payment_status'",
-                $ordersTable
-            ));
-            if (empty($existingIndex)) {
-                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange
-                $wpdb->query($wpdb->prepare(
-                    "ALTER TABLE %i ADD INDEX `fct_payment_status` (`payment_status`, `id`)",
-                    $ordersTable
-                ));
-            }
-
-            if (!Schema::hasColumn('sku', 'fct_product_variations')) {
-                $table_name = $wpdb->prefix . 'fct_product_variations';
-                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange
-                $wpdb->query($wpdb->prepare(
-                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange
-                    "ALTER TABLE %i ADD COLUMN `sku` VARCHAR(30) NULL DEFAULT NULL AFTER `variation_identifier`",
-                    $table_name
-                ));
-
-                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange
-                $wpdb->query($wpdb->prepare(
-                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange
-                    "ALTER TABLE %i ADD UNIQUE INDEX `sku_unique` (`sku` ASC)",
-                    $table_name
-                ));
-            }
-
+            // // 2025-06-06
+            // OrdersMigrator::addReceiptNumberColumn();
         }
     }
 

@@ -140,7 +140,8 @@ class Processor
     {
         $orderType = $paymentInstance->order->type;
         $subscription = $paymentInstance->subscription;
-        $initialAmount = (int)$subscription->signup_fee + $paymentInstance->getExtraAddonAmount();
+        $feeTotal = $orderType !== 'renewal' ? (int)$paymentInstance->order->fee_total : 0;
+        $initialAmount = (int)$subscription->signup_fee + $paymentInstance->getExtraAddonAmount() + $feeTotal;
         $status = Status::SUBSCRIPTION_INTENDED;
 
         if ($orderType == 'renewal') {

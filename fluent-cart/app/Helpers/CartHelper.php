@@ -31,14 +31,22 @@ class CartHelper
 
         //  $shippingCharge = static::calculateShippingCharge($variation, $quantity);
 
-        $subtotal = $variation->item_price * $quantity;
+        $itemPrice = apply_filters('fluent_cart/cart/item_price', $variation->item_price, [
+            'variation' => $variation,
+            'quantity'  => $quantity,
+        ]);
+
+        // Ensure filtered price is a valid non-negative integer (cents)
+        $itemPrice = max(0, (int)$itemPrice);
+
+        $subtotal = $itemPrice * $quantity;
 
         //Need to test and check this toArray Issue
         $data = wp_parse_args([
             'quantity'             => $quantity,
-            'price'                => $variation->item_price,
-            'unit_price'           => $variation->item_price,
-            'line_total'           => $variation->item_price * $quantity,
+            'price'                => $itemPrice,
+            'unit_price'           => $itemPrice,
+            'line_total'           => $itemPrice * $quantity,
             'subtotal'             => $subtotal,
             'discount_total'       => 0,
             'tax_total'            => 0,

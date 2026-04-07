@@ -566,11 +566,13 @@ class ModalCheckoutRenderer
         $route = $method->getMeta('route');
         $methodTitle = $method->getMeta('title');
         $methodStyle = Arr::get($config, 'style', 'logo');
-        $paymentMethodClass = apply_filters('fluent_cart_payment_method_list_class', '',[
-                'route' => $route,
-                'method_title' => $methodTitle,
-                'method_style' => $methodStyle,
-        ]);
+        $pmContext = [
+            'route' => $route,
+            'method_title' => $methodTitle,
+            'method_style' => $methodStyle,
+        ];
+        $paymentMethodClass = apply_filters_deprecated('fluent_cart_payment_method_list_class', ['', $pmContext], '1.3.16', 'fluent_cart/payment_method_list_class', 'Use fluent_cart/payment_method_list_class instead of fluent_cart_payment_method_list_class.');
+        $paymentMethodClass = apply_filters('fluent_cart/payment_method_list_class', $paymentMethodClass, $pmContext);
 
         ?>
         <div class="fluent-cart-checkout_embed_payment_wrapper">

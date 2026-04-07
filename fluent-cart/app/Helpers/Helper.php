@@ -9,6 +9,7 @@ use FluentCart\Api\Taxonomy;
 use FluentCart\App\App;
 use FluentCart\App\CPT\FluentProducts;
 use FluentCart\App\Models\Customer;
+use FluentCart\App\Models\Product;
 use FluentCart\App\Models\ProductVariation;
 use FluentCart\App\Models\User;
 use FluentCart\App\Services\DateTime\DateTime;
@@ -137,52 +138,72 @@ class Helper
 
     public static function getOrderStatuses()
     {
-        return apply_filters('fluent-cart/order_statuses', [
-            'on-hold'    => __('On Hold', 'fluent-cart'),
-            'processing' => __('Processing', 'fluent-cart'),
-            'completed'  => __('Completed', 'fluent-cart'),
-            //'archived' => __('Archived', 'fluent-cart'),
-            'cancelled'  => __('Cancelled', 'fluent-cart'),
-        ], []);
+        $statuses = apply_filters_deprecated('fluent-cart/order_statuses', [
+            [
+                'on-hold'    => __('On Hold', 'fluent-cart'),
+                'processing' => __('Processing', 'fluent-cart'),
+                'completed'  => __('Completed', 'fluent-cart'),
+                //'archived' => __('Archived', 'fluent-cart'),
+                'cancelled'  => __('Cancelled', 'fluent-cart'),
+            ], []
+        ], '1.3.16', 'fluent_cart/order_statuses', 'Use fluent_cart/order_statuses instead of fluent-cart/order_statuses.');
+
+        return apply_filters('fluent_cart/order_statuses', $statuses, []);
     }
 
     public static function getEditableOrderStatuses()
     {
-        return apply_filters('fluent-cart/editable_order_statuses', [
-            'on-hold'    => __('On Hold', 'fluent-cart'),
-            'processing' => __('Processing', 'fluent-cart'),
-            'completed'  => __('Completed', 'fluent-cart'),
-            //  'archived' => __('Archived', 'fluent-cart'),
-            'cancelled'  => __('Cancelled', 'fluent-cart')
-        ], []);
+        $statuses = apply_filters_deprecated('fluent-cart/editable_order_statuses', [
+            [
+                'on-hold'    => __('On Hold', 'fluent-cart'),
+                'processing' => __('Processing', 'fluent-cart'),
+                'completed'  => __('Completed', 'fluent-cart'),
+                //  'archived' => __('Archived', 'fluent-cart'),
+                'cancelled'  => __('Cancelled', 'fluent-cart')
+            ], []
+        ], '1.3.16', 'fluent_cart/editable_order_statuses', 'Use fluent_cart/editable_order_statuses instead of fluent-cart/editable_order_statuses.');
+
+        return apply_filters('fluent_cart/editable_order_statuses', $statuses, []);
     }
 
     public static function getEditableCustomerStatuses()
     {
-        return apply_filters('fluent-cart/editable_customer_statuses', [
-            'active'   => __('Active', 'fluent-cart'),
-            'inactive' => __('Inactive', 'fluent-cart'),
-        ], []);
+        $statuses = apply_filters_deprecated('fluent-cart/editable_customer_statuses', [
+            [
+                'active'   => __('Active', 'fluent-cart'),
+                'inactive' => __('Inactive', 'fluent-cart'),
+            ], []
+        ], '1.3.16', 'fluent_cart/editable_customer_statuses', 'Use fluent_cart/editable_customer_statuses instead of fluent-cart/editable_customer_statuses.');
+
+        return apply_filters('fluent_cart/editable_customer_statuses', $statuses, []);
     }
 
     public static function getShippingStatuses()
     {
-        return apply_filters('fluent-cart/shipping_statuses', [
-            'unshipped'   => __('Unhipped', 'fluent-cart'),
-            'shipped'     => __('Shipped', 'fluent-cart'),
-            'delivered'   => __('Delivered', 'fluent-cart'),
-            'unshippable' => __('Unshippable', 'fluent-cart'),
-        ], []);
+        $statuses = apply_filters_deprecated('fluent-cart/shipping_statuses', [
+            [
+                'unshipped'   => __('Unshipped', 'fluent-cart'),
+                'shipped'     => __('Shipped', 'fluent-cart'),
+                'delivered'   => __('Delivered', 'fluent-cart'),
+                'unshippable' => __('Unshippable', 'fluent-cart'),
+            ], []
+        ], '1.3.16', 'fluent_cart/shipping_statuses', 'Use fluent_cart/shipping_statuses instead of fluent-cart/shipping_statuses.');
+
+        return apply_filters('fluent_cart/shipping_statuses', $statuses, []);
     }
 
     public static function getEditableShippingStatuses()
     {
-        return apply_filters('fluent-cart/editable_order_statuses', [
-            'unshipped'   => __('Unhipped', 'fluent-cart'),
-            'shipped'     => __('Shipped', 'fluent-cart'),
-            'delivered'   => __('Delivered', 'fluent-cart'),
-            'unshippable' => __('Unshippable', 'fluent-cart'),
-        ], []);
+        $statuses = apply_filters_deprecated('fluent-cart/editable_order_statuses', [
+            [
+                'unshipped'   => __('Unshipped', 'fluent-cart'),
+                'shipped'     => __('Shipped', 'fluent-cart'),
+                'delivered'   => __('Delivered', 'fluent-cart'),
+                'unshippable' => __('Unshippable', 'fluent-cart'),
+            ], []
+        ], '1.3.16', 'fluent_cart/editable_shipping_statuses', 'Use fluent_cart/editable_shipping_statuses instead of fluent-cart/editable_order_statuses.');
+
+        return apply_filters('fluent_cart/editable_shipping_statuses', $statuses, []);
     }
 
     public static function getOrderSuccessStatuses()
@@ -212,14 +233,18 @@ class Helper
 
     public static function getTransactionStatuses($withLabel = true)
     {
-        $statuses = apply_filters('fluent-cart/transaction_statuses', [
-            'pending'         => __('Pending', 'fluent-cart'),
-            'paid'            => __('Paid', 'fluent-cart'),
-            'require_capture' => __('Authorized (Require Capture)', 'fluent-cart'),
-            'failed'          => __('Failed', 'fluent-cart'),
-            'refunded'        => __('Refunded', 'fluent-cart'),
-            'active'          => __('Active', 'fluent-cart'),
-        ], []);
+        $statuses = apply_filters_deprecated('fluent-cart/transaction_statuses', [
+            [
+                'pending'         => __('Pending', 'fluent-cart'),
+                'paid'            => __('Paid', 'fluent-cart'),
+                'require_capture' => __('Authorized (Require Capture)', 'fluent-cart'),
+                'failed'          => __('Failed', 'fluent-cart'),
+                'refunded'        => __('Refunded', 'fluent-cart'),
+                'active'          => __('Active', 'fluent-cart'),
+            ], []
+        ], '1.3.16', 'fluent_cart/transaction_statuses', 'Use fluent_cart/transaction_statuses instead of fluent-cart/transaction_statuses.');
+
+        $statuses = apply_filters('fluent_cart/transaction_statuses', $statuses, []);
 
         if ($withLabel) {
             return $statuses;
@@ -230,12 +255,16 @@ class Helper
 
     public static function getEditableTransactionStatuses($withLabel = true)
     {
-        $statuses = apply_filters('fluent-cart/editable_transaction_statuses', [
-            'pending'  => __('Pending', 'fluent-cart'),
-            'paid'     => __('Paid', 'fluent-cart'),
-            'failed'   => __('Failed', 'fluent-cart'),
-            'refunded' => __('Refunded', 'fluent-cart'),
-        ], []);
+        $statuses = apply_filters_deprecated('fluent-cart/editable_transaction_statuses', [
+            [
+                'pending'  => __('Pending', 'fluent-cart'),
+                'paid'     => __('Paid', 'fluent-cart'),
+                'failed'   => __('Failed', 'fluent-cart'),
+                'refunded' => __('Refunded', 'fluent-cart'),
+            ], []
+        ], '1.3.16', 'fluent_cart/editable_transaction_statuses', 'Use fluent_cart/editable_transaction_statuses instead of fluent-cart/editable_transaction_statuses.');
+
+        $statuses = apply_filters('fluent_cart/editable_transaction_statuses', $statuses, []);
 
         if ($withLabel) {
             return $statuses;
@@ -464,23 +493,27 @@ class Helper
 
     public static function getAvailableCurrencyList()
     {
-        return apply_filters('fluent-cart/available_currencies', [
-            'BDT' => [
-                "label"  => __('Bangladeshi Taka', 'fluent-cart'),
-                "value"  => 'BDT',
-                "symbol" => '৳',
-            ],
-            'USD' => [
-                "label"  => __('United State Dollar', 'fluent-cart'),
-                "value"  => 'USD',
-                "symbol" => '$',
-            ],
-            'GBP' => [
-                "label"  => __('United Kingdom', 'fluent-cart'),
-                "value"  => 'GBP',
-                "symbol" => '£',
-            ],
-        ], []);
+        $currencies = apply_filters_deprecated('fluent-cart/available_currencies', [
+            [
+                'BDT' => [
+                    "label"  => __('Bangladeshi Taka', 'fluent-cart'),
+                    "value"  => 'BDT',
+                    "symbol" => '৳',
+                ],
+                'USD' => [
+                    "label"  => __('United State Dollar', 'fluent-cart'),
+                    "value"  => 'USD',
+                    "symbol" => '$',
+                ],
+                'GBP' => [
+                    "label"  => __('United Kingdom', 'fluent-cart'),
+                    "value"  => 'GBP',
+                    "symbol" => '£',
+                ],
+            ], []
+        ], '1.3.16', 'fluent_cart/available_currencies', 'Use fluent_cart/available_currencies instead of fluent-cart/available_currencies.');
+
+        return apply_filters('fluent_cart/available_currencies', $currencies, []);
     }
 
     public static function getSymbolForCurrency($currency = 'BDT')
@@ -820,11 +853,15 @@ class Helper
 
     public static function getCouponStatuses()
     {
-        return apply_filters('fluent-cart/coupon_statuses', [
-            'active'   => __('Active', 'fluent-cart'),
-            'expired'  => __('Expired', 'fluent-cart'),
-            'disabled' => __('Disabled', 'fluent-cart'),
-        ], []);
+        $statuses = apply_filters_deprecated('fluent-cart/coupon_statuses', [
+            [
+                'active'   => __('Active', 'fluent-cart'),
+                'expired'  => __('Expired', 'fluent-cart'),
+                'disabled' => __('Disabled', 'fluent-cart'),
+            ], []
+        ], '1.3.16', 'fluent_cart/coupon_statuses', 'Use fluent_cart/coupon_statuses instead of fluent-cart/coupon_statuses.');
+
+        return apply_filters('fluent_cart/coupon_statuses', $statuses, []);
     }
 
     public static function getCouponSuccessStatuses()
@@ -1137,7 +1174,9 @@ class Helper
     public static function getCountryList(): array
     {
         $options = App::getInstance('localization')->countriesOptions();
-        return apply_filters('fluent-cart/util/countries', $options, []);
+        $options = apply_filters_deprecated('fluent-cart/util/countries', [$options, []], '1.3.16', 'fluent_cart/util/countries', 'Use fluent_cart/util/countries instead of fluent-cart/util/countries.');
+
+        return apply_filters('fluent_cart/util/countries', $options, []);
     }
 
     public static function getCountyIsoLists(): array
@@ -1659,6 +1698,27 @@ class Helper
             ->select($select)
             ->get()
             ->toArray();
+
+        // Enrich child variants with post_title from the products (posts) table
+        $postIds = array_unique(array_filter(array_column($childVariants, 'post_id')));
+        $postTitles = [];
+        if ($postIds) {
+            $products = Product::query()
+                ->whereIn('ID', $postIds)
+                ->select(['ID', 'post_title'])
+                ->get();
+
+            foreach ($products as $product) {
+                $postTitles[$product->ID] = $product->post_title;
+            }
+        }
+
+        foreach ($childVariants as &$childVariant) {
+            if (empty($childVariant['post_title']) && !empty($childVariant['post_id'])) {
+                $childVariant['post_title'] = $postTitles[$childVariant['post_id']] ?? '';
+            }
+        }
+        unset($childVariant);
 
 
         foreach ($variants as &$variant) {

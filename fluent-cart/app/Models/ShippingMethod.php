@@ -65,7 +65,10 @@ class ShippingMethod extends Model
     {
 
         $query = $query->whereHas('zone', function ($query) use ($country) {
-            $query->whereIn('region', [$country, 'all']);
+            $query->where(function ($q) use ($country) {
+                $q->whereIn('region', [$country, 'all'])
+                  ->orWhere('region', 'selection');
+            });
         });
 
         // SQLite-compatible substring extraction
@@ -96,6 +99,28 @@ class ShippingMethod extends Model
         $query->orderBy('amount', 'DESC');
 
         return $query->where('is_enabled', 1);
+    }
+
+    /**
+     * Get shipping methods applicable to a country, with post-filtering for multi-country selection zones.
+     *
+     * @param string $country
+     * @param string|null $state
+     * @return \FluentCart\Framework\Database\Orm\Collection
+     */
+    public static function getApplicableForCountry(string $country, $state = null)
+    {
+        $methods = static::applicableToCountry($country, $state)
+            ->with('zone')
+            ->get();
+
+        // Post-filter 'selection' zones that don't actually match this country
+        return $methods->filter(function ($method) use ($country) {
+            if (!$method->zone || $method->zone->region !== 'selection') {
+                return true;
+            }
+            return $method->zone->appliesToCountry($country);
+        });
     }
 
     public function getFormattedStatesAttribute()

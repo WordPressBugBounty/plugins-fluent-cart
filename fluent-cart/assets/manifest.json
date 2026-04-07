@@ -22,6 +22,22 @@
       "assets/AddProductItemModal.css"
     ]
   },
+  "_Animation.css": {
+    "file": "assets/Animation.css",
+    "src": "_Animation.css"
+  },
+  "_Animation.js": {
+    "file": "chunks/Animation.js",
+    "name": "Animation",
+    "imports": [
+      "_vue.esm-bundler.js",
+      "__plugin-vue_export-helper.js",
+      "_Badge.js"
+    ],
+    "css": [
+      "assets/Animation.css"
+    ]
+  },
   "_Arr.js": {
     "file": "chunks/Arr.js",
     "name": "Arr"
@@ -77,7 +93,7 @@
       "_Str.js",
       "_Url.js",
       "_DynamicIcon.js",
-      "_RouteCell.js",
+      "_CardBody.js",
       "_productService.js",
       "_OrderCustomerInformation.js",
       "_Rest.js",
@@ -88,6 +104,27 @@
       "_common.js",
       "_BundleProducts.js",
       "__plugin-vue_export-helper.js",
+      "_Utils.js"
+    ]
+  },
+  "_CardBody.js": {
+    "file": "chunks/CardBody.js",
+    "name": "CardBody",
+    "imports": [
+      "_Model.js",
+      "_vue.esm-bundler.js",
+      "_Badge.js",
+      "_Rest.js",
+      "_Str.js",
+      "_Url.js",
+      "_Arr.js",
+      "_Translator.js",
+      "_dayjs.min.js",
+      "_timezone.js",
+      "_Notify.js",
+      "_DynamicIcon.js",
+      "__plugin-vue_export-helper.js",
+      "_index.js",
       "_Utils.js"
     ]
   },
@@ -110,8 +147,7 @@
       "_vue.esm-bundler.js",
       "_Rest.js",
       "_Translator.js",
-      "__plugin-vue_export-helper.js",
-      "_Badge.js",
+      "_Animation.js",
       "_DynamicIcon.js",
       "_Notify.js",
       "_index.js"
@@ -408,7 +444,7 @@
       "_CopyToClipboard.js",
       "_DynamicIcon.js",
       "_Translator.js",
-      "_RouteCell.js",
+      "_CardBody.js",
       "_Arr.js",
       "_Asset.js",
       "_Notify.js",
@@ -457,27 +493,6 @@
   "_Rest.js": {
     "file": "chunks/Rest.js",
     "name": "Rest"
-  },
-  "_RouteCell.js": {
-    "file": "chunks/RouteCell.js",
-    "name": "RouteCell",
-    "imports": [
-      "_Model.js",
-      "_vue.esm-bundler.js",
-      "_Badge.js",
-      "_Rest.js",
-      "_Str.js",
-      "_Url.js",
-      "_Translator.js",
-      "_dayjs.min.js",
-      "_timezone.js",
-      "_Notify.js",
-      "_DynamicIcon.js",
-      "__plugin-vue_export-helper.js",
-      "_index.js",
-      "_Utils.js",
-      "_Arr.js"
-    ]
   },
   "_SelectProductModal.js": {
     "file": "chunks/SelectProductModal.js",
@@ -601,7 +616,7 @@
       "_index.js",
       "_Rest.js",
       "_Arr.js",
-      "_RouteCell.js",
+      "_CardBody.js",
       "_dayjs.min.js"
     ]
   },
@@ -806,6 +821,7 @@
       "_Translator.js",
       "_CopyToClipboard.js",
       "_Arr.js",
+      "_Animation.js",
       "__plugin-vue_export-helper.js",
       "_Badge.js",
       "_Str.js",
@@ -860,6 +876,7 @@
       "_vue.esm-bundler.js",
       "_Translator.js",
       "_Badge.js",
+      "_Rest.js",
       "_Arr.js",
       "_Str.js",
       "__plugin-vue_export-helper.js",
@@ -3487,7 +3504,7 @@
       "_vue.esm-bundler.js",
       "_OrderCustomerInformation.js",
       "_DynamicIcon.js",
-      "_RouteCell.js",
+      "_CardBody.js",
       "__plugin-vue_export-helper.js",
       "_Empty.js",
       "_Translator.js",
@@ -3499,6 +3516,7 @@
       "_Str.js",
       "_Arr.js",
       "_CopyToClipboard.js",
+      "_Animation.js",
       "_Notify.js",
       "_index.js",
       "_Asset.js",
@@ -3530,9 +3548,8 @@
     "isEntry": true,
     "imports": [
       "_vue.esm-bundler.js",
-      "_RouteCell.js",
+      "_CardBody.js",
       "_Translator.js",
-      "_Arr.js",
       "_Rest.js",
       "_Badge.js",
       "_DynamicIcon.js",
@@ -3542,8 +3559,10 @@
       "_countries.js",
       "_index.js",
       "_NotFound.js",
+      "_Animation.js",
       "_Model.js",
       "_Url.js",
+      "_Arr.js",
       "_dayjs.min.js",
       "_timezone.js",
       "_Utils.js",
@@ -3560,10 +3579,9 @@
     "isEntry": true,
     "imports": [
       "_vue.esm-bundler.js",
-      "_RouteCell.js",
+      "_CardBody.js",
       "_Empty.js",
       "_Translator.js",
-      "_Arr.js",
       "_CancelSubscription.js",
       "__plugin-vue_export-helper.js",
       "_index.js",
@@ -3572,6 +3590,7 @@
       "_Str.js",
       "_DynamicIcon.js",
       "_NotFound.js",
+      "_Arr.js",
       "_Badge.js",
       "_common.js",
       "_Notify.js",
@@ -3583,6 +3602,7 @@
       "_Utils.js",
       "_productService.js",
       "_BundleProducts.js",
+      "_Animation.js",
       "_Asset.js"
     ]
   },
@@ -3601,9 +3621,8 @@
       "_vue.esm-bundler.js",
       "_Str.js",
       "_DynamicIcon.js",
-      "_RouteCell.js",
+      "_CardBody.js",
       "_Translator.js",
-      "_Arr.js",
       "_Empty.js",
       "_OrderCustomerInformation.js",
       "_productService.js",
@@ -3615,17 +3634,19 @@
       "_Rest.js",
       "_dayjs.min.js",
       "_index.js",
-      "_dateShortCuts.js",
       "_Notify.js",
+      "_Animation.js",
+      "_dateShortCuts.js",
       "_countries.js",
       "_NotFound.js",
       "_Asset.js",
       "_index2.js",
+      "_Arr.js",
       "_Url.js",
       "_timezone.js",
       "_Utils.js",
-      "_CopyToClipboard.js",
       "_ProductVariationSelector.js",
+      "_CopyToClipboard.js",
       "_BundleProducts.js",
       "_defaults.js",
       "resources/admin/Bits/Components/Icons/Screenshot.vue",
@@ -3828,8 +3849,10 @@
     "isEntry": true
   },
   "resources/images/pro-feature-pattern.png": {
-    "file": "assets/pro-feature-pattern.png",
-    "src": "resources/images/pro-feature-pattern.png"
+    "file": "images/pro-feature-pattern.png",
+    "name": "pro-feature-pattern",
+    "src": "resources/images/pro-feature-pattern.png",
+    "isEntry": true
   },
   "resources/licensing/license.js": {
     "file": "license.js",
@@ -3838,13 +3861,12 @@
     "isEntry": true,
     "imports": [
       "_vue.esm-bundler.js",
-      "_RouteCell.js",
+      "_CardBody.js",
       "_NotFound.js",
       "_dateShortCuts.js",
       "_Empty.js",
       "_DynamicIcon.js",
       "_Translator.js",
-      "_Arr.js",
       "_Badge.js",
       "_index.js",
       "_OrderCustomerInformation.js",
@@ -3855,13 +3877,15 @@
       "_common.js",
       "_CopyToClipboard.js",
       "_Str.js",
+      "_Arr.js",
       "_Url.js",
       "_timezone.js",
       "_Notify.js",
       "_Utils.js",
       "_Asset.js",
       "_index3.js",
-      "_productService.js"
+      "_productService.js",
+      "_Animation.js"
     ],
     "css": [
       "assets/license.css"
@@ -3875,7 +3899,7 @@
     "imports": [
       "_vue.esm-bundler.js",
       "_Translator.js",
-      "_RouteCell.js",
+      "_CardBody.js",
       "_Empty.js",
       "_Badge.js",
       "_DynamicIcon.js",
@@ -4034,6 +4058,7 @@
       "resources/admin/Bits/Components/Icons/ArrowDown.vue",
       "resources/admin/Bits/Components/Icons/ArrowUp.vue",
       "_Rest.js",
+      "_Animation.js",
       "_Notify.js",
       "_index2.js",
       "_defaults.js",
@@ -4256,6 +4281,534 @@
   "resources/styles/tailwind/taxonomy.scss": {
     "file": "assets/taxonomy.css",
     "src": "resources/styles/tailwind/taxonomy.scss",
+    "isEntry": true
+  },
+  "resources/images/404.svg": {
+    "file": "images/404.svg",
+    "name": "404",
+    "src": "resources/images/404.svg",
+    "isEntry": true
+  },
+  "resources/images/avatar-empty.png": {
+    "file": "images/avatar-empty.png",
+    "name": "avatar-empty",
+    "src": "resources/images/avatar-empty.png",
+    "isEntry": true
+  },
+  "resources/images/cart.svg": {
+    "file": "images/cart.svg",
+    "name": "cart",
+    "src": "resources/images/cart.svg",
+    "isEntry": true
+  },
+  "resources/images/credit-card/amex.svg": {
+    "file": "images/credit-card/amex.svg",
+    "name": "amex",
+    "src": "resources/images/credit-card/amex.svg",
+    "isEntry": true
+  },
+  "resources/images/credit-card/card.svg": {
+    "file": "images/credit-card/card.svg",
+    "name": "card",
+    "src": "resources/images/credit-card/card.svg",
+    "isEntry": true
+  },
+  "resources/images/credit-card/cards.svg": {
+    "file": "images/credit-card/cards.svg",
+    "name": "cards",
+    "src": "resources/images/credit-card/cards.svg",
+    "isEntry": true
+  },
+  "resources/images/credit-card/cvc.svg": {
+    "file": "images/credit-card/cvc.svg",
+    "name": "cvc",
+    "src": "resources/images/credit-card/cvc.svg",
+    "isEntry": true
+  },
+  "resources/images/credit-card/mastercard.svg": {
+    "file": "images/credit-card/mastercard.svg",
+    "name": "mastercard",
+    "src": "resources/images/credit-card/mastercard.svg",
+    "isEntry": true
+  },
+  "resources/images/credit-card/unionpay.svg": {
+    "file": "images/credit-card/unionpay.svg",
+    "name": "unionpay",
+    "src": "resources/images/credit-card/unionpay.svg",
+    "isEntry": true
+  },
+  "resources/images/credit-card/visa.svg": {
+    "file": "images/credit-card/visa.svg",
+    "name": "visa",
+    "src": "resources/images/credit-card/visa.svg",
+    "isEntry": true
+  },
+  "resources/images/crown.svg": {
+    "file": "images/crown.svg",
+    "name": "crown",
+    "src": "resources/images/crown.svg",
+    "isEntry": true
+  },
+  "resources/images/elementor/black.svg": {
+    "file": "images/elementor/black.svg",
+    "name": "black",
+    "src": "resources/images/elementor/black.svg",
+    "isEntry": true
+  },
+  "resources/images/elementor/white.svg": {
+    "file": "images/elementor/white.svg",
+    "name": "white",
+    "src": "resources/images/elementor/white.svg",
+    "isEntry": true
+  },
+  "resources/images/email-template/email-banner.png": {
+    "file": "images/email-template/email-banner.png",
+    "name": "email-banner",
+    "src": "resources/images/email-template/email-banner.png",
+    "isEntry": true
+  },
+  "resources/images/empty-cart.svg": {
+    "file": "images/empty-cart.svg",
+    "name": "empty-cart",
+    "src": "resources/images/empty-cart.svg",
+    "isEntry": true
+  },
+  "resources/images/empty-chart.svg": {
+    "file": "images/empty-chart.svg",
+    "name": "empty-chart",
+    "src": "resources/images/empty-chart.svg",
+    "isEntry": true
+  },
+  "resources/images/empty-image-dark.svg": {
+    "file": "images/empty-image-dark.svg",
+    "name": "empty-image-dark",
+    "src": "resources/images/empty-image-dark.svg",
+    "isEntry": true
+  },
+  "resources/images/empty-image.svg": {
+    "file": "images/empty-image.svg",
+    "name": "empty-image",
+    "src": "resources/images/empty-image.svg",
+    "isEntry": true
+  },
+  "resources/images/empty-integration.svg": {
+    "file": "images/empty-integration.svg",
+    "name": "empty-integration",
+    "src": "resources/images/empty-integration.svg",
+    "isEntry": true
+  },
+  "resources/images/empty-order.svg": {
+    "file": "images/empty-order.svg",
+    "name": "empty-order",
+    "src": "resources/images/empty-order.svg",
+    "isEntry": true
+  },
+  "resources/images/empty-upload.svg": {
+    "file": "images/empty-upload.svg",
+    "name": "empty-upload",
+    "src": "resources/images/empty-upload.svg",
+    "isEntry": true
+  },
+  "resources/images/empty.png": {
+    "file": "images/empty.png",
+    "name": "empty",
+    "src": "resources/images/empty.png",
+    "isEntry": true
+  },
+  "resources/images/fluent-pdf/black.svg": {
+    "file": "images/fluent-pdf/black.svg",
+    "name": "black",
+    "src": "resources/images/fluent-pdf/black.svg",
+    "isEntry": true
+  },
+  "resources/images/fluent-pdf/white.svg": {
+    "file": "images/fluent-pdf/white.svg",
+    "name": "white",
+    "src": "resources/images/fluent-pdf/white.svg",
+    "isEntry": true
+  },
+  "resources/images/integrations/fluent-auth.svg": {
+    "file": "images/integrations/fluent-auth.svg",
+    "name": "fluent-auth",
+    "src": "resources/images/integrations/fluent-auth.svg",
+    "isEntry": true
+  },
+  "resources/images/integrations/fluent-community.svg": {
+    "file": "images/integrations/fluent-community.svg",
+    "name": "fluent-community",
+    "src": "resources/images/integrations/fluent-community.svg",
+    "isEntry": true
+  },
+  "resources/images/integrations/fluent-form.svg": {
+    "file": "images/integrations/fluent-form.svg",
+    "name": "fluent-form",
+    "src": "resources/images/integrations/fluent-form.svg",
+    "isEntry": true
+  },
+  "resources/images/integrations/fluent-smtp.svg": {
+    "file": "images/integrations/fluent-smtp.svg",
+    "name": "fluent-smtp",
+    "src": "resources/images/integrations/fluent-smtp.svg",
+    "isEntry": true
+  },
+  "resources/images/integrations/fluent-support.svg": {
+    "file": "images/integrations/fluent-support.svg",
+    "name": "fluent-support",
+    "src": "resources/images/integrations/fluent-support.svg",
+    "isEntry": true
+  },
+  "resources/images/integrations/fluentcrm-logo.png": {
+    "file": "images/integrations/fluentcrm-logo.png",
+    "name": "fluentcrm-logo",
+    "src": "resources/images/integrations/fluentcrm-logo.png",
+    "isEntry": true
+  },
+  "resources/images/integrations/fluentcrm.svg": {
+    "file": "images/integrations/fluentcrm.svg",
+    "name": "fluentcrm",
+    "src": "resources/images/integrations/fluentcrm.svg",
+    "isEntry": true
+  },
+  "resources/images/integrations/learndash.svg": {
+    "file": "images/integrations/learndash.svg",
+    "name": "learndash",
+    "src": "resources/images/integrations/learndash.svg",
+    "isEntry": true
+  },
+  "resources/images/integrations/lifterlms.svg": {
+    "file": "images/integrations/lifterlms.svg",
+    "name": "lifterlms",
+    "src": "resources/images/integrations/lifterlms.svg",
+    "isEntry": true
+  },
+  "resources/images/integrations/mailchimp.png": {
+    "file": "images/integrations/mailchimp.png",
+    "name": "mailchimp",
+    "src": "resources/images/integrations/mailchimp.png",
+    "isEntry": true
+  },
+  "resources/images/integrations/mailchimp.svg": {
+    "file": "images/integrations/mailchimp.svg",
+    "name": "mailchimp",
+    "src": "resources/images/integrations/mailchimp.svg",
+    "isEntry": true
+  },
+  "resources/images/integrations/slack.png": {
+    "file": "images/integrations/slack.png",
+    "name": "slack",
+    "src": "resources/images/integrations/slack.png",
+    "isEntry": true
+  },
+  "resources/images/integrations/slack.svg": {
+    "file": "images/integrations/slack.svg",
+    "name": "slack",
+    "src": "resources/images/integrations/slack.svg",
+    "isEntry": true
+  },
+  "resources/images/integrations/webhook.png": {
+    "file": "images/integrations/webhook.png",
+    "name": "webhook",
+    "src": "resources/images/integrations/webhook.png",
+    "isEntry": true
+  },
+  "resources/images/integrations/webhook.svg": {
+    "file": "images/integrations/webhook.svg",
+    "name": "webhook",
+    "src": "resources/images/integrations/webhook.svg",
+    "isEntry": true
+  },
+  "resources/images/integrations/wp_user.svg": {
+    "file": "images/integrations/wp_user.svg",
+    "name": "wp_user",
+    "src": "resources/images/integrations/wp_user.svg",
+    "isEntry": true
+  },
+  "resources/images/integrations/zapier.png": {
+    "file": "images/integrations/zapier.png",
+    "name": "zapier",
+    "src": "resources/images/integrations/zapier.png",
+    "isEntry": true
+  },
+  "resources/images/line-shape.svg": {
+    "file": "images/line-shape.svg",
+    "name": "line-shape",
+    "src": "resources/images/line-shape.svg",
+    "isEntry": true
+  },
+  "resources/images/login-icon.svg": {
+    "file": "images/login-icon.svg",
+    "name": "login-icon",
+    "src": "resources/images/login-icon.svg",
+    "isEntry": true
+  },
+  "resources/images/logo/logo-full-dark.svg": {
+    "file": "images/logo/logo-full-dark.svg",
+    "name": "logo-full-dark",
+    "src": "resources/images/logo/logo-full-dark.svg",
+    "isEntry": true
+  },
+  "resources/images/logo/logo-full.svg": {
+    "file": "images/logo/logo-full.svg",
+    "name": "logo-full",
+    "src": "resources/images/logo/logo-full.svg",
+    "isEntry": true
+  },
+  "resources/images/logo/logo-white.svg": {
+    "file": "images/logo/logo-white.svg",
+    "name": "logo-white",
+    "src": "resources/images/logo/logo-white.svg",
+    "isEntry": true
+  },
+  "resources/images/logo/logo.svg": {
+    "file": "images/logo/logo.svg",
+    "name": "logo",
+    "src": "resources/images/logo/logo.svg",
+    "isEntry": true
+  },
+  "resources/images/logo.svg": {
+    "file": "images/logo.svg",
+    "name": "logo",
+    "src": "resources/images/logo.svg",
+    "isEntry": true
+  },
+  "resources/images/no-modules.svg": {
+    "file": "images/no-modules.svg",
+    "name": "no-modules",
+    "src": "resources/images/no-modules.svg",
+    "isEntry": true
+  },
+  "resources/images/payment-methods/airwallex-icon.svg": {
+    "file": "images/payment-methods/airwallex-icon.svg",
+    "name": "airwallex-icon",
+    "src": "resources/images/payment-methods/airwallex-icon.svg",
+    "isEntry": true
+  },
+  "resources/images/payment-methods/airwallex-logo.svg": {
+    "file": "images/payment-methods/airwallex-logo.svg",
+    "name": "airwallex-logo",
+    "src": "resources/images/payment-methods/airwallex-logo.svg",
+    "isEntry": true
+  },
+  "resources/images/payment-methods/authorize_dot_net-icon.svg": {
+    "file": "images/payment-methods/authorize_dot_net-icon.svg",
+    "name": "authorize_dot_net-icon",
+    "src": "resources/images/payment-methods/authorize_dot_net-icon.svg",
+    "isEntry": true
+  },
+  "resources/images/payment-methods/authorize_dot_net-logo.svg": {
+    "file": "images/payment-methods/authorize_dot_net-logo.svg",
+    "name": "authorize_dot_net-logo",
+    "src": "resources/images/payment-methods/authorize_dot_net-logo.svg",
+    "isEntry": true
+  },
+  "resources/images/payment-methods/card.svg": {
+    "file": "images/payment-methods/card.svg",
+    "name": "card",
+    "src": "resources/images/payment-methods/card.svg",
+    "isEntry": true
+  },
+  "resources/images/payment-methods/cod-icon.svg": {
+    "file": "images/payment-methods/cod-icon.svg",
+    "name": "cod-icon",
+    "src": "resources/images/payment-methods/cod-icon.svg",
+    "isEntry": true
+  },
+  "resources/images/payment-methods/flutterwave-logo.svg": {
+    "file": "images/payment-methods/flutterwave-logo.svg",
+    "name": "flutterwave-logo",
+    "src": "resources/images/payment-methods/flutterwave-logo.svg",
+    "isEntry": true
+  },
+  "resources/images/payment-methods/mercado-pago-logo.svg": {
+    "file": "images/payment-methods/mercado-pago-logo.svg",
+    "name": "mercado-pago-logo",
+    "src": "resources/images/payment-methods/mercado-pago-logo.svg",
+    "isEntry": true
+  },
+  "resources/images/payment-methods/mollie-icon.svg": {
+    "file": "images/payment-methods/mollie-icon.svg",
+    "name": "mollie-icon",
+    "src": "resources/images/payment-methods/mollie-icon.svg",
+    "isEntry": true
+  },
+  "resources/images/payment-methods/mollie-logo.svg": {
+    "file": "images/payment-methods/mollie-logo.svg",
+    "name": "mollie-logo",
+    "src": "resources/images/payment-methods/mollie-logo.svg",
+    "isEntry": true
+  },
+  "resources/images/payment-methods/offline-payment-icon.svg": {
+    "file": "images/payment-methods/offline-payment-icon.svg",
+    "name": "offline-payment-icon",
+    "src": "resources/images/payment-methods/offline-payment-icon.svg",
+    "isEntry": true
+  },
+  "resources/images/payment-methods/offline-payment.svg": {
+    "file": "images/payment-methods/offline-payment.svg",
+    "name": "offline-payment",
+    "src": "resources/images/payment-methods/offline-payment.svg",
+    "isEntry": true
+  },
+  "resources/images/payment-methods/paddle-icon.svg": {
+    "file": "images/payment-methods/paddle-icon.svg",
+    "name": "paddle-icon",
+    "src": "resources/images/payment-methods/paddle-icon.svg",
+    "isEntry": true
+  },
+  "resources/images/payment-methods/paddle-logo.svg": {
+    "file": "images/payment-methods/paddle-logo.svg",
+    "name": "paddle-logo",
+    "src": "resources/images/payment-methods/paddle-logo.svg",
+    "isEntry": true
+  },
+  "resources/images/payment-methods/paypal-icon.svg": {
+    "file": "images/payment-methods/paypal-icon.svg",
+    "name": "paypal-icon",
+    "src": "resources/images/payment-methods/paypal-icon.svg",
+    "isEntry": true
+  },
+  "resources/images/payment-methods/paypal.svg": {
+    "file": "images/payment-methods/paypal.svg",
+    "name": "paypal",
+    "src": "resources/images/payment-methods/paypal.svg",
+    "isEntry": true
+  },
+  "resources/images/payment-methods/paystack-icon.svg": {
+    "file": "images/payment-methods/paystack-icon.svg",
+    "name": "paystack-icon",
+    "src": "resources/images/payment-methods/paystack-icon.svg",
+    "isEntry": true
+  },
+  "resources/images/payment-methods/paystack-logo.svg": {
+    "file": "images/payment-methods/paystack-logo.svg",
+    "name": "paystack-logo",
+    "src": "resources/images/payment-methods/paystack-logo.svg",
+    "isEntry": true
+  },
+  "resources/images/payment-methods/razorpay-icon.svg": {
+    "file": "images/payment-methods/razorpay-icon.svg",
+    "name": "razorpay-icon",
+    "src": "resources/images/payment-methods/razorpay-icon.svg",
+    "isEntry": true
+  },
+  "resources/images/payment-methods/razorpay-logo.svg": {
+    "file": "images/payment-methods/razorpay-logo.svg",
+    "name": "razorpay-logo",
+    "src": "resources/images/payment-methods/razorpay-logo.svg",
+    "isEntry": true
+  },
+  "resources/images/payment-methods/square-icon.svg": {
+    "file": "images/payment-methods/square-icon.svg",
+    "name": "square-icon",
+    "src": "resources/images/payment-methods/square-icon.svg",
+    "isEntry": true
+  },
+  "resources/images/payment-methods/square-logo.svg": {
+    "file": "images/payment-methods/square-logo.svg",
+    "name": "square-logo",
+    "src": "resources/images/payment-methods/square-logo.svg",
+    "isEntry": true
+  },
+  "resources/images/payment-methods/stripe-connect.png": {
+    "file": "images/payment-methods/stripe-connect.png",
+    "name": "stripe-connect",
+    "src": "resources/images/payment-methods/stripe-connect.png",
+    "isEntry": true
+  },
+  "resources/images/payment-methods/stripe-icon.svg": {
+    "file": "images/payment-methods/stripe-icon.svg",
+    "name": "stripe-icon",
+    "src": "resources/images/payment-methods/stripe-icon.svg",
+    "isEntry": true
+  },
+  "resources/images/payment-methods/stripe.svg": {
+    "file": "images/payment-methods/stripe.svg",
+    "name": "stripe",
+    "src": "resources/images/payment-methods/stripe.svg",
+    "isEntry": true
+  },
+  "resources/images/payment-methods/upcoming.png": {
+    "file": "images/payment-methods/upcoming.png",
+    "name": "upcoming",
+    "src": "resources/images/payment-methods/upcoming.png",
+    "isEntry": true
+  },
+  "resources/images/placeholder-small.svg": {
+    "file": "images/placeholder-small.svg",
+    "name": "placeholder-small",
+    "src": "resources/images/placeholder-small.svg",
+    "isEntry": true
+  },
+  "resources/images/placeholder.svg": {
+    "file": "images/placeholder.svg",
+    "name": "placeholder",
+    "src": "resources/images/placeholder.svg",
+    "isEntry": true
+  },
+  "resources/images/register-icon.svg": {
+    "file": "images/register-icon.svg",
+    "name": "register-icon",
+    "src": "resources/images/register-icon.svg",
+    "isEntry": true
+  },
+  "resources/images/storage-drivers/local.svg": {
+    "file": "images/storage-drivers/local.svg",
+    "name": "local",
+    "src": "resources/images/storage-drivers/local.svg",
+    "isEntry": true
+  },
+  "resources/images/storage-drivers/s3.svg": {
+    "file": "images/storage-drivers/s3.svg",
+    "name": "s3",
+    "src": "resources/images/storage-drivers/s3.svg",
+    "isEntry": true
+  },
+  "resources/public/lib/nouislider/nouislider-15.7.1.css": {
+    "file": "public/lib/nouislider/nouislider-15.7.1.css",
+    "name": "nouislider-15.7.1",
+    "src": "resources/public/lib/nouislider/nouislider-15.7.1.css",
+    "isEntry": true
+  },
+  "resources/public/lib/nouislider/nouislider-15.7.1.min.js": {
+    "file": "public/lib/nouislider/nouislider-15.7.1.min.js",
+    "name": "nouislider-15.7.1.min",
+    "src": "resources/public/lib/nouislider/nouislider-15.7.1.min.js",
+    "isEntry": true
+  },
+  "resources/public/lib/printThis-2.0.0.min.js": {
+    "file": "public/lib/printThis-2.0.0.min.js",
+    "name": "printThis-2.0.0.min",
+    "src": "resources/public/lib/printThis-2.0.0.min.js",
+    "isEntry": true
+  },
+  "resources/public/lib/swiper/swiper-bundle.min.css": {
+    "file": "public/lib/swiper/swiper-bundle.min.css",
+    "name": "swiper-bundle.min",
+    "src": "resources/public/lib/swiper/swiper-bundle.min.css",
+    "isEntry": true
+  },
+  "resources/public/lib/swiper/swiper-bundle.min.js": {
+    "file": "public/lib/swiper/swiper-bundle.min.js",
+    "name": "swiper-bundle.min",
+    "src": "resources/public/lib/swiper/swiper-bundle.min.js",
+    "isEntry": true
+  },
+  "resources/public/lib/toastify/toastify-js-1.12.0.js": {
+    "file": "public/lib/toastify/toastify-js-1.12.0.js",
+    "name": "toastify-js-1.12.0",
+    "src": "resources/public/lib/toastify/toastify-js-1.12.0.js",
+    "isEntry": true
+  },
+  "resources/public/lib/toastify/toastify.min-1.12.0.css": {
+    "file": "public/lib/toastify/toastify.min-1.12.0.css",
+    "name": "toastify.min-1.12.0",
+    "src": "resources/public/lib/toastify/toastify.min-1.12.0.css",
+    "isEntry": true
+  },
+  "resources/world.geo.json": {
+    "file": "world.geo.json",
+    "name": "world.geo",
+    "src": "resources/world.geo.json",
     "isEntry": true
   }
 }

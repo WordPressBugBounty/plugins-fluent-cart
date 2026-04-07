@@ -3,12 +3,10 @@
 namespace FluentCart\App\Services\Email;
 
 use FluentCart\App\App;
-use FluentCart\App\Helpers\Status;
 use FluentCart\App\Models\Model;
 use FluentCart\App\Models\Order;
-use FluentCart\App\Models\OrderTransaction;
 use FluentCart\App\Models\Subscription;
-use FluentCart\App\Services\BlockParser;
+use FluentCart\App\Services\PDF\OrderReceiptPdfService;
 use FluentCart\App\Services\ShortCodeParser\ShortcodeTemplateBuilder;
 use FluentCart\Framework\Support\Arr;
 
@@ -164,7 +162,28 @@ class EmailNotificationMailer
                 as_enqueue_async_action($asyncHook, $asyncData);
             } else {
                 list($body, $subject, $to) = $this->parseEmailContent($notification, $data);
-                Mailer::make()->to($to)->subject($subject)->body($body)->send(true);
+
+                $mailer = Mailer::make()->to($to)->subject($subject)->body($body);
+
+                $pdfPath = null;
+                $templateId = Arr::get($notification, 'settings.attach_pdf_template', '');
+                // Backward compat: old attach_pdf='yes' maps to order_receipt
+                if (empty($templateId) && Arr::get($notification, 'settings.attach_pdf', 'no') === 'yes') {
+                    $templateId = 'order_receipt';
+                }
+                if (!empty($templateId) && defined('FLUENT_PDF')) {
+                    $pdfPath = $this->generateOrderPdf($data, $templateId);
+                    if ($pdfPath) {
+                        $mailer->addAttachment($pdfPath);
+                    }
+                }
+
+                $mailer->send(true);
+
+                // Clean up temp PDF file after sending
+                if ($pdfPath && file_exists($pdfPath)) {
+                    @unlink($pdfPath);
+                }
             }
         }
 
@@ -172,11 +191,33 @@ class EmailNotificationMailer
 
     public function mailByEmailName($emailName, $data)
     {
+        // Extract Order model before formatParsable converts it to array
+        $orderModel = Arr::get($data, 'order');
+
         $data = $this->formatParsable($data);
         $notification = EmailNotifications::getNotification($emailName);
         $notification = EmailNotifications::formatNotification($notification, $data);
         list($body, $subject, $to) = $this->parseEmailContent($notification, $data);
-        Mailer::make()->to($to)->subject($subject)->body($body)->send(true);
+
+        $mailer = Mailer::make()->to($to)->subject($subject)->body($body);
+
+        $pdfPath = null;
+        $templateId = Arr::get($notification, 'settings.attach_pdf_template', '');
+        if (empty($templateId) && Arr::get($notification, 'settings.attach_pdf', 'no') === 'yes') {
+            $templateId = 'order_receipt';
+        }
+        if (!empty($templateId) && defined('FLUENT_PDF')) {
+            $pdfPath = $this->generateOrderPdf(['order' => $orderModel], $templateId);
+            if ($pdfPath) {
+                $mailer->addAttachment($pdfPath);
+            }
+        }
+
+        $mailer->send(true);
+
+        if ($pdfPath && file_exists($pdfPath)) {
+            @unlink($pdfPath);
+        }
     }
 
     public function getEmailFooter(): string
@@ -269,6 +310,9 @@ class EmailNotificationMailer
 
         if ($subscription) {
             $order = $subscription->order;
+            if (!$order) {
+                return;
+            }
             $this->mailByEmailName($emailName, [
                 'subscription' => $subscription,
                 'order'        => $order,
@@ -278,4 +322,30 @@ class EmailNotificationMailer
         }
 
     }
+
+    /**
+     * Generate a PDF receipt for the order in the given data array.
+     *
+     * @param array $data Event data containing 'order' key
+     * @return string|null Path to generated PDF or null
+     */
+    private function generateOrderPdf(array $data, string $templateId = 'order_receipt'): ?string
+    {
+        $order = Arr::get($data, 'order');
+        if (!$order || !($order instanceof Order)) {
+            return null;
+        }
+
+        try {
+            return (new OrderReceiptPdfService())->generateReceiptPdf($order, $templateId);
+        } catch (\Throwable $e) {
+            fluent_cart_add_log(
+                'PDF Generation Failed',
+                $e->getMessage(),
+                'error'
+            );
+            return null;
+        }
+    }
+
 }

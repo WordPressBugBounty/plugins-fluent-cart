@@ -15,6 +15,21 @@ class ShippingZoneRequest extends RequestGuard
         $data = $this->all();
         $data['region'] = Arr::get($data, 'region', '');
         $data['order'] = Arr::get($data, 'order', '');
+
+        // Handle multi-country selection
+        if ($data['region'] === 'selection') {
+            $meta = Arr::get($data, 'meta', []);
+            $countries = Arr::get($meta, 'countries', []);
+            $selectionType = Arr::get($meta, 'selection_type', 'included');
+
+            $data['meta'] = [
+                'countries'      => array_values(array_filter(array_map('sanitize_text_field', $countries))),
+                'selection_type' => in_array($selectionType, ['included', 'excluded']) ? $selectionType : 'included',
+            ];
+        } else {
+            $data['meta'] = null;
+        }
+
         return $data;
     }
 
@@ -29,7 +44,7 @@ class ShippingZoneRequest extends RequestGuard
             'region' => function ($attr, $value) {
                 if ($value === 'all') {
                     $zone = \FluentCart\App\Models\ShippingZone::query()->where('region', 'all');
-                    if($this->id){
+                    if ($this->id) {
                         $zone = $zone->where('id', '!=', $this->id);
                     }
                     $zone = $zone->first();
@@ -37,6 +52,15 @@ class ShippingZoneRequest extends RequestGuard
                         return __('Only one "Whole World" shipping zone is allowed.', 'fluent-cart');
                     }
                 }
+
+                if ($value === 'selection') {
+                    $meta = Arr::get($this->all(), 'meta', []);
+                    $countries = Arr::get($meta, 'countries', []);
+                    if (empty($countries)) {
+                        return __('Please select at least one country.', 'fluent-cart');
+                    }
+                }
+
                 return null;
             },
             'order'  => 'nullable|integer',
@@ -64,6 +88,9 @@ class ShippingZoneRequest extends RequestGuard
         return [
             'name'   => 'sanitize_text_field',
             'region' => 'sanitize_text_field',
+            'meta'   => function ($value) {
+                return $value; // Already sanitized in beforeValidation
+            },
             'order'  => 'intval'
         ];
     }

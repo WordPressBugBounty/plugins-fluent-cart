@@ -30,7 +30,7 @@ class ShippingFrontendController extends Controller
             ];
         }
 
-        $availableShippingMethods = ShippingMethod::applicableToCountry($countryCode, $state)->get();
+        $availableShippingMethods = ShippingMethod::getApplicableForCountry($countryCode, $state);
 
         if (!$availableShippingMethods || $availableShippingMethods->isEmpty()) {
             $settingView = '<div class="fct-empty-state">'

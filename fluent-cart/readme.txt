@@ -4,7 +4,7 @@ Tags: ecommerce, cart, checkout, subscriptions, payments
 Requires at least: 6.7
 Tested up to: 6.9
 Requires PHP: 7.4
-Stable tag: 1.3.15
+Stable tag: 1.3.17
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -312,6 +312,25 @@ This service is provided by PayPal: [Terms of Service](https://www.paypal.com/le
 
 
 == Changelog ==
+
+= 1.3.17 (Apr 7, 2026) =
+- Adds Fees API for custom fees in checkout
+- Adds Add filterable frontend asset loading context for cart bundle
+- Adds Shipping method new options Include,Exclude countries.
+- Adds Delete all test order action inside More option (All orders page)
+- Adds Visual PDF Invoice Customizer
+- Adds E-Invoice (ZUGFeRD / Factur-X) with EN 16931 profiling
+- Enhanced Development Hooks / Filter experience
+- Fixes Stock not updated after test order deletion
+- Fixes Product duplicate not working in bulk edit page
+- Fixes Downloadable file edit issue
+- Fixes And Improves Turnstile
+- Fixes Decimal value not allowed in shipping fee
+- Fixes Handles Paddle recovery link
+- Fixes Checkout Summary block consolidated into a single block
+- Fixes Added restrictions to product child blocks
+- Fixes Pagination showing stale page number after changing per_page
+- Fixes Paddle discount issue.
 
 == 1.3.15 (Mar 13, 2026) ==
 - Adds Schedule reminder email for payment and subscriptions

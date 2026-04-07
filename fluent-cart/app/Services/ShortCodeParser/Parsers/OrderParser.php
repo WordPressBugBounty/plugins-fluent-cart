@@ -69,6 +69,7 @@ class OrderParser extends BaseParser
         'coupon_discount_total',
         'shipping_tax',
         'shipping_total',
+        'fee_total',
         'tax_total',
         'total_paid',
         'total_refund'
@@ -300,6 +301,17 @@ class OrderParser extends BaseParser
     {
         return (int) Arr::get($this->order, 'coupon_discount_total', 0)
              + (int) Arr::get($this->order, 'manual_discount_total', 0);
+    }
+
+    public function getOrderRef(): string
+    {
+        $invoiceNo = Arr::get($this->order, 'invoice_no');
+
+        if (!empty($invoiceNo)) {
+            return (string) $invoiceNo;
+        }
+
+        return (string) Arr::get($this->order, 'id');
     }
 
     public function getCustomerDashboardAnchorLink($accessor, $code = null, $conditions = [])

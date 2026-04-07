@@ -7,6 +7,7 @@ use FluentCart\Api\StoreSettings;
 use FluentCart\App\Helpers\Helper;
 use FluentCart\Framework\Support\Arr;
 use FluentCart\App\Helpers\CartHelper;
+use FluentCart\App\Models\Cart;
 use FluentCart\App\Models\OrderTaxRate;
 use FluentCart\App\Services\Renderer\EUVatRenderer;
 use FluentCart\App\Services\Renderer\CartSummaryRender;
@@ -191,9 +192,13 @@ class TaxModule
     {
         $cart = Arr::get($data, 'cart');
 
+        // Persist dynamic fees so tax pipeline can see them
+        $checkoutData = $cart->checkout_data;
+        $checkoutData['fees'] = $cart->getFees();
+
         $fillData = $this->calculateCartTax([
             'cart_data'     => $cart->cart_data,
-            'checkout_data' => $cart->checkout_data
+            'checkout_data' => $checkoutData
         ]);
 
         $cart->fill($fillData);
@@ -210,6 +215,14 @@ class TaxModule
 
         if (empty($watchings)) {
             return $fillData;
+        }
+
+        // Persist dynamic fees so tax pipeline can see them
+        $cart = Arr::get($data, 'cart');
+        if ($cart) {
+            $checkoutData = Arr::get($fillData, 'checkout_data', []);
+            $checkoutData['fees'] = $cart->getFees();
+            $fillData['checkout_data'] = $checkoutData;
         }
 
         return $this->calculateCartTax($fillData);
@@ -272,7 +285,18 @@ class TaxModule
             $postCode = $storeSettings->get('store_postcode');
         }
 
-        $taxCalculator = new TaxCalculator($lineItems, [
+        // Add taxable fee items to the tax calculation pipeline
+        $fees = (array) Arr::get($checkoutData, 'fees', []);
+        $feeItems = [];
+        foreach ($fees as $fee) {
+            if (!empty($fee['taxable']) && !empty($fee['amount'])) {
+                $feeItems[] = Cart::buildFeeCartItem($fee);
+            }
+        }
+
+        $allItems = array_merge($lineItems, $feeItems);
+
+        $taxCalculator = new TaxCalculator($allItems, [
             'inclusive' => false,
             'country'   => $country,
             'state'     => $state,
@@ -288,14 +312,29 @@ class TaxModule
         $shippingTax = $taxCalculator->getShippingTax();
         $taxCountry = $taxCalculator->getTaxCountry();
         $taxLines = $taxCalculator->getTaxLinesByRates();
+
+        // Separate product and fee items from taxed lines
+        $allTaxedLines = $taxCalculator->getTaxedLines();
+        $productLines = [];
+        $feeTax = 0;
+        foreach ($allTaxedLines as $taxedLine) {
+            if (!empty($taxedLine['is_fee'])) {
+                $feeTax += (int) Arr::get($taxedLine, 'tax_amount', 0);
+            } else {
+                $productLines[] = $taxedLine;
+            }
+        }
+
         $checkoutData['tax_data']['tax_total'] = $taxTotal;
         $checkoutData['tax_data']['tax_behavior'] = $taxCalculator->getTaxBahaviorValue();
         $checkoutData['tax_data']['tax_country'] = $taxCountry;
         $checkoutData['tax_data']['shipping_tax'] = $shippingTax;
+        $checkoutData['tax_data']['fee_tax'] = $feeTax;
         $checkoutData['tax_data']['tax_lines'] = $taxLines;
         $fillData['checkout_data'] = $checkoutData;
 
-        $fillData['cart_data'] = $taxCalculator->getTaxedLines();
+        // Only product lines go back into cart_data
+        $fillData['cart_data'] = $productLines;
 
         if (isset($fillData['hook_changes'])) {
             Arr::set($fillData, 'hook_changes.tax', true);

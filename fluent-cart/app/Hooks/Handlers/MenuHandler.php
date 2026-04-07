@@ -6,7 +6,6 @@ use FluentCart\Api\ModuleSettings;
 use FluentCart\App\App;
 use FluentCart\App\Services\Renderer\CheckoutFieldsSchema;
 use FluentCart\App\Vite;
-use FluentCart\Api\Taxonomy;
 use FluentCart\App\Services\URL;
 use FluentCart\Api\StoreSettings;
 use FluentCart\Api\PaymentMethods;
@@ -14,9 +13,7 @@ use FluentCart\App\Helpers\Helper;
 use FluentCart\App\Helpers\Status;
 use FluentCart\App\Models\Product;
 use FluentCart\App\Models\Customer;
-use FluentCart\Database\DBMigrator;
 use FluentCart\Framework\Support\Arr;
-use FluentCart\Framework\Support\Str;
 use FluentCart\App\CPT\FluentProducts;
 use FluentCart\App\Helpers\AdminHelper;
 use FluentCart\App\Models\AttributeTerm;
@@ -24,9 +21,7 @@ use FluentCart\App\Models\AttributeGroup;
 use FluentCart\App\Models\ShippingMethod;
 use FluentCart\App\Modules\Tax\TaxModule;
 use FluentCart\App\Helpers\CurrenciesHelper;
-use FluentCart\Framework\Support\Collection;
 use FluentCart\App\Services\Filter\TaxFilter;
-use FluentCart\App\Services\Theme\AdminTheme;
 use FluentCart\App\Services\Filter\OrderFilter;
 use FluentCart\App\Services\Filter\LicenseFilter;
 use FluentCart\App\Services\Filter\ProductFilter;
@@ -298,9 +293,6 @@ class MenuHandler
             wp_enqueue_media();
         }
 
-        // maybe database changes
-        DBMigrator::maybeMigrateDBChanges();
-
         $this->enqueueAssets();
 
         $config = App::getInstance('config');
@@ -379,6 +371,21 @@ class MenuHandler
         ];
         $filterOptions = apply_filters('fluent_cart/admin_filter_options', $filterOptions, []);
 
+        // Structured table config keyed by table name (used by Table.js base class)
+        $tableConfig = [
+            'order_table'   => ['filters' => Arr::get($filterOptions, 'order_filter_options', [])],
+            'customers'     => ['filters' => Arr::get($filterOptions, 'customer_filter_options', [])],
+            'product_table' => ['filters' => Arr::get($filterOptions, 'product_filter_options', [])],
+            'licenses'      => ['filters' => Arr::get($filterOptions, 'license_filter_options', [])],
+            'taxes_table'   => ['filters' => Arr::get($filterOptions, 'tax_filter_options', [])],
+            'subscriptions'       => ['filters' => Arr::get($filterOptions, 'subscription_filter_options', [])],
+            'shipping_zone_table' => ['filters' => Arr::get($filterOptions, 'shipping_zone_filter_options', [])],
+        ];
+
+        $tableConfig = apply_filters('fluent_cart/admin_saved_views', $tableConfig, [
+            'filterOptions' => $filterOptions
+        ]);
+
         $currentUser = get_user_by('ID', get_current_user_id());
 
         // Get app config and merge additional properties into it
@@ -418,6 +425,10 @@ class MenuHandler
             'payment_routes'                   => $payment_routes,
             'storage_driver_routes'            => $storage_driver_routes,
             'editable_payment_statuses'        => Status::getEditableTransactionStatuses(true),
+            'order_statuses'                   => Status::getOrderStatuses(),
+            'editable_order_statuses'          => Status::getEditableOrderStatuses(),
+            'editable_customer_statuses'       => Status::getEditableCustomerStatuses(),
+            // Backward compat: keep the old typo'd keys for existing frontend code
             'order_statues'                    => Status::getOrderStatuses(),
             'editable_order_statues'           => Status::getEditableOrderStatuses(),
             'editable_customer_statues'        => Status::getEditableCustomerStatuses(),
@@ -436,6 +447,7 @@ class MenuHandler
             'dummy_product_info'               => apply_filters('fluent_cart/dummy_product_info', []) ?: [],
             'currency_signs'                   => CurrenciesHelper::getCurrencySigns(),
             'filter_options'                   => $filterOptions,
+            'table_config'                     => $tableConfig,
             'receipt_page_url'                 => $settings->getReceiptPage(),
             'payment_logos'                    => PaymentMethods::getIcons(),
             'is_admin_bar_showing'             => is_admin_bar_showing(),
@@ -481,7 +493,10 @@ class MenuHandler
         $app = App::getInstance();
 
         $slug = $app->config->get('app.slug');
-        wp_enqueue_script($slug . '_edit_wp_user_admin_global_js', Vite::getEnqueuePath('admin/utils/edit-wp-user-global.js'), ['jquery'], FLUENTCART_VERSION, true);
+        if(is_admin()){
+            wp_enqueue_script($slug . '_edit_wp_user_admin_global_js', Vite::getEnqueuePath('admin/utils/edit-wp-user-global.js'), ['jquery'], FLUENTCART_VERSION, true);
+        }
+
 
         $baseUrl = apply_filters('fluent_cart/admin_base_url', admin_url('admin.php?page=fluent-cart#/'), []);
 

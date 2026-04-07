@@ -33,7 +33,8 @@ class TurnstileBoot
             <div class="cf-turnstile"
                  data-sitekey="<?php echo esc_attr($siteKey); ?>"
                  data-callback="fluentCartTurnstileCallback"
-                 data-size="invisible"
+                 data-size="flexible"
+                 data-appearance="interaction-only"
                  data-theme="auto">
             </div>
             <?php else: ?>
@@ -152,7 +153,20 @@ class TurnstileBoot
                                     window.fluentCartTurnstileToken = token;
                                 }
                             },
-                            size: 'invisible',
+                            'expired-callback': function() {
+                                window.fluentCartTurnstileToken = null;
+                                if (window.fluentCartTurnstileHandlerInstance) {
+                                    window.fluentCartTurnstileHandlerInstance.handleExpired();
+                                }
+                            },
+                            'error-callback': function() {
+                                window.fluentCartTurnstileToken = null;
+                                if (window.fluentCartTurnstileHandlerInstance) {
+                                    window.fluentCartTurnstileHandlerInstance.handleError();
+                                }
+                            },
+                            size: 'flexible',
+                            appearance: 'interaction-only',
                             theme: 'auto'
                         });
                         if (renderedId) {
@@ -193,7 +207,7 @@ class TurnstileBoot
         $html = '<div class="fct-turnstile-wrapper" data-fluent-cart-turnstile-widget style="position: fixed; bottom: 0; left: 0; width: 1px; height: 1px; overflow: hidden; opacity: 0; pointer-events: none;" data-turnstile-active="' . ($isActive ? 'yes' : 'no') . '">';
 
         if ($isActive) {
-            $html .= '<div class="cf-turnstile" data-sitekey="' . esc_attr($siteKey) . '" data-callback="fluentCartTurnstileCallback" data-size="invisible" data-theme="auto"></div>';
+            $html .= '<div class="cf-turnstile" data-sitekey="' . esc_attr($siteKey) . '" data-callback="fluentCartTurnstileCallback" data-size="flexible" data-appearance="interaction-only" data-theme="auto"></div>';
         } else {
             $html .= '<div class="cf-turnstile" style="display: none;"></div>';
         }

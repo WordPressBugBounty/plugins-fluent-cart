@@ -135,6 +135,10 @@ class ProductVariationRequest extends RequestGuard
             $data['variants']['item_price'] = 0;
         }
 
+        if (isset($data['variants']['sku']) && $data['variants']['sku'] === '') {
+            $data['variants']['sku'] = null;
+        }
+
         return $data;
     }
 

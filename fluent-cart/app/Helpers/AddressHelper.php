@@ -325,7 +325,7 @@ class AddressHelper
             ];
         }
 
-        $availableShippingMethods = ShippingMethod::applicableToCountry($countryCode, $state)->get();
+        $availableShippingMethods = ShippingMethod::getApplicableForCountry($countryCode, $state);
 
         if (!$availableShippingMethods || $availableShippingMethods->isEmpty()) {
             $settingView = '<div class="fct-empty-state">'
@@ -364,9 +364,7 @@ class AddressHelper
             return new \WP_Error('no_country', __('Please provide your shipping address to get shipping options', 'fluent-cart'));
         }
 
-        $shippingMethods = ShippingMethod::applicableToCountry($country, $state)
-            ->orderBy('amount', 'DESC')
-            ->get();
+        $shippingMethods = ShippingMethod::getApplicableForCountry($country, $state);
 
         // let's filter the shipping methods
         $formattedMethods = [];

@@ -5,6 +5,7 @@ namespace FluentCart\App\Services\Filter;
 use FluentCart\Api\Taxonomy;
 use FluentCart\App\Helpers\Helper;
 use FluentCart\App\Models\Product;
+use FluentCart\App\Models\ProductVariation;
 use FluentCart\Framework\Database\Orm\Builder;
 use FluentCart\Framework\Support\Arr;
 
@@ -160,6 +161,66 @@ class ProductFilter extends BaseFilter
         }
 
         return [
+            'pricing' => [
+                'label'    => __('Pricing', 'fluent-cart'),
+                'value'    => 'pricing',
+                'children' => [
+                    [
+                        'filter_type' => 'relation',
+                        'relation'    => 'detail',
+                        'column'      => 'min_price',
+                        'label'       => __('Min Price', 'fluent-cart'),
+                        'value'       => 'min_price',
+                        'type'        => 'numeric',
+                        'is_multiple' => false,
+                    ],
+                    [
+                        'filter_type' => 'relation',
+                        'relation'    => 'detail',
+                        'column'      => 'max_price',
+                        'label'       => __('Max Price', 'fluent-cart'),
+                        'value'       => 'max_price',
+                        'type'        => 'numeric',
+                        'is_multiple' => false,
+                    ],
+                ],
+            ],
+            'stock' => [
+                'label'    => __('Stock', 'fluent-cart'),
+                'value'    => 'stock',
+                'children' => [
+                    [
+                        'filter_type' => 'custom',
+                        'label'       => __('Stock Status', 'fluent-cart'),
+                        'value'       => 'stock_status',
+                        'type'        => 'selections',
+                        'options'     => [
+                            'in_stock'     => __('In Stock', 'fluent-cart'),
+                            'out_of_stock' => __('Out of Stock', 'fluent-cart'),
+                        ],
+                        'is_multiple' => false,
+                        'is_only_in'  => true,
+                        'callback'    => static function ($query, $item) {
+                            $operator = $item['value'] === 'in_stock' ? '>' : '<=';
+                            self::filterByTotalAvailable($query, $operator, 0);
+                        },
+                    ],
+                    [
+                        'filter_type' => 'custom',
+                        'label'       => __('Available Quantity', 'fluent-cart'),
+                        'value'       => 'available_quantity',
+                        'type'        => 'numeric',
+                        'is_multiple' => false,
+                        'callback'    => static function ($query, $item) {
+                            $operator = $item['operator'];
+                            if (!in_array($operator, ['>', '<', '=', '!=', '>=', '<='])) {
+                                return;
+                            }
+                            self::filterByTotalAvailable($query, $operator, absint($item['value']));
+                        },
+                    ],
+                ],
+            ],
             'order' => [
                 'label'    => __('Order Property', 'fluent-cart'),
                 'value'    => 'order',
@@ -218,6 +279,42 @@ class ProductFilter extends BaseFilter
                 'children' => $taxonomyFilters
             ]
         ];
+    }
+
+    /**
+     * Filter products by total available stock.
+     * Variants with manage_stock=0 are unlimited (always in-stock).
+     * For managed variants, SUM(available) is used.
+     */
+    private static function filterByTotalAvailable($query, $operator, $value)
+    {
+        // Subquery: SUM of available across managed variants only
+        $managedSum = ProductVariation::query()
+            ->selectRaw('COALESCE(SUM(available), 0)')
+            ->whereColumn('fct_product_variations.post_id', 'posts.ID')
+            ->where('manage_stock', 1);
+
+        // Only consider products that have variants
+        $query->has('variants');
+
+        if (in_array($operator, ['>', '>='])) {
+            // Positive check: unlimited products match, OR managed sum meets condition
+            $query->where(function ($q) use ($managedSum, $operator, $value) {
+                $q->whereHas('variants', function ($vq) {
+                    $vq->where('manage_stock', 0);
+                })->orWhere($managedSum, $operator, $value);
+            });
+        } else {
+            // Negative check: exclude unlimited, check managed sum only
+            $query->whereDoesntHave('variants', function ($vq) {
+                $vq->where('manage_stock', 0);
+            })->where($managedSum, $operator, $value);
+        }
+    }
+
+    public function centColumns(): array
+    {
+        return ['min_price', 'max_price'];
     }
 
     public static function makeNestedTreeOption($data): array

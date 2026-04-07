@@ -525,9 +525,11 @@ class Subscription extends Model
                 'mode'            => $this->order->mode
             ]);
 
-            if (!is_wp_error($vendorCanceled)) {
-                $updateData = array_filter($vendorCanceled);
+            if (is_wp_error($vendorCanceled)) {
+                return $vendorCanceled;
             }
+
+            $updateData = array_filter($vendorCanceled);
         } else {
             $vendorCanceled = new \WP_Error('invalid_payment_method', __('This payment method does not support remote subscription cancel', 'fluent-cart'));
             $updateData = [

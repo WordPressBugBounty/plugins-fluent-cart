@@ -171,6 +171,7 @@ return [
     'Page %1$s of %2$s' => __('Page %1$s of %2$s', 'fluent-cart'),
     'Paid' => __('Paid', 'fluent-cart'),
     'Partially Paid' => __('Partially Paid', 'fluent-cart'),
+    'Pay Now' => __('Pay Now', 'fluent-cart'),
     'Pay Remaining Installments' => __('Pay Remaining Installments', 'fluent-cart'),
     'PayPal Payment' => __('PayPal Payment', 'fluent-cart'),
     'PayPal logo' => __('PayPal logo', 'fluent-cart'),
@@ -246,6 +247,7 @@ return [
     'Summary' => __('Summary', 'fluent-cart'),
     'Table of activated sites' => __('Table of activated sites', 'fluent-cart'),
     'Tax' => __('Tax', 'fluent-cart'),
+    'This order has some due amount. Please complete the payment.' => __('This order has some due amount. Please complete the payment.', 'fluent-cart'),
     'Total' => __('Total', 'fluent-cart'),
     /* translators: %s - total number of items */
     'Total %s' => __('Total %s', 'fluent-cart'),
