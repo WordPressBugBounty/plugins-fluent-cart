@@ -420,7 +420,9 @@ class ProductUpdateRequest extends RequestGuard
                     "variants.$index.serial_index"     => 'intval',
                     "variants.$index.downloadable"     => 'sanitize_text_field',
                     "variants.$index.fulfillment_type"  => 'sanitize_text_field',
-                    "variants.$index.sku"  => 'sanitize_text_field',
+                    "variants.$index.sku"  => function ($value) {
+                        return empty($value) ? null : sanitize_text_field($value);
+                    },
                 ];
 
                 foreach ($variantFieldMap as $field => $sanitizer) {

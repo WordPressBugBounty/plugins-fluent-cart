@@ -38,15 +38,15 @@ class MenuHandler
         add_action('init', [$this, 'init']);
 
         add_action('admin_init', function () {
-            $page = App::request()->get('page') ?? '';
-            if ($page == 'fluent-cart') {
-                \FluentCart\App\Events\FirstTimePluginActivation::handle();
+            $page = $_GET['page'] ?? '';
 
+            if ($page == 'fluent-cart') {
+
+                \FluentCart\App\Events\FirstTimePluginActivation::handle();
                 add_action('admin_enqueue_scripts', function () {
                     Vite::enqueueStyle('fluent_cart_admin_app_css',
                         'styles/tailwind/style.css',
                     );
-
                     Vite::enqueueScript('fluent_cart_admin_global_js',
                         'admin/global.js',
                     );
@@ -116,16 +116,17 @@ class MenuHandler
          * Disable Gutenberg for Products
          */
         add_filter('parent_file', function ($parent_file) {
-            $request = App::request()->all();
             global $submenu_file, $current_screen, $pagenow;
 
-            if (isset($request['post_type']) && $request['post_type'] == FluentProducts::CPT_NAME && $current_screen->post_type == FluentProducts::CPT_NAME) {
+            $postType = $_GET['post_type'] ?? '';
+            if ($postType == FluentProducts::CPT_NAME && $current_screen->post_type == FluentProducts::CPT_NAME) {
                 if ($pagenow == 'post.php') {
                     $submenu_file = 'edit.php?post_type=' . $current_screen->post_type;
                 }
 
                 if ($pagenow == 'edit-tags.php') {
-                    $submenu_file = 'edit-tags.php?taxonomy=' . esc_attr($request['taxonomy']) . '&post_type=' . $current_screen->post_type;
+                    $taxonomy = $_GET['taxonomy'] ?? '';
+                    $submenu_file = 'edit-tags.php?taxonomy=' . esc_attr($taxonomy) . '&post_type=' . $current_screen->post_type;
                 }
 
                 $parent_file = 'fluent-cart';
@@ -176,7 +177,7 @@ class MenuHandler
             'fluent_cart_dashboard'
         );
 
-        if (PermissionManager::hasPermission(["orders/view"])) {
+        if (PermissionManager::hasPermission(['orders/view'])) {
             $submenu['fluent-cart']['orders'] = array(
                 __('Orders', 'fluent-cart'),
                 $capability,
@@ -186,8 +187,7 @@ class MenuHandler
             );
         }
 
-
-        if (PermissionManager::hasPermission(["customers/view", "customers/manage"])) {
+        if (PermissionManager::hasPermission(['customers/view', 'customers/manage'])) {
             $submenu['fluent-cart']['customers'] = array(
                 __('Customers', 'fluent-cart'),
                 $capability,
@@ -207,13 +207,14 @@ class MenuHandler
             );
         }
 
-        if (PermissionManager::userCan('is_super_admin')) {
-            $submenu['fluent-cart']['integrations'] = array(
-                __('Integrations', 'fluent-cart'),
+
+        if (PermissionManager::hasPermission(['subscriptions/view'])) {
+            $submenu['fluent-cart']['subscriptions'] = array(
+                __('Subscriptions', 'fluent-cart'),
                 $capability,
-                'admin.php?page=fluent-cart#/integrations',
+                'admin.php?page=fluent-cart#/subscriptions',
                 '',
-                'fluent_cart_integrations'
+                'fluent_cart_subscriptions'
             );
         }
 
@@ -227,7 +228,20 @@ class MenuHandler
             );
         }
 
-        if (PermissionManager::hasPermission(["store/settings", 'store/sensitive'])) {
+        if (PermissionManager::userCan('is_super_admin')) {
+            $submenu['fluent-cart']['integrations'] = array(
+                __('Integrations', 'fluent-cart'),
+                $capability,
+                'admin.php?page=fluent-cart#/integrations',
+                '',
+                'fluent_cart_integrations'
+            );
+        }
+
+
+        $hasSensitiveAccess = PermissionManager::hasPermission(['store/settings', 'store/sensitive']);
+
+        if ($hasSensitiveAccess) {
             $submenu['fluent-cart']['settings'] = array(
                 __('Settings', 'fluent-cart'),
                 $capability,
@@ -247,15 +261,16 @@ class MenuHandler
             );
         }
 
-        if (PermissionManager::userCan('is_super_admin')) {
-            $submenu['fluent-cart']['logs'] = array(
-                __('Logs', 'fluent-cart'),
+        if ($hasSensitiveAccess && TaxModule::isTaxEnabled()) {
+            $submenu['fluent-cart']['taxes'] = array(
+                __('Taxes', 'fluent-cart'),
                 $capability,
-                'admin.php?page=fluent-cart#/logs',
+                'admin.php?page=fluent-cart#/taxes',
                 '',
-                'fluent_cart_logs'
+                'fluent_cart_taxes'
             );
         }
+
 
         if (PermissionManager::hasPermission(['products/create', 'products/edit'])) {
             $taxonomies = get_taxonomies([
@@ -273,6 +288,16 @@ class MenuHandler
                     $taxonomy->name
                 ];
             }
+        }
+
+        if (PermissionManager::userCan('is_super_admin')) {
+            $submenu['fluent-cart']['logs'] = array(
+                __('Logs', 'fluent-cart'),
+                $capability,
+                'admin.php?page=fluent-cart#/logs',
+                '',
+                'fluent_cart_logs'
+            );
         }
 
         do_action('fluent_cart/admin_submenu_added', $submenu);
@@ -316,8 +341,8 @@ class MenuHandler
 
     public function maybeRenderAdminMenu()
     {
-        $request = App::request()->all();
-        if (isset($request['post_type']) && $request['post_type'] == FluentProducts::CPT_NAME && is_admin()) {
+        $postType = $_GET['post_type'] ?? '';
+        if ($postType == FluentProducts::CPT_NAME && is_admin()) {
             AdminHelper::getAdminMenu(true);
             AdminHelper::pushGlobalAdminAssets();
         }
@@ -350,7 +375,7 @@ class MenuHandler
         Vite::enqueueScript($slug . '_admin_app_start', 'admin/bootstrap/app.js', [$slug . '_global_admin_hooks']);
 
         //Don't register this script using vite.
-        wp_enqueue_script($slug . '_global_admin_hooks', Vite::getEnqueuePath('admin/admin_hooks.js'), [],FLUENTCART_VERSION,true);
+        wp_enqueue_script($slug . '_global_admin_hooks', Vite::getEnqueuePath('admin/admin_hooks.js'), [], FLUENTCART_VERSION, true);
 
         $manager = GatewayManager::getInstance();
         $payment_routes = $manager->getRoutes();
@@ -373,11 +398,11 @@ class MenuHandler
 
         // Structured table config keyed by table name (used by Table.js base class)
         $tableConfig = [
-            'order_table'   => ['filters' => Arr::get($filterOptions, 'order_filter_options', [])],
-            'customers'     => ['filters' => Arr::get($filterOptions, 'customer_filter_options', [])],
-            'product_table' => ['filters' => Arr::get($filterOptions, 'product_filter_options', [])],
-            'licenses'      => ['filters' => Arr::get($filterOptions, 'license_filter_options', [])],
-            'taxes_table'   => ['filters' => Arr::get($filterOptions, 'tax_filter_options', [])],
+            'order_table'         => ['filters' => Arr::get($filterOptions, 'order_filter_options', [])],
+            'customers'           => ['filters' => Arr::get($filterOptions, 'customer_filter_options', [])],
+            'product_table'       => ['filters' => Arr::get($filterOptions, 'product_filter_options', [])],
+            'licenses'            => ['filters' => Arr::get($filterOptions, 'license_filter_options', [])],
+            'taxes_table'         => ['filters' => Arr::get($filterOptions, 'tax_filter_options', [])],
             'subscriptions'       => ['filters' => Arr::get($filterOptions, 'subscription_filter_options', [])],
             'shipping_zone_table' => ['filters' => Arr::get($filterOptions, 'shipping_zone_filter_options', [])],
         ];
@@ -462,11 +487,11 @@ class MenuHandler
             'admin_notices'                    => apply_filters('fluent_cart/admin_notices', []),
             'subscription_intervals'           => Helper::getAvailableSubscriptionIntervalOptions(),
 
-            'datei18'    => TransStrings::dateTimeStrings(),
-            'el_strings' => TransStrings::elStrings(),
-            'wp_locale'  => get_locale(),
+            'datei18'               => TransStrings::dateTimeStrings(),
+            'el_strings'            => TransStrings::elStrings(),
+            'wp_locale'             => get_locale(),
             'is_full_name_required' => CheckoutFieldsSchema::isFullNameRequired(),
-            'fct_editor_frame'                 => '',
+            'fct_editor_frame'      => '',
         ]);
 
         wp_localize_script($slug . '_admin_app_start', 'fluentCartAdminApp', $adminLocalizeData);
@@ -480,7 +505,7 @@ class MenuHandler
 
     public function globalEnqueueAssets($adminBar)
     {
-        if ( function_exists('get_current_screen') ) {
+        if (function_exists('get_current_screen')) {
             $screen = get_current_screen();
         } else {
             $screen = null;
@@ -493,7 +518,7 @@ class MenuHandler
         $app = App::getInstance();
 
         $slug = $app->config->get('app.slug');
-        if(is_admin()){
+        if (is_admin()) {
             wp_enqueue_script($slug . '_edit_wp_user_admin_global_js', Vite::getEnqueuePath('admin/utils/edit-wp-user-global.js'), ['jquery'], FLUENTCART_VERSION, true);
         }
 
@@ -505,7 +530,7 @@ class MenuHandler
         if (function_exists('get_current_screen')) {
             $currentScreen = get_current_screen();
             if ($currentScreen && $currentScreen->id == 'user-edit') {
-                $userId = (int)App::request()->get('user_id') ??0;
+                $userId = (int)($_GET['user_id'] ?? 0);
                 $user = get_user_by('ID', $userId);
 
                 if ($userId && $user) {

@@ -36,7 +36,8 @@ class OrderParser extends BaseParser
         $config = Arr::wrap(
             Arr::get($this->order, 'config')
         );
-        $this->orderTz = Arr::get($config, 'user_tz', 'UTC');
+        $rawTz = Arr::get($config, 'user_tz', 'UTC');
+        $this->orderTz = (@timezone_open($rawTz) !== false) ? $rawTz : 'UTC';
         $orderId = Arr::get($this->order, 'id');
 
 

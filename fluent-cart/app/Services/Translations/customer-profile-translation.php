@@ -276,6 +276,7 @@ return [
     'Vat Tax ID' => __('Vat Tax ID', 'fluent-cart'),
     'View List' => __('View List', 'fluent-cart'),
     'View Order' => __('View Order', 'fluent-cart'),
+    'View Receipt' => __('View Receipt', 'fluent-cart'),
     'View all' => __('View all', 'fluent-cart'),
     'View all downloads' => __('View all downloads', 'fluent-cart'),
     'View all purchases' => __('View all purchases', 'fluent-cart'),

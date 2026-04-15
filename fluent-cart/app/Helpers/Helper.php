@@ -1034,23 +1034,23 @@ class Helper
         return $main;
     }
 
-    public static function getTranslatedIntervalUnit(string $unit, int $count = 1): string
+    public static function getTranslatedIntervalUnit(string $unit): string
     {
         switch ($unit) {
             case 'day':
-                return _n('day', 'days', $count, 'fluent-cart');
+                return __('day', 'fluent-cart');
             case 'week':
-                return _n('week', 'weeks', $count, 'fluent-cart');
+                return __('week', 'fluent-cart');
             case 'month':
-                return _n('month', 'months', $count, 'fluent-cart');
+                return __('month', 'fluent-cart');
             case 'quarter':
-                return _n('quarter', 'quarters', $count, 'fluent-cart');
+                return __('quarter', 'fluent-cart');
             case 'half_year':
-                return _n('six month', 'six months', $count, 'fluent-cart');
+                return __('six month', 'fluent-cart');
             case 'year':
-                return _n('year', 'years', $count, 'fluent-cart');
+                return __('year', 'fluent-cart');
             default:
-                return $count > 1 ? $unit . 's' : $unit;
+                return $unit;
         }
     }
 
@@ -1091,7 +1091,7 @@ class Helper
                 }
         }
 
-        $intervalLabel = Helper::getTranslatedIntervalUnit($intervalUnit, $occurrence);
+        $intervalLabel = Helper::getTranslatedIntervalUnit($intervalUnit);
 
         $interval = $intervalUnit
             ? sprintf(
@@ -1120,7 +1120,7 @@ class Helper
                 __('%1$s %2$s %3$s', 'fluent-cart'),
                 $price,
                 $interval,
-                __('until cancel', 'fluent-cart')
+                __('until canceled', 'fluent-cart')
             );
         }
 

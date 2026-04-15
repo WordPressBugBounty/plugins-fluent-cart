@@ -550,7 +550,6 @@ return array(
     'FluentCart\\App\\Services\\OrderService' => $baseDir . '/app/Services/OrderService.php',
     'FluentCart\\App\\Services\\OrdersQuery' => $baseDir . '/app/Services/OrdersQuery.php',
     'FluentCart\\App\\Services\\PDF\\DefaultPdfStructures' => $baseDir . '/app/Services/PDF/DefaultPdfStructures.php',
-    'FluentCart\\App\\Services\\PDF\\OrderReceiptPdfService' => $baseDir . '/app/Services/PDF/OrderReceiptPdfService.php',
     'FluentCart\\App\\Services\\PDF\\PdfGeneratorService' => $baseDir . '/app/Services/PDF/PdfGeneratorService.php',
     'FluentCart\\App\\Services\\PDF\\ReceiptPdfTemplateService' => $baseDir . '/app/Services/PDF/ReceiptPdfTemplateService.php',
     'FluentCart\\App\\Services\\Payments\\PaymentHelper' => $baseDir . '/app/Services/Payments/PaymentHelper.php',

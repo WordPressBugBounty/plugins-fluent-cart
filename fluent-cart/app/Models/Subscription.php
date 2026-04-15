@@ -361,6 +361,14 @@ class Subscription extends Model
         return true;
     }
 
+    public function deleteMeta($metaKey)
+    {
+        return SubscriptionMeta::query()
+            ->where('subscription_id', $this->id)
+            ->where('meta_key', $metaKey)
+            ->delete();
+    }
+
     public function getLatestTransaction()
     {
         return OrderTransaction::query()

@@ -4,7 +4,7 @@ Tags: ecommerce, cart, checkout, subscriptions, payments
 Requires at least: 6.7
 Tested up to: 6.9
 Requires PHP: 7.4
-Stable tag: 1.3.17
+Stable tag: 1.3.18
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -313,6 +313,20 @@ This service is provided by PayPal: [Terms of Service](https://www.paypal.com/le
 
 == Changelog ==
 
+= 1.3.18 (Apr 15, 2026) =
+- Adds Permission checks for the “Save as Views” filter
+- Adds Filter hooks to manage specific emails
+- Fixes Loading animation issue across all pages
+- Fixes License expiration handling issue
+- Fixes Mollie subscription issues
+- Fixes Paddle email notification compliance issue
+- Fixes Deprecated timezone alias handling in OrderParser
+- Fixes Issue where empty SKU string instead of null
+- Fixes Modal checkout visibility toggle issue
+- Fixes Typos and other issues in payment gateway settings
+- Improves PDF download functionality on the receipt page
+- Improves Turnstile CAPTCHA handling
+
 = 1.3.17 (Apr 7, 2026) =
 - Adds Fees API for custom fees in checkout
 - Adds Add filterable frontend asset loading context for cart bundle
@@ -332,7 +346,7 @@ This service is provided by PayPal: [Terms of Service](https://www.paypal.com/le
 - Fixes Pagination showing stale page number after changing per_page
 - Fixes Paddle discount issue.
 
-== 1.3.15 (Mar 13, 2026) ==
+= 1.3.15 (Mar 13, 2026) =
 - Adds Schedule reminder email for payment and subscriptions
 - Adds Email preview for default template
 - Adds Email editor guttenberg

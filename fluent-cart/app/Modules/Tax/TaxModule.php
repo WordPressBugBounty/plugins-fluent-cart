@@ -21,8 +21,7 @@ class TaxModule
 
     public function register()
     {
-        $settings = $this->getSettings();
-        if (Arr::get($settings, 'enable_tax', 'no') !== 'yes') {
+        if (!$this->isEnabled()) {
             return;
         }
 
@@ -58,7 +57,7 @@ class TaxModule
             $shippingTax = (int)Arr::get($cart->checkout_data, 'tax_data.shipping_tax', 0);
             $isInclusive = Arr::get($cart->checkout_data, 'tax_data.tax_behavior', 2) === 2;
             $isReverseCharge = Arr::get($cart->checkout_data, 'tax_data.valid', false);
-            
+
             // if (!$taxAmount && !$isReverseCharge && !$shippingTax) {
             //     return;
             // }
@@ -240,14 +239,20 @@ class TaxModule
             'tax_rounding'          => 'item',
             'enable_tax'            => 'no',
             'eu_vat_settings'       => [
-                'require_vat_number'   => 'no',
-                'local_reverse_charge' => 'yes',
+                'require_vat_number'              => 'no',
+                'local_reverse_charge'            => 'yes',
                 'vat_reverse_excluded_categories' => []
             ]
         ];
 
         $savedSettings = get_option('fluent_cart_tax_configuration_settings', []);
-        return $this->taxSettings = array_merge($defaultSettings, $savedSettings);
+        return $this->taxSettings = wp_parse_args($savedSettings, $defaultSettings);
+    }
+
+    public function isEnabled()
+    {
+        $settings = $this->getSettings();
+        return Arr::get($settings, 'enable_tax', 'no') === 'yes';
     }
 
     public function calculateCartTax($fillData)
@@ -286,7 +291,7 @@ class TaxModule
         }
 
         // Add taxable fee items to the tax calculation pipeline
-        $fees = (array) Arr::get($checkoutData, 'fees', []);
+        $fees = (array)Arr::get($checkoutData, 'fees', []);
         $feeItems = [];
         foreach ($fees as $fee) {
             if (!empty($fee['taxable']) && !empty($fee['amount'])) {
@@ -301,7 +306,7 @@ class TaxModule
             'country'   => $country,
             'state'     => $state,
             'city'      => $city,
-            'postcode' => $postCode,
+            'postcode'  => $postCode,
         ]);
 
         if (empty($checkoutData['tax_data'])) {
@@ -319,7 +324,7 @@ class TaxModule
         $feeTax = 0;
         foreach ($allTaxedLines as $taxedLine) {
             if (!empty($taxedLine['is_fee'])) {
-                $feeTax += (int) Arr::get($taxedLine, 'tax_amount', 0);
+                $feeTax += (int)Arr::get($taxedLine, 'tax_amount', 0);
             } else {
                 $productLines[] = $taxedLine;
             }
@@ -414,7 +419,7 @@ class TaxModule
         if (Arr::get($cart->checkout_data, 'tax_data.valid', false)) {
             $customerVatData = Arr::get($checkoutData, 'tax_data');
             $order = $data['order'];
-            $order->customer->updateMeta('customer_tax_info', 
+            $order->customer->updateMeta('customer_tax_info',
                 Arr::only($customerVatData, ['vat_number', 'country', 'valid', 'name', 'address'])
             );
         }
@@ -561,16 +566,17 @@ class TaxModule
              data-fluent-cart-tax-valid-note-wrapper>
                 <span data-fluent-cart-tax-valid-note>
                     <?php echo esc_html__('Valid VAT number', 'fluent-cart'); ?>
-                    <?php $name = Arr::get($checkoutData, 'tax_data.name', ''); if ($name): ?>
+                    <?php $name = Arr::get($checkoutData, 'tax_data.name', '');
+                    if ($name): ?>
                         — <?php echo esc_html($name); ?>
                     <?php endif; ?>
                 </span>
 
-                <?php if (Arr::get($checkoutData, 'tax_data.tax_total') != 0): ?>
-                    <span class="ml-2" style="color: #ffa500;">
+            <?php if (Arr::get($checkoutData, 'tax_data.tax_total') != 0): ?>
+                <span class="ml-2" style="color: #ffa500;">
                         <?php echo esc_html__('(Reverse Charge not Applied)', 'fluent-cart'); ?>
                     </span>
-                <?php endif; ?>
+            <?php endif; ?>
 
             <button data-fluent-cart-tax-remove-btn>
                 <?php echo esc_html__('Remove', 'fluent-cart'); ?>
@@ -651,8 +657,8 @@ class TaxModule
 
         //make existing tax zero if local reverse charge is enabled
         if (!$isExcluded) {
-            if (Arr::get($this->taxSettings, 'eu_vat_settings.local_reverse_charge', 'yes') === 'yes' 
-            || $countryCode !== $storeCountry) {
+            if (Arr::get($this->taxSettings, 'eu_vat_settings.local_reverse_charge', 'yes') === 'yes'
+                || $countryCode !== $storeCountry) {
                 $taxData['tax_total'] = 0;
                 $taxData['shipping_tax'] = 0;
                 $taxData['tax_behavior'] = 0;
@@ -791,7 +797,7 @@ class TaxModule
             if (empty($result->valid)) {
                 throw new \Exception(
                     sprintf(
-                        /* translators: %s is the country code */
+                    /* translators: %s is the country code */
                         __('Invalid VAT number for country %s!', 'fluent-cart'),
                         $countryCode
                     )
@@ -855,7 +861,7 @@ class TaxModule
         return $eu_vat_countries;
     }
 
-    public static function taxTitleLists() :array
+    public static function taxTitleLists(): array
     {
         return apply_filters('fluent_cart/tax/country_tax_titles', [
             'AU' => __('ABN', 'fluent-cart'), // Australia
@@ -898,12 +904,13 @@ class TaxModule
             'TR' => __('VKN / VAT', 'fluent-cart'), // Turkey
             'CH' => __('MWST / TVA / IVA', 'fluent-cart'), // Switzerland
             'NO' => __('VAT', 'fluent-cart'), // Norway
-            'IS' => __('VSK','fluent-cart'), // Iceland
+            'IS' => __('VSK', 'fluent-cart'), // Iceland
             'IL' => __('VAT', 'fluent-cart'), // Israel
             'SE' => __('VAT', 'fluent-cart'), // Sweden
         ]);
 
     }
+
     public static function getCountryTaxTitle($countryCode = '')
     {
         $countryTaxTitles = self::taxTitleLists();

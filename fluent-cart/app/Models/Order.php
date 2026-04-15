@@ -728,13 +728,17 @@ class Order extends Model
         return $order->getDownloads();
     }
 
-    public function getReceiptUrl()
+    public function getReceiptViewUrl()
     {
         return add_query_arg([
             'fluent-cart' => 'receipt',
             'order_hash'  => $this->uuid,
-            'download'    => 1
         ], home_url());
+    }
+
+    public function getReceiptDownloadUrl()
+    {
+        return add_query_arg(['download' => 1], $this->getReceiptViewUrl());
     }
 
     public function addLog($title, $description = '', $type = 'info', $by = '')

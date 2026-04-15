@@ -7,6 +7,7 @@ use FluentCart\App\Helpers\Status;
 use FluentCart\App\Models\ProductDetail;
 use FluentCart\App\Models\ProductVariation;
 use FluentCart\Framework\Database\Orm\Builder;
+use FluentCart\Framework\Database\Query\Expression;
 use FluentCart\Framework\Support\Arr;
 
 class ProductVariationResource extends BaseResourceApi
@@ -148,6 +149,11 @@ class ProductVariationResource extends BaseResourceApi
             'payment_type'     => $hasSubscription ? 'subscription' : 'onetime',
         ];
 
+        // if sku is empty , then unset
+        if (empty(Arr::get($variant, 'sku'))) {
+            unset($variantData['sku']);
+        }
+
         $isCreated = static::getQuery()->create($variantData); 
         if ($isCreated) {
             ProductDetailResource::update(
@@ -281,6 +287,11 @@ class ProductVariationResource extends BaseResourceApi
             'downloadable'     => $isDownloadable,
             'payment_type'     => $hasSubscription ? 'subscription' : 'onetime',
         ];
+
+        // if sku is empty, set to NULL expression so the column is explicitly cleared
+        if (empty(Arr::get($variant, 'sku'))) {
+            $variantData['sku'] = new Expression('NULL');
+        }
 
         // $result = ProductVariation::query()->find($variantId)->fill($variantData)->save();
         $isUpdated = static::getQuery()->find($variantId);

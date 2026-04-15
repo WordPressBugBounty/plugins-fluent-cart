@@ -603,7 +603,6 @@ class ComposerStaticInitb2eff533900bbaf3c7b668b284ce4755
         'FluentCart\\App\\Services\\OrderService' => __DIR__ . '/../..' . '/app/Services/OrderService.php',
         'FluentCart\\App\\Services\\OrdersQuery' => __DIR__ . '/../..' . '/app/Services/OrdersQuery.php',
         'FluentCart\\App\\Services\\PDF\\DefaultPdfStructures' => __DIR__ . '/../..' . '/app/Services/PDF/DefaultPdfStructures.php',
-        'FluentCart\\App\\Services\\PDF\\OrderReceiptPdfService' => __DIR__ . '/../..' . '/app/Services/PDF/OrderReceiptPdfService.php',
         'FluentCart\\App\\Services\\PDF\\PdfGeneratorService' => __DIR__ . '/../..' . '/app/Services/PDF/PdfGeneratorService.php',
         'FluentCart\\App\\Services\\PDF\\ReceiptPdfTemplateService' => __DIR__ . '/../..' . '/app/Services/PDF/ReceiptPdfTemplateService.php',
         'FluentCart\\App\\Services\\Payments\\PaymentHelper' => __DIR__ . '/../..' . '/app/Services/Payments/PaymentHelper.php',

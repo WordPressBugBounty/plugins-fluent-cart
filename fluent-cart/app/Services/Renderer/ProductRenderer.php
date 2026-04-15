@@ -213,8 +213,7 @@ class ProductRenderer
                 <div class="fct-product-summary">
                     <?php
                     $this->renderTitle();
-                    $this->renderStockAvailability();
-                    $this->renderSku();
+                    $this->renderProductMeta();
                     $this->renderExcerpt();
                     $this->renderPrices();
 
@@ -229,6 +228,16 @@ class ProductRenderer
                 </div>
             </div>
         </div>
+        <?php
+    }
+
+    public function renderProductMeta() {
+        ?>
+            <div class="fct-product-meta">
+                <?php $this->renderStockAvailability(); ?>
+                <?php $this->renderSku(); ?>
+            </div>
+
         <?php
     }
 
@@ -562,7 +571,7 @@ class ProductRenderer
                 '<div class="fct-product-stock %1$s" role="status" aria-live="polite">
                     <div %2$s>
                         <span class="fct-stock-label">%3$s</span>
-                        <span class="fct-stock-status fct-stock-badge fct_status_badge_%1$s" data-fluent-cart-product-stock>
+                        <span class="fct-stock-badge fct_status_badge_%1$s" data-fluent-cart-product-stock>
                             %4$s
                         </span>
                     </div>

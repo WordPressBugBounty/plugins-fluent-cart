@@ -6,7 +6,7 @@ use FluentCart\App\App;
 use FluentCart\App\Models\Model;
 use FluentCart\App\Models\Order;
 use FluentCart\App\Models\Subscription;
-use FluentCart\App\Services\PDF\OrderReceiptPdfService;
+use FluentCart\App\Services\OrderService;
 use FluentCart\App\Services\ShortCodeParser\ShortcodeTemplateBuilder;
 use FluentCart\Framework\Support\Arr;
 
@@ -152,10 +152,20 @@ class EmailNotificationMailer
     {
         $parsedData = $this->formatParsable($data);
 
+        $order = Arr::get($data, 'order');
+
         // Pass original Model data for template rendering (templates use $order->method())
         $notifications = EmailNotifications::getNotificationsOfEvent($event, $data);
 
         foreach ($notifications as $mailName => $notification) {
+            if ($order instanceof Order && !apply_filters('fluent_cart/should_send_email_notification', true, [
+                'event'     => $event,
+                'mail_name' => $mailName,
+                'order'     => $order,
+            ])) {
+                continue;
+            }
+
             $isAsync = Arr::get($notification, 'is_async', false);
             if ($isAsync && !empty($asyncHook)) {
                 $asyncData['mailName'] = $mailName;
@@ -331,13 +341,20 @@ class EmailNotificationMailer
      */
     private function generateOrderPdf(array $data, string $templateId = 'order_receipt'): ?string
     {
+        if (!OrderService::canGenerateReceiptPdf()) {
+            return null;
+        }
+
         $order = Arr::get($data, 'order');
         if (!$order || !($order instanceof Order)) {
             return null;
         }
 
         try {
-            return (new OrderReceiptPdfService())->generateReceiptPdf($order, $templateId);
+            return apply_filters('fluent_cart/pdf/generate_receipt', null, [
+                'order'       => $order,
+                'template_id' => $templateId,
+            ]);
         } catch (\Throwable $e) {
             fluent_cart_add_log(
                 'PDF Generation Failed',

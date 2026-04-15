@@ -135,7 +135,7 @@ class ProductVariationRequest extends RequestGuard
             $data['variants']['item_price'] = 0;
         }
 
-        if (isset($data['variants']['sku']) && $data['variants']['sku'] === '') {
+        if (empty($data['variants']['sku'])) {
             $data['variants']['sku'] = null;
         }
 
@@ -183,7 +183,9 @@ class ProductVariationRequest extends RequestGuard
             'variants.rowId'            => 'intval',
             'variants.post_id'          => 'intval',
             'variants.variation_title'  => 'sanitize_text_field',
-            'variants.sku'              => 'sanitize_text_field',
+            'variants.sku'              => function ($value) {
+                return empty($value) ? null : sanitize_text_field($value);
+            },
             'variants.item_price'       => 'floatval',
             'variants.compare_price'    => 'floatval',
             'variants.manage_cost'      => 'sanitize_text_field',

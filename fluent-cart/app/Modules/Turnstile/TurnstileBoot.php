@@ -48,25 +48,7 @@ class TurnstileBoot
     {
         $settings = ModuleSettings::getSettings('turnstile');
         if (Arr::get($settings, 'active', 'no') === 'yes' && !empty(Arr::get($settings, 'site_key', ''))) {
-            $isCheckoutPage = false;
-
-            $templateService = \FluentCart\App\Services\TemplateService::getCurrentFcPageType();
-            if ($templateService === 'checkout') {
-                $isCheckoutPage = true;
-            }
-
-            if (!$isCheckoutPage) {
-                $isCheckoutPage = \FluentCart\App\App::request()->get('fluent-cart') === 'modal_checkout';
-            }
-
-            if (!$isCheckoutPage && is_page()) {
-                global $post;
-                if ($post && has_shortcode($post->post_content, 'fluent_cart_checkout')) {
-                    $isCheckoutPage = true;
-                }
-            }
-
-            if ($isCheckoutPage) {
+            if ($this->isCheckoutContext()) {
                 wp_enqueue_script(
                     'cloudflare-turnstile',
                     'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit',
@@ -96,23 +78,7 @@ class TurnstileBoot
      */
     public function injectWidgetViaFooter()
     {
-        $templateService = \FluentCart\App\Services\TemplateService::getCurrentFcPageType();
-        $isCheckoutPage = ($templateService === 'checkout');
-
-        if (!$isCheckoutPage && is_page()) {
-            global $post;
-            if ($post && has_shortcode($post->post_content, 'fluent_cart_checkout')) {
-                $isCheckoutPage = true;
-            }
-        }
-
-        // Also check if checkout form exists in DOM (more reliable)
-        $hasCheckoutForm = false;
-        if (is_admin() === false) {
-            $hasCheckoutForm = true;
-        }
-
-        if ($isCheckoutPage || (!is_admin() && $hasCheckoutForm)) {
+        if ($this->isCheckoutContext()) {
             $widgetHtml = $this->getWidgetHtml();
             ?>
             <script>
@@ -192,6 +158,28 @@ class TurnstileBoot
             </script>
             <?php
         }
+    }
+
+    private function isCheckoutContext()
+    {
+        $templateService = \FluentCart\App\Services\TemplateService::getCurrentFcPageType();
+        if ($templateService === 'checkout') {
+            return true;
+        }
+
+        $fluentCartRequest = isset($_GET['fluent-cart']) ? sanitize_text_field(wp_unslash($_GET['fluent-cart'])) : '';
+        if ($fluentCartRequest === 'modal_checkout') {
+            return true;
+        }
+
+        if (is_page()) {
+            global $post;
+            if ($post && has_shortcode($post->post_content, 'fluent_cart_checkout')) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**
