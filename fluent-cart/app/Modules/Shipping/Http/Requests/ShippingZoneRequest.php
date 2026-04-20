@@ -16,18 +16,10 @@ class ShippingZoneRequest extends RequestGuard
         $data['region'] = Arr::get($data, 'region', '');
         $data['order'] = Arr::get($data, 'order', '');
 
-        // Handle multi-country selection
-        if ($data['region'] === 'selection') {
-            $meta = Arr::get($data, 'meta', []);
-            $countries = Arr::get($meta, 'countries', []);
-            $selectionType = Arr::get($meta, 'selection_type', 'included');
-
-            $data['meta'] = [
-                'countries'      => array_values(array_filter(array_map('sanitize_text_field', $countries))),
-                'selection_type' => in_array($selectionType, ['included', 'excluded']) ? $selectionType : 'included',
-            ];
-        } else {
-            $data['meta'] = null;
+        // Only include shipping_class_id if explicitly submitted — prevents wiping on edit
+        if (array_key_exists('shipping_class_id', $data)) {
+            $classId = $data['shipping_class_id'];
+            $data['shipping_class_id'] = $classId ? intval($classId) : null;
         }
 
         return $data;
@@ -43,8 +35,14 @@ class ShippingZoneRequest extends RequestGuard
             'name'   => 'required|string|maxLength:192',
             'region' => function ($attr, $value) {
                 if ($value === 'all') {
+                    $shippingClassId = Arr::get($this->all(), 'shipping_class_id', null);
                     $zone = \FluentCart\App\Models\ShippingZone::query()->where('region', 'all');
-                    if ($this->id) {
+                    if ($shippingClassId) {
+                        $zone = $zone->where('shipping_class_id', $shippingClassId);
+                    } else {
+                        $zone = $zone->whereNull('shipping_class_id');
+                    }
+                    if($this->id){
                         $zone = $zone->where('id', '!=', $this->id);
                     }
                     $zone = $zone->first();
@@ -52,19 +50,13 @@ class ShippingZoneRequest extends RequestGuard
                         return __('Only one "Whole World" shipping zone is allowed.', 'fluent-cart');
                     }
                 }
-
-                if ($value === 'selection') {
-                    $meta = Arr::get($this->all(), 'meta', []);
-                    $countries = Arr::get($meta, 'countries', []);
-                    if (empty($countries)) {
-                        return __('Please select at least one country.', 'fluent-cart');
-                    }
-                }
-
                 return null;
             },
-            'order'  => 'nullable|integer',
-
+            'order'             => 'nullable|integer',
+            'shipping_class_id' => 'nullable|integer',
+            'meta'              => 'nullable|array',
+            'meta.countries'    => 'nullable|array',
+            'meta.selection_type' => 'nullable|string|in:included,excluded',
         ];
     }
 
@@ -86,12 +78,23 @@ class ShippingZoneRequest extends RequestGuard
     public function sanitize()
     {
         return [
-            'name'   => 'sanitize_text_field',
-            'region' => 'sanitize_text_field',
-            'meta'   => function ($value) {
-                return $value; // Already sanitized in beforeValidation
+            'name'              => 'sanitize_text_field',
+            'region'            => 'sanitize_text_field',
+            'order'             => 'intval',
+            'shipping_class_id' => function ($value) {
+                return $value ? intval($value) : null;
             },
-            'order'  => 'intval'
+            'meta'              => function ($value) {
+                if (!is_array($value)) return [];
+                $sanitized = [];
+                if (isset($value['countries']) && is_array($value['countries'])) {
+                    $sanitized['countries'] = array_map('sanitize_text_field', $value['countries']);
+                }
+                if (isset($value['selection_type'])) {
+                    $sanitized['selection_type'] = sanitize_text_field($value['selection_type']);
+                }
+                return $sanitized;
+            }
         ];
     }
 }

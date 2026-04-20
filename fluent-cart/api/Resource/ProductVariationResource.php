@@ -7,7 +7,6 @@ use FluentCart\App\Helpers\Status;
 use FluentCart\App\Models\ProductDetail;
 use FluentCart\App\Models\ProductVariation;
 use FluentCart\Framework\Database\Orm\Builder;
-use FluentCart\Framework\Database\Query\Expression;
 use FluentCart\Framework\Support\Arr;
 
 class ProductVariationResource extends BaseResourceApi
@@ -35,8 +34,8 @@ class ProductVariationResource extends BaseResourceApi
         }
 
         $variants = $query->orderBy(
-                sanitize_sql_orderby(Arr::get($params, 'order_by', 'ID')),
-                sanitize_sql_orderby(Arr::get($params, 'order_type', 'ASC'))
+                sanitize_sql_orderby(Arr::get($params, 'order_by', 'ID')) ?: 'ID',
+                sanitize_sql_orderby(Arr::get($params, 'order_type', 'ASC')) ?: 'ASC'
             )
             ->get();
 
@@ -102,6 +101,12 @@ class ProductVariationResource extends BaseResourceApi
             $otherInfo = Arr::only($otherInfo, [
                 'payment_type',
                 'description',
+                'package_slug',
+                'weight',
+                'weight_unit',
+                'length',
+                'width',
+                'height',
             ]);
         }
         if (Arr::get($otherInfo, 'payment_type') == 'subscription') {
@@ -113,6 +118,13 @@ class ProductVariationResource extends BaseResourceApi
             if (Arr::get($otherInfo, 'manage_setup_fee') == 'yes') {
                 $signupFee = Helper::toCent(floatval(Arr::get($otherInfo, 'signup_fee', 0)));
                 Arr::set($otherInfo, 'signup_fee', $signupFee);
+            }
+        }
+
+        // Cast physical attributes in other_info to float
+        foreach (['weight', 'length', 'width', 'height'] as $attr) {
+            if (isset($otherInfo[$attr])) {
+                $otherInfo[$attr] = floatval($otherInfo[$attr]);
             }
         }
 
@@ -142,6 +154,7 @@ class ProductVariationResource extends BaseResourceApi
             'item_cost'        => Helper::toCent(Arr::get($variant, 'item_cost', 0)),
             'manage_cost'      => Arr::get($variant, 'manage_cost', 'false'),
             'fulfillment_type' => Arr::get($variant, 'fulfillment_type', 'physical'),
+            'shipping_class'   => Arr::get($variant, 'shipping_class') ?: null,
             'variation_title'  => Arr::get($variant, 'variation_title', ''),
             'sku'              => Arr::get($variant, 'sku') ?: null,
             'other_info'       => $otherInfo,
@@ -149,12 +162,7 @@ class ProductVariationResource extends BaseResourceApi
             'payment_type'     => $hasSubscription ? 'subscription' : 'onetime',
         ];
 
-        // if sku is empty , then unset
-        if (empty(Arr::get($variant, 'sku'))) {
-            unset($variantData['sku']);
-        }
-
-        $isCreated = static::getQuery()->create($variantData); 
+        $isCreated = static::getQuery()->create($variantData);
         if ($isCreated) {
             ProductDetailResource::update(
                 [], 
@@ -235,7 +243,13 @@ class ProductVariationResource extends BaseResourceApi
             $otherInfo = Arr::only($otherInfo, [
                 'payment_type',
                 'description',
-                'bundle_child_ids'
+                'bundle_child_ids',
+                'package_slug',
+                'weight',
+                'weight_unit',
+                'length',
+                'width',
+                'height',
             ]);
         }
         if (Arr::get($otherInfo, 'payment_type') == 'subscription') {
@@ -252,6 +266,15 @@ class ProductVariationResource extends BaseResourceApi
 
         $otherInfo['is_bundle_product'] = Arr::get($existingOtherInfo, 'is_bundle_product', 'no');
         $otherInfo['bundle_child_ids'] = Arr::get($existingOtherInfo, 'bundle_child_ids', []);
+
+        // Preserve physical attributes — use new value from other_info if present, else keep existing
+        foreach (['weight', 'length', 'width', 'height'] as $attr) {
+            if (isset($otherInfo[$attr])) {
+                $otherInfo[$attr] = floatval($otherInfo[$attr]);
+            } elseif (isset($existingOtherInfo[$attr])) {
+                $otherInfo[$attr] = $existingOtherInfo[$attr];
+            }
+        }
 
         $isDownloadable = Arr::get($variant, 'downloadable', true);
         $itemPrice = Arr::get($variant, 'item_price', 1);
@@ -273,7 +296,7 @@ class ProductVariationResource extends BaseResourceApi
             'available'        => Arr::get($variant, 'available'),
             'committed'        => Arr::get($variant, 'committed'),
             'on_hold'          => Arr::get($variant, 'on_hold'),
-            'shipping_class'   => Arr::get($variant, 'shipping_class'),
+            'shipping_class'   => Arr::get($variant, 'shipping_class') ?: null,
             'stock_status'     => $stockStatus,
             'item_price'       => Helper::toCent($itemPrice),
             //'compare_price'   => ($comparePrice !== '' && $comparePrice >= $itemPrice) ? Helper::toCent($comparePrice) : Helper::toCent($itemPrice),
@@ -287,11 +310,6 @@ class ProductVariationResource extends BaseResourceApi
             'downloadable'     => $isDownloadable,
             'payment_type'     => $hasSubscription ? 'subscription' : 'onetime',
         ];
-
-        // if sku is empty, set to NULL expression so the column is explicitly cleared
-        if (empty(Arr::get($variant, 'sku'))) {
-            $variantData['sku'] = new Expression('NULL');
-        }
 
         // $result = ProductVariation::query()->find($variantId)->fill($variantData)->save();
         $isUpdated = static::getQuery()->find($variantId);

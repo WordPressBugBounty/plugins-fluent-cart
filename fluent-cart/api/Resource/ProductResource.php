@@ -208,6 +208,14 @@ class ProductResource extends BaseResourceApi
 
                 $variantData = $variant;
 
+                // Remove empty sku and shipping_class to prevent unique constraint violation
+                if (array_key_exists('sku', $variantData) && empty($variantData['sku'])) {
+                    unset($variantData['sku']);
+                }
+                if (array_key_exists('shipping_class', $variantData) && empty($variantData['shipping_class'])) {
+                    unset($variantData['shipping_class']);
+                }
+
                 // Handle other_info
                 if (!empty($otherInfo)) {
                     if (Arr::get($otherInfo, 'payment_type') == 'subscription') {

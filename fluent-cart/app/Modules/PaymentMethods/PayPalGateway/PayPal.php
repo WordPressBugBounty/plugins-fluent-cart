@@ -615,6 +615,7 @@ class PayPal extends AbstractPaymentGateway
                     'No Subscription ID' => __('No Subscription ID', 'fluent-cart'),
                     'no processing' => __('no processing', 'fluent-cart'),
                     'not proper order handler' => __('not proper order handler', 'fluent-cart'),
+                    'Payment confirmation failed' => __('Payment confirmation failed', 'fluent-cart'),
                 ]
             ]
         ];

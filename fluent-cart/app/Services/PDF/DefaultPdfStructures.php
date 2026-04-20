@@ -70,7 +70,7 @@ class DefaultPdfStructures
             'Tax'      => '{{order.tax_total_formatted}}',
             'Shipping' => '{{order.shipping_total_formatted}}',
         ], 'Total', '{{order.total_amount_formatted}}');
-        $blocks[] = self::footer('Thank you for your purchase!');
+        $blocks[] = self::footer(__('Thank you for your purchase!', 'fluent-cart'));
 
         return $blocks;
     }
@@ -108,7 +108,7 @@ class DefaultPdfStructures
             'Discount' => '{{order.discount_total_formatted}}',
             'Tax'      => '{{order.tax_total_formatted}}',
         ], 'Total', '{{order.total_amount_formatted}}');
-        $blocks[] = self::footer('Thank you for your continued subscription!');
+        $blocks[] = self::footer(__('Thank you for your continued subscription!', 'fluent-cart'));
 
         return $blocks;
     }
@@ -145,7 +145,7 @@ class DefaultPdfStructures
         $blocks[] = self::summaryTable([
             'Original Total' => '{{order.total_amount_formatted}}',
         ], 'Refund Amount', '{{order.total_refund}}');
-        $blocks[] = self::footer('Your refund has been processed. Please allow a few business days for the amount to appear in your account.');
+        $blocks[] = self::footer(__('Your refund has been processed. Please allow a few business days for the amount to appear in your account.', 'fluent-cart'));
 
         return $blocks;
     }
@@ -187,7 +187,7 @@ class DefaultPdfStructures
             'Tax'      => '{{order.tax_total_formatted}}',
             'Shipping' => '{{order.shipping_total_formatted}}',
         ], 'Amount Due', '{{order.total_amount_formatted}}');
-        $blocks[] = self::footer('Thank you for your order. Please complete the payment to process your order.');
+        $blocks[] = self::footer(__('Thank you for your order. Please complete the payment to process your order.', 'fluent-cart'));
 
         return $blocks;
     }

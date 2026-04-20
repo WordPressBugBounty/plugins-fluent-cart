@@ -58,11 +58,10 @@
     "file": "chunks/Badge.js",
     "name": "Badge",
     "imports": [
-      "_Str.js",
-      "_Arr.js",
       "_vue.esm-bundler.js",
       "__plugin-vue_export-helper.js",
       "_DynamicIcon.js",
+      "_Str.js",
       "_Translator.js"
     ],
     "css": [
@@ -92,6 +91,7 @@
       "_Translator.js",
       "_Str.js",
       "_Url.js",
+      "_IconButton.js",
       "_DynamicIcon.js",
       "_CardBody.js",
       "_productService.js",
@@ -113,9 +113,9 @@
     "imports": [
       "_Model.js",
       "_vue.esm-bundler.js",
-      "_Badge.js",
+      "_IconButton.js",
       "_Rest.js",
-      "_Str.js",
+      "_vue-router.js",
       "_Url.js",
       "_Arr.js",
       "_Translator.js",
@@ -124,8 +124,10 @@
       "_Notify.js",
       "_DynamicIcon.js",
       "__plugin-vue_export-helper.js",
+      "_index3.js",
       "_index.js",
-      "_Utils.js"
+      "_Utils.js",
+      "_Badge.js"
     ]
   },
   "_ColorPickerField.js": {
@@ -161,7 +163,7 @@
     "name": "CustomSelect",
     "imports": [
       "_BlockEditorTranslator.js",
-      "_index5.js"
+      "_index6.js"
     ]
   },
   "_DynamicIcon.js": {
@@ -189,6 +191,7 @@
       "resources/admin/Bits/Components/Icons/AtmCard.vue",
       "resources/admin/Bits/Components/Icons/BankCard.vue",
       "resources/admin/Bits/Components/Icons/BarChart.vue",
+      "resources/admin/Bits/Components/Icons/Box.vue",
       "resources/admin/Bits/Components/Icons/Bundle.vue",
       "resources/admin/Bits/Components/Icons/Calendar.vue",
       "resources/admin/Bits/Components/Icons/Camera.vue",
@@ -249,6 +252,7 @@
       "resources/admin/Bits/Components/Icons/Empty/RoleAndPermission.vue",
       "resources/admin/Bits/Components/Icons/Empty/WebPage.vue",
       "resources/admin/Bits/Components/Icons/Enter.vue",
+      "resources/admin/Bits/Components/Icons/Envelope.vue",
       "resources/admin/Bits/Components/Icons/EqualizerLine.vue",
       "resources/admin/Bits/Components/Icons/External.vue",
       "resources/admin/Bits/Components/Icons/Eye.vue",
@@ -288,6 +292,7 @@
       "resources/admin/Bits/Components/Icons/ListView.vue",
       "resources/admin/Bits/Components/Icons/LiveMode.vue",
       "resources/admin/Bits/Components/Icons/Lms.vue",
+      "resources/admin/Bits/Components/Icons/Loading.vue",
       "resources/admin/Bits/Components/Icons/LocationPin.vue",
       "resources/admin/Bits/Components/Icons/Lock.vue",
       "resources/admin/Bits/Components/Icons/Logout.vue",
@@ -329,6 +334,7 @@
       "resources/admin/Bits/Components/Icons/Revenue.vue",
       "resources/admin/Bits/Components/Icons/Rotate.vue",
       "resources/admin/Bits/Components/Icons/RunningShoe.vue",
+      "resources/admin/Bits/Components/Icons/Save.vue",
       "resources/admin/Bits/Components/Icons/Scratch.vue",
       "resources/admin/Bits/Components/Icons/Screenshot.vue",
       "resources/admin/Bits/Components/Icons/Search.vue",
@@ -340,6 +346,7 @@
       "resources/admin/Bits/Components/Icons/ShipmentStatus.vue",
       "resources/admin/Bits/Components/Icons/Shipping.vue",
       "resources/admin/Bits/Components/Icons/ShoppingCartIcon.vue",
+      "resources/admin/Bits/Components/Icons/SoftPackage.vue",
       "resources/admin/Bits/Components/Icons/Source.vue",
       "resources/admin/Bits/Components/Icons/SpeedFill.vue",
       "resources/admin/Bits/Components/Icons/Stars.vue",
@@ -396,6 +403,30 @@
       "_BlockEditorTranslator.js"
     ]
   },
+  "_FileUploaderDialog.js": {
+    "file": "chunks/FileUploaderDialog.js",
+    "name": "FileUploaderDialog",
+    "imports": [
+      "_vue.esm-bundler.js",
+      "_common.js",
+      "_IconButton.js",
+      "_DynamicIcon.js",
+      "_Rest.js",
+      "_Notify.js",
+      "_Translator.js",
+      "_Model.js"
+    ]
+  },
+  "_IconButton.js": {
+    "file": "chunks/IconButton.js",
+    "name": "IconButton",
+    "imports": [
+      "_Str.js",
+      "_Arr.js",
+      "_vue.esm-bundler.js",
+      "__plugin-vue_export-helper.js"
+    ]
+  },
   "_Icons.js": {
     "file": "chunks/Icons.js",
     "name": "Icons",
@@ -420,7 +451,7 @@
       "__plugin-vue_export-helper.js",
       "_Asset.js",
       "_Translator.js",
-      "_Str.js"
+      "_vue-router.js"
     ]
   },
   "_Notify.js": {
@@ -442,6 +473,7 @@
       "_Empty.js",
       "_common.js",
       "_CopyToClipboard.js",
+      "_IconButton.js",
       "_DynamicIcon.js",
       "_Translator.js",
       "_CardBody.js",
@@ -484,7 +516,7 @@
     "imports": [
       "_vue.esm-bundler.js",
       "_DynamicIcon.js",
-      "_Str.js",
+      "_vue-router.js",
       "_Translator.js",
       "_Utils.js",
       "__plugin-vue_export-helper.js"
@@ -500,9 +532,9 @@
     "imports": [
       "_BlockEditorTranslator.js",
       "_Icons.js",
-      "_index4.js",
-      "_ProductListItem.js",
       "_index5.js",
+      "_ProductListItem.js",
+      "_index6.js",
       "_add-query-args.js"
     ]
   },
@@ -513,8 +545,8 @@
       "_BlockEditorTranslator.js",
       "_ProductListItem.js",
       "_Icons.js",
+      "_index6.js",
       "_index5.js",
-      "_index4.js",
       "_add-query-args.js"
     ]
   },
@@ -541,10 +573,7 @@
   },
   "_Str.js": {
     "file": "chunks/Str.js",
-    "name": "Str",
-    "imports": [
-      "_vue.esm-bundler.js"
-    ]
+    "name": "Str"
   },
   "_Translator.js": {
     "file": "chunks/Translator.js",
@@ -559,7 +588,8 @@
     "name": "Url",
     "imports": [
       "_Str.js",
-      "_Arr.js"
+      "_Arr.js",
+      "_vue-router.js"
     ]
   },
   "_Utils.js": {
@@ -587,7 +617,7 @@
       "_Translator.js",
       "_Str.js",
       "_timezone.js",
-      "_Badge.js",
+      "_IconButton.js",
       "_index.js"
     ]
   },
@@ -610,8 +640,8 @@
     "imports": [
       "_vue.esm-bundler.js",
       "_Translator.js",
-      "_index3.js",
-      "_Badge.js",
+      "_index4.js",
+      "_IconButton.js",
       "_DynamicIcon.js",
       "_index.js",
       "_Rest.js",
@@ -631,8 +661,9 @@
       "_index.js",
       "_vue.esm-bundler.js",
       "_index2.js",
+      "_index3.js",
       "_dayjs.min.js",
-      "_index3.js"
+      "_index4.js"
     ]
   },
   "_index.js": {
@@ -648,7 +679,7 @@
     "imports": [
       "_vue.esm-bundler.js",
       "_index.js",
-      "_index3.js",
+      "_index4.js",
       "_dayjs.min.js"
     ]
   },
@@ -662,10 +693,18 @@
   },
   "_index4.js": {
     "file": "chunks/index4.js",
-    "name": "index"
+    "name": "index",
+    "imports": [
+      "_vue.esm-bundler.js",
+      "_index.js"
+    ]
   },
   "_index5.js": {
     "file": "chunks/index5.js",
+    "name": "index"
+  },
+  "_index6.js": {
+    "file": "chunks/index6.js",
     "name": "index",
     "imports": [
       "_BlockEditorTranslator.js"
@@ -696,7 +735,8 @@
     "name": "useElementPlusComponents",
     "imports": [
       "_index.js",
-      "_index2.js"
+      "_index2.js",
+      "_index3.js"
     ]
   },
   "_useElementor.js": {
@@ -706,9 +746,39 @@
       "_Arr.js"
     ]
   },
+  "_vue-router.js": {
+    "file": "chunks/vue-router.js",
+    "name": "vue-router",
+    "imports": [
+      "_vue.esm-bundler.js"
+    ]
+  },
   "_vue.esm-bundler.js": {
     "file": "chunks/vue.esm-bundler.js",
     "name": "vue.esm-bundler"
+  },
+  "resources/addon-assets/addon-assets.js": {
+    "file": "addon-assets.js",
+    "name": "addon-assets",
+    "src": "resources/addon-assets/addon-assets.js",
+    "isEntry": true,
+    "imports": [
+      "_FileUploaderDialog.js",
+      "_Translator.js",
+      "_vue.esm-bundler.js",
+      "__plugin-vue_export-helper.js",
+      "_common.js",
+      "_dayjs.min.js",
+      "_Str.js",
+      "_timezone.js",
+      "_IconButton.js",
+      "_Arr.js",
+      "_index.js",
+      "_DynamicIcon.js",
+      "_Rest.js",
+      "_Notify.js",
+      "_Model.js"
+    ]
   },
   "resources/admin/Bits/Components/Form/Components/Affix/Test.vue": {
     "file": "chunks/Test.js",
@@ -793,9 +863,9 @@
       "_Translator.js",
       "_Badge.js",
       "_Arr.js",
-      "_Str.js",
       "__plugin-vue_export-helper.js",
-      "_DynamicIcon.js"
+      "_DynamicIcon.js",
+      "_Str.js"
     ]
   },
   "resources/admin/Bits/Components/Form/Components/PaymentView.vue": {
@@ -824,8 +894,8 @@
       "_Animation.js",
       "__plugin-vue_export-helper.js",
       "_Badge.js",
-      "_Str.js",
       "_DynamicIcon.js",
+      "_Str.js",
       "_Notify.js",
       "_index.js"
     ]
@@ -841,7 +911,7 @@
       "_Translator.js",
       "_Notify.js",
       "_Rest.js",
-      "_Badge.js",
+      "_IconButton.js",
       "_Arr.js",
       "_Str.js",
       "_index.js",
@@ -863,7 +933,7 @@
       "_Str.js",
       "_index.js",
       "_Rest.js",
-      "_Badge.js",
+      "_IconButton.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -878,9 +948,9 @@
       "_Badge.js",
       "_Rest.js",
       "_Arr.js",
-      "_Str.js",
       "__plugin-vue_export-helper.js",
-      "_DynamicIcon.js"
+      "_DynamicIcon.js",
+      "_Str.js"
     ]
   },
   "resources/admin/Bits/Components/Icons/Access.vue": {
@@ -1057,6 +1127,16 @@
     "file": "chunks/BarChart.js",
     "name": "BarChart",
     "src": "resources/admin/Bits/Components/Icons/BarChart.vue",
+    "isDynamicEntry": true,
+    "imports": [
+      "_vue.esm-bundler.js",
+      "__plugin-vue_export-helper.js"
+    ]
+  },
+  "resources/admin/Bits/Components/Icons/Box.vue": {
+    "file": "chunks/Box.js",
+    "name": "Box",
+    "src": "resources/admin/Bits/Components/Icons/Box.vue",
     "isDynamicEntry": true,
     "imports": [
       "_vue.esm-bundler.js",
@@ -1663,6 +1743,16 @@
       "__plugin-vue_export-helper.js"
     ]
   },
+  "resources/admin/Bits/Components/Icons/Envelope.vue": {
+    "file": "chunks/Envelope.js",
+    "name": "Envelope",
+    "src": "resources/admin/Bits/Components/Icons/Envelope.vue",
+    "isDynamicEntry": true,
+    "imports": [
+      "_vue.esm-bundler.js",
+      "__plugin-vue_export-helper.js"
+    ]
+  },
   "resources/admin/Bits/Components/Icons/EqualizerLine.vue": {
     "file": "chunks/EqualizerLine.js",
     "name": "EqualizerLine",
@@ -2047,6 +2137,16 @@
     "file": "chunks/Lms.js",
     "name": "Lms",
     "src": "resources/admin/Bits/Components/Icons/Lms.vue",
+    "isDynamicEntry": true,
+    "imports": [
+      "_vue.esm-bundler.js",
+      "__plugin-vue_export-helper.js"
+    ]
+  },
+  "resources/admin/Bits/Components/Icons/Loading.vue": {
+    "file": "chunks/Loading.js",
+    "name": "Loading",
+    "src": "resources/admin/Bits/Components/Icons/Loading.vue",
     "isDynamicEntry": true,
     "imports": [
       "_vue.esm-bundler.js",
@@ -2463,6 +2563,16 @@
       "__plugin-vue_export-helper.js"
     ]
   },
+  "resources/admin/Bits/Components/Icons/Save.vue": {
+    "file": "chunks/Save.js",
+    "name": "Save",
+    "src": "resources/admin/Bits/Components/Icons/Save.vue",
+    "isDynamicEntry": true,
+    "imports": [
+      "_vue.esm-bundler.js",
+      "__plugin-vue_export-helper.js"
+    ]
+  },
   "resources/admin/Bits/Components/Icons/Scratch.vue": {
     "file": "chunks/Scratch.js",
     "name": "Scratch",
@@ -2567,6 +2677,16 @@
     "file": "chunks/ShoppingCartIcon.js",
     "name": "ShoppingCartIcon",
     "src": "resources/admin/Bits/Components/Icons/ShoppingCartIcon.vue",
+    "isDynamicEntry": true,
+    "imports": [
+      "_vue.esm-bundler.js",
+      "__plugin-vue_export-helper.js"
+    ]
+  },
+  "resources/admin/Bits/Components/Icons/SoftPackage.vue": {
+    "file": "chunks/SoftPackage.js",
+    "name": "SoftPackage",
+    "src": "resources/admin/Bits/Components/Icons/SoftPackage.vue",
     "isDynamicEntry": true,
     "imports": [
       "_vue.esm-bundler.js",
@@ -2820,13 +2940,13 @@
     "isEntry": true,
     "imports": [
       "_BlockEditorTranslator.js",
-      "_index4.js",
+      "_index5.js",
       "_SingleProductContext.js",
       "_Icons.js",
       "_SelectVariationModal.js",
       "_add-query-args.js",
       "_ProductListItem.js",
-      "_index5.js"
+      "_index6.js"
     ]
   },
   "resources/admin/BlockEditor/Buttons/BuyNowButtonBlockEditor.jsx": {
@@ -2836,12 +2956,12 @@
     "isEntry": true,
     "imports": [
       "_BlockEditorTranslator.js",
-      "_index4.js",
+      "_index5.js",
       "_SelectVariationModal.js",
       "_Icons.js",
       "_add-query-args.js",
       "_ProductListItem.js",
-      "_index5.js"
+      "_index6.js"
     ]
   },
   "resources/admin/BlockEditor/Buttons/style/button-block-editor.scss": {
@@ -2860,14 +2980,14 @@
     "isEntry": true,
     "imports": [
       "_BlockEditorTranslator.js",
-      "_index4.js",
+      "_index5.js",
       "_EditorPanel.js",
       "_EditorPanelRow.js",
       "_CustomSelect.js",
       "_SelectProductModal.js",
       "_Icons.js",
       "_add-query-args.js",
-      "_index5.js",
+      "_index6.js",
       "_ProductListItem.js"
     ],
     "assets": [
@@ -2886,7 +3006,7 @@
     "isEntry": true,
     "imports": [
       "_BlockEditorTranslator.js",
-      "_index4.js",
+      "_index5.js",
       "_SingleProductContext.js",
       "_Icons.js"
     ]
@@ -2978,7 +3098,7 @@
     "isEntry": true,
     "imports": [
       "_BlockEditorTranslator.js",
-      "_index4.js",
+      "_index5.js",
       "_SelectProductModal.js",
       "_EditorPanel.js",
       "_EditorPanelRow.js",
@@ -2986,7 +3106,7 @@
       "_Icons.js",
       "_add-query-args.js",
       "_ProductListItem.js",
-      "_index5.js"
+      "_index6.js"
     ]
   },
   "resources/admin/BlockEditor/Excerpt/style/excerpt-block-editor.scss": {
@@ -3015,7 +3135,7 @@
     "imports": [
       "_BlockEditorTranslator.js",
       "_Icons.js",
-      "_index4.js",
+      "_index5.js",
       "_EditorPanel.js",
       "_EditorPanelRow.js",
       "_SelectVariationModal.js",
@@ -3023,7 +3143,7 @@
       "_ProductContext.js",
       "_add-query-args.js",
       "_ProductListItem.js",
-      "_index5.js"
+      "_index6.js"
     ],
     "assets": [
       "assets/ProductGallery.png"
@@ -3045,7 +3165,7 @@
     "isEntry": true,
     "imports": [
       "_BlockEditorTranslator.js",
-      "_index4.js",
+      "_index5.js",
       "_SelectProductModal.js",
       "_CustomSelect.js",
       "_EditorPanel.js",
@@ -3054,7 +3174,7 @@
       "_Icons.js",
       "_add-query-args.js",
       "_ProductListItem.js",
-      "_index5.js"
+      "_index6.js"
     ]
   },
   "resources/admin/BlockEditor/PriceRange/style/price-range-block-editor.scss": {
@@ -3073,11 +3193,11 @@
     "isEntry": true,
     "imports": [
       "_BlockEditorTranslator.js",
-      "_index5.js",
+      "_index6.js",
       "_Icons.js",
       "_ProductListItem.js",
       "_SelectVariationModal.js",
-      "_index4.js",
+      "_index5.js",
       "_ColorPickerField.js",
       "_EditorPanel.js",
       "_CustomSelect.js",
@@ -3104,14 +3224,14 @@
     "imports": [
       "_BlockEditorTranslator.js",
       "_Icons.js",
-      "_index4.js",
+      "_index5.js",
       "_EditorPanel.js",
       "_EditorPanelRow.js",
       "_CustomSelect.js",
       "_SelectProductModal.js",
       "_ErrorBoundary.js",
       "_add-query-args.js",
-      "_index5.js",
+      "_index6.js",
       "_ProductListItem.js"
     ],
     "assets": [
@@ -3148,7 +3268,7 @@
     "imports": [
       "_BlockEditorTranslator.js",
       "_Icons.js",
-      "_index4.js",
+      "_index5.js",
       "_EditorPanel.js",
       "_EditorPanelRow.js",
       "_CustomSelect.js",
@@ -3156,7 +3276,7 @@
       "_SingleProductContext.js",
       "_ProductContext.js",
       "_add-query-args.js",
-      "_index5.js",
+      "_index6.js",
       "_ProductListItem.js"
     ],
     "assets": [
@@ -3190,7 +3310,7 @@
     "isEntry": true,
     "imports": [
       "_BlockEditorTranslator.js",
-      "_index4.js",
+      "_index5.js",
       "_SelectProductModal.js",
       "_EditorPanel.js",
       "_EditorPanelRow.js",
@@ -3199,7 +3319,7 @@
       "_Icons.js",
       "_add-query-args.js",
       "_ProductListItem.js",
-      "_index5.js"
+      "_index6.js"
     ]
   },
   "resources/admin/BlockEditor/ProductDescription/style/product-description-block-editor.scss": {
@@ -3220,7 +3340,7 @@
       "_BlockEditorTranslator.js",
       "_Icons.js",
       "_SelectVariationModal.js",
-      "_index4.js",
+      "_index5.js",
       "_EditorPanel.js",
       "_EditorPanelRow.js",
       "_CustomSelect.js",
@@ -3228,7 +3348,7 @@
       "_SingleProductContext.js",
       "_add-query-args.js",
       "_ProductListItem.js",
-      "_index5.js"
+      "_index6.js"
     ],
     "assets": [
       "assets/ProductGallery.png"
@@ -3246,7 +3366,7 @@
     "isEntry": true,
     "imports": [
       "_BlockEditorTranslator.js",
-      "_index4.js",
+      "_index5.js",
       "_SelectProductModal.js",
       "_EditorPanel.js",
       "_EditorPanelRow.js",
@@ -3254,7 +3374,7 @@
       "_Icons.js",
       "_add-query-args.js",
       "_ProductListItem.js",
-      "_index5.js"
+      "_index6.js"
     ]
   },
   "resources/admin/BlockEditor/ProductImage/style/product-image-block-editor.scss": {
@@ -3274,14 +3394,14 @@
     "imports": [
       "_BlockEditorTranslator.js",
       "_Icons.js",
-      "_index4.js",
+      "_index5.js",
       "_SelectProductModal.js",
       "_EditorPanel.js",
       "_EditorPanelRow.js",
       "_SingleProductContext.js",
       "_add-query-args.js",
       "_ProductListItem.js",
-      "_index5.js"
+      "_index6.js"
     ],
     "assets": [
       "assets/ProductInfo.png"
@@ -3299,7 +3419,7 @@
     "isEntry": true,
     "imports": [
       "_BlockEditorTranslator.js",
-      "_index4.js",
+      "_index5.js",
       "_SelectVariationModal.js",
       "_EditorPanel.js",
       "_EditorPanelRow.js",
@@ -3308,7 +3428,7 @@
       "_Icons.js",
       "_add-query-args.js",
       "_ProductListItem.js",
-      "_index5.js"
+      "_index6.js"
     ]
   },
   "resources/admin/BlockEditor/ProductSku/style/product-sku-block-editor.scss": {
@@ -3323,7 +3443,7 @@
     "isEntry": true,
     "imports": [
       "_BlockEditorTranslator.js",
-      "_index4.js",
+      "_index5.js",
       "_SelectProductModal.js",
       "_EditorPanel.js",
       "_EditorPanelRow.js",
@@ -3331,7 +3451,7 @@
       "_Icons.js",
       "_add-query-args.js",
       "_ProductListItem.js",
-      "_index5.js"
+      "_index6.js"
     ]
   },
   "resources/admin/BlockEditor/ProductTitle/style/product-title-block-editor.scss": {
@@ -3353,7 +3473,7 @@
     "imports": [
       "_BlockEditorTranslator.js",
       "_Icons.js",
-      "_index4.js",
+      "_index5.js",
       "_add-query-args.js",
       "_SingleProductContext.js"
     ]
@@ -3370,7 +3490,7 @@
     "isEntry": true,
     "imports": [
       "_BlockEditorTranslator.js",
-      "_index4.js",
+      "_index5.js",
       "_SelectProductModal.js",
       "_EditorPanel.js",
       "_EditorPanelRow.js",
@@ -3379,7 +3499,7 @@
       "_ErrorBoundary.js",
       "_add-query-args.js",
       "_ProductListItem.js",
-      "_index5.js"
+      "_index6.js"
     ]
   },
   "resources/admin/BlockEditor/SaleBadge/style/sale-badge-block-editor.scss": {
@@ -3398,7 +3518,7 @@
     "isEntry": true,
     "imports": [
       "_BlockEditorTranslator.js",
-      "_index5.js",
+      "_index6.js",
       "_Icons.js"
     ],
     "assets": [
@@ -3436,8 +3556,8 @@
       "_Icons.js",
       "_ErrorBoundary.js",
       "_ProductContext.js",
-      "_index4.js",
-      "_index5.js"
+      "_index5.js",
+      "_index6.js"
     ],
     "assets": [
       "assets/Products.png"
@@ -3478,11 +3598,11 @@
       "_SelectProductModal.js",
       "_EditorPanel.js",
       "_EditorPanelRow.js",
-      "_index4.js",
+      "_index5.js",
       "_SingleProductContext.js",
       "_add-query-args.js",
       "_ProductListItem.js",
-      "_index5.js"
+      "_index6.js"
     ]
   },
   "resources/admin/BlockEditor/StoreLogo/StoreLogoBlockEditor.jsx": {
@@ -3514,25 +3634,29 @@
       "_common.js",
       "_Badge.js",
       "_Str.js",
-      "_Arr.js",
       "_CopyToClipboard.js",
       "_Animation.js",
       "_Notify.js",
       "_index.js",
+      "_IconButton.js",
+      "_Arr.js",
       "_Asset.js",
       "_Url.js",
+      "_vue-router.js",
       "_NotFound.js",
       "_Model.js",
       "_dayjs.min.js",
       "_timezone.js",
+      "_index3.js",
       "_Utils.js",
       "_CancelSubscription.js",
       "_BundleProducts.js",
       "_dateShortCuts.js",
-      "_index3.js",
+      "_index4.js",
       "_countries.js",
       "_index2.js",
       "_ProductVariationSelector.js",
+      "_FileUploaderDialog.js",
       "_defaults.js",
       "resources/admin/Bits/Components/Icons/Screenshot.vue",
       "_useElementPlusComponents.js"
@@ -3550,21 +3674,24 @@
       "_vue.esm-bundler.js",
       "_CardBody.js",
       "_Translator.js",
+      "_Arr.js",
       "_Rest.js",
-      "_Badge.js",
+      "_IconButton.js",
       "_DynamicIcon.js",
       "_Notify.js",
       "__plugin-vue_export-helper.js",
-      "_Str.js",
+      "_vue-router.js",
       "_countries.js",
       "_index.js",
       "_NotFound.js",
+      "_Badge.js",
       "_Animation.js",
       "_Model.js",
       "_Url.js",
-      "_Arr.js",
+      "_Str.js",
       "_dayjs.min.js",
       "_timezone.js",
+      "_index3.js",
       "_Utils.js",
       "_Asset.js"
     ],
@@ -3596,9 +3723,12 @@
       "_Notify.js",
       "_Model.js",
       "_Rest.js",
+      "_IconButton.js",
+      "_vue-router.js",
       "_Url.js",
       "_dayjs.min.js",
       "_timezone.js",
+      "_index3.js",
       "_Utils.js",
       "_productService.js",
       "_BundleProducts.js",
@@ -3619,7 +3749,7 @@
     "isEntry": true,
     "imports": [
       "_vue.esm-bundler.js",
-      "_Str.js",
+      "_vue-router.js",
       "_DynamicIcon.js",
       "_CardBody.js",
       "_Translator.js",
@@ -3628,7 +3758,7 @@
       "_productService.js",
       "_CancelSubscription.js",
       "__plugin-vue_export-helper.js",
-      "_Badge.js",
+      "_IconButton.js",
       "_common.js",
       "_Model.js",
       "_Rest.js",
@@ -3641,17 +3771,21 @@
       "_NotFound.js",
       "_Asset.js",
       "_index2.js",
+      "_Str.js",
       "_Arr.js",
       "_Url.js",
       "_timezone.js",
       "_Utils.js",
+      "_Badge.js",
       "_ProductVariationSelector.js",
       "_CopyToClipboard.js",
       "_BundleProducts.js",
+      "_index3.js",
+      "_FileUploaderDialog.js",
       "_defaults.js",
       "resources/admin/Bits/Components/Icons/Screenshot.vue",
       "_useElementPlusComponents.js",
-      "_index3.js"
+      "_index4.js"
     ],
     "dynamicImports": [
       "resources/admin/Bits/Components/Form/Components/Affix/Test.vue",
@@ -3687,8 +3821,9 @@
       "__plugin-vue_export-helper.js",
       "_index.js",
       "_index2.js",
-      "_index3.js",
+      "_index4.js",
       "_dayjs.min.js",
+      "_index3.js",
       "_Arr.js",
       "_DynamicIcon.js",
       "resources/admin/Bits/Components/Icons/CaretRight.vue",
@@ -3697,7 +3832,8 @@
       "_Model.js",
       "_Rest.js",
       "_Asset.js",
-      "_Url.js"
+      "_Url.js",
+      "_vue-router.js"
     ],
     "css": [
       "assets/Start3.css"
@@ -3716,8 +3852,9 @@
       "_Translator.js",
       "_index.js",
       "_index2.js",
-      "_index3.js",
+      "_index4.js",
       "_dayjs.min.js",
+      "_index3.js",
       "_Arr.js",
       "__plugin-vue_export-helper.js",
       "_add-query-args.js"
@@ -3740,8 +3877,9 @@
       "__plugin-vue_export-helper.js",
       "_index.js",
       "_index2.js",
-      "_index3.js",
+      "_index4.js",
       "_dayjs.min.js",
+      "_index3.js",
       "_DynamicIcon.js",
       "resources/admin/Bits/Components/Icons/CaretRight.vue",
       "_Str.js",
@@ -3750,7 +3888,8 @@
       "_Model.js",
       "_Rest.js",
       "_Asset.js",
-      "_Url.js"
+      "_Url.js",
+      "_vue-router.js"
     ],
     "css": [
       "assets/Start2.css",
@@ -3776,14 +3915,16 @@
       "resources/admin/Bits/Components/Icons/Delete.vue",
       "_index.js",
       "_index2.js",
-      "_index3.js",
+      "_index4.js",
       "_dayjs.min.js",
+      "_index3.js",
       "_DynamicIcon.js",
       "_Str.js",
       "_productService.js",
       "_Model.js",
       "_Asset.js",
       "_Url.js",
+      "_vue-router.js",
       "__plugin-vue_export-helper.js",
       "_add-query-args.js"
     ],
@@ -3804,8 +3945,9 @@
       "_Rest.js",
       "_index.js",
       "_index2.js",
-      "_index3.js",
+      "_index4.js",
       "_dayjs.min.js",
+      "_index3.js",
       "_Arr.js"
     ]
   },
@@ -3821,8 +3963,9 @@
       "_Translator.js",
       "_index.js",
       "_index2.js",
-      "_index3.js",
+      "_index4.js",
       "_dayjs.min.js",
+      "_index3.js",
       "__plugin-vue_export-helper.js",
       "_Arr.js"
     ]
@@ -3867,23 +4010,26 @@
       "_Empty.js",
       "_DynamicIcon.js",
       "_Translator.js",
-      "_Badge.js",
+      "_IconButton.js",
       "_index.js",
       "_OrderCustomerInformation.js",
       "__plugin-vue_export-helper.js",
       "_dayjs.min.js",
       "_Model.js",
       "_Rest.js",
+      "_Badge.js",
       "_common.js",
       "_CopyToClipboard.js",
       "_Str.js",
       "_Arr.js",
+      "_vue-router.js",
       "_Url.js",
       "_timezone.js",
       "_Notify.js",
+      "_index3.js",
       "_Utils.js",
       "_Asset.js",
-      "_index3.js",
+      "_index4.js",
       "_productService.js",
       "_Animation.js"
     ],
@@ -3907,14 +4053,17 @@
       "_Notify.js",
       "_Rest.js",
       "_ProductVariationSelector.js",
-      "_Str.js",
+      "_vue-router.js",
       "_index.js",
+      "_IconButton.js",
       "__plugin-vue_export-helper.js",
       "_Arr.js",
       "_Model.js",
       "_Url.js",
+      "_Str.js",
       "_dayjs.min.js",
       "_timezone.js",
+      "_index3.js",
       "_Utils.js"
     ]
   },
@@ -3976,8 +4125,9 @@
       "_timezone.js",
       "_dayjs.min.js",
       "_Str.js",
-      "_vue.esm-bundler.js",
-      "_Arr.js"
+      "_Arr.js",
+      "_vue-router.js",
+      "_vue.esm-bundler.js"
     ]
   },
   "resources/public/checkout/ModalCheckoutForm.js": {
@@ -4053,7 +4203,9 @@
       "_BundleProducts.js",
       "__plugin-vue_export-helper.js",
       "_common.js",
+      "_IconButton.js",
       "_CopyToClipboard.js",
+      "_vue-router.js",
       "_index.js",
       "resources/admin/Bits/Components/Icons/ArrowDown.vue",
       "resources/admin/Bits/Components/Icons/ArrowUp.vue",
@@ -4061,10 +4213,11 @@
       "_Animation.js",
       "_Notify.js",
       "_index2.js",
+      "_index3.js",
       "_defaults.js",
-      "_Arr.js",
       "_Translator.js",
-      "_index3.js"
+      "_Arr.js",
+      "_index4.js"
     ],
     "css": [
       "assets/Start.css"
@@ -4121,8 +4274,9 @@
     "imports": [
       "_Url.js",
       "_Str.js",
-      "_vue.esm-bundler.js",
-      "_Arr.js"
+      "_Arr.js",
+      "_vue-router.js",
+      "_vue.esm-bundler.js"
     ]
   },
   "resources/public/payment-methods/cod-checkout.js": {

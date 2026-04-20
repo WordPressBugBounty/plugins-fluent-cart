@@ -23,7 +23,6 @@ class ComposerStaticInitb2eff533900bbaf3c7b668b284ce4755
             'FluentCart\\Dev\\' => 15,
             'FluentCart\\App\\' => 15,
             'FluentCart\\Api\\' => 15,
-            'Faker\\' => 6,
         ),
     );
 
@@ -51,10 +50,6 @@ class ComposerStaticInitb2eff533900bbaf3c7b668b284ce4755
         'FluentCart\\Api\\' =>
         array (
             0 => __DIR__ . '/../..' . '/api',
-        ),
-        'Faker\\' =>
-        array (
-            0 => __DIR__ . '/..' . '/fakerphp/faker/src/Faker',
         ),
     );
 

@@ -167,6 +167,7 @@ class Stripe extends AbstractPaymentGateway
                     'redirecting for action' => __('redirecting for action', 'fluent-cart'),
                     'You will be redirected to Stripe to complete your payment securely.' => __('You will be redirected to Stripe to complete your payment securely.', 'fluent-cart'),
                     'Something went wrong' => __('Something went wrong', 'fluent-cart'),
+                    'Payment confirmation failed' => __('Payment confirmation failed', 'fluent-cart'),
                 ]
             ]
         ];
@@ -377,7 +378,7 @@ class Stripe extends AbstractPaymentGateway
          *         )
          *     );
          * }
-         * add_filter('fluent_cart_stripe_appearance', 'stripe_appearance', 10, 1);
+         * add_filter('fluent_cart/stripe_appearance', 'stripe_appearance', 10, 1);
          * 
          * @see https://docs.stripe.com/elements/appearance-api for all available options
          * @param array $appearance The appearance configuration

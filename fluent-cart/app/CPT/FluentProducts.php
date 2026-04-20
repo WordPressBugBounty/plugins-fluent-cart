@@ -180,6 +180,9 @@ class FluentProducts
     {
         $productSlug = (new StoreSettings())->get('product_slug') ?? 'item';
         $urlSlug = apply_filters('fluent_cart/front_url_slug', $productSlug, []);
+        $urlWithFront = apply_filters('fluent_cart/product_url_with_front', true, [
+            'slug' => $urlSlug
+        ]);
 
         $singularName = __('Product', 'fluent-cart');
 
@@ -235,7 +238,7 @@ class FluentProducts
             ],
             'rewrite'               => [
                 'slug'       => $urlSlug,
-                'with_front' => true,
+                'with_front' => $urlWithFront,
                 'feeds'      => true,
                 'pages'      => true,
             ],

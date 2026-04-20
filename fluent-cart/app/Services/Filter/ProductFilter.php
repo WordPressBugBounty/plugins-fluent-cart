@@ -13,15 +13,14 @@ class ProductFilter extends BaseFilter
 {
     public string $defaultSortBy = "ID";
 
-    public function applySimpleFilter()
+    public function applySimpleFilter(?string $search = null): void
     {
-
-        $isApplied = $this->applySimpleOperatorFilter();
+        $isApplied = $this->applySimpleOperatorFilter($search);
         if ($isApplied) {
             return;
         }
 
-        $this->query = $this->query->when($this->search, function ($query, $search) {
+        $this->query = $this->query->when($search ?? $this->search, function ($query, $search) {
             return $query
                 ->where(function ($query) use ($search) {
                     $query->search([
@@ -76,11 +75,12 @@ class ProductFilter extends BaseFilter
 //            ['payment_statuses', 'order_statuses', 'shipping_statuses']
 //        );
 //    }
-    public function applyActiveViewFilter()
+    public function applyActiveViewFilter(?string $activeView = null): void
     {
+        $activeView = $activeView ?? $this->activeView;
         $tabsMap = $this->tabsMap();
 
-        $this->query->when($this->activeView, function ($query, $activeView) use ($tabsMap) {
+        $this->query->when($activeView, function ($query, $activeView) use ($tabsMap) {
             return $query->where(function (Builder $q) use ($activeView, $tabsMap) {
                 $column = Arr::get($tabsMap, $activeView);
 
@@ -124,16 +124,36 @@ class ProductFilter extends BaseFilter
             'sku' => [
                 'column'      => 'SKU',
                 'description' => 'Search By SKU',
+                'note'        => "Supports '=' and '!=' operators with optional * wildcard matching",
                 'type'        => 'custom',
                 'examples'    => [
                     'sku = 1',
                     'sku != 1',
+                    'sku = starter*',
+                    'sku = *pro*',
                 ],
                 'callback'    => static function (Builder $query, $value, $operator, BaseFilter $filter) {
                     if ($filter->shouldApplyMatchFilter($operator)) {
                         $query->whereHas('variants', function (Builder $query) use ($value, $filter, $operator) {
                             $filter->applyMatchFilter($query, 'sku', $value, $operator);
                         });
+                    }
+                }
+            ],
+
+            'description' => [
+                'column'      => 'post_content',
+                'description' => 'Search By Description',
+                'note'        => "Supports '=' and '!=' operators with optional * wildcard matching",
+                'type'        => 'custom',
+                'examples'    => [
+                    'description = *course*',
+                    'description = starter*',
+                    'description != *bundle*',
+                ],
+                'callback'    => static function (Builder $query, $value, $operator, BaseFilter $filter) {
+                    if ($filter->shouldApplyMatchFilter($operator)) {
+                        $filter->applyMatchFilter($query, 'post_content', $value, $operator);
                     }
                 }
             ]

@@ -14,6 +14,11 @@ class AdminHelper
 {
     public static function getProductMenu($product, $echo = false, $activeMenu = '')
     {
+        // Skip rendering menu when custom editor modal is open
+        if (isset($_GET['custom-editor']) && $_GET['custom-editor'] == 'true') {
+            return '';
+        }
+
         if (!$product instanceof Product) {
             $product = Product::query()->find($product);
         }

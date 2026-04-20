@@ -20,7 +20,7 @@ class ReceiptPdfTemplateService
                 'pdf_settings' => [
                     [
                         'active'        => 'yes',
-                        'title'         => 'Order Receipt',
+                        'title'         => __('Order Receipt', 'fluent-cart'),
                         'preview_image' => '',
                         'pdf_structure' => DefaultPdfStructures::getDefaultReceiptStructure(),
                     ]
@@ -34,7 +34,7 @@ class ReceiptPdfTemplateService
                 'pdf_settings' => [
                     [
                         'active'        => 'yes',
-                        'title'         => 'Renewal Receipt',
+                        'title'         => __('Renewal Receipt', 'fluent-cart'),
                         'preview_image' => '',
                         'pdf_structure' => DefaultPdfStructures::getDefaultRenewalReceiptStructure(),
                     ]
@@ -48,7 +48,7 @@ class ReceiptPdfTemplateService
                 'pdf_settings' => [
                     [
                         'active'        => 'yes',
-                        'title'         => 'Refund Notice',
+                        'title'         => __('Refund Notice', 'fluent-cart'),
                         'preview_image' => '',
                         'pdf_structure' => DefaultPdfStructures::getDefaultRefundNoticeStructure(),
                     ]
@@ -62,7 +62,7 @@ class ReceiptPdfTemplateService
                 'pdf_settings' => [
                     [
                         'active'        => 'yes',
-                        'title'         => 'Invoice',
+                        'title'         => __('Invoice', 'fluent-cart'),
                         'preview_image' => '',
                         'pdf_structure' => DefaultPdfStructures::getDefaultProformaInvoiceStructure(),
                     ]

@@ -69,6 +69,7 @@ class ShippingMethod extends Model
                 $q->whereIn('region', [$country, 'all'])
                   ->orWhere('region', 'selection');
             });
+            $query->whereNull('shipping_class_id');
         });
 
         // SQLite-compatible substring extraction
@@ -82,7 +83,9 @@ class ShippingMethod extends Model
 
             if ($state) {
                 // Check if the state exists in the array (simple string search)
-                $q->orWhere('states', 'LIKE', '%"' . $state . '"%');
+                // Escape LIKE wildcards to prevent wildcard injection on public endpoint
+                $escapedState = str_replace(['%', '_'], ['\\%', '\\_'], $state);
+                $q->orWhere('states', 'LIKE', '%"' . $escapedState . '"%');
             }
         });
         } else {
@@ -139,7 +142,7 @@ class ShippingMethod extends Model
     {
 
         if ($value) {
-            $decoded = \json_encode($value, true);
+            $decoded = \json_encode($value);
             if (!($decoded)) {
                 $decoded = '[]';
             }

@@ -9,7 +9,6 @@ use FluentCart\Api\Taxonomy;
 use FluentCart\App\App;
 use FluentCart\App\CPT\FluentProducts;
 use FluentCart\App\Models\Customer;
-use FluentCart\App\Models\Product;
 use FluentCart\App\Models\ProductVariation;
 use FluentCart\App\Models\User;
 use FluentCart\App\Services\DateTime\DateTime;
@@ -106,8 +105,9 @@ class Helper
          */
         $currencySettings = (fluentCart(CurrencySettings::class))->get();
         $storeSettings = (new StoreSettings())->get([
-            'store_name', 'store_logo'
+            'store_name', 'store_logo', 'weight_unit', 'dimension_unit'
         ]);
+        $storeSettings['shipping_packages'] = self::getShippingPackages();
 
         $settings = array_merge($currencySettings, $storeSettings);
 
@@ -122,6 +122,84 @@ class Helper
             return Arr::get($settings, $key);
         }
 
+    }
+
+    /**
+     * Convert weight between units using grams as base.
+     *
+     * @param float $value
+     * @param string $fromUnit
+     * @param string $toUnit
+     * @return float
+     */
+    public static function convertWeight($value, $fromUnit, $toUnit)
+    {
+        if ($fromUnit === $toUnit || !$value) {
+            return (float) $value;
+        }
+
+        $toGrams = [
+            'g'   => 1,
+            'kg'  => 1000,
+            'lbs' => 453.592,
+            'oz'  => 28.3495,
+        ];
+
+        $fromFactor = isset($toGrams[$fromUnit]) ? $toGrams[$fromUnit] : 1;
+        $toFactor = isset($toGrams[$toUnit]) ? $toGrams[$toUnit] : 1;
+
+        $grams = $value * $fromFactor;
+        return round($grams / $toFactor, 6);
+    }
+
+    /**
+     * Get all shipping packages from store settings.
+     *
+     * @return array
+     */
+    public static function getShippingPackages()
+    {
+        static $packages = null;
+        if ($packages === null) {
+            $packages = fluent_cart_get_option('shipping_packages', []);
+        }
+        return $packages ?: [];
+    }
+
+    /**
+     * Get the default shipping package.
+     *
+     * @return array|null
+     */
+    public static function getDefaultPackage()
+    {
+        $packages = self::getShippingPackages();
+        foreach ($packages as $package) {
+            if (!empty($package['is_default'])) {
+                return $package;
+            }
+        }
+        return !empty($packages) ? $packages[0] : null;
+    }
+
+    /**
+     * Find a shipping package by slug.
+     *
+     * @param string $slug
+     * @return array|null
+     */
+    public static function getPackageBySlug($slug)
+    {
+        if (!$slug) {
+            return self::getDefaultPackage();
+        }
+        $packages = self::getShippingPackages();
+        foreach ($packages as $package) {
+            if (isset($package['slug']) && $package['slug'] === $slug) {
+                return $package;
+            }
+        }
+        return self::getDefaultPackage();
     }
 
     public static function invoiceSettings($key = false)
@@ -495,21 +573,21 @@ class Helper
     {
         $currencies = apply_filters_deprecated('fluent-cart/available_currencies', [
             [
-                'BDT' => [
-                    "label"  => __('Bangladeshi Taka', 'fluent-cart'),
-                    "value"  => 'BDT',
-                    "symbol" => '৳',
-                ],
-                'USD' => [
-                    "label"  => __('United State Dollar', 'fluent-cart'),
-                    "value"  => 'USD',
-                    "symbol" => '$',
-                ],
-                'GBP' => [
-                    "label"  => __('United Kingdom', 'fluent-cart'),
-                    "value"  => 'GBP',
-                    "symbol" => '£',
-                ],
+            'BDT' => [
+                "label"  => __('Bangladeshi Taka', 'fluent-cart'),
+                "value"  => 'BDT',
+                "symbol" => '৳',
+            ],
+            'USD' => [
+                "label"  => __('United State Dollar', 'fluent-cart'),
+                "value"  => 'USD',
+                "symbol" => '$',
+            ],
+            'GBP' => [
+                "label"  => __('United Kingdom', 'fluent-cart'),
+                "value"  => 'GBP',
+                "symbol" => '£',
+            ],
             ], []
         ], '1.3.16', 'fluent_cart/available_currencies', 'Use fluent_cart/available_currencies instead of fluent-cart/available_currencies.');
 
@@ -1034,23 +1112,23 @@ class Helper
         return $main;
     }
 
-    public static function getTranslatedIntervalUnit(string $unit): string
+    public static function getTranslatedIntervalUnit(string $unit, int $count = 1): string
     {
         switch ($unit) {
             case 'day':
-                return __('day', 'fluent-cart');
+                return _n('day', 'days', $count, 'fluent-cart');
             case 'week':
-                return __('week', 'fluent-cart');
+                return _n('week', 'weeks', $count, 'fluent-cart');
             case 'month':
-                return __('month', 'fluent-cart');
+                return _n('month', 'months', $count, 'fluent-cart');
             case 'quarter':
-                return __('quarter', 'fluent-cart');
+                return _n('quarter', 'quarters', $count, 'fluent-cart');
             case 'half_year':
-                return __('six month', 'fluent-cart');
+                return _n('six month', 'six months', $count, 'fluent-cart');
             case 'year':
-                return __('year', 'fluent-cart');
+                return _n('year', 'years', $count, 'fluent-cart');
             default:
-                return $unit;
+                return $count > 1 ? $unit . 's' : $unit;
         }
     }
 
@@ -1091,7 +1169,7 @@ class Helper
                 }
         }
 
-        $intervalLabel = Helper::getTranslatedIntervalUnit($intervalUnit);
+        $intervalLabel = Helper::getTranslatedIntervalUnit($intervalUnit, $occurrence);
 
         $interval = $intervalUnit
             ? sprintf(
@@ -1120,7 +1198,7 @@ class Helper
                 __('%1$s %2$s %3$s', 'fluent-cart'),
                 $price,
                 $interval,
-                __('until canceled', 'fluent-cart')
+                __('until cancel', 'fluent-cart')
             );
         }
 
@@ -1142,10 +1220,10 @@ class Helper
             return '';
         }
 
-        if (isset($otherInfo['original_signup_fee'])) {
-            $originalSetupFee = $otherInfo['original_signup_fee'];
+
+        if ($originalSetupFee = Arr::get($otherInfo, 'original_signup_fee', 0)) {
             if ($fee != $originalSetupFee) {
-                return __('Adjusted first time price: ', 'fluent-cart') . CurrencySettings::getPriceHtml($fee, null, true, true);
+                return __('Adjusted setup fee', 'fluent-cart') . CurrencySettings::getPriceHtml($fee, null, true, true);
             }
         }
 
@@ -1698,27 +1776,6 @@ class Helper
             ->select($select)
             ->get()
             ->toArray();
-
-        // Enrich child variants with post_title from the products (posts) table
-        $postIds = array_unique(array_filter(array_column($childVariants, 'post_id')));
-        $postTitles = [];
-        if ($postIds) {
-            $products = Product::query()
-                ->whereIn('ID', $postIds)
-                ->select(['ID', 'post_title'])
-                ->get();
-
-            foreach ($products as $product) {
-                $postTitles[$product->ID] = $product->post_title;
-            }
-        }
-
-        foreach ($childVariants as &$childVariant) {
-            if (empty($childVariant['post_title']) && !empty($childVariant['post_id'])) {
-                $childVariant['post_title'] = $postTitles[$childVariant['post_id']] ?? '';
-            }
-        }
-        unset($childVariant);
 
 
         foreach ($variants as &$variant) {

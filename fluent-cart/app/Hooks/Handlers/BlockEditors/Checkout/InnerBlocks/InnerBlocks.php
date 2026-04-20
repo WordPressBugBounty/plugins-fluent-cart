@@ -629,7 +629,7 @@ class InnerBlocks
         $atts = get_block_wrapper_attributes();
         $cart = $this->getCart();
         $addressTitle = Arr::get($attributes, 'addressTitle');
-        if (empty(Arr::get($cart, 'cart_data', []))) {
+        if (empty(Arr::get($cart, 'cart_data', [])) || !$cart->requireShipping()) {
             return '';
         }
         ob_start();
@@ -648,7 +648,7 @@ class InnerBlocks
         $atts = get_block_wrapper_attributes();
         $cart = $this->getCart();
         $title = Arr::get($attributes, 'ship_to_different_title');
-        if (empty(Arr::get($cart, 'cart_data', []))) {
+        if (empty(Arr::get($cart, 'cart_data', [])) || !$cart->requireShipping()) {
             return '';
         }
         ob_start();

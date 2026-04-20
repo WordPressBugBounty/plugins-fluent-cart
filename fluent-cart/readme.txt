@@ -4,7 +4,7 @@ Tags: ecommerce, cart, checkout, subscriptions, payments
 Requires at least: 6.7
 Tested up to: 6.9
 Requires PHP: 7.4
-Stable tag: 1.3.18
+Stable tag: 1.3.19
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -312,6 +312,14 @@ This service is provided by PayPal: [Terms of Service](https://www.paypal.com/le
 
 
 == Changelog ==
+
+= 1.3.19 (Apr 20, 2026) =
+- Adds New UI for variation editing
+- Adds Packaging support and weight attributes for products
+- Adds Search support in product list via simple filters
+- Adds fluent_cart/product_url_with_front filter for post types register
+- Fixes Pricing format in price input fields
+- Fixes Saved view conflicts with filters
 
 = 1.3.18 (Apr 15, 2026) =
 - Adds Permission checks for the “Save as Views” filter

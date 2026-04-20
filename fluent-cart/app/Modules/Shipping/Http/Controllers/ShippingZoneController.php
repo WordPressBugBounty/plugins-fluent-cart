@@ -25,7 +25,10 @@ class ShippingZoneController extends Controller
     public function store(ShippingZoneRequest $request)
     {
         $data = $request->getSafe($request->sanitize());
-        $data['meta'] = $this->buildMeta([], Arr::get($data, 'meta'), Arr::get($data, 'region'));
+
+        if (empty($data['shipping_class_id'])) {
+            $data['shipping_class_id'] = null;
+        }
 
         $shippingZone = ShippingZone::query()->create($data);
 
@@ -48,21 +51,9 @@ class ShippingZoneController extends Controller
     {
         $data = $request->getSafe($request->sanitize());
         $shippingZone = ShippingZone::query()->findOrFail($id);
-
-        $regionChanged = Arr::get($data, 'region') !== $shippingZone->region;
-        if (!$regionChanged && Arr::get($data, 'region') === 'selection') {
-            $oldCountries = Arr::get($shippingZone->meta, 'countries', []);
-            $newCountries = Arr::get($data, 'meta.countries', []);
-            $regionChanged = $oldCountries !== $newCountries;
-        }
-
-        if ($regionChanged) {
+        if (Arr::get($data, 'region') !== $shippingZone->region) {
             ShippingMethod::where('zone_id', $id)->update(['states' => []]);
         }
-
-        $existingMeta = is_array($shippingZone->meta) ? $shippingZone->meta : [];
-        $data['meta'] = $this->buildMeta($existingMeta, Arr::get($data, 'meta'), Arr::get($data, 'region'));
-
         $shippingZone->update($data);
 
         return $this->sendSuccess([
@@ -75,11 +66,21 @@ class ShippingZoneController extends Controller
     {
         $shippingZone = ShippingZone::findOrFail($id);
 
-        // Delete associated shipping methods
-        ShippingMethod::where('zone_id', $id)->delete();
+        $DB = App::db();
+        $DB->beginTransaction();
+        try {
+            // Delete associated shipping methods
+            ShippingMethod::where('zone_id', $id)->delete();
 
-        // Delete the shipping zone
-        $shippingZone->delete();
+            // Delete the shipping zone
+            $shippingZone->delete();
+            $DB->commit();
+        } catch (\Exception $e) {
+            $DB->rollBack();
+            return $this->sendError([
+                'message' => __('Failed to delete shipping zone', 'fluent-cart')
+            ]);
+        }
 
         return $this->sendSuccess([
             'message' => __('Shipping zone has been deleted successfully', 'fluent-cart')
@@ -96,12 +97,35 @@ class ShippingZoneController extends Controller
             ]);
         }
 
-        foreach ($zones as $index => $zoneId) {
-            ShippingZone::where('id', $zoneId)->update(['order' => $index]);
+        $zones = array_slice($zones, 0, 200);
+
+        $DB = App::db();
+        $DB->beginTransaction();
+        try {
+            foreach ($zones as $index => $zoneId) {
+                ShippingZone::where('id', intval($zoneId))->update(['order' => $index]);
+            }
+            $DB->commit();
+        } catch (\Exception $e) {
+            $DB->rollBack();
+            return $this->sendError([
+                'message' => __('Failed to update zone order', 'fluent-cart')
+            ]);
         }
 
         return $this->sendSuccess([
             'message' => __('Shipping zones order has been updated', 'fluent-cart')
+        ]);
+    }
+
+    public function getZoneStates(Request $request)
+    {
+        $country_code = sanitize_text_field(Arr::get($request->all(), 'country_code', ''));
+
+        $countryInfo = LocalizationManager::getCountryInfoFromRequest(null, $country_code);
+
+        return $this->sendSuccess([
+            'data' => $countryInfo
         ]);
     }
 
@@ -134,33 +158,5 @@ class ShippingZoneController extends Controller
         return $this->sendSuccess([
             'continents' => $grouped,
         ]);
-    }
-
-    public function getZoneStates(Request $request)
-    {
-        $country_code = sanitize_text_field(Arr::get($request->all(), 'country_code', ''));
-
-        $countryInfo = LocalizationManager::getCountryInfoFromRequest(null, $country_code);
-
-        return $this->sendSuccess([
-            'data' => $countryInfo
-        ]);
-    }
-
-    /**
-     * Build meta array by merging new country selection data into existing meta.
-     * For 'selection' regions, sets countries and selection_type.
-     * For other regions, removes country selection keys but preserves any other meta.
-     */
-    private function buildMeta(array $existing, $incoming, $region): array
-    {
-        if ($region === 'selection' && is_array($incoming)) {
-            $existing['countries'] = Arr::get($incoming, 'countries', []);
-            $existing['selection_type'] = Arr::get($incoming, 'selection_type', 'included');
-        } else {
-            unset($existing['countries'], $existing['selection_type']);
-        }
-
-        return $existing;
     }
 }

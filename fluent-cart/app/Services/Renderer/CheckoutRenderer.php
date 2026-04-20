@@ -640,6 +640,22 @@ class CheckoutRenderer
         }
     }
 
+    /**
+     * Get available shipping methods considering cart's shipping classes.
+     * This is used by the frontend to display profile-aware methods.
+     */
+    public function getProfileAwareShippingMethods($countryCode, $stateCode)
+    {
+        // Get general methods (backward compatible)
+        $methods = AddressHelper::getShippingMethods($countryCode, $stateCode);
+
+        if (is_wp_error($methods) || empty($methods)) {
+            return $methods;
+        }
+
+        return $methods;
+    }
+
     public function renderPaymentMethods($atts = [])
     {
         if ($this->cart->getEstimatedTotal() <= 0) {

@@ -279,7 +279,7 @@ class MenuHandler
             ], 'object');
 
             foreach ($taxonomies as $key => $taxonomy) {
-                $menuUrl = admin_url('edit-tags.php?taxonomy=' . $taxonomy->name . '&post_type=' . FluentProducts::CPT_NAME);
+                $menuUrl = 'edit-tags.php?taxonomy=' . $taxonomy->name . '&post_type=' . FluentProducts::CPT_NAME;
                 $submenu['fluent-cart'][$key] = [
                     $taxonomy->label,
                     $capability,
@@ -407,7 +407,7 @@ class MenuHandler
             'shipping_zone_table' => ['filters' => Arr::get($filterOptions, 'shipping_zone_filter_options', [])],
         ];
 
-        $tableConfig = apply_filters('fluent_cart/admin_saved_views', $tableConfig, [
+        $tableConfig = apply_filters('fluent_cart/admin_table_saved_views', $tableConfig, [
             'filterOptions' => $filterOptions
         ]);
 
@@ -571,4 +571,3 @@ class MenuHandler
     }
 
 }
-
