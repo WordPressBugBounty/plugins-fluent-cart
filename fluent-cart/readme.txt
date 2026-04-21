@@ -4,7 +4,7 @@ Tags: ecommerce, cart, checkout, subscriptions, payments
 Requires at least: 6.7
 Tested up to: 6.9
 Requires PHP: 7.4
-Stable tag: 1.3.19
+Stable tag: 1.3.20
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -312,6 +312,15 @@ This service is provided by PayPal: [Terms of Service](https://www.paypal.com/le
 
 
 == Changelog ==
+
+= 1.3.20 (Apr 21, 2026) =
+- Adds EDD migrator
+- Fixes Products SKU index naming consistency issue
+- Fixes Allow multiple variations without SKU issue
+- Fixes Bundle product title with variation title visibility in checkout
+- Fixes Block editor CSS loading inside the editor iframe issue
+- Fixes Related Products block inspector layout and image overflow issues
+- Fixes Invoice and Packing sub-menus issue
 
 = 1.3.19 (Apr 20, 2026) =
 - Adds New UI for variation editing

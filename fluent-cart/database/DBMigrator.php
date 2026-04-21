@@ -432,6 +432,7 @@ class DBMigrator
             // without deactivation/reactivation still apply new columns
             \FluentCart\Database\Migrations\ShippingZonesMigrator::migrated();
             \FluentCart\Database\Migrations\ShippingClassesMigrator::migrated();
+            \FluentCart\Database\Migrations\ProductVariationMigrator::migrated();
 
         }
     }
