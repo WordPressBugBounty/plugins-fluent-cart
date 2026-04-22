@@ -4911,6 +4911,24 @@
         'src' => 'resources/images/storage-drivers/local.svg',
         'isEntry' => true
     ],
+    'resources/images/storage-drivers/r2-dark.svg' => [
+        'file' => 'images/storage-drivers/r2-dark.svg',
+        'name' => 'r2-dark',
+        'src' => 'resources/images/storage-drivers/r2-dark.svg',
+        'isEntry' => true
+    ],
+    'resources/images/storage-drivers/r2.svg' => [
+        'file' => 'images/storage-drivers/r2.svg',
+        'name' => 'r2',
+        'src' => 'resources/images/storage-drivers/r2.svg',
+        'isEntry' => true
+    ],
+    'resources/images/storage-drivers/s3-dark.svg' => [
+        'file' => 'images/storage-drivers/s3-dark.svg',
+        'name' => 's3-dark',
+        'src' => 'resources/images/storage-drivers/s3-dark.svg',
+        'isEntry' => true
+    ],
     'resources/images/storage-drivers/s3.svg' => [
         'file' => 'images/storage-drivers/s3.svg',
         'name' => 's3',

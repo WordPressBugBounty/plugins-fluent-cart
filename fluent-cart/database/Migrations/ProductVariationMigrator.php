@@ -37,23 +37,20 @@ class ProductVariationMigrator extends Migrator
                 `created_at` DATETIME NULL,
                 `updated_at` DATETIME NULL,
                 INDEX `{$indexPrefix}_post_id_idx` (`post_id` ASC),
-                UNIQUE INDEX `{$indexPrefix}sku_unique` (`sku` ASC),
+                UNIQUE INDEX `sku_unique` (`sku` ASC),
                 INDEX `{$indexPrefix}_stock_status_idx` (`stock_status` ASC)";
     }
 
     public static function migrated()
     {
         static::addSkuColumn();
-        // Clean up old unprefixed unique constraint if it exists
-        static::dropIndexIfExists('sku_unique');
     }
 
     public static function addSkuColumn()
     {
         // "ALTER TABLE %i ADD COLUMN `sku` VARCHAR(30) NULL DEFAULT NULL AFTER `variation_identifier`"
         static::addColumnIfNotExists('sku', 'VARCHAR(30) NULL DEFAULT NULL', 'variation_identifier');
-        // "ALTER TABLE %i ADD UNIQUE INDEX `{prefix}fct_pd_var_sku_unique` (`sku` ASC)"
-        $indexPrefix = static::getDbPrefix() . 'fct_pd_var_';
-        static::addIndexIfNotExists("{$indexPrefix}sku_unique", 'sku', true);
+        // "ALTER TABLE %i ADD UNIQUE INDEX `sku_unique` (`sku` ASC)"
+        static::addIndexIfNotExists('sku_unique', 'sku', true);
     }
 }

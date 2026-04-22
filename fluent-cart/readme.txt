@@ -4,7 +4,7 @@ Tags: ecommerce, cart, checkout, subscriptions, payments
 Requires at least: 6.7
 Tested up to: 6.9
 Requires PHP: 7.4
-Stable tag: 1.3.20
+Stable tag: 1.3.21
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -312,6 +312,16 @@ This service is provided by PayPal: [Terms of Service](https://www.paypal.com/le
 
 
 == Changelog ==
+
+= 1.3.21 (Apr 22, 2026) =
+- Adds Cloudflare R2 storage
+- Adds Public access management in S3
+- Fixes PDF template block styling issue
+- Fixes Warning for orderId null in checkout issue
+- Fixes PayPal checkout security to ensure pricing integrity
+- Fixes SKU duplicate issue in product variation creation
+- Fixes Provider badge not displaying correctly on files
+- Fixes S3 file deletion behavior
 
 = 1.3.20 (Apr 21, 2026) =
 - Adds EDD migrator
