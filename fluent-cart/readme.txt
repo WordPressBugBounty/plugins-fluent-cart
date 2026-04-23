@@ -4,7 +4,7 @@ Tags: ecommerce, cart, checkout, subscriptions, payments
 Requires at least: 6.7
 Tested up to: 6.9
 Requires PHP: 7.4
-Stable tag: 1.3.21
+Stable tag: 1.3.22
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -312,6 +312,13 @@ This service is provided by PayPal: [Terms of Service](https://www.paypal.com/le
 
 
 == Changelog ==
+
+= 1.3.22 (Apr 23, 2026) =
+- Adds Gutenberg Package Description block
+- Adds New stock management in Pro
+- Improves Package Description support for block themes & emails
+- Improves Email templates with 5 new merge tags
+- Fixes Shipping zone list loading issue
 
 = 1.3.21 (Apr 22, 2026) =
 - Adds Cloudflare R2 storage

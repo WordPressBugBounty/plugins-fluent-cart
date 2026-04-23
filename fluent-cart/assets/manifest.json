@@ -214,6 +214,7 @@
       "resources/admin/Bits/Components/Icons/Close.vue",
       "resources/admin/Bits/Components/Icons/Cloth.vue",
       "resources/admin/Bits/Components/Icons/Code.vue",
+      "resources/admin/Bits/Components/Icons/Collapse.vue",
       "resources/admin/Bits/Components/Icons/ColorPicker.vue",
       "resources/admin/Bits/Components/Icons/ColumnIcon.vue",
       "resources/admin/Bits/Components/Icons/Condition.vue",
@@ -254,6 +255,7 @@
       "resources/admin/Bits/Components/Icons/Enter.vue",
       "resources/admin/Bits/Components/Icons/Envelope.vue",
       "resources/admin/Bits/Components/Icons/EqualizerLine.vue",
+      "resources/admin/Bits/Components/Icons/Expand.vue",
       "resources/admin/Bits/Components/Icons/External.vue",
       "resources/admin/Bits/Components/Icons/Eye.vue",
       "resources/admin/Bits/Components/Icons/EyeOff.vue",
@@ -345,6 +347,7 @@
       "resources/admin/Bits/Components/Icons/ShieldCheck.vue",
       "resources/admin/Bits/Components/Icons/ShipmentStatus.vue",
       "resources/admin/Bits/Components/Icons/Shipping.vue",
+      "resources/admin/Bits/Components/Icons/ShoppingBag.vue",
       "resources/admin/Bits/Components/Icons/ShoppingCartIcon.vue",
       "resources/admin/Bits/Components/Icons/SoftPackage.vue",
       "resources/admin/Bits/Components/Icons/Source.vue",
@@ -862,6 +865,7 @@
       "_vue.esm-bundler.js",
       "_Translator.js",
       "_Badge.js",
+      "_Animation.js",
       "_Arr.js",
       "__plugin-vue_export-helper.js",
       "_DynamicIcon.js",
@@ -1363,6 +1367,16 @@
       "__plugin-vue_export-helper.js"
     ]
   },
+  "resources/admin/Bits/Components/Icons/Collapse.vue": {
+    "file": "chunks/Collapse.js",
+    "name": "Collapse",
+    "src": "resources/admin/Bits/Components/Icons/Collapse.vue",
+    "isDynamicEntry": true,
+    "imports": [
+      "_vue.esm-bundler.js",
+      "__plugin-vue_export-helper.js"
+    ]
+  },
   "resources/admin/Bits/Components/Icons/ColorPicker.vue": {
     "file": "chunks/ColorPicker.js",
     "name": "ColorPicker",
@@ -1757,6 +1771,16 @@
     "file": "chunks/EqualizerLine.js",
     "name": "EqualizerLine",
     "src": "resources/admin/Bits/Components/Icons/EqualizerLine.vue",
+    "isDynamicEntry": true,
+    "imports": [
+      "_vue.esm-bundler.js",
+      "__plugin-vue_export-helper.js"
+    ]
+  },
+  "resources/admin/Bits/Components/Icons/Expand.vue": {
+    "file": "chunks/Expand.js",
+    "name": "Expand",
+    "src": "resources/admin/Bits/Components/Icons/Expand.vue",
     "isDynamicEntry": true,
     "imports": [
       "_vue.esm-bundler.js",
@@ -2673,6 +2697,16 @@
       "__plugin-vue_export-helper.js"
     ]
   },
+  "resources/admin/Bits/Components/Icons/ShoppingBag.vue": {
+    "file": "chunks/ShoppingBag.js",
+    "name": "ShoppingBag",
+    "src": "resources/admin/Bits/Components/Icons/ShoppingBag.vue",
+    "isDynamicEntry": true,
+    "imports": [
+      "_vue.esm-bundler.js",
+      "__plugin-vue_export-helper.js"
+    ]
+  },
   "resources/admin/Bits/Components/Icons/ShoppingCartIcon.vue": {
     "file": "chunks/ShoppingCartIcon.js",
     "name": "ShoppingCartIcon",
@@ -3410,6 +3444,26 @@
   "resources/admin/BlockEditor/ProductInfo/style/product-info-block-editor.scss": {
     "file": "assets/product-info-block-editor.css",
     "src": "resources/admin/BlockEditor/ProductInfo/style/product-info-block-editor.scss",
+    "isEntry": true
+  },
+  "resources/admin/BlockEditor/ProductPackageDescription/ProductPackageDescriptionBlockEditor.jsx": {
+    "file": "ProductPackageDescriptionBlockEditor.js",
+    "name": "ProductPackageDescriptionBlockEditor",
+    "src": "resources/admin/BlockEditor/ProductPackageDescription/ProductPackageDescriptionBlockEditor.jsx",
+    "isEntry": true,
+    "imports": [
+      "_BlockEditorTranslator.js",
+      "_index5.js",
+      "_EditorPanel.js",
+      "_EditorPanelRow.js",
+      "_ErrorBoundary.js",
+      "_SingleProductContext.js",
+      "_Icons.js"
+    ]
+  },
+  "resources/admin/BlockEditor/ProductPackageDescription/style/product-package-description-block-editor.scss": {
+    "file": "assets/product-package-description-block-editor.css",
+    "src": "resources/admin/BlockEditor/ProductPackageDescription/style/product-package-description-block-editor.scss",
     "isEntry": true
   },
   "resources/admin/BlockEditor/ProductSku/ProductSkuBlockEditor.jsx": {
