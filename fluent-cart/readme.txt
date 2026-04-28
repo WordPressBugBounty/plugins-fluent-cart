@@ -4,7 +4,7 @@ Tags: ecommerce, cart, checkout, subscriptions, payments
 Requires at least: 6.7
 Tested up to: 6.9
 Requires PHP: 7.4
-Stable tag: 1.3.22
+Stable tag: 1.3.23
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -312,6 +312,30 @@ This service is provided by PayPal: [Terms of Service](https://www.paypal.com/le
 
 
 == Changelog ==
+
+= 1.3.23 (Apr 28, 2026) =
+- Adds Subscription access end date in cancellation emails
+- Adds Learndash: User specific course expiration respect to subscription/license
+- Adds VAT numbers in PDF receipt address field
+- Adds One click Licensed addon installer in addon page
+- Fixes Parse download token with ported site urls issue
+- Fixes fee_total missing column issue for version upgrades
+- Fixes Missing checkout info label in gateway settings
+- Fixes Advance filter merge relation issue
+- Fixes Timezone resolution against deprecated PHP 8.4 aliases
+- Fixes Licenses package download issue for portes site urls
+- Fixes Empty state rendering in dark mode for reports and dashboard
+- Fixes Supports for comma decimal separator in product variant cost
+- Fixes Use singular form for subscription interval units
+- Fixes Close editor modal when navigating from iframe links
+- Fixes Verify stock module active before inventory menu
+- Fixes License status incorrectly shown as "Expired" during grace period.
+- Fixes PDF custom template deletion faild issue
+- Fixes Customer address update/delete permission issue
+- Fixes Regular security audits and ongoing enhancements
+- Fixes Activity title's route not working
+- Enhanced Paddle - allows all default emails, modifiable via filter hook
+- Enhanced Adjust product-card and single-product styles
 
 = 1.3.22 (Apr 23, 2026) =
 - Adds Gutenberg Package Description block
