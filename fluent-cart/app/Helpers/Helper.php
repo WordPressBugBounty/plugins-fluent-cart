@@ -179,7 +179,7 @@ class Helper
                 return $package;
             }
         }
-        return !empty($packages) ? $packages[0] : null;
+        return null;
     }
 
     /**

@@ -11,10 +11,10 @@ class AddonGatewaySettings extends BaseGatewaySettings
     protected $gatewaySlug;
     protected $customStyles = [];
 
-    public function __construct($gatewaySlug)
+    public function __construct($gatewaySlug, $methodHandler = 'fluent_cart_payment_settings_addon_gateway')
     {
-        $this->gatewaySlug = $gatewaySlug;
-        $this->methodHandler = 'fluent_cart_payment_settings_addon_gateway';
+        $this->gatewaySlug   = $gatewaySlug;
+        $this->methodHandler = $methodHandler;
         parent::__construct();
     }
 
@@ -243,7 +243,17 @@ class AddonGatewaySettings extends BaseGatewaySettings
             $styles = $allStyles[$mode];
             
             // Determine status and action button for this mode
-            if (!$isInstalled) {
+            $proRequired = !empty($config['pro_required']) && !defined('FLUENTCART_PRO_PLUGIN_VERSION');
+            if ($proRequired) {
+                $statusMessage = __('Requires Pro', 'fluent-cart');
+                $statusColor = $styles['status_warning'];
+                $upgradeUrl = esc_url($config['repo_link'] ?? 'https://fluentcart.com/pricing/');
+                $actionButton = '<a href="' . $upgradeUrl . '" target="_blank" rel="noopener noreferrer" '
+                    . 'style="display: inline-flex; align-items: center; background: ' . $styles['button_primary_bg'] . '; color: ' . $styles['button_primary_text'] . '; padding: 10px 24px; border-radius: 6px; font-weight: 500; font-size: 14px; text-decoration: none; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">'
+                    . $this->renderIcon('M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 4l5 2.18V11c0 3.5-2.33 6.79-5 7.93-2.67-1.14-5-4.43-5-7.93V7.18L12 5z', 'width: 16px; height: 16px; margin-right: 6px; fill: ' . $styles['button_primary_text'] . ';')
+                    . __('Upgrade to Pro', 'fluent-cart')
+                    . '</a>';
+            } elseif (!$isInstalled) {
                 $statusMessage = __('Not Installed', 'fluent-cart');
                 $statusColor = $styles['status_warning'];
                 $actionButton = $this->renderInstallButton(

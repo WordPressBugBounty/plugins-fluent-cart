@@ -59,6 +59,13 @@ class ProductVariationRequest extends RequestGuard
         }
         $data['variants']['other_info'] = $variantOtherInfo;
 
+        if (Arr::get($variantOtherInfo, 'payment_type') === 'onetime') {
+            $subscriptionFields = ['trial_days', 'times', 'repeat_interval', 'billing_summary', 'manage_setup_fee', 'signup_fee', 'signup_fee_name', 'setup_fee_per_item'];
+            foreach ($subscriptionFields as $field) {
+                unset($data['variants']['other_info'][$field]);
+            }
+        }
+
         return $data;
     }
 
@@ -117,8 +124,31 @@ class ProductVariationRequest extends RequestGuard
             'variants.other_info'                  => 'required|array',
             'variants.other_info.description'      => 'nullable|sanitizeTextArea|maxLength:255',
             'variants.other_info.payment_type'     => 'required|sanitizeText|in:onetime,subscription',
-            'variants.other_info.times'            => 'nullable|numeric',
-            'variants.other_info.trial_days'       => 'nullable|numeric|max:365',
+            'variants.other_info.times'            => [
+                function ($attribute, $value) {
+                    if ($this->get('variants.other_info.payment_type') !== 'subscription') {
+                        return null;
+                    }
+                    if (!empty($value) && !is_numeric($value)) {
+                        return __('Times must be a number.', 'fluent-cart');
+                    }
+                    return null;
+                },
+            ],
+            'variants.other_info.trial_days'       => [
+                function ($attribute, $value) {
+                    if ($this->get('variants.other_info.payment_type') !== 'subscription') {
+                        return null;
+                    }
+                    if (!empty($value) && !is_numeric($value)) {
+                        return __('Trial days must be a number.', 'fluent-cart');
+                    }
+                    if (!empty($value) && $value > 365) {
+                        return __('Trial period cannot exceed 365 days.', 'fluent-cart');
+                    }
+                    return null;
+                },
+            ],
             'variants.other_info.repeat_interval'  => 'required_if:variants.other_info.payment_type,subscription|sanitizeText|maxLength:100',
             'variants.other_info.billing_summary'  => 'nullable|sanitizeTextArea|maxLength:255',
             'variants.other_info.manage_setup_fee' => 'required_if:variants.other_info.payment_type,subscription|sanitizeText|maxLength:100',

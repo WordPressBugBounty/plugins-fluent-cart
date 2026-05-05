@@ -439,12 +439,16 @@ class Stripe extends AbstractPaymentGateway
         $publicKey = $stripeSettings->getPublicKey();
 
         if (empty($publicKey)) {
-            $message = __('No valid public key found!', 'fluent-cart');
-            fluent_cart_add_log('Stripe Credential Validation', $message, 'error', ['log_type' => 'payment']);
+            fluent_cart_add_log(
+                'Stripe Credential Validation',
+                sprintf('Stripe %s keys are missing or invalid.', $stripeSettings->getMode()),
+                'error',
+                ['log_type' => 'payment']
+            );
             wp_send_json([
                 'status'  => 'failed',
-                'message' => $message
-            ], 423);
+                'message' => __('No valid public key found! Please contact the site administrator.', 'fluent-cart')
+            ], 422);
         }
 
         $paymentArgs['public_key'] = $publicKey;

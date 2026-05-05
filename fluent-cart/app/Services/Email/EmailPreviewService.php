@@ -60,10 +60,15 @@ class EmailPreviewService
     private function getDummyTransaction(): object
     {
         return new class {
-            public $created_at = '';
+            public $created_at;
             public $total = 4900;
             public $vendor_charge_id = 'ch_preview_123';
             public $order = null;
+
+            public function __construct()
+            {
+                $this->created_at = DateTime::gmtNow();
+            }
 
             public function getPaymentMethodText()
             {

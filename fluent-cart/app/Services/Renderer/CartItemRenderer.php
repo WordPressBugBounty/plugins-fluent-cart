@@ -199,6 +199,10 @@ class CartItemRenderer
 
     protected function maybeRenderPackageInfo()
     {
+        if (Arr::get($this->item, 'fulfillment_type') !== 'physical') {
+            return;
+        }
+
         $otherInfo = Arr::get($this->item, 'other_info', []);
         if (!is_array($otherInfo)) {
             return;

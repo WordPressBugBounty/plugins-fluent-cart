@@ -480,15 +480,16 @@ class IPN
             }
         }
 
-        // Let's see if this is our first transaction that we did not capture
+        // Latest charge transaction = pending one for initial subscription OR for renewal
         $latestTransaction = $subscriptionModel->getLatestTransaction();
 
-        if (!$latestTransaction->vendor_charge_id && $latestTransaction->total) {
-            // That means this is our first transaction of the subscription
-            $latestTransaction->payment_method_type = 'PayPal';
-            $latestTransaction->vendor_charge_id = $chargeId;
-            $latestTransaction->total = $amount;
-            $latestTransaction->save();
+        if ($latestTransaction && $latestTransaction->status !== Status::TRANSACTION_SUCCEEDED && !$latestTransaction->vendor_charge_id && $latestTransaction->total) {
+            (new Processor())->confirmPaymentSuccessByCharge($latestTransaction, [
+                'vendor_charge_id'    => $chargeId,
+                'status'              => Status::TRANSACTION_SUCCEEDED,
+                'total'               => $amount,
+                'payment_method_type' => 'PayPal',
+            ]);
             return true;
         }
 

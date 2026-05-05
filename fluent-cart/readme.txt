@@ -4,7 +4,7 @@ Tags: ecommerce, cart, checkout, subscriptions, payments
 Requires at least: 6.7
 Tested up to: 6.9
 Requires PHP: 7.4
-Stable tag: 1.3.25
+Stable tag: 1.3.26
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -312,6 +312,21 @@ This service is provided by PayPal: [Terms of Service](https://www.paypal.com/le
 
 
 == Changelog ==
+
+= 1.3.26 (May 5, 2026) =
+- Adds Square Payment gateway
+- Adds Private products support in discounts, coupons, and order bumps
+- Adds Subscription setup fee to receipts and emails
+- Fixes Order/invoice dates showing the previous day in profiles
+- Fixes Coupon expiration timezone mismatch
+- Fixes Duplicate success toast on product update
+- Fixes Email preview created_at DateTime issue
+- Fixes Safari chevron icon visibility issue
+- Fixes Menu button and dropdown styling issues
+- Fixes LearnDash course expiry resolution for users
+- Improves button feedback with visual indicators only
+- Fixes Skip subscription field validation when subscription is disabled
+- Fixes Auto-expand Additional display prices section when subscription is enabled
 
 = 1.3.25 (Apr 30, 2026) =
 - Fixes Sites with www and non-www counted as separate activations

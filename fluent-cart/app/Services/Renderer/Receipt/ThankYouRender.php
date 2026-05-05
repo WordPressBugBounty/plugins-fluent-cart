@@ -302,6 +302,11 @@ class ThankYouRender
                                 <?php echo wp_kses_post($item['payment_info']) ?>
                             </p>
                         <?php endif; ?>
+                        <?php if (!empty($item['setup_info'])): ?>
+                            <p class="fct-thank-you-page-order-items-list-payment-info">
+                                <?php echo wp_kses_post($item['setup_info']); ?>
+                            </p>
+                        <?php endif; ?>
 
                         <?php $this->renderBundleProducts($item); ?>
                     </div>
@@ -570,7 +575,7 @@ class ThankYouRender
                                             /* translators: 1: Next billing date */
                                                 esc_html__('- Auto renews on %1$s', 'fluent-cart'),
                                                 esc_html(
-                                                        \FluentCart\App\Services\DateTime\DateTime::anyTimeToGmt($subs->next_billing_date)->format('M d, Y h:i A')
+                                                        \FluentCart\App\Services\DateTime\DateTime::gmtToTimezone($subs->next_billing_date)->format('M d, Y h:i A')
                                                 )
                                         );
                                         ?>

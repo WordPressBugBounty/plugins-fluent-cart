@@ -626,6 +626,10 @@ class ProductRenderer
      */
     private function getVariantPackageInfoJson(ProductVariation $variant)
     {
+        if ($variant->fulfillment_type !== 'physical') {
+            return '';
+        }
+
         $otherInfo = $variant->other_info ?: [];
         $packageSlug = Arr::get($otherInfo, 'package_slug', '');
         $package = Helper::getPackageBySlug($packageSlug);

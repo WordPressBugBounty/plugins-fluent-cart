@@ -346,25 +346,6 @@ class Processor
         $transactionUpdateData = [];
         $lastTransactionAmount = Helper::toCent(Arr::get($paypalSubscription, 'billing_info.last_payment.amount.value', 0));
 
-        if ($lastTransactionAmount && $transaction->total > 0 && $lastTransactionAmount != $transaction->total) {
-            fluent_cart_add_log(
-                __('PayPal Subscription Amount Mismatch', 'fluent-cart'),
-                sprintf(
-                    /* translators: %1$s: expected amount, %2$s: received amount */
-                    __('PayPal subscription billing amount mismatch. Expected: %1$s, Received: %2$s. Subscription not activated.', 'fluent-cart'),
-                    Helper::toDecimal($transaction->total),
-                    Helper::toDecimal($lastTransactionAmount)
-                ),
-                'error',
-                [
-                    'module_name' => 'order',
-                    'module_id'   => $order->id,
-                    'log_type'    => 'api'
-                ]
-            );
-            return $subscriptionModel; // Do not activate
-        }
-
         if (($lastTransactionAmount && $transaction->total == $lastTransactionAmount) || $transaction->total == 0) {
             $transactionUpdateData = [
                 'order_id'       => $order->id,

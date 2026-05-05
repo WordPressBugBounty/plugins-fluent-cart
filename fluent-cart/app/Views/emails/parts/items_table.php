@@ -66,6 +66,12 @@ use FluentCart\Framework\Support\Arr;
                     </p>
                 <?php endif; ?>
 
+                <?php if (!empty($item['setup_info'])): ?>
+                    <p style="font-size:12px;color:rgb(75,85,99);line-height:20px;margin: 3px 0 0 0;">
+                        <?php echo wp_kses_post($item['setup_info']); ?>
+                    </p>
+                <?php endif; ?>
+
                 <?php
                     $otherInfo = is_array($item['other_info'] ?? null) ? $item['other_info'] : [];
                     $packageInfo = Arr::get($item, 'package_info', '');

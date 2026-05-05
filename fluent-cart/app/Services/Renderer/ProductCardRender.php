@@ -151,6 +151,10 @@ class ProductCardRender
         $showProductWeight,
         $showTotalWeight
     ) {
+        if ($variant->fulfillment_type !== 'physical') {
+            return;
+        }
+
         $packageSlug = Arr::get($variant->other_info, 'package_slug', '');
         $package = Helper::getPackageBySlug($packageSlug);
 

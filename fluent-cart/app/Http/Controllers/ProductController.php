@@ -959,7 +959,7 @@ class ProductController extends Controller
         $includeIds = Arr::get($data, 'include_ids', []);
 
         $productsQuery = Product::query()
-            ->where('post_status', 'publish');
+            ->whereIn('post_status', ['publish', 'private']);
 
         $productsQuery->with(['detail', 'variants' => function ($query) use ($subscription_status) {
             if ($subscription_status === 'not_subscribable') {
@@ -1030,7 +1030,7 @@ class ProductController extends Controller
             $leftVariants = ProductVariation::query()
                 ->whereIn('id', $leftVariationIds)
                 ->with(['product' => function ($query) {
-                    $query->where('post_status', 'publish');
+                    $query->whereIn('post_status', ['publish', 'private']);
                 }, 'product.detail'])
                 ->get();
 
