@@ -483,13 +483,19 @@ class IPN
         // Latest charge transaction = pending one for initial subscription OR for renewal
         $latestTransaction = $subscriptionModel->getLatestTransaction();
 
-        if ($latestTransaction && $latestTransaction->status !== Status::TRANSACTION_SUCCEEDED && !$latestTransaction->vendor_charge_id && $latestTransaction->total) {
-            (new Processor())->confirmPaymentSuccessByCharge($latestTransaction, [
-                'vendor_charge_id'    => $chargeId,
-                'status'              => Status::TRANSACTION_SUCCEEDED,
-                'total'               => $amount,
-                'payment_method_type' => 'PayPal',
-            ]);
+        if ($latestTransaction && !$latestTransaction->vendor_charge_id && $latestTransaction->total) {
+            if ($latestTransaction->status !== Status::TRANSACTION_SUCCEEDED) {
+                (new Processor())->confirmPaymentSuccessByCharge($latestTransaction, [
+                    'vendor_charge_id'    => $chargeId,
+                    'status'              => Status::TRANSACTION_SUCCEEDED,
+                    'total'               => $amount,
+                    'payment_method_type' => 'PayPal',
+                ]);
+            } else {
+                // activateSubscription() already marked this succeeded (billing_info.last_payment matched),
+                // but vendor_charge_id was not available at that point — fill it in now.
+                $latestTransaction->update(['vendor_charge_id' => $chargeId]);
+            }
             return true;
         }
 

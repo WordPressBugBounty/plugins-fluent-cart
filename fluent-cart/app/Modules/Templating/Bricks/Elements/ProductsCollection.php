@@ -12,6 +12,7 @@ use FluentCart\App\Modules\Templating\Bricks\BricksHelper;
 use FluentCart\App\Services\Renderer\RenderHelper;
 use FluentCart\App\Services\Renderer\ShopAppRenderer;
 use FluentCart\Framework\Support\Arr;
+use FluentCart\App\Services\Renderer\ProductFilterRender;
 
 if (!defined('ABSPATH')) exit; // Exit if accessed directly
 
@@ -45,6 +46,16 @@ class ProductsCollection extends Custom_Render_Element
             'tab'   => 'content',
         ];
 
+        $this->control_groups['display'] = [
+            'title' => esc_html__('Display', 'fluent-cart'),
+            'tab'   => 'content',
+        ];
+
+        $this->control_groups['filter'] = [
+            'title' => esc_html__('Filter', 'fluent-cart'),
+            'tab'   => 'content',
+        ];
+
         $this->control_groups['widgets'] = [
             'title' => esc_html__('Widgets', 'fluent-cart'),
             'tab'   => 'widgets',
@@ -54,6 +65,40 @@ class ProductsCollection extends Custom_Render_Element
     public function set_controls()
     {
         // LAYOUT
+        $this->controls['viewMode'] = [
+            'tab'         => 'content',
+            'group'       => 'display',
+            'label'       => esc_html__('View Mode', 'fluent-cart'),
+            'type'        => 'select',
+            'options'     => [
+                'grid' => esc_html__('Grid', 'fluent-cart'),
+                'list' => esc_html__('List', 'fluent-cart'),
+            ],
+            'placeholder' => esc_html__('Grid', 'fluent-cart'),
+            'rerender'    => true,
+        ];
+
+        $this->controls['showViewSwitcher'] = [
+            'tab'     => 'content',
+            'group'   => 'display',
+            'label'   => esc_html__('Show View Switcher', 'fluent-cart'),
+            'type'    => 'checkbox',
+            'inline'  => true,
+            'default' => true,
+        ];
+
+        $this->controls['paginationType'] = [
+            'tab'         => 'content',
+            'group'       => 'display',
+            'label'       => esc_html__('Pagination Type', 'fluent-cart'),
+            'type'        => 'select',
+            'options'     => [
+                'scroll'  => esc_html__('Scroll', 'fluent-cart'),
+                'numbers' => esc_html__('Numbers', 'fluent-cart'),
+            ],
+            'placeholder' => esc_html__('Numbers', 'fluent-cart'),
+        ];
+
         $this->controls['columns'] = [
             'tab'         => 'content',
             'label'       => esc_html__('Columns', 'fluent-cart'),
@@ -83,7 +128,9 @@ class ProductsCollection extends Custom_Render_Element
             'tab'   => 'content',
             'label' => esc_html__('Products per page', 'fluent-cart'),
             'type'  => 'number',
-            'min'   => -1,
+            'min'   => 1,
+            'max'   => 100,
+            'placeholder' => 10,
             'step'  => 1,
         ];
 
@@ -192,12 +239,102 @@ class ProductsCollection extends Custom_Render_Element
             'type'  => 'checkbox',
         ];
 
-//        $this->controls['hideOutOfStock'] = [
-//            'tab'   => 'content',
-//            'group' => 'query',
-//            'label' => esc_html__('Hide out of stock items', 'fluent-cart'),
-//            'type'  => 'checkbox',
-//        ];
+        $this->controls['allowOutOfStock'] = [
+            'tab'     => 'content',
+            'group'   => 'query',
+            'label'   => esc_html__('Allow Out Of Stock', 'fluent-cart'),
+            'type'    => 'checkbox',
+        ];
+
+        // FILTER
+        $this->controls['enableFilter'] = [
+            'tab'     => 'content',
+            'group'   => 'filter',
+            'label'   => esc_html__('Enable Filter', 'fluent-cart'),
+            'type'    => 'checkbox',
+            'inline'  => true,
+        ];
+
+        $this->controls['liveFilter'] = [
+            'tab'      => 'content',
+            'group'    => 'filter',
+            'label'    => esc_html__('Live Filter', 'fluent-cart'),
+            'type'     => 'checkbox',
+            'inline'   => true,
+            'required' => ['enableFilter', '=', true],
+        ];
+
+        $this->controls['wildcardFilter'] = [
+            'tab'      => 'content',
+            'group'    => 'filter',
+            'label'    => esc_html__('Wildcard Filter', 'fluent-cart'),
+            'type'     => 'checkbox',
+            'inline'   => true,
+            'required' => ['enableFilter', '=', true],
+        ];
+
+        $this->controls['productCategories'] = [
+            'tab'      => 'content',
+            'group'    => 'filter',
+            'label'    => esc_html__( 'Product Categories', 'fluent-cart' ),
+            'type'     => 'checkbox',
+            'inline'   => true,
+            'required' => ['enableFilter', '=', true],
+        ];
+
+        $this->controls['displayNameCategories'] = [
+            'tab'      => 'content',
+            'group'    => 'filter',
+            'label'    => esc_html__('Display Name', 'fluent-cart'),
+            'type'     => 'text',
+            'placeholder' => esc_html__('Custom filter label', 'fluent-cart'),
+            'required' => [
+                ['enableFilter', '=', true],
+                ['productCategories', '=', true],
+            ],
+        ];
+
+        $this->controls['productBrands'] = [
+            'tab'      => 'content',
+            'group'    => 'filter',
+            'label'    => esc_html__( 'Product Brands', 'fluent-cart' ),
+            'type'     => 'checkbox',
+            'inline'   => true,
+            'required' => ['enableFilter', '=', true],
+        ];
+
+        $this->controls['displayNameBrands'] = [
+            'tab'      => 'content',
+            'group'    => 'filter',
+            'label'    => esc_html__('Display Name', 'fluent-cart'),
+            'type'     => 'text',
+            'placeholder' => esc_html__('Custom filter label', 'fluent-cart'),
+            'required' => [
+                ['enableFilter', '=', true],
+                ['productBrands', '=', true],
+            ],
+        ];
+
+        $this->controls['priceRange'] = [
+            'tab'      => 'content',
+            'group'    => 'filter',
+            'label'    => esc_html__( 'Price Range', 'fluent-cart' ),
+            'type'     => 'checkbox',
+            'inline'   => true,
+            'required' => ['enableFilter', '=', true],
+        ];
+
+        $this->controls['displayNamePriceRange'] = [
+            'tab'      => 'content',
+            'group'    => 'filter',
+            'label'    => esc_html__('Display Name', 'fluent-cart'),
+            'type'     => 'text',
+            'placeholder' => esc_html__('Custom filter label', 'fluent-cart'),
+            'required' => [
+                ['enableFilter', '=', true],
+                ['priceRange', '=', true],
+            ],
+        ];
 
         // FIELDS
         $fields = $this->get_post_fields();
@@ -215,13 +352,14 @@ class ProductsCollection extends Custom_Render_Element
                 'id'          => Helpers::generate_random_id(false),
             ],
             [
-                'dynamicData'   => '{post_title:link}',
+                'dynamicData'   => '{fct_product_title:linked}',
                 'tag'           => 'h5',
-                'dynamicMargin' => [
-                    'top'    => 15,
-                    'bottom' => 5,
-                ],
                 'id'            => Helpers::generate_random_id(false),
+            ],
+            [
+                'dynamicData' => '{fct_product_excerpt}',
+                'tag'         => 'p',
+                'id'          => Helpers::generate_random_id(false),
             ],
             [
                 'dynamicData' => '{fct_product_price}',
@@ -251,28 +389,192 @@ class ProductsCollection extends Custom_Render_Element
 
         $this->setBricksQuery();
 
-        $columns = (int)Arr::get($settings, 'columns', 4);
+        $columns = $this->normalizeColumns(Arr::get($settings, 'columns', 4));
+
+        $viewMode = Arr::get($settings, 'viewMode', 'grid');
+        $showViewSwitcher = !empty($settings['showViewSwitcher']);
+        $paginationType = Arr::get($settings, 'paginationType', 'numbers');
+        $isMainQuery = Arr::get($settings, 'is_main_query', false) && $this->is_frontend;
+        $perPage = (int)Arr::get($settings, 'posts_per_page', 10);
+        $enableFilter = !empty($settings['enableFilter']);
+        $priceRange = !empty($settings['priceRange']);
+        $liveFilter = !empty($settings['liveFilter']);
+
+        $this->storeSettingsTransient($settings);
+        
+        if ($perPage <= 0) {
+            $perPage = 10;
+        }
+
+        if ($perPage > 100) {
+            $perPage = 100;
+        }
+        
+        $args = $this->buildQueryArgs(
+            $settings,
+            $isMainQuery,
+            $perPage,
+            $viewMode
+        );
+
+        $productsQuery = (new ProductQuery($args));
+        $products = $productsQuery->get();
+        $defaultFilters = $productsQuery->getDefaultFilters();
+        $ajaxDefaultFilters = $this->getAjaxDefaultFilters(
+            $defaultFilters,
+            $settings
+        );
+        
+        $filters = $this->getFilters($settings);
+
+        $wrapperClass = 'fct-products-wrapper-inner ' . ($viewMode === 'list' ? 'mode-list' : 'mode-grid') . (!$enableFilter ? ' fct-full-container-width' : '');
+
+        $wrapperAttributes = [
+            'class'                                  => $wrapperClass,
+            'data-fluent-cart-product-wrapper-inner' => '',
+            'data-per-page'                          => $perPage,
+            'data-order-type'                        => Arr::get($defaultFilters, 'sort_type'),
+            'data-live-filter'                       => $liveFilter,
+            'data-paginator'                         => esc_attr($paginationType),
+            'data-default-filters'                   => wp_json_encode($ajaxDefaultFilters)
+        ];
+
+        $productWrapperClasses = [
+            'fct-products-wrapper',
+            'fct-brick-products-wrapper',
+        ];
+
+        if (!$this->is_frontend) {
+            $productWrapperClasses[] = 'fct-bricks-editor-mode';
+        }
+
+
+        ?>
+        <div 
+            <?php 
+                //phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- render_attributes() handles escaping internally
+                echo $this->render_attributes('_root'); 
+            ?>
+        >
+            <div 
+                <?php 
+                    //phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- render_attributes() handles escaping internally
+                    echo $this->render_attributes('wrapper'); 
+                ?>
+            >
+                <div 
+                    class="<?php echo esc_attr(implode(' ', $productWrapperClasses)); ?>"
+                    data-fluent-cart-shop-app
+                    data-fluent-cart-product-wrapper
+                >
+                    <!-- View switcher -->
+                    <?php
+                        if ($showViewSwitcher) {
+                            $renderer = new ShopAppRenderer(
+                                $products, 
+                                ['view_mode' => $viewMode]
+                            );
+
+                            $renderer->renderViewSwitcher();
+                        }
+                    ?>
+
+                    <!-- Products Container -->
+                    <div <?php RenderHelper::renderAtts($wrapperAttributes); ?>>
+                        <!-- Filter render here -->
+                        <?php
+                            if ($enableFilter) {
+                                $shopAppRenderer = new ShopAppRenderer(
+                                    $products,
+                                    [
+                                        'view_mode' => $viewMode,
+                                        'enabled' => $enableFilter,
+                                        'enable_wildcard_filter' => !empty($settings['wildcardFilter']),
+                                        'custom_filters'  => [
+                                            'price_range' => $priceRange,
+                                            'live_filter' => $liveFilter
+                                        ],
+                                    ]
+                                );
+
+                                $productFilterRenderer = new ProductFilterRender($filters);
+
+                                $shopAppRenderer->renderFilter($productFilterRenderer);
+                            }
+                        ?>
+
+                        <!-- Products -->
+                        <div
+                            data-fluent-cart-shop-app-product-list
+                            class="fct-products-container grid-columns-<?php echo esc_attr($columns); ?>"
+                        >
+                            <?php $this->renderProducts($products); ?>
+                        </div>
+
+                    </div>
+
+                    <!-- Pagination -->
+                    <?php
+                        if ($paginationType !== 'scroll') {
+                            $this->renderPagination(
+                                $products,
+                                $defaultFilters,
+                                $paginationType,
+                                $perPage,
+                                $viewMode
+                            );
+                        }
+                    ?>
+
+
+                </div>
+            </div>
+        </div>
+
+        <?php
+    }
+
+    /**
+     * Normalize columns count.
+     */
+    private function normalizeColumns($columns)
+    {
+        $columns = (int)$columns;
+
         if (!$columns) {
-            $columns = 4;
+            return 4;
         }
 
         if ($columns > 5) {
-            $columns = 5;
+            return 5;
         }
 
+        return $columns;
+    }
+
+    /**
+     * Store settings in transient.
+     */
+    private function storeSettingsTransient($settings)
+    {
         $uuid = 'fc_bx_collection_' . $this->uid;
-        if (!$this->is_frontend || !get_transient($uuid)) {
+        if (!get_transient($uuid)) {
             // save the settings as transient
             set_transient($uuid, $settings, 48 * HOUR_IN_SECONDS);
         }
+    }
 
-        $isMainQuery = Arr::get($settings, 'is_main_query', false) && $this->is_frontend;
+    /**
+     * Build query args.
+     */
+    private function buildQueryArgs($settings, $isMainQuery, $perPage, $viewMode) {
         $args = array_filter([
             'paginate'      => 'simple',
             'is_main_query' => $isMainQuery,
             'sort_by'       => Arr::get($settings, 'orderby', 'date'),
             'sort_type'     => Arr::get($settings, 'order', 'desc'),
-            'per_page'      => (int)Arr::get($settings, 'posts_per_page', 0),
+            'per_page'      => $perPage,
+            'view_mode'     => $viewMode,
         ]);
 
         if (!$isMainQuery) {
@@ -297,10 +599,9 @@ class ProductsCollection extends Custom_Render_Element
                 $args['on_sale'] = true;
             }
 
-            $hideOutOfStock = Arr::get($settings, 'hideOutOfStock', false);
-
-            if ($hideOutOfStock) {
-                $args['stock_status'] = 'in_stock';
+            $allowOutOfStock = Arr::get($settings, 'allowOutOfStock', false);
+            if ($allowOutOfStock) {
+                $args['allow_out_of_stock'] = true;
             }
 
             $categories = Arr::get($settings, 'categories', []);
@@ -312,62 +613,96 @@ class ProductsCollection extends Custom_Render_Element
             }
         }
 
+        return $args;
+    }
 
-        $productsQuery = (new ProductQuery($args));
-        $products = $productsQuery->get();
+    /**
+     * Render product loop.
+     */
 
-        $defaultFilters = $productsQuery->getDefaultFilters();
-
-        // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- render_attributes() handles escaping internally
-        echo "<div {$this->render_attributes( '_root' )}>";
-
-        // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- render_attributes() handles escaping internally
-        echo "<div {$this->render_attributes( 'wrapper' )}>";
-
-        $wrapperAttributes = [
-            'class'                                  => 'fct-products-wrapper-inner mode-grid fct-full-container-width',
-            'data-fluent-cart-product-wrapper-inner' => '',
-            'data-per-page'                          => Arr::get($defaultFilters, 'per_page'),
-            'data-order-type'                        => Arr::get($defaultFilters, 'sort_type'),
-            'data-live-filter'                       => true,
-            'data-paginator'                         => 'numbers',
-            'data-default-filters'                   => wp_json_encode($defaultFilters)
-        ];
-
-        echo '<div class="fct-products-wrapper" data-fluent-cart-shop-app data-fluent-cart-product-wrapper>';
-        ?>
-    <div <?php RenderHelper::renderAtts($wrapperAttributes); ?>>
-        <?php
-        echo '<div data-fluent-cart-shop-app-product-list class="fct-products-container grid-columns-' . esc_attr($columns) . '">';
-        // Default WooCommerce loop template
-
+    private function renderProducts($products) {
         ProductDataSetup::setProductsCache($products);
+
         $postIndex = 1;
+
         foreach ($products as $product) {
             $post = get_post($product->ID);
+
             setup_postdata($post);
+
             $this->set_loop_object($post);
+
             $this->render_fields($post, $postIndex);
+
             $this->next_iteration();
+
             $postIndex++;
         }
+
         wp_reset_postdata();
 
         $this->end_iteration();
+    }
 
-        echo '</div>';
-
-        echo '</div>';
-        // Pagination print here.
-        $renderer = new ShopAppRenderer($products, [
-            'default_filters' => $defaultFilters,
-            'pagination_type' => 'simple'
-        ]);
+    /**
+     * Render pagination.
+     */
+    private function renderPagination(
+        $products,
+        $defaultFilters,
+        $paginationType,
+        $perPage,
+        $viewMode
+    ) {
+        $renderer = new ShopAppRenderer(
+            [
+                'products' => $products,
+                'total'    => $products->total(),
+            ],
+            [
+                'default_filters' => $defaultFilters,
+                'pagination_type' => $paginationType,
+                'per_page'        => $perPage,
+                'view_mode'       => $viewMode,
+            ]
+        );
 
         $renderer->renderPaginator();
-        echo '</div>';
-        echo '</div>';
-        echo '</div>';
+    }
+
+    /**
+     * Get available product filters.
+     */
+    private function getFilters(array $settings): array
+    {
+        $categoriesLabel = !empty($settings['displayNameCategories']) ? $settings['displayNameCategories'] : __('Product Categories', 'fluent-cart');
+        $brandsLabel = !empty($settings['displayNameBrands']) ? $settings['displayNameBrands'] : __('Product Brands', 'fluent-cart');
+        $priceRangeLabel = !empty($settings['displayNamePriceRange']) ? $settings['displayNamePriceRange'] : __('Price', 'fluent-cart');
+
+        $filters = [
+            'product-categories' => [
+                'filter_type' => 'options',
+                'is_meta'     => true,
+                'label'       => $categoriesLabel,
+                'enabled'     => !empty($settings['productCategories']),
+                'multiple'    => false,
+            ],
+            'product-brands' => [
+                'filter_type' => 'options',
+                'is_meta'     => true,
+                'label'       => $brandsLabel,
+                'enabled'     => !empty($settings['productBrands']),
+                'multiple'    => false,
+            ],
+            'price_range' => [
+                'filter_type' => 'range',
+                'is_meta'     => false,
+                'label'       => $priceRangeLabel,
+                'enabled'     => !empty($settings['priceRange'])
+            ],
+        ];
+
+        return $filters;
     }
 
     private function setBricksQuery()
@@ -410,6 +745,29 @@ class ProductsCollection extends Custom_Render_Element
         wp_reset_postdata();
 
         $this->end_iteration();
+    }
+
+    private function getAjaxDefaultFilters(array $defaultFilters, array $settings): array
+    {
+        $filters = [];
+        $taxQuery = Arr::get($defaultFilters, 'tax_query', []);
+
+        if (!empty($taxQuery)) {
+            foreach ($taxQuery as $taxonomy => $termIds) {
+                $filters[$taxonomy] = $termIds;
+            }
+        }
+
+        $allowOutOfStock = Arr::get($settings, 'allowOutOfStock', false);
+        if ($allowOutOfStock) {
+            $filters['allow_out_of_stock'] = true;
+        }
+
+        if (!empty($filters)) {
+            $filters['enabled'] = true;
+        }
+
+        return $filters;
     }
 
 }

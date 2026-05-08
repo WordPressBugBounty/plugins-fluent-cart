@@ -22,6 +22,7 @@ class IntegrationEventListener
             'order_status_changed_to_canceled',
             'order_fully_refunded',
             'subscription_activated',
+            'subscription_reactivated',
             'subscription_canceled',
             'subscription_renewed',
             'subscription_eot',

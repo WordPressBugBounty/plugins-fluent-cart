@@ -349,6 +349,7 @@
             'resources/admin/Bits/Components/Icons/Shipping.vue',
             'resources/admin/Bits/Components/Icons/ShoppingBag.vue',
             'resources/admin/Bits/Components/Icons/ShoppingCartIcon.vue',
+            'resources/admin/Bits/Components/Icons/Sites.vue',
             'resources/admin/Bits/Components/Icons/SoftPackage.vue',
             'resources/admin/Bits/Components/Icons/Source.vue',
             'resources/admin/Bits/Components/Icons/SpeedFill.vue',
@@ -2711,6 +2712,16 @@
         'file' => 'chunks/ShoppingCartIcon.js',
         'name' => 'ShoppingCartIcon',
         'src' => 'resources/admin/Bits/Components/Icons/ShoppingCartIcon.vue',
+        'isDynamicEntry' => true,
+        'imports' => [
+            '_vue.esm-bundler.js',
+            '__plugin-vue_export-helper.js'
+        ]
+    ],
+    'resources/admin/Bits/Components/Icons/Sites.vue' => [
+        'file' => 'chunks/Sites.js',
+        'name' => 'Sites',
+        'src' => 'resources/admin/Bits/Components/Icons/Sites.vue',
         'isDynamicEntry' => true,
         'imports' => [
             '_vue.esm-bundler.js',

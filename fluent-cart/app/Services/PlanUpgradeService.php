@@ -162,10 +162,10 @@ class PlanUpgradeService
                 $paymentType = Arr::get($variant, 'payment_type');
                 $paymentSummary = Helper::toDecimal($cost) . ' one-time';
                 if ($paymentType === 'subscription') {
-                    $paymentSummary = '<strong>' . Helper::toDecimal($cost) . '</strong> first '
+                    $paymentSummary = '<strong>' . Helper::toDecimal($cost) . '</strong> ' . __('first', 'fluent-cart') . ' '
                         . Helper::humanIntervalMaps(Arr::get($variant->other_info, 'repeat_interval'))
-                        . ', then ' . Helper::toDecimal($variant->item_price)
-                        . '/' . Helper::humanIntervalMaps(Arr::get($variant->other_info, 'repeat_interval')) . ' thereafter.';
+                        . ', ' . __('then', 'fluent-cart') . ' ' . Helper::toDecimal($variant->item_price)
+                        . '/' . Helper::humanIntervalMaps(Arr::get($variant->other_info, 'repeat_interval')) . ' ' . __('thereafter', 'fluent-cart') . '.';
                 }
 
                 $upgradePaths[] = [

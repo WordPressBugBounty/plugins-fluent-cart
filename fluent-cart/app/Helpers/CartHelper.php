@@ -179,6 +179,22 @@ class CartHelper
         return ($shippingClass->cost * 100) * $factor;
     }
 
+    private static function itemHasFreeShipping($item): bool
+    {
+        return Arr::get($item, 'other_info.free_shipping', 'no') === 'yes';
+    }
+
+    private static function excludeFreeShippingPhysicalItems(array &$items, array &$physicalItems): void
+    {
+        foreach ($physicalItems as $key => $item) {
+            if (static::itemHasFreeShipping($item)) {
+                $items[$key]['shipping_charge'] = 0;
+                $items[$key]['itemwise_shipping_charge'] = 0;
+                unset($physicalItems[$key]);
+            }
+        }
+    }
+
     public static function calculateShippingMethodCharge(ShippingMethod $method, ?array $items = null, $returnType = 'amount')
     {
         static $onceCalculated = false;
@@ -233,6 +249,9 @@ class CartHelper
         $isAllDigital = $cartCheckoutService->isAllDigital();
         $physicalItems = $cartCheckoutService->physicalItems;
 
+        // Exclude only physical items marked for free shipping from charge calculation.
+        static::excludeFreeShippingPhysicalItems($items, $physicalItems);
+
         if (!$onceCalculated) {
             $onceCalculated = true;
             $productIds = array_unique(array_column($physicalItems, 'post_id'));
@@ -281,7 +300,18 @@ class CartHelper
             $totalItemWiseShippingCharge = $totalShippingCharge;
         }
 
-        if ($isAllDigital) {
+        // No shipping is charged for all-digital carts or when every physical item has free shipping.
+        if ($isAllDigital || empty($physicalItems)) {
+            if ($returnType === 'items') {
+                foreach ($items as $key => $item) {
+                    $items[$key]['shipping_charge'] = 0;
+                    $items[$key]['itemwise_shipping_charge'] = 0;
+                }
+                return [
+                    'items'           => $items,
+                    'shipping_amount' => 0
+                ];
+            }
             return 0;
         }
 
@@ -423,8 +453,14 @@ class CartHelper
     public static function calculateShippingByProfile($shippingMethodId, $cartItems, $country, $state = null, $returnType = 'amount')
     {
         $cartCheckoutService = new CheckoutService($cartItems);
+        $isAllDigital = $cartCheckoutService->isAllDigital();
+        $physicalItems = $cartCheckoutService->physicalItems;
 
-        if ($cartCheckoutService->isAllDigital()) {
+        // Exclude only physical items marked for free shipping from profile-based charges.
+        static::excludeFreeShippingPhysicalItems($cartItems, $physicalItems);
+
+        // No shipping is charged for all-digital carts or when every physical item has free shipping.
+        if ($isAllDigital || empty($physicalItems)) {
             if ($returnType === 'items') {
                 foreach ($cartItems as $key => $item) {
                     $cartItems[$key]['shipping_charge'] = 0;
@@ -434,8 +470,6 @@ class CartHelper
             }
             return 0;
         }
-
-        $physicalItems = $cartCheckoutService->physicalItems;
 
         // Load products with details
         $productIds = array_unique(array_column($physicalItems, 'post_id'));

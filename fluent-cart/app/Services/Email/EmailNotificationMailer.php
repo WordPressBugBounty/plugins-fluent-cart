@@ -112,6 +112,10 @@ class EmailNotificationMailer
             (new static())->sendAsyncSubscriptionMail($mailName, $subscriptionId);
         }, 10, 2);
 
+        add_action('fluent_cart/async_mail/subscription_reactivated', function ($subscriptionId, $mailName = '') {
+            (new static())->sendAsyncSubscriptionMail($mailName, $subscriptionId);
+        }, 10, 2);
+
         add_action('fluent_cart/async_mail/subscription_renewed', function ($subscriptionId, $mailName = '') {
             (new static())->sendAsyncSubscriptionMail($mailName, $subscriptionId);
         }, 10, 2);

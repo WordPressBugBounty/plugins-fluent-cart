@@ -1598,10 +1598,12 @@ class Helper
     public static function humanIntervalMaps($interval = '')
     {
         $intervals = [
-            'daily'   => 'day',
-            'weekly'  => 'week',
-            'monthly' => 'month',
-            'yearly'  => 'year'
+            'daily'   => __('day', 'fluent-cart'),
+            'weekly'  => __('week', 'fluent-cart'),
+            'monthly' => __('month', 'fluent-cart'),
+            'quarterly' => __('quarter', 'fluent-cart'),
+            'half_yearly' => __('six month', 'fluent-cart'),
+            'yearly'  => __('year', 'fluent-cart'),
         ];
 
         return Arr::get($intervals, $interval);

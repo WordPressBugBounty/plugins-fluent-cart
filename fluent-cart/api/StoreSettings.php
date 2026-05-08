@@ -1515,7 +1515,7 @@ class StoreSettings implements ArrayableInterface
             $pageId = Arr::get($this->storeSettings, 'customer_profile_page_id');
         }
 
-        if (!$pageId) {
+        if (!$pageId || !get_post($pageId)) {
             return $slug;
         }
 
@@ -1554,6 +1554,10 @@ class StoreSettings implements ArrayableInterface
 
     public function getPageLink($pageId = null): string
     {
+        if (!$pageId || !get_post($pageId)) {
+            return '';
+        }
+
         $link = get_page_link($pageId);
 
         if (!empty($link)) {

@@ -354,6 +354,12 @@ class Cart extends Model
             if ($this->isLocked()) {
                 return new \WP_Error('cart_locked', __('This cart is locked and cannot be modified.', 'fluent-cart'));
             }
+
+            if ($replacingIndex === null && !empty($this->cart_data)) {
+                if ($variation->payment_type === 'subscription' || $this->hasSubscription()) {
+                    return new \WP_Error('subscription_items_can_not_combined', __("Subscription items can't be combined with other products in the cart.", 'fluent-cart'));
+                }
+            }
         }
 
         $item = CartHelper::generateCartItemFromVariation($variation, $quantity);

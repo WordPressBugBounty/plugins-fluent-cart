@@ -3,9 +3,11 @@
 namespace FluentCart\App\Modules\PaymentMethods\Cod;
 
 
+use FluentCart\App\Events\Subscription\SubscriptionActivated;
 use FluentCart\App\Helpers\Status;
 use FluentCart\App\Helpers\StatusHelper;
 use FluentCart\App\Models\Cart;
+use FluentCart\App\Modules\Subscriptions\Services\SubscriptionService;
 use FluentCart\App\Services\DateTime\DateTime;
 use FluentCart\App\Services\Payments\PaymentHelper;
 use FluentCart\App\Models\Subscription;
@@ -88,9 +90,14 @@ class CodHandler {
                 ->first();
 
                 if ($subscription) {
-                    $subscription->status = 'active';
-                    $subscription->next_billing_date = null; // No future billing needed
-                    $subscription->save();
+                    $oldStatus = $subscription->status;
+                    $subscription = SubscriptionService::syncSubscriptionStates($subscription, [
+                        'status'            => Status::SUBSCRIPTION_ACTIVE,
+                        'next_billing_date' => null,
+                    ]);
+                    if ($oldStatus !== Status::SUBSCRIPTION_ACTIVE && $subscription->status === Status::SUBSCRIPTION_ACTIVE) {
+                        (new SubscriptionActivated($subscription, $order, $order->customer))->dispatch();
+                    }
                 }
         }
 

@@ -7,6 +7,7 @@ use FluentCart\Api\Resource\CustomerResource;
 use FluentCart\Api\Resource\OrderResource;
 use FluentCart\Api\StoreSettings;
 use FluentCart\App\Events\Order\OrderBulkAction;
+use FluentCart\App\Events\Subscription\SubscriptionActivated;
 use FluentCart\App\Events\Order\OrderCreated;
 use FluentCart\App\Events\Order\OrderDeleting;
 use FluentCart\App\Events\Order\OrderDeleted;
@@ -40,6 +41,7 @@ use FluentCart\App\Models\OrderDownloadPermission;
 use FluentCart\App\Models\Subscription;
 use FluentCart\App\Models\SubscriptionMeta;
 use FluentCart\App\Services\Filter\OrderFilter;
+use FluentCart\App\Modules\Subscriptions\Services\SubscriptionService;
 use FluentCart\App\Services\Payments\PaymentHelper;
 use FluentCart\App\Services\Reminders\ReminderService;
 use FluentCart\App\Services\DateTime\DateTime;
@@ -745,6 +747,17 @@ class OrderController extends Controller
         (new OrderPaid($order, $order->customer, $transaction))->dispatch();
 
         (new OrderStatusUpdated($order, $oldStatus, $order->status, true, $actionActivity, 'order_status'))->dispatch();
+
+        if ($order->type === 'subscription') {
+            $subscription = Subscription::query()->where('parent_order_id', $order->id)->first();
+            if ($subscription) {
+                $oldSubStatus = $subscription->status;
+                $subscription = SubscriptionService::syncSubscriptionStates($subscription, ['status' => Status::SUBSCRIPTION_ACTIVE]);
+                if ($oldSubStatus !== Status::SUBSCRIPTION_ACTIVE && $subscription->status === Status::SUBSCRIPTION_ACTIVE) {
+                    (new SubscriptionActivated($subscription, $order, $order->customer))->dispatch();
+                }
+            }
+        }
 
         // if digital
         if ($order->fulfillment_type == 'digital' && $order->status === Status::ORDER_PROCESSING) {

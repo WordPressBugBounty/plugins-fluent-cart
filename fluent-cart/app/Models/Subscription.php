@@ -426,10 +426,6 @@ class Subscription extends Model
             return '';
         }
 
-        if (isset($this->config['cancellation_reason']) && $this->config['cancellation_reason'] === 'refunded') {
-            return '';
-        }
-
         $canReactivate = in_array($this->status, [Status::SUBSCRIPTION_CANCELED, Status::SUBSCRIPTION_FAILING, Status::SUBSCRIPTION_EXPIRED, Status::SUBSCRIPTION_PAUSED, Status::SUBSCRIPTION_EXPIRING, Status::SUBSCRIPTION_PAST_DUE]);
 
         return apply_filters('fluent_cart/subscription/can_reactivate', $canReactivate, [
@@ -649,6 +645,18 @@ class Subscription extends Model
     public function getReactivationTrialDays()
     {
         if (!$this->hasAccessValidity()) {
+            return 0;
+        }
+
+        $lastPaidTransaction = OrderTransaction::query()
+            ->where('subscription_id', $this->id)
+            ->where('transaction_type', Status::TRANSACTION_TYPE_CHARGE)
+            ->where('status', Status::TRANSACTION_SUCCEEDED)
+            ->where('total', '>', 0)
+            ->orderBy('id', 'DESC')
+            ->first();
+
+        if ($lastPaidTransaction && $lastPaidTransaction->getMaxRefundableAmount() === 0) {
             return 0;
         }
 

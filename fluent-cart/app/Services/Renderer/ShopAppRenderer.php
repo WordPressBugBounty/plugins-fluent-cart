@@ -41,8 +41,11 @@ class ShopAppRenderer
 
     protected $total = 0;
 
+    protected $isWildcardFilterEnabled = false;
+
     public function __construct($products = [], $config = [])
     {
+        
         $defaultFilters = Arr::get($config, 'default_filters', []);
         $customFilters = Arr::get($config, 'custom_filters', []);
         $this->customFilters = $customFilters;
@@ -73,7 +76,7 @@ class ShopAppRenderer
             $this->paginator = 'scroll';
         }
         $this->productBoxGridSize = $config['product_box_grid_size'] ?? 4;
-
+        $this->isWildcardFilterEnabled = Arr::get($config, 'enable_wildcard_filter', false);
 
         if (Arr::get($products, 'products', [])) {
             $this->products = Arr::get($products, 'products', []);
@@ -472,7 +475,11 @@ class ShopAppRenderer
 
                     <form class="fct-shop-filter-form" data-fluent-cart-product-filter-form role="search"
                           aria-label="<?php esc_attr_e('Product filter form', 'fluent-cart'); ?>">
-                        <?php $renderer->renderSearch(); ?>
+                        <?php 
+                            if($this->isWildcardFilterEnabled){
+                                $renderer->renderSearch(); 
+                            }
+                        ?>
                         <?php $renderer->renderOptions(); ?>
                         <?php if (!$this->liveFilter) : ?>
                         <div class="fct-shop-filter-item">

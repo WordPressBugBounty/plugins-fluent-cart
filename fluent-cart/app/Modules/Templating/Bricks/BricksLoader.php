@@ -18,6 +18,8 @@ class BricksLoader
 
         (new DynamicData())->register();
 
+        add_action('wp_footer', [$this, 'addDynamicFieldClassesScript']);
+
         add_filter('fluent_cart/template/disable_taxonomy_fallback', function ($result) {
             $bricks_data = \Bricks\Database::get_template_data('archive');
 
@@ -79,5 +81,93 @@ class BricksLoader
         wp_reset_postdata();
 
         return ob_get_clean();
+    }
+
+    public function addDynamicFieldClassesScript()
+    {
+        ?>
+        <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const classMap = {
+                'product-title': 'fct-dynamic-product-title',
+                'product-image': 'fct-dynamic-product-image',
+                'product-excerpt': 'fct-dynamic-product-excerpt',
+                'product-price': 'fct-dynamic-product-price',
+                'product-button': 'fct-dynamic-product-button'
+            };
+
+            const applyDynamicFieldClass = function(marker) {
+                if (marker.hasAttribute('data-fct-field-class-applied')) {
+                    return;
+                }
+
+                const className = classMap[marker.getAttribute('data-fct-field')];
+
+                if (!className) {
+                    marker.setAttribute('data-fct-field-class-applied', '1');
+                    return;
+                }
+
+                let dynamicDiv = marker.closest('.dynamic');
+
+                if (!dynamicDiv) {
+                    dynamicDiv = marker.parentElement;
+                    while (dynamicDiv && !dynamicDiv.classList.contains('dynamic')) {
+                        dynamicDiv = dynamicDiv.parentElement;
+                    }
+                }
+
+                if (dynamicDiv) {
+                    dynamicDiv.classList.add(className);
+                }
+
+                marker.setAttribute('data-fct-field-class-applied', '1');
+            };
+
+            let scheduled = false;
+            const pendingNodes = new Set();
+
+            const processNode = function(node) {
+                if (!node || node.nodeType !== 1) {
+                    return;
+                }
+
+                const markers = node.matches('[data-fct-field]')
+                    ? [node]
+                    : node.querySelectorAll('[data-fct-field]');
+
+                markers.forEach(applyDynamicFieldClass);
+            };
+
+            const scheduleNode = function(node) {
+                pendingNodes.add(node);
+
+                if (scheduled) {
+                    return;
+                }
+
+                scheduled = true;
+                requestAnimationFrame(function() {
+                    pendingNodes.forEach(processNode);
+                    pendingNodes.clear();
+                    scheduled = false;
+                });
+            };
+
+            document.querySelectorAll('[data-fluent-cart-shop-app-product-list]').forEach(function(productList) {
+                processNode(productList);
+
+                new MutationObserver(function(mutations) {
+                    mutations.forEach(function(mutation) {
+                        mutation.addedNodes.forEach(scheduleNode);
+                    });
+                }).observe(productList, {
+                    childList: true,
+                    subtree: true
+                });
+            });
+        });
+        </script>
+        <?php
     }
 }

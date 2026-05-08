@@ -93,8 +93,8 @@ class ProductFilter extends BaseFilter
                         $detailQuery->where('payment_type', 'subscription');
                     });
                 } else if ($activeView === 'not_subscribable') {
-                    $q->whereHas('variants', function ($detailQuery) {
-                        $detailQuery->where('payment_type', '!=', 'subscription');
+                    $q->whereDoesntHave('variants', function ($detailQuery) {
+                        $detailQuery->where('payment_type', 'subscription');
                     });
                 } else if (in_array($activeView, ['bundle', 'non_bundle'])) {
                     $q->{$column}();

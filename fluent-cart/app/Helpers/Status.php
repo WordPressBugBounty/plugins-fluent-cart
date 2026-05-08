@@ -449,6 +449,10 @@ class Status
                             'label' => __('Subscription Activated', 'fluent-cart')
                         ],
                         [
+                            'value' => 'subscription_reactivated',
+                            'label' => __('Subscription Reactivated', 'fluent-cart')
+                        ],
+                        [
                             'value' => 'subscription_canceled',
                             'label' => __('Subscription Canceled', 'fluent-cart')
                         ],

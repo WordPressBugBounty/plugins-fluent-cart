@@ -96,7 +96,7 @@ class ShopController extends Controller
         $perPage = Arr::get($request->all(), 'per_page', 10);
 
         $products = $this->getProducts($request);
-        $total = $products['products']['total'];
+        $total = Arr::get($products, 'products.total', 0);
         $templateProvider = $request->get('template_provider', '');
         $clientId = $request->get('client_id', '');
         if ($templateProvider) {

@@ -9,6 +9,7 @@ use FluentCart\App\Helpers\Status;
 use FluentCart\App\Models\Order;
 use FluentCart\App\Models\OrderMeta;
 use FluentCart\App\Models\Subscription;
+use FluentCart\App\Modules\PaymentMethods\Core\GatewayManager;
 use FluentCart\App\Services\DateTime\DateTime;
 use FluentCart\App\Services\Payments\PaymentReceipt;
 use FluentCart\App\Services\TemplateService;
@@ -448,6 +449,102 @@ class OrderParser extends BaseParser
         }
 
         return '0';
+    }
+
+    public function getPaymentMethodTitle(): string
+    {
+        if (!$this->order) {
+            return '';
+        }
+
+        $title = (string) Arr::get($this->order, 'payment_method_title', '');
+        if ($title !== '') {
+            return $title;
+        }
+
+        $slug = (string) Arr::get($this->order, 'payment_method', '');
+        if ($slug === '') {
+            return '';
+        }
+
+        if (class_exists(GatewayManager::class)) {
+            $gateway = GatewayManager::getInstance($slug);
+            if ($gateway) {
+                $gatewayTitle = (string) $gateway->getMeta('title');
+                if ($gatewayTitle !== '') {
+                    return $gatewayTitle;
+                }
+            }
+        }
+
+        return ucwords(str_replace(['_', '-'], ' ', $slug));
+    }
+
+    public function getTaxBreakdown(): string
+    {
+        if (!$this->order) {
+            return '';
+        }
+
+        $currency      = (string) Arr::get($this->order, 'currency', '');
+        $taxTotal      = (int) Arr::get($this->order, 'tax_total', 0);
+        $shippingTax   = (int) Arr::get($this->order, 'shipping_tax', 0);
+        $rowStyle      = 'padding:5px 0;font-size:11px;';
+        $labelStyle    = $rowStyle . 'color:#525866;';
+        $valueStyle    = $rowStyle . 'color:#0E121B;text-align:right;';
+
+        $rows  = '';
+        $rates = $this->order->orderTaxRates ?? null;
+
+        if ($rates && $rates->count() > 0) {
+            foreach ($rates as $rate) {
+                $label  = $this->resolveTaxRateLabel($rate);
+                $amount = (int) Arr::get($rate, 'total_tax', (int) Arr::get($rate, 'order_tax', 0) + (int) Arr::get($rate, 'shipping_tax', 0));
+                $rows  .= '<tr>'
+                        . '<td style="' . $labelStyle . '">' . esc_html($label) . '</td>'
+                        . '<td style="' . $valueStyle . '">' . CurrencySettings::getPriceHtml($amount, $currency) . '</td>'
+                        . '</tr>';
+            }
+
+            return $rows;
+        }
+
+        if ($taxTotal > 0 || $shippingTax > 0) {
+            if ($shippingTax > 0 && $taxTotal > $shippingTax) {
+                $rows .= '<tr>'
+                       . '<td style="' . $labelStyle . '">' . esc_html__('Tax', 'fluent-cart') . '</td>'
+                       . '<td style="' . $valueStyle . '">' . CurrencySettings::getPriceHtml($taxTotal - $shippingTax, $currency) . '</td>'
+                       . '</tr>';
+                $rows .= '<tr>'
+                       . '<td style="' . $labelStyle . '">' . esc_html__('Shipping Tax', 'fluent-cart') . '</td>'
+                       . '<td style="' . $valueStyle . '">' . CurrencySettings::getPriceHtml($shippingTax, $currency) . '</td>'
+                       . '</tr>';
+            } else {
+                $rows .= '<tr>'
+                       . '<td style="' . $labelStyle . '">' . esc_html__('Tax', 'fluent-cart') . '</td>'
+                       . '<td style="' . $valueStyle . '">' . CurrencySettings::getPriceHtml($taxTotal, $currency) . '</td>'
+                       . '</tr>';
+            }
+        }
+
+        return $rows;
+    }
+
+    private function resolveTaxRateLabel($orderTaxRate): string
+    {
+        $taxRate = $orderTaxRate->tax_rate ?? null;
+        if ($taxRate) {
+            $name = (string) Arr::get($taxRate, 'name', '');
+            $rate = Arr::get($taxRate, 'rate');
+            if ($name !== '' && is_numeric($rate)) {
+                return $name . ' (' . rtrim(rtrim((string) $rate, '0'), '.') . '%)';
+            }
+            if ($name !== '') {
+                return $name;
+            }
+        }
+
+        return __('Tax', 'fluent-cart');
     }
 
     public function getSubscriptions()

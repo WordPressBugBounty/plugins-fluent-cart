@@ -622,7 +622,7 @@ class ThankYouRender
                                     <td>
                                         <?php if ($downloadItem['downloads']): ?>
 
-                                            <table role="presentation">
+                                            <table role="presentation" width="100%">
                                                 <tbody>
                                                 <?php foreach ($downloadItem['downloads'] as $download): ?>
                                                     <tr>

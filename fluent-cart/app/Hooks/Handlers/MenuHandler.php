@@ -24,6 +24,7 @@ use FluentCart\App\Helpers\CurrenciesHelper;
 use FluentCart\App\Services\Filter\TaxFilter;
 use FluentCart\App\Services\Filter\OrderFilter;
 use FluentCart\App\Services\Filter\LicenseFilter;
+use FluentCart\App\Services\Filter\LicenseSiteFilter;
 use FluentCart\App\Services\Filter\ProductFilter;
 use FluentCart\App\Services\Filter\CustomerFilter;
 use FluentCart\App\Modules\Integrations\AddOnModule;
@@ -390,8 +391,9 @@ class MenuHandler
             'order_filter_options'    => OrderFilter::getTableFilterOptions(),
             'customer_filter_options' => CustomerFilter::getTableFilterOptions(),
             'product_filter_options'  => ProductFilter::getTableFilterOptions(),
-            'license_filter_options'  => LicenseFilter::getTableFilterOptions(),
-            'tax_filter_options'      => TaxFilter::getTableFilterOptions(),
+            'license_filter_options'      => LicenseFilter::getTableFilterOptions(),
+            'license_site_filter_options' => LicenseSiteFilter::getTableFilterOptions(),
+            'tax_filter_options'          => TaxFilter::getTableFilterOptions(),
         ];
         $filterOptions = apply_filters('fluent_cart/admin_filter_options', $filterOptions, []);
 
@@ -401,6 +403,7 @@ class MenuHandler
             'customers'           => ['filters' => Arr::get($filterOptions, 'customer_filter_options', [])],
             'product_table'       => ['filters' => Arr::get($filterOptions, 'product_filter_options', [])],
             'licenses'            => ['filters' => Arr::get($filterOptions, 'license_filter_options', [])],
+            'license_sites'       => ['filters' => Arr::get($filterOptions, 'license_site_filter_options', [])],
             'taxes_table'         => ['filters' => Arr::get($filterOptions, 'tax_filter_options', [])],
             'subscriptions'       => ['filters' => Arr::get($filterOptions, 'subscription_filter_options', [])],
             'shipping_zone_table' => ['filters' => Arr::get($filterOptions, 'shipping_zone_filter_options', [])],

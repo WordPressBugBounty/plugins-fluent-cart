@@ -566,6 +566,28 @@ class CartResource extends BaseResourceApi
                     ),
                 ];
             }
+
+            $paymentType = $productVariation instanceof ProductVariation
+                ? $productVariation->payment_type
+                : Arr::get($productVariation, 'payment_type');
+
+            if ($paymentType === 'subscription' && $quantity > 1) {
+                return [
+                    'code'    => 'failed',
+                    'message' => __('You cannot purchase more than one subscription at a time.', 'fluent-cart'),
+                ];
+            }
+
+            if (!empty($existingItemsArray)) {
+                $hasSubscription = static::hasSubscriptionProduct($existingItemsArray);
+
+                if ($paymentType === 'subscription' || $hasSubscription) {
+                    return [
+                        'code'    => 'failed',
+                        'message' => __("Subscription items can't be combined with other products in the cart.", 'fluent-cart'),
+                    ];
+                }
+            }
         }
 
         if ($productVariation instanceof ProductVariation) {

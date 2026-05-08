@@ -4,7 +4,7 @@ Tags: ecommerce, cart, checkout, subscriptions, payments
 Requires at least: 6.7
 Tested up to: 6.9
 Requires PHP: 7.4
-Stable tag: 1.3.26
+Stable tag: 1.3.27
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -312,6 +312,28 @@ This service is provided by PayPal: [Terms of Service](https://www.paypal.com/le
 
 
 == Changelog ==
+
+= 1.3.27 (May 8, 2026) =
+- Adds List/Grid view switcher and advanced product filtering for Bricks
+- Adds Copy Variation ID action for simple product pricing panel
+- Adds Licensing Sites, Site pages, and advanced site filtering
+- Adds SubscriptionReactivated event
+- Fixes Order bump free-shipping checkbox issue
+- Fixes Missing shortcode variables in PDF receipt emails
+- Fixes Long file names overflowing receipt page download buttons
+- Fixes Cart allowing mixed or multiple subscriptions
+- Fixes Offline subscriptions with 100% recurring coupons issue when Subscription Activated
+- Fixes Subscription reactivation after refunds
+- Fixes PayPal IPN subscription handling
+- Fixes Redundant admin table search requests
+- Fixes Amount formatting and customer profile display in Site Detail view (Pro)
+- Fixes PHP warnings from deleted/invalid store pages
+- Fixes Admin menu active state style bleeding
+- Fixes Bricks Builder dynamic tag name mismatch
+- Fixes Authorize.net subscription issue
+- Improves Animation experience for table filters
+- Improves Bricks Builder pagination rendering and performance
+- Improves Product Pricing edit UX
 
 = 1.3.26 (May 5, 2026) =
 - Adds Square Payment gateway
