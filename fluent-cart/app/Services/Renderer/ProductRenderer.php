@@ -699,13 +699,27 @@ class ProductRenderer
 
     public function renderDescription()
     {
-        $post = get_post($this->product->ID);
-        if (!$post || empty($post->post_content)) {
+        $productPost = get_post($this->product->ID);
+        if (!$productPost || empty($productPost->post_content)) {
             return;
+        }
+
+        global $post;
+        $originalPost = $post;
+        $post = $productPost;
+        setup_postdata($post);
+
+        $content = apply_filters('the_content', $productPost->post_content);
+
+        $post = $originalPost;
+        if ($originalPost) {
+            setup_postdata($originalPost);
+        } else {
+            wp_reset_postdata();
         }
         ?>
         <div class="fct-product-description">
-            <?php echo apply_filters('the_content', $post->post_content); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+            <?php echo $content; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
         </div>
         <?php
     }

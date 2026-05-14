@@ -15,12 +15,8 @@ class AttrTermRequest extends RequestGuard
         $termId = $this->get('term_id');
         $tbl = 'fct_atts_terms';
 
-        /**
-         * todo - consult with heera bhai how to proceed with this composit unique validation
-         *
-         */
         return [
-            'title' => 'required|sanitizeText|maxLength:50|unique:' . $tbl . ',title,'.$termId.',id',
+            'title' => 'required|sanitizeText|maxLength:50',
             'slug' => 'required|sanitizeText|maxLength:50|unique:' . $tbl . ',slug,'.$termId.',id',
             'description' => 'nullable|sanitizeTextArea',
             'serial' => 'nullable|numeric'
@@ -47,6 +43,7 @@ class AttrTermRequest extends RequestGuard
     public function sanitize()
     {
         return [
+            'title' => 'sanitize_text_field',
             'serial' => 'sanitize_text_field',
             'description' => 'sanitize_text_field',
             'slug' => 'sanitize_text_field'

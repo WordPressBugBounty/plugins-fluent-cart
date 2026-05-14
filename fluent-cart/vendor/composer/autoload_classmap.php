@@ -1088,7 +1088,4 @@ return array(
     'FluentCart\\OpenSpout\\Writer\\XLSX\\Manager\\WorkbookManager' => $vendorDir . '/openspout/openspout/src/Writer/XLSX/Manager/WorkbookManager.php',
     'FluentCart\\OpenSpout\\Writer\\XLSX\\Manager\\WorksheetManager' => $vendorDir . '/openspout/openspout/src/Writer/XLSX/Manager/WorksheetManager.php',
     'FluentCart\\OpenSpout\\Writer\\XLSX\\Writer' => $vendorDir . '/openspout/openspout/src/Writer/XLSX/Writer.php',
-    'Psr\\Container\\ContainerExceptionInterface' => $vendorDir . '/psr/container/src/ContainerExceptionInterface.php',
-    'Psr\\Container\\ContainerInterface' => $vendorDir . '/psr/container/src/ContainerInterface.php',
-    'Psr\\Container\\NotFoundExceptionInterface' => $vendorDir . '/psr/container/src/NotFoundExceptionInterface.php',
 );

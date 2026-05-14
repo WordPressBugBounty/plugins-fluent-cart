@@ -9,7 +9,7 @@ use FluentCart\App\Services\URL;
 
 class ProductContent extends Element
 {
-    public $category = 'fluent_cart_product';
+    public $category = 'fluentcart';
     public $name = 'fct-product-content';
     public $icon = 'ti-wordpress';
 

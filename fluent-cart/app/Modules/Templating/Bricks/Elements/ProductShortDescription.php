@@ -11,7 +11,7 @@ if (!defined('ABSPATH')) exit; // Exit if accessed directly
 
 class ProductShortDescription extends Element
 {
-    public $category = 'fluent_cart_product';
+    public $category = 'fluentcart';
     public $name = 'fct-product-short-description';
     public $icon = 'ti-paragraph';
 

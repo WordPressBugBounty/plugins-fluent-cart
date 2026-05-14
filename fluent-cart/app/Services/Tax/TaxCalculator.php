@@ -217,6 +217,9 @@ class TaxCalculator
 
     protected function loadRates($country, $state = null, $city = null, $postCode = null, $taxClassIds = [])
     {
+        $resolved = TaxManager::getInstance()->resolveTaxCountryAndState($country, $state);
+        $country  = $resolved['country'];
+        $state    = $resolved['state'];
 
         $taxQuery = TaxRate::query()
             ->where('country', $country);

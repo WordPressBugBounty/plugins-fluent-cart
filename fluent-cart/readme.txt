@@ -4,7 +4,7 @@ Tags: ecommerce, cart, checkout, subscriptions, payments
 Requires at least: 6.7
 Tested up to: 6.9
 Requires PHP: 7.4
-Stable tag: 1.3.27
+Stable tag: 1.3.28
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -312,6 +312,47 @@ This service is provided by PayPal: [Terms of Service](https://www.paypal.com/le
 
 
 == Changelog ==
+
+= 1.3.28 (May 14, 2026) =
+- Adds Elementor widgets: Search Bar, Store Logo, Dashboard Button, and Package Description
+- Adds Draggable and reorderable summary sections in the Elementor Product Info widget
+- Adds Elementor Popup support for Single Product variations, gallery, and quantity
+- Adds Sort By toggle for the Bricks Products Collection element
+- Improves Elementor widget grouping under the “FluentCart Product” category
+- Improves 1-column checkout layout rendering in Elementor templates
+- Improves LearnDash course management support
+- Improves Mollie payment list currency handling
+- Improves Coupon failure messages at checkout
+- Improves Bricks element grouping under the “FluentCart” category
+- Improves Admin menu spacing on mobile
+- Improves Decimal trimming logic for tax rate formatting
+- Fixes Elementor Single Product widgets syncing with active variations
+- Fixes Buy button state updates for active variations
+- Fixes Stock badge clearing for variations without stock data
+- Fixes Stock label rendering as raw markup
+- Fixes Empty Elementor product widgets leaving empty wrappers
+- Fixes Product-template widget visibility outside Single Product documents
+- Fixes Elementor Product Info rendering and Select2 change events
+- Fixes Pricing Table shortcode and block rendering with `group_by` tabs
+- Fixes Single Product shortcode rendering for variations, thumbnails, and quantity
+- Fixes Product description rendering with third-party shortcodes and blocks
+- Fixes FSE rendering for Customer Dashboard, Product Card, Product Search, and Pricing Table blocks
+- Fixes Admin receipt access on records showing not-found pages
+- Fixes Search Bar widget “Same Tab” behavior
+- Fixes Enter key submitting the product title form
+- Fixes Bricks Product Title rendering consistency
+- Fixes French overseas territory VAT mapping issue
+
+= 1.3.28 (May 13, 2026) =
+- Fixes Subscription Pause action permission state (canPause)
+- Improves Bricks Builder with sort-by toggle, standardized element categories, and refined ProductTitle render
+- Fixes Product title field submitting the form on Enter key
+- Improves Admin menu horizontal padding on desktop and mobile
+- Fixes Pricing Table frontend rendering, group_by tabs, and shortcode output buffering
+- Fixes Single Product shortcode registration and rendering
+- Fixes Coupon errors now show the specific reason
+- Fixes Search Bar "Same Tab" selection ignored and defaulting to "New Tab"
+- Fixes few Gutenberg blocks not rendering in FSE templates and template parts
 
 = 1.3.27 (May 8, 2026) =
 - Adds List/Grid view switcher and advanced product filtering for Bricks

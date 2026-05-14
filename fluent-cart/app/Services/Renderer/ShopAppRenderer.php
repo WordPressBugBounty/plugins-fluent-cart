@@ -43,6 +43,8 @@ class ShopAppRenderer
 
     protected $isWildcardFilterEnabled = false;
 
+    protected $enableSortBy = true;
+
     public function __construct($products = [], $config = [])
     {
         
@@ -77,6 +79,7 @@ class ShopAppRenderer
         }
         $this->productBoxGridSize = $config['product_box_grid_size'] ?? 4;
         $this->isWildcardFilterEnabled = Arr::get($config, 'enable_wildcard_filter', false);
+        $this->enableSortBy = Arr::get($config, 'enable_sort_by', true);
 
         if (Arr::get($products, 'products', [])) {
             $this->products = Arr::get($products, 'products', []);
@@ -276,7 +279,7 @@ class ShopAppRenderer
         <div class="fct-shop-view-switcher-wrap">
             <?php $this->renderViewSwitcherButton(); ?>
             <?php
-                if ($this->isFilterEnabled) {
+                if ($this->isFilterEnabled && $this->enableSortBy) {
                     $this->renderSortByFilter();
                 }
             ?>

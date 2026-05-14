@@ -85,12 +85,10 @@ class DiscountService
         $codes = array_unique($codes);
         $codes = array_values($codes);
 
-        $coupons = Coupon::query()->whereIn('code', $codes)
-            ->where('status', 'active')
-            ->get();
+        $coupons = Coupon::query()->whereIn('code', $codes)->get();
 
         if ($coupons->isEmpty()) {
-            return new \WP_Error('no_valid_coupons', __('Coupon can not be applied.', 'fluent-cart'), []);
+            return new \WP_Error('no_valid_coupons', __('No matching coupon found for this code.', 'fluent-cart'), []);
         }
 
         $invalidCoupons = [];
@@ -111,7 +109,14 @@ class DiscountService
         }
 
         if (empty($validCoupons)) {
-            return new \WP_Error('no_valid_coupons', __('Coupon can not be applied.', 'fluent-cart'), $invalidCoupons);
+            $message = __('Coupon can not be applied.', 'fluent-cart');
+            if (!empty($invalidCoupons)) {
+                $firstInvalid = reset($invalidCoupons);
+                if (!empty($firstInvalid['error'])) {
+                    $message = $firstInvalid['error'];
+                }
+            }
+            return new \WP_Error('no_valid_coupons', $message, $invalidCoupons);
         }
 
         // Let's check if we have multiple coupons and if they are stackable. If not, we will only keep the first one and invalidate the rest.
@@ -227,7 +232,7 @@ class DiscountService
         $currentItemsTotalAfterDiscount = $currentItemsSubtotal - $currentItemsDiscountTotal;
 
         if ($currentItemsTotalAfterDiscount <= 0) {
-            return new \WP_Error('no_applicable_items', __('No applicable items found for this coupon.', 'fluent-cart'));
+            return new \WP_Error('items_already_discounted', __('The eligible items are already fully discounted by another coupon.', 'fluent-cart'));
         }
 
         $percent = $this->calculateDiscountPercent($coupon, $currentItemsTotalAfterDiscount);
@@ -243,7 +248,7 @@ class DiscountService
         $cartItems = $this->mergeValidatedItems($cartItems, $preValidatedItems);
 
         if (!$couponDiscountTotal) {
-            return new \WP_Error('no_discount_applied', __('This coupon could not apply any discount.', 'fluent-cart'));
+            return new \WP_Error('no_discount_applied', __('This coupon does not provide any additional discount on your order.', 'fluent-cart'));
         }
 
         $cartItems = $this->updateItemTotals($cartItems);
@@ -264,7 +269,7 @@ class DiscountService
         ]);
 
         if (!$canUse || is_wp_error($canUse)) {
-            $message = __('This coupon cannot be used.', 'fluent-cart');
+            $message = __('This coupon is not available for your order.', 'fluent-cart');
             if (is_wp_error($canUse)) {
                 $message = $canUse->get_error_message();
             }
@@ -540,14 +545,25 @@ class DiscountService
 
     protected function isCouponValid($coupon)
     {
+        $status = $coupon->status;
+        if ($status === 'expired') {
+            return new \WP_Error('coupon_expired', __('This coupon has expired.', 'fluent-cart'));
+        }
+        if ($status === 'scheduled') {
+            return new \WP_Error('coupon_not_started', __('This coupon is not yet active.', 'fluent-cart'));
+        }
+        if ($status !== 'active') {
+            return new \WP_Error('coupon_not_available', __('This coupon is not currently available.', 'fluent-cart'));
+        }
+
         // let's validate the start date and end date first
         $startDate = $coupon->start_date;
         if ($startDate && $startDate != '0000-00-00 00:00:00' && strtotime($startDate) > time()) {
-            return new \WP_Error('coupon_not_started', __('This coupon is no longer valid.', 'fluent-cart'));
+            return new \WP_Error('coupon_not_started', __('This coupon is not yet active.', 'fluent-cart'));
         }
         $endDate = $coupon->end_date;
         if ($endDate && $endDate != '0000-00-00 00:00:00' && strtotime($endDate) < time()) {
-            return new \WP_Error('coupon_expired', __('This coupon is no longer valid.', 'fluent-cart'));
+            return new \WP_Error('coupon_expired', __('This coupon has expired.', 'fluent-cart'));
         }
 
         $conditions = $coupon->conditions;
@@ -561,14 +577,14 @@ class DiscountService
 
         if ($maxPurchaseAmount) {
             if ($getCartTotal > $maxPurchaseAmount) {
-                return new \WP_Error('max_purchase_amount_exceeded', __('This coupon is no longer valid.', 'fluent-cart'));
+                return new \WP_Error('max_purchase_amount_exceeded', __('Your cart total exceeds the maximum amount allowed for this coupon.', 'fluent-cart'));
             }
         }
 
         $minPurchaseAmount = Arr::get($conditions, 'min_purchase_amount', 0);
         if ($minPurchaseAmount) {
             if ($getCartTotal < ($minPurchaseAmount / 100)) {
-                return new \WP_Error('min_purchase_amount_not_met', __('This coupon is no longer valid.', 'fluent-cart'));
+                return new \WP_Error('min_purchase_amount_not_met', __('Your cart total is below the minimum required to use this coupon.', 'fluent-cart'));
             }
         }
 
@@ -601,7 +617,7 @@ class DiscountService
                 $usedCount = $usageQuery->count();
 
                 if ($usedCount >= $maxPerCustomer) {
-                    return new \WP_Error('coupon_max_uses_exceeded', __('You have reached the maximum number of uses for this coupon.', 'fluent-cart'));
+                    return new \WP_Error('coupon_max_uses_exceeded', __('You have already used this coupon the maximum number of times.', 'fluent-cart'));
                 }
             }
         }

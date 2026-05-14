@@ -45,6 +45,14 @@ class TaxCalculator
         $this->city = Arr::get($config, 'city');
         $this->postCode = Arr::get($config, 'postcode');
 
+        // Map territory country codes (GP→FR+state=GP) before rate lookup.
+        $resolved = TaxManager::getInstance()->resolveTaxCountryAndState(
+            (string) $this->country,
+            $this->state
+        );
+        $this->country = $resolved['country'];
+        $this->state   = $resolved['state'];
+
         $taxSettings = (new TaxModule())->getSettings();
 
         $this->taxSettings = $taxSettings;
@@ -382,13 +390,14 @@ class TaxCalculator
             }
 
             // Validate rates for this tax class
+            $matchedRates = [];
             foreach ($rates as $rate) {
 
                 if ($rate->state && $rate->state !== $this->state) {
                     continue;
                 }
 
-               
+
                 if ($rate->city && $rate->city !== $this->city) {
                     continue;
                 }
@@ -418,7 +427,25 @@ class TaxCalculator
                     }
                 }
 
-                $allValidRates[] = $rate;
+                $matchedRates[] = $rate;
+            }
+
+            if (!$matchedRates) {
+                continue;
+            }
+
+            // State-specific rates override country-level ones (e.g. GP 8.5% over FR 20%).
+            if ($this->state) {
+                $stateSpecific = array_values(array_filter($matchedRates, function ($r) {
+                    return !empty($r->state);
+                }));
+                if ($stateSpecific) {
+                    $matchedRates = $stateSpecific;
+                }
+            }
+
+            foreach ($matchedRates as $matchedRate) {
+                $allValidRates[] = $matchedRate;
             }
         }
 

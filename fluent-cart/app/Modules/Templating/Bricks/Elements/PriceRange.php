@@ -12,7 +12,7 @@ if (!defined('ABSPATH')) exit; // Exit if accessed directly
 class PriceRange extends Element
 {
 
-    public $category = 'fluent_cart_product';
+    public $category = 'fluentcart';
     public $name = 'fct-price-range';
     public $icon = 'ti-money';
 

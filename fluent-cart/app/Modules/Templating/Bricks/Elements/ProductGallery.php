@@ -16,7 +16,7 @@ if (!defined('ABSPATH')) exit; // Exit if accessed directly
 
 class ProductGallery extends Element
 {
-    public $category = 'fluent_cart_product';
+    public $category = 'fluentcart';
     public $name = 'fct-product-gallery';
     public $icon = 'ti-gallery';
 

@@ -32,7 +32,7 @@
         'imports' => [
             '_vue.esm-bundler.js',
             '__plugin-vue_export-helper.js',
-            '_Badge.js'
+            '_TransitionAccordion.js'
         ],
         'css' => [
             'assets/Animation.css'
@@ -50,22 +50,15 @@
             '_Url.js'
         ]
     ],
-    '_Badge.css' => [
-        'file' => 'assets/Badge.css',
-        'src' => '_Badge.css'
-    ],
     '_Badge.js' => [
         'file' => 'chunks/Badge.js',
         'name' => 'Badge',
         'imports' => [
-            '_vue.esm-bundler.js',
-            '__plugin-vue_export-helper.js',
             '_DynamicIcon.js',
             '_Str.js',
-            '_Translator.js'
-        ],
-        'css' => [
-            'assets/Badge.css'
+            '_Translator.js',
+            '_vue.esm-bundler.js',
+            '__plugin-vue_export-helper.js'
         ]
     ],
     '_BlockEditorTranslator.js' => [
@@ -93,7 +86,8 @@
             '_Url.js',
             '_IconButton.js',
             '_DynamicIcon.js',
-            '_CardBody.js',
+            '_RouteCell.js',
+            '_ConvertedTime.js',
             '_productService.js',
             '_OrderCustomerInformation.js',
             '_Rest.js',
@@ -103,31 +97,16 @@
             '_Arr.js',
             '_common.js',
             '_BundleProducts.js',
-            '__plugin-vue_export-helper.js',
-            '_Utils.js'
+            '__plugin-vue_export-helper.js'
         ]
     ],
     '_CardBody.js' => [
         'file' => 'chunks/CardBody.js',
         'name' => 'CardBody',
         'imports' => [
-            '_Model.js',
             '_vue.esm-bundler.js',
-            '_IconButton.js',
-            '_Rest.js',
-            '_vue-router.js',
-            '_Url.js',
-            '_Arr.js',
-            '_Translator.js',
-            '_dayjs.min.js',
-            '_timezone.js',
-            '_Notify.js',
-            '_DynamicIcon.js',
             '__plugin-vue_export-helper.js',
-            '_index3.js',
-            '_index.js',
-            '_Utils.js',
-            '_Badge.js'
+            '_DynamicIcon.js'
         ]
     ],
     '_ColorPickerField.js' => [
@@ -136,6 +115,15 @@
         'imports' => [
             '_BlockEditorTranslator.js',
             '_Icons.js'
+        ]
+    ],
+    '_ConvertedTime.js' => [
+        'file' => 'chunks/ConvertedTime.js',
+        'name' => 'ConvertedTime',
+        'imports' => [
+            '_vue.esm-bundler.js',
+            '_common.js',
+            '_Utils.js'
         ]
     ],
     '_CopyToClipboard.css' => [
@@ -480,9 +468,10 @@
             '_IconButton.js',
             '_DynamicIcon.js',
             '_Translator.js',
-            '_CardBody.js',
+            '_RouteCell.js',
             '_Arr.js',
             '_Asset.js',
+            '_CardBody.js',
             '_Notify.js',
             '_Rest.js',
             '_NotFound.js',
@@ -529,6 +518,29 @@
     '_Rest.js' => [
         'file' => 'chunks/Rest.js',
         'name' => 'Rest'
+    ],
+    '_RouteCell.js' => [
+        'file' => 'chunks/RouteCell.js',
+        'name' => 'RouteCell',
+        'imports' => [
+            '_Model.js',
+            '_vue.esm-bundler.js',
+            '_IconButton.js',
+            '_Rest.js',
+            '_vue-router.js',
+            '_Url.js',
+            '_Arr.js',
+            '_Translator.js',
+            '_dayjs.min.js',
+            '_timezone.js',
+            '_Notify.js',
+            '_DynamicIcon.js',
+            '__plugin-vue_export-helper.js',
+            '_index3.js',
+            '_index.js',
+            '_Utils.js',
+            '_TransitionAccordion.js'
+        ]
     ],
     '_SelectProductModal.js' => [
         'file' => 'chunks/SelectProductModal.js',
@@ -578,6 +590,21 @@
     '_Str.js' => [
         'file' => 'chunks/Str.js',
         'name' => 'Str'
+    ],
+    '_TransitionAccordion.css' => [
+        'file' => 'assets/TransitionAccordion.css',
+        'src' => '_TransitionAccordion.css'
+    ],
+    '_TransitionAccordion.js' => [
+        'file' => 'chunks/TransitionAccordion.js',
+        'name' => 'TransitionAccordion',
+        'imports' => [
+            '_vue.esm-bundler.js',
+            '__plugin-vue_export-helper.js'
+        ],
+        'css' => [
+            'assets/TransitionAccordion.css'
+        ]
     ],
     '_Translator.js' => [
         'file' => 'chunks/Translator.js',
@@ -650,7 +677,7 @@
             '_index.js',
             '_Rest.js',
             '_Arr.js',
-            '_CardBody.js',
+            '_RouteCell.js',
             '_dayjs.min.js'
         ]
     ],
@@ -868,9 +895,10 @@
             '_Badge.js',
             '_Animation.js',
             '_Arr.js',
-            '__plugin-vue_export-helper.js',
             '_DynamicIcon.js',
-            '_Str.js'
+            '_Str.js',
+            '__plugin-vue_export-helper.js',
+            '_TransitionAccordion.js'
         ]
     ],
     'resources/admin/Bits/Components/Form/Components/PaymentView.vue' => [
@@ -898,10 +926,10 @@
             '_Arr.js',
             '_Animation.js',
             '__plugin-vue_export-helper.js',
-            '_Badge.js',
+            '_TransitionAccordion.js',
             '_DynamicIcon.js',
-            '_Str.js',
             '_Notify.js',
+            '_Str.js',
             '_index.js'
         ]
     ],
@@ -953,9 +981,9 @@
             '_Badge.js',
             '_Rest.js',
             '_Arr.js',
-            '__plugin-vue_export-helper.js',
             '_DynamicIcon.js',
-            '_Str.js'
+            '_Str.js',
+            '__plugin-vue_export-helper.js'
         ]
     ],
     'resources/admin/Bits/Components/Icons/Access.vue' => [
@@ -3701,19 +3729,22 @@
             '_Str.js',
             '_CopyToClipboard.js',
             '_Animation.js',
+            '_TransitionAccordion.js',
             '_Notify.js',
             '_index.js',
             '_IconButton.js',
             '_Arr.js',
-            '_Asset.js',
-            '_Url.js',
-            '_vue-router.js',
-            '_NotFound.js',
+            '_RouteCell.js',
             '_Model.js',
+            '_vue-router.js',
+            '_Url.js',
             '_dayjs.min.js',
             '_timezone.js',
             '_index3.js',
             '_Utils.js',
+            '_Asset.js',
+            '_NotFound.js',
+            '_ConvertedTime.js',
             '_CancelSubscription.js',
             '_BundleProducts.js',
             '_dateShortCuts.js',
@@ -3737,7 +3768,7 @@
         'isEntry' => true,
         'imports' => [
             '_vue.esm-bundler.js',
-            '_CardBody.js',
+            '_RouteCell.js',
             '_Translator.js',
             '_Arr.js',
             '_Rest.js',
@@ -3747,6 +3778,7 @@
             '__plugin-vue_export-helper.js',
             '_vue-router.js',
             '_countries.js',
+            '_CardBody.js',
             '_index.js',
             '_NotFound.js',
             '_Badge.js',
@@ -3758,6 +3790,7 @@
             '_timezone.js',
             '_index3.js',
             '_Utils.js',
+            '_TransitionAccordion.js',
             '_Asset.js'
         ],
         'css' => [
@@ -3771,16 +3804,18 @@
         'isEntry' => true,
         'imports' => [
             '_vue.esm-bundler.js',
-            '_CardBody.js',
+            '_RouteCell.js',
             '_Empty.js',
             '_Translator.js',
             '_CancelSubscription.js',
             '__plugin-vue_export-helper.js',
             '_index.js',
+            '_CardBody.js',
             '_CopyToClipboard.js',
             '_OrderCustomerInformation.js',
             '_Str.js',
             '_DynamicIcon.js',
+            '_ConvertedTime.js',
             '_NotFound.js',
             '_Arr.js',
             '_Badge.js',
@@ -3795,6 +3830,7 @@
             '_timezone.js',
             '_index3.js',
             '_Utils.js',
+            '_TransitionAccordion.js',
             '_productService.js',
             '_BundleProducts.js',
             '_Animation.js',
@@ -3816,19 +3852,21 @@
             '_vue.esm-bundler.js',
             '_vue-router.js',
             '_DynamicIcon.js',
-            '_CardBody.js',
+            '_RouteCell.js',
             '_Translator.js',
             '_Empty.js',
             '_OrderCustomerInformation.js',
             '_productService.js',
-            '_CancelSubscription.js',
+            '_ConvertedTime.js',
             '__plugin-vue_export-helper.js',
             '_IconButton.js',
             '_common.js',
+            '_CardBody.js',
             '_Model.js',
             '_Rest.js',
             '_dayjs.min.js',
             '_index.js',
+            '_CancelSubscription.js',
             '_Notify.js',
             '_Animation.js',
             '_dateShortCuts.js',
@@ -3842,6 +3880,7 @@
             '_timezone.js',
             '_Utils.js',
             '_Badge.js',
+            '_TransitionAccordion.js',
             '_ProductVariationSelector.js',
             '_CopyToClipboard.js',
             '_BundleProducts.js',
@@ -4056,6 +4095,36 @@
         'src' => 'resources/admin/utils/edit-wp-user-global.js',
         'isEntry' => true
     ],
+    'resources/attributes/attributes.js' => [
+        'file' => 'attributes.js',
+        'name' => 'attributes',
+        'src' => 'resources/attributes/attributes.js',
+        'isEntry' => true,
+        'imports' => [
+            '_vue.esm-bundler.js',
+            '__plugin-vue_export-helper.js',
+            '_Translator.js',
+            '_RouteCell.js',
+            '_Empty.js',
+            '_DynamicIcon.js',
+            '_ConvertedTime.js',
+            '_common.js',
+            '_Notify.js',
+            '_Rest.js',
+            '_vue-router.js',
+            '_index.js',
+            '_Arr.js',
+            '_Model.js',
+            '_IconButton.js',
+            '_Str.js',
+            '_Url.js',
+            '_dayjs.min.js',
+            '_timezone.js',
+            '_index3.js',
+            '_Utils.js',
+            '_TransitionAccordion.js'
+        ]
+    ],
     'resources/images/pro-feature-pattern.png' => [
         'file' => 'images/pro-feature-pattern.png',
         'name' => 'pro-feature-pattern',
@@ -4075,6 +4144,7 @@
             '_Empty.js',
             '_DynamicIcon.js',
             '_Translator.js',
+            '_RouteCell.js',
             '_IconButton.js',
             '_index.js',
             '_OrderCustomerInformation.js',
@@ -4087,14 +4157,15 @@
             '_CopyToClipboard.js',
             '_Str.js',
             '_Arr.js',
-            '_vue-router.js',
+            '_Asset.js',
             '_Url.js',
+            '_vue-router.js',
+            '_index4.js',
             '_timezone.js',
             '_Notify.js',
             '_index3.js',
             '_Utils.js',
-            '_Asset.js',
-            '_index4.js',
+            '_TransitionAccordion.js',
             '_productService.js',
             '_Animation.js'
         ],
@@ -4110,7 +4181,7 @@
         'imports' => [
             '_vue.esm-bundler.js',
             '_Translator.js',
-            '_CardBody.js',
+            '_RouteCell.js',
             '_Empty.js',
             '_Badge.js',
             '_DynamicIcon.js',
@@ -4119,6 +4190,7 @@
             '_Rest.js',
             '_ProductVariationSelector.js',
             '_vue-router.js',
+            '_CardBody.js',
             '_index.js',
             '_IconButton.js',
             '__plugin-vue_export-helper.js',
@@ -4129,7 +4201,8 @@
             '_dayjs.min.js',
             '_timezone.js',
             '_index3.js',
-            '_Utils.js'
+            '_Utils.js',
+            '_TransitionAccordion.js'
         ]
     ],
     'resources/public/buttons/add-to-cart/style/style.scss' => [
@@ -4282,6 +4355,7 @@
             '_defaults.js',
             '_Translator.js',
             '_Arr.js',
+            '_TransitionAccordion.js',
             '_index4.js'
         ],
         'css' => [

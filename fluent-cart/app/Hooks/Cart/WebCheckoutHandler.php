@@ -191,6 +191,32 @@ class WebCheckoutHandler
             return $result;
         }
 
+        $cartCouponCodes = is_array($cart->coupons) ? $cart->coupons : [];
+        $couponWasApplied = false;
+        foreach ($cartCouponCodes as $existingCode) {
+            if (strcasecmp((string) $existingCode, (string) $couponCode) === 0) {
+                $couponWasApplied = true;
+                break;
+            }
+        }
+
+        if (!$couponWasApplied) {
+            $perCouponResults = is_array($result) ? Arr::get($result, 'coupon_results', []) : [];
+            $errorMessage = '';
+            foreach ($perCouponResults as $resultCode => $couponResult) {
+                if (strcasecmp((string) $resultCode, (string) $couponCode) === 0) {
+                    $errorMessage = Arr::get($couponResult, 'error', '');
+                    if ($errorMessage !== '') {
+                        break;
+                    }
+                }
+            }
+            if ($errorMessage === '') {
+                $errorMessage = __('No matching coupon found for this code.', 'fluent-cart');
+            }
+            return new \WP_Error('coupon_not_applied', $errorMessage);
+        }
+
         ob_start();
         (new CartSummaryRender($cart))->render($withWrapper = false);
         $summary = ob_get_clean();

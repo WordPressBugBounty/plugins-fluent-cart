@@ -255,6 +255,16 @@ class ProductsCollection extends Custom_Render_Element
             'inline'  => true,
         ];
 
+        $this->controls['enableSortBy'] = [
+            'tab'      => 'content',
+            'group'    => 'filter',
+            'label'    => esc_html__('Enable Sort By', 'fluent-cart'),
+            'type'     => 'checkbox',
+            'inline'   => true,
+            'default'  => true,
+            'required' => ['enableFilter', '=', true],
+        ];
+
         $this->controls['liveFilter'] = [
             'tab'      => 'content',
             'group'    => 'filter',
@@ -448,6 +458,22 @@ class ProductsCollection extends Custom_Render_Element
             $productWrapperClasses[] = 'fct-bricks-editor-mode';
         }
 
+        $rendererConfig = [
+            'view_mode' => $viewMode,
+            'enable_wildcard_filter' => !empty($settings['wildcardFilter']),
+            'custom_filters'  => [
+                'enabled' => $enableFilter,
+                'price_range' => $priceRange,
+                'live_filter' => $liveFilter
+            ],
+        ];
+
+        // Only override enable_sort_by if explicitly set in settings (key exists)
+        if (array_key_exists('enableSortBy', $settings)) {
+            $rendererConfig['enable_sort_by'] = !empty($settings['enableSortBy']);
+        }
+
+        $shopAppRenderer = new ShopAppRenderer($products, $rendererConfig);
 
         ?>
         <div 
@@ -470,12 +496,7 @@ class ProductsCollection extends Custom_Render_Element
                     <!-- View switcher -->
                     <?php
                         if ($showViewSwitcher) {
-                            $renderer = new ShopAppRenderer(
-                                $products, 
-                                ['view_mode' => $viewMode]
-                            );
-
-                            $renderer->renderViewSwitcher();
+                            $shopAppRenderer->renderViewSwitcher();
                         }
                     ?>
 
@@ -484,21 +505,7 @@ class ProductsCollection extends Custom_Render_Element
                         <!-- Filter render here -->
                         <?php
                             if ($enableFilter) {
-                                $shopAppRenderer = new ShopAppRenderer(
-                                    $products,
-                                    [
-                                        'view_mode' => $viewMode,
-                                        'enabled' => $enableFilter,
-                                        'enable_wildcard_filter' => !empty($settings['wildcardFilter']),
-                                        'custom_filters'  => [
-                                            'price_range' => $priceRange,
-                                            'live_filter' => $liveFilter
-                                        ],
-                                    ]
-                                );
-
                                 $productFilterRenderer = new ProductFilterRender($filters);
-
                                 $shopAppRenderer->renderFilter($productFilterRenderer);
                             }
                         ?>

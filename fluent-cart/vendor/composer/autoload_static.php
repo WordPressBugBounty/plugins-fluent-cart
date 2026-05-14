@@ -12,10 +12,6 @@ class ComposerStaticInitb2eff533900bbaf3c7b668b284ce4755
     );
 
     public static $prefixLengthsPsr4 = array (
-        'P' =>
-        array (
-            'Psr\\Container\\' => 14,
-        ),
         'F' =>
         array (
             'FluentCart\\OpenSpout\\' => 21,
@@ -27,10 +23,6 @@ class ComposerStaticInitb2eff533900bbaf3c7b668b284ce4755
     );
 
     public static $prefixDirsPsr4 = array (
-        'Psr\\Container\\' =>
-        array (
-            0 => __DIR__ . '/..' . '/psr/container/src',
-        ),
         'FluentCart\\OpenSpout\\' =>
         array (
             0 => __DIR__ . '/..' . '/openspout/openspout/src',
@@ -1136,9 +1128,6 @@ class ComposerStaticInitb2eff533900bbaf3c7b668b284ce4755
         'FluentCart\\OpenSpout\\Writer\\XLSX\\Manager\\WorkbookManager' => __DIR__ . '/..' . '/openspout/openspout/src/Writer/XLSX/Manager/WorkbookManager.php',
         'FluentCart\\OpenSpout\\Writer\\XLSX\\Manager\\WorksheetManager' => __DIR__ . '/..' . '/openspout/openspout/src/Writer/XLSX/Manager/WorksheetManager.php',
         'FluentCart\\OpenSpout\\Writer\\XLSX\\Writer' => __DIR__ . '/..' . '/openspout/openspout/src/Writer/XLSX/Writer.php',
-        'Psr\\Container\\ContainerExceptionInterface' => __DIR__ . '/..' . '/psr/container/src/ContainerExceptionInterface.php',
-        'Psr\\Container\\ContainerInterface' => __DIR__ . '/..' . '/psr/container/src/ContainerInterface.php',
-        'Psr\\Container\\NotFoundExceptionInterface' => __DIR__ . '/..' . '/psr/container/src/NotFoundExceptionInterface.php',
     );
 
     public static function getInitializer(ClassLoader $loader)

@@ -537,7 +537,13 @@ class OrderParser extends BaseParser
             $name = (string) Arr::get($taxRate, 'name', '');
             $rate = Arr::get($taxRate, 'rate');
             if ($name !== '' && is_numeric($rate)) {
-                return $name . ' (' . rtrim(rtrim((string) $rate, '0'), '.') . '%)';
+                $rate = (string) $rate;
+
+                if (strpos($rate, '.') !== false) {
+                    $rate = rtrim(rtrim($rate, '0'), '.');
+                }
+
+                return $name . ' (' . $rate . '%)';
             }
             if ($name !== '') {
                 return $name;

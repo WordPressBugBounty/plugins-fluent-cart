@@ -102,9 +102,7 @@ class PricingTableShortCode extends ShortCode
     public function render(?array $viewData = null)
     {
         AssetLoader::markFrontendAssetsRequired();
-        ob_start();
         (new PricingTableRenderer($viewData))->render();
-        return ob_get_clean();
     }
 
     public function localizeData(): array

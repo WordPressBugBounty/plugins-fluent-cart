@@ -350,6 +350,9 @@ class MenuHandler
 
     public function renderAdminMenu()
     {
+        if (!apply_filters('fluent_cart/show_admin_top_bar', true)) {
+            return;
+        }
         AdminHelper::getAdminMenu(true);
     }
 

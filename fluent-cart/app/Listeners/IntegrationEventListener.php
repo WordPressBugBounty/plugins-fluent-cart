@@ -67,7 +67,15 @@ class IntegrationEventListener
         $productIds = [];
         $variantIds = [];
 
-        foreach ($order->order_items as $item) {
+        $itemSource = $order->order_items;
+        if ($order->type === 'renewal' && $itemSource->isEmpty() && $order->parent_id) {
+            $parentOrder = Order::find($order->parent_id);
+            if ($parentOrder) {
+                $itemSource = $parentOrder->order_items;
+            }
+        }
+
+        foreach ($itemSource as $item) {
             $productIds[] = $item->post_id;
             $variantIds[] = $item->object_id;
         }
@@ -194,7 +202,8 @@ class IntegrationEventListener
         $data = (array)$data;
         $data['order'] = $order;
         if ($order->type === 'subscription' || $order->type === 'renewal') {
-            $subscription = Subscription::query()->where('parent_order_id', $order->id)->first();
+            $parentOrderId = $order->type === 'renewal' ? $order->parent_id : $order->id;
+            $subscription = Subscription::query()->where('parent_order_id', $parentOrderId)->first();
             if ($subscription) {
                 $data['subscription'] = $subscription;
             }
@@ -292,7 +301,8 @@ class IntegrationEventListener
 
         // Let's fire the events now!
         if ($order->type === 'subscription' || $order->type === 'renewal') {
-            $subscription = Subscription::query()->where('parent_order_id', $order->id)->first();
+            $parentOrderId = ($order->type == 'renewal') ? $order->parent_id : $order->id;
+            $subscription = Subscription::query()->where('parent_order_id', $parentOrderId)->first();
             if ($subscription) {
                 $eventData['subscription'] = $subscription;
             }

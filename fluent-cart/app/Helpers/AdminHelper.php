@@ -104,6 +104,23 @@ class AdminHelper
 
     public static function getAdminMenu($echo = false, $activeNav = '')
     {
+        $menuItems = self::getMenuItems();
+
+        if ($echo) {
+            App::make('view')->render('admin.admin_menu', [
+                'menu_items' => $menuItems,
+                'active'     => $activeNav
+            ]);
+        } else {
+            return App::make('view')->make('admin.admin_menu', [
+                'menu_items' => $menuItems,
+                'active'     => $activeNav
+            ]);
+        }
+    }
+
+    public static function getMenuItems($withSettings = false)
+    {
         $baseUrl = apply_filters('fluent_cart/admin_base_url', admin_url('admin.php?page=fluent-cart#/'), []);
         $menuItems = apply_filters('fluent_cart/global_admin_menu_items', [
             'dashboard'     => [
@@ -132,13 +149,6 @@ class AdminHelper
                 'permission' => ['reports/view']
             ],
         ], ['base_url' => $baseUrl]);
-
-        $menuItems['more'] = [
-            'label'    => __('More', 'fluent-cart'),
-            'link'     => '#',
-            'children' => []
-        ];
-
 
         $moreItems = apply_filters('fluent_cart/global_admin_menu_more_items', array_filter([
             'integrations' => [
@@ -173,19 +183,23 @@ class AdminHelper
             ],
         ]), ['base_url' => $baseUrl]);
 
-        $menuItems['more']['children'] = $moreItems;
-
-        if ($echo) {
-            App::make('view')->render('admin.admin_menu', [
-                'menu_items' => $menuItems,
-                'active'     => $activeNav
-            ]);
-        } else {
-            return App::make('view')->make('admin.admin_menu', [
-                'menu_items' => $menuItems,
-                'active'     => $activeNav
-            ]);
+        if ($withSettings) {
+            $menuItems['settings'] = [
+                'label'      => __('Settings', 'fluent-cart'),
+                'link'       => $baseUrl . 'settings/store-settings',
+                'permission' => ['store/settings', 'store/sensitive'],
+                'icon'       => 'fluent-settings'
+            ];
         }
+
+        $menuItems['more'] = [
+            'label'    => __('More', 'fluent-cart'),
+            'link'     => '#',
+            'children' => $moreItems,
+        ];
+
+
+        return $menuItems;
     }
 
     public static function pushGlobalAdminAssets()

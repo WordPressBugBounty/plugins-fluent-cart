@@ -228,4 +228,14 @@ class OrderItem extends Model
             ? ($this->other_info['view_url'] ?? '')
             : '';
     }
+
+    public function getDisplayTitle()
+    {
+        if($this->post_title == $this->title) {
+            return $this->title;
+        }
+
+        return $this->post_title . ' - ' . $this->title;
+
+    }
 }

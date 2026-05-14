@@ -130,7 +130,6 @@ class DBMigrator
 
     public static function maybeMigrateDBChanges()
     {
-
         /*
          * TODO We will remove this after final release
          */
@@ -139,6 +138,9 @@ class DBMigrator
         if (!$currentDBVersion || version_compare($currentDBVersion, FLUENTCART_DB_VERSION, '<')) {
 
             update_option('_fluent_cart_db_version', FLUENTCART_DB_VERSION, 'no');
+
+            // 2026-05-10
+            AttributeGroupsMigrator::dropLegacyTitleUniqueIndexes();
 
             // let's check the orders table sequence number
             global $wpdb;

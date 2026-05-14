@@ -38,6 +38,13 @@ class TaxManager
      */
     private array $descriptionMap = [];
 
+    /** ISO country codes whose rates are stored under a parent country with state=<code>. */
+    private array $parentCountryMap = [
+        'GP' => 'FR', // Guadeloupe
+        'MQ' => 'FR', // Martinique
+        'RE' => 'FR', // Réunion
+    ];
+
     /**
      * Private constructor to prevent direct instantiation
      */
@@ -309,6 +316,18 @@ class TaxManager
         return $groupedTaxRates;
     }
 
+    /**
+     * Map territory country codes (e.g. GP) to their parent country + state
+     * so tax rate lookups hit the correct DB rows (e.g. country=FR, state=GP).
+     */
+    public function resolveTaxCountryAndState(string $country, ?string $state): array
+    {
+        $country = strtoupper($country);
+        if (isset($this->parentCountryMap[$country])) {
+            return ['country' => $this->parentCountryMap[$country], 'state' => $country];
+        }
+        return ['country' => $country, 'state' => $state];
+    }
 
     public function groupTaxRatesByGroup($taxRates): array
     {

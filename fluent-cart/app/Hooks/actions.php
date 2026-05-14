@@ -82,6 +82,7 @@ use FluentCart\App\Http\Routes\WebRoutes;
 \FluentCart\App\Hooks\Handlers\ShortCodes\ProductCategoriesListShortcode::register();
 \FluentCart\App\Hooks\Handlers\ShortCodes\ProductTitleShortCode::register();
 \FluentCart\App\Hooks\Handlers\ShortCodes\ProductImageShortCode::register();
+\FluentCart\App\Hooks\Handlers\ShortCodes\SingleProductShortCode::register();
 
 
 \FluentCart\App\Hooks\Handlers\BlockEditors\ProductSkuBlockEditor::register();

@@ -3,6 +3,7 @@
 namespace FluentCart\Api\Resource;
 
 use FluentCart\App\Helpers\HelperTrait;
+use FluentCart\App\Models\AttributeGroup;
 use FluentCart\App\Models\AttributeRelation;
 use FluentCart\App\Models\AttributeTerm;
 use FluentCart\Framework\Database\Orm\Builder;
@@ -102,7 +103,7 @@ class AttrTermResource extends BaseResourceApi
     {
         $groupId = Arr::get($params, 'group_id');
 
-        $group = static::getQuery()->find($groupId);
+        $group = AttributeGroup::query()->find($groupId);
 
         if (!$group) {
             return static::makeErrorResponse([
