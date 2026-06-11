@@ -104,6 +104,7 @@ class CustomerController extends Controller
     {
 
         $data = $request->getSafe($request->sanitize());
+        $data = CustomerAddressResource::normalizeBusinessFields($data);
         $isCreated = CustomerAddressResource::create($data, ['id' => $customerId, 'order_id' => intval(Arr::get($request->all(), 'order_id', null))]);
 
         if (is_wp_error($isCreated)) {
@@ -116,6 +117,7 @@ class CustomerController extends Controller
     {
 
         $data = $request->getSafe($request->sanitize());
+        $data = CustomerAddressResource::normalizeBusinessFields($data);
         $id = Arr::get($request->all(), 'id');
         $isUpdated = CustomerAddressResource::update($data, $id, ['order_id' => intval(Arr::get($request->all(), 'order_id', null))]);
 
@@ -267,4 +269,5 @@ class CustomerController extends Controller
             'customer' => $customer
         ]);
     }
+
 }

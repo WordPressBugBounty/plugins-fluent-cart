@@ -16,6 +16,7 @@ use FluentCart\App\Http\Controllers\EmailNotificationController;
 use FluentCart\App\Http\Controllers\FileUploadController;
 use FluentCart\App\Http\Controllers\IntegrationController;
 use FluentCart\App\Http\Controllers\LabelController;
+use FluentCart\App\Http\Controllers\McpSettingsController;
 use FluentCart\App\Http\Controllers\ModuleSettingsController;
 use FluentCart\App\Http\Controllers\NotesController;
 use FluentCart\App\Http\Controllers\OnboardingController;
@@ -27,7 +28,6 @@ use FluentCart\App\Http\Controllers\ProductVariationController;
 use FluentCart\App\Http\Controllers\StorageController;
 use FluentCart\App\Http\Controllers\SettingsController;
 use FluentCart\App\Http\Controllers\CouponsController;
-use FluentCart\App\Http\Controllers\TaxClassController;
 use FluentCart\App\Http\Controllers\TaxConfigurationController;
 use FluentCart\App\Http\Controllers\TaxRateController;
 use FluentCart\App\Http\Controllers\TemplateController;
@@ -166,6 +166,9 @@ $router->prefix('products')->withPolicy('ProductPolicy')->group(function (Router
     $router->post('/{postId}/tax-class/remove', [ProductController::class, 'removeTaxClass'])->meta([
         'permissions' => 'products/edit'
     ]);
+    $router->post('/{postId}/tax-exempt', [ProductController::class, 'toggleTaxExempt'])->meta([
+        'permissions' => 'products/edit'
+    ]);
 
     $router->post('/{postId}/shipping-class', [ProductController::class, 'updateShippingClass'])->meta([
         'permissions' => 'products/edit'
@@ -234,6 +237,9 @@ $router->prefix('products')->withPolicy('ProductPolicy')->group(function (Router
     ]);
 
     $router->post('/variants/{variantId}', [ProductVariationController::class, 'update'])->meta([
+        'permissions' => 'products/edit'
+    ]);
+    $router->post('/variants/{variantId}/tax-exempt', [ProductVariationController::class, 'updateTaxSettings'])->meta([
         'permissions' => 'products/edit'
     ]);
 
@@ -407,6 +413,20 @@ $router->prefix('settings/')
             'permissions' => 'is_super_admin'
         ]);
 
+        // MCP (Features & addon → MCP card): status, on/off toggle, connection snippet.
+        $router->get('mcp', [McpSettingsController::class, 'status'])->meta([
+            'permissions' => 'is_super_admin'
+        ]);
+        $router->post('mcp/toggle', [McpSettingsController::class, 'toggle'])->meta([
+            'permissions' => 'is_super_admin'
+        ]);
+        $router->post('mcp/install-adapter', [McpSettingsController::class, 'installAdapter'])->meta([
+            'permissions' => 'is_super_admin'
+        ]);
+        $router->get('mcp/config-snippets', [McpSettingsController::class, 'getConfigSnippets'])->meta([
+            'permissions' => 'is_super_admin'
+        ]);
+
 
         $router->post('confirmation', [SettingsController::class, 'saveConfirmation'])->meta([
             'permissions' => 'is_super_admin'
@@ -455,6 +475,13 @@ $router->prefix('orders')->withPolicy('OrderPolicy')->group(function (Router $ro
 
     $router->post('/calculate-shipping', [OrderController::class, 'updateShipping'])->meta([
         'permissions' => ['orders/create', 'orders/manage']
+    ]);
+
+    // Public utility: pure tax calculation, no DB writes. No longer called by the admin Vue
+    // (tax is now auto-applied server-side on save). Available for third-party integrations.
+    $router->post('/calculate-tax', [OrderController::class, 'calculateTax'])->meta([
+        'permissions'      => ['orders/create', 'orders/manage'],
+        'permissions_type' => 'any',
     ]);
 
     $router->post('/', [OrderController::class, 'store'])->meta([
@@ -682,6 +709,7 @@ $router->prefix('onboarding')->withPolicy('AdminPolicy')->group(function (Router
     $router->post('/', [OnboardingController::class, 'saveSettings']);
     $router->post('/create-pages', [OnboardingController::class, 'createPages']);
     $router->post('/create-page', [OnboardingController::class, 'createPage']);
+    $router->post('/save-tax', [OnboardingController::class, 'saveTaxSettings']);
 });
 $router->prefix('email-notification')->withPolicy('StoreSensitivePolicy')->group(function (Router $router) {
     $router->get('/', [EmailNotificationController::class, 'index']);
@@ -690,6 +718,9 @@ $router->prefix('email-notification')->withPolicy('StoreSensitivePolicy')->group
     $router->post('/save-settings', [EmailNotificationController::class, 'saveSettings']);
     $router->get('/reminders', [EmailNotificationController::class, 'getSchedulingSettings']);
     $router->post('/reminders', [EmailNotificationController::class, 'saveSchedulingSettings']);
+    $router->get('/digest-settings', [EmailNotificationController::class, 'getDigestSettings']);
+    $router->post('/digest-settings', [EmailNotificationController::class, 'saveDigestSettings']);
+    $router->post('/digest-settings/send-test', [EmailNotificationController::class, 'sendDigestTest']);
     $router->post('/enable-notification/{name}', [EmailNotificationController::class, 'enableNotification']);
     $router->post('/send-manual-reminder', [EmailNotificationController::class, 'sendManualReminder']);
     $router->post('/preview-default-template', [EmailNotificationController::class, 'previewDefaultTemplate']);
@@ -810,38 +841,91 @@ $router->prefix('products')->withPolicy('ProductPolicy')->group(function (Router
 
 
 // Tax Routes
-$router->prefix('tax')->withPolicy('StoreSensitivePolicy')->group(function (Router $router) {
-    // TaxClasses routes
-    $router->get('classes', [TaxClassController::class, 'index']);
-    $router->post('classes', [TaxClassController::class, 'store']);
-    $router->put('classes/{id}', [TaxClassController::class, 'update'])->int('id');
-    $router->delete('classes/{id}', [TaxClassController::class, 'delete'])->int('id');
+$router->prefix('tax')->withPolicy('StoreSettingsPolicy')->group(function (Router $router) {
+    // TaxClass routes
+    $router->get('classes', [TaxRateController::class, 'getClasses'])->meta([
+        'permissions' => 'store/settings'
+    ]);
+    $router->post('classes', [TaxRateController::class, 'createClass'])->meta([
+        'permissions' => 'store/sensitive'
+    ]);
+    $router->delete('classes/{id}', [TaxRateController::class, 'deleteClass'])->int('id')->meta([
+        'permissions' => 'store/sensitive'
+    ]);
 
     // TaxRates routes
-    $router->get('rates', [TaxRateController::class, 'index']);
-    $router->get('rates/country/rates/{country_code}', [TaxRateController::class, 'show']);
-    $router->post('rates/country/override', [TaxRateController::class, 'saveShippingOverride']);
-    $router->delete('rates/country/override/{id}', [TaxRateController::class, 'deleteShippingOverride'])->int('id');
-    $router->put('country/rate/{id}', [TaxRateController::class, 'update'])->int('id');
-    $router->post('country/rate', [TaxRateController::class, 'store']);
-    $router->delete('country/rate/{id}', [TaxRateController::class, 'delete'])->int('id');
-    $router->delete('country/{country_code}', [TaxRateController::class, 'deleteCountry']);
-    $router->get('country-tax-id/{country_code}', [TaxRateController::class, 'getCountryTaxId']);
-    $router->post('country-tax-id/{country_code}', [TaxRateController::class, 'saveCountryTaxId']);
+    $router->get('rates', [TaxRateController::class, 'index'])->meta([
+        'permissions' => 'store/settings'
+    ]);
+    $router->get('rates/country/rates/{country_code}', [TaxRateController::class, 'show'])->meta([
+        'permissions' => 'store/settings'
+    ]);
+    $router->post('rates/country/override', [TaxRateController::class, 'saveShippingOverride'])->meta([
+        'permissions' => 'store/sensitive'
+    ]);
+    $router->delete('rates/country/override/{id}', [TaxRateController::class, 'deleteShippingOverride'])->int('id')->meta([
+        'permissions' => 'store/sensitive'
+    ]);
+    $router->put('country/rate/{id}', [TaxRateController::class, 'update'])->int('id')->meta([
+        'permissions' => 'store/sensitive'
+    ]);
+    $router->post('country/rate', [TaxRateController::class, 'store'])->meta([
+        'permissions' => 'store/sensitive'
+    ]);
+    $router->delete('country/rate/{id}', [TaxRateController::class, 'delete'])->int('id')->meta([
+        'permissions' => 'store/sensitive'
+    ]);
+    $router->post('country-status/{country_code}', [TaxRateController::class, 'updateCountryStatus'])->meta([
+        'permissions' => 'store/sensitive'
+    ]);
+    $router->get('country-tax-id/{country_code}', [TaxRateController::class, 'getCountryTaxId'])->meta([
+        'permissions' => 'store/settings'
+    ]);
+    $router->post('country-tax-id/{country_code}', [TaxRateController::class, 'saveCountryTaxId'])->meta([
+        'permissions' => 'store/sensitive'
+    ]);
+
+    // Product category tax overrides
+    $router->get('product-overrides/{country_code}', [TaxRateController::class, 'getProductOverrides'])->meta([
+        'permissions' => 'store/settings'
+    ]);
+    $router->post('product-overrides', [TaxRateController::class, 'saveProductOverride'])->meta([
+        'permissions' => 'store/sensitive'
+    ]);
+    $router->delete('product-overrides/{id}', [TaxRateController::class, 'deleteProductOverride'])->int('id')->meta([
+        'permissions' => 'store/sensitive'
+    ]);
 
 //    $router->post('rates/country', [TaxRateController::class, 'addCountry']);
 
     // TaxConfiguration routes
-    $router->get('configuration/rates', [TaxConfigurationController::class, 'getTaxRates']);
-    $router->post('configuration/countries', [TaxConfigurationController::class, 'saveConfiguredCountries']);
-    $router->get('configuration/settings', [TaxConfigurationController::class, 'getSettings']);
-    $router->post('configuration/settings', [TaxConfigurationController::class, 'saveSettings']);
-    $router->post('configuration/settings/eu-vat', [TaxEUController::class, 'saveEuVatSettings']);
-    $router->get('configuration/settings/eu-vat/rates', [TaxEUController::class, 'getEuTaxRates']);
-    $router->post('configuration/settings/eu-vat/oss/override', [TaxEUController::class, 'saveOssTaxOverride']);
-    $router->post('configuration/settings/eu-vat/oss/shipping-override', [TaxEUController::class, 'saveOssShippingOverride']);
-    $router->delete('configuration/settings/eu-vat/oss/override', [TaxEUController::class, 'deleteOssTaxOverride'])->int('id');
-    $router->delete('configuration/settings/eu-vat/oss/shipping-override', [TaxEUController::class, 'deleteOssShippingOverride'])->int('id');
+    $router->get('configuration/rates', [TaxConfigurationController::class, 'getTaxRates'])->meta([
+        'permissions' => 'store/settings'
+    ]);
+    $router->post('configuration/countries', [TaxConfigurationController::class, 'saveConfiguredCountries'])->meta([
+        'permissions' => 'store/sensitive'
+    ]);
+    $router->get('configuration/settings', [TaxConfigurationController::class, 'getSettings'])->meta([
+        'permissions' => 'store/settings'
+    ]);
+    $router->post('configuration/settings', [TaxConfigurationController::class, 'saveSettings'])->meta([
+        'permissions' => 'store/sensitive'
+    ]);
+    $router->post('configuration/settings/eu-vat', [TaxEUController::class, 'saveEuVatSettings'])->meta([
+        'permissions' => 'store/sensitive'
+    ]);
+    $router->post('configuration/settings/eu-vat/reset-rates', [TaxEUController::class, 'resetEuRatesToDefaults'])->meta([
+        'permissions' => 'store/sensitive'
+    ]);
+    $router->get('configuration/settings/eu-vat/product-overrides', [TaxEUController::class, 'getEuProductOverrides'])->meta([
+        'permissions' => 'store/settings'
+    ]);
+    $router->get('configuration/settings/eu-vat/oss-rates', [TaxEUController::class, 'getOssCountryRates'])->meta([
+        'permissions' => 'store/settings'
+    ]);
+    $router->post('configuration/settings/eu-vat/oss-rates', [TaxEUController::class, 'saveOssCountryRates'])->meta([
+        'permissions' => 'store/sensitive'
+    ]);
 });
 
 $router->prefix('checkout-fields')->withPolicy('StoreSensitivePolicy')->group(function (Router $router) {

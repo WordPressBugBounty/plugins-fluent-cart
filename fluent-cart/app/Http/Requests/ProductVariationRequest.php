@@ -160,6 +160,16 @@ class ProductVariationRequest extends RequestGuard
             'variants.other_info.length'           => 'nullable|numeric',
             'variants.other_info.width'            => 'nullable|numeric',
             'variants.other_info.height'           => 'nullable|numeric',
+            'variants.other_info.tax_class'        => ['nullable', function ($attribute, $value) {
+                if (empty($value)) {
+                    return null;
+                }
+
+                return empty(\FluentCart\App\Models\TaxClass::query()->where('slug', sanitize_text_field($value))->first())
+                    ? __('Invalid Tax Class.', 'fluent-cart')
+                    : null;
+            }],
+            'variants.other_info.tax_exempt'       => 'nullable|sanitizeText|in:yes,no',
 
             'variants.downloadable' => 'nullable|sanitizeText|maxLength:10',
         ];
@@ -267,6 +277,8 @@ class ProductVariationRequest extends RequestGuard
             'variants.other_info.length'           => 'floatval',
             'variants.other_info.width'            => 'floatval',
             'variants.other_info.height'           => 'floatval',
+            'variants.other_info.tax_class'        => 'sanitize_text_field',
+            'variants.other_info.tax_exempt'       => 'sanitize_text_field',
             //'variants.other_info.purchasable'      => 'sanitize_text_field',
         ];
 

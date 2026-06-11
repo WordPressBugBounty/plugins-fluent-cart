@@ -28,7 +28,7 @@ class CodHandler {
             return $this->handleZeroTotalPayment($paymentInstance);
         }
 
-        if (!$settings['is_active'] === 'yes') {
+        if (($settings['is_active'] ?? 'no') !== 'yes') {
             throw new \Exception(esc_html__('Offline payment is not activated', 'fluent-cart'));
         }
 

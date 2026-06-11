@@ -10,14 +10,13 @@ class MiniCartRenderer
 {
     protected $cartItems;
     protected $itemCount = 0;
+    protected $countMode = 'distinct_products';
 
     public function __construct($cartItems, $config = [])
     {
-
         $this->cartItems = $cartItems;
         $this->itemCount = Arr::get($config, 'item_count') ?? count($this->cartItems);
-
-
+        $this->countMode = Arr::get($config, 'count_mode', 'distinct_products');
     }
     public function renderMiniCart($atts = [])
     {
@@ -44,7 +43,7 @@ class MiniCartRenderer
         $isShortcode = Arr::get($atts, 'is_shortcode', false);
         $wrapperAttributes = '';
         if(!$isShortcode){
-            $wrapperAttributes = get_block_wrapper_attributes();
+            $wrapperAttributes = RenderHelper::getBlockWrapperAttributes();
         }
 
 
@@ -75,6 +74,7 @@ class MiniCartRenderer
                             <span
                                 class="fct-mini-cart-badge"
                                 data-cart-badge-count
+                                data-cart-count-mode="<?php echo esc_attr($this->countMode); ?>"
                                 <?php echo $countStyle; ?>
                             >
                                 <?php

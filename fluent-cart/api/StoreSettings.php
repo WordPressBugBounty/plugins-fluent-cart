@@ -33,16 +33,25 @@ class StoreSettings implements ArrayableInterface
 
     public function __construct()
     {
+        if (self::$cachedStoreSettings !== null) {
+            $this->storeSettings = self::$cachedStoreSettings;
+            return;
+        }
         $defaultSettings = $this->getDefaultSettings();
         $storeSettings = get_option($this->optionKey, []);
         $settings = wp_parse_args($storeSettings, $defaultSettings);
         $this->storeSettings = $settings;
+        self::$cachedStoreSettings = $this->storeSettings;
     }
 
     protected function getDefaultSettings(): array
     {
         $defaultSettings = [
             'store_name'                           => get_bloginfo('name'),
+            'company_name'                         => '',
+            'legal_registration_id'                => '',
+            'seller_vat_id'                        => '',
+            'seller_tax_id'                        => '',
             'note_for_user_account_creation'       => __('An user account will be created', 'fluent-cart'),
             'checkout_button_text'                 => __('Checkout', 'fluent-cart'),
             'view_cart_button_text'                => __('View Cart', 'fluent-cart'),
@@ -283,6 +292,59 @@ class StoreSettings implements ArrayableInterface
 
 
                             'settings_hr_2' => [
+                                'type'  => 'html',
+                                'value' => '<hr class="settings-divider">'
+                            ],
+
+                            'business_details_grid' => [
+                                'type'            => 'grid',
+                                'id'              => 'business_details',
+                                'columns'         => [
+                                    'default' => 1,
+                                    'md'      => 3
+                                ],
+                                'disable_nesting' => true,
+                                'schema'          => [
+                                    'label'                   => [
+                                        'type'  => 'html',
+                                        'value' => '<span class="setting-label">' . __('Business Details', 'fluent-cart') . '</span>
+                                                            <div class="form-note">' . __('Add your legal business identity details used for store records and compliance.', 'fluent-cart') . '</div>'
+                                    ],
+                                    'business_details_fields' => [
+                                        'type'            => 'grid',
+                                        'columns'         => [
+                                            'default' => 1,
+                                            'md'      => 2
+                                        ],
+                                        'disable_nesting' => true,
+                                        'wrapperClass'    => 'col-span-2',
+                                        'schema'          => [
+                                            'company_name'          => [
+                                                'label' => __('Company Name', 'fluent-cart'),
+                                                'type'  => 'input',
+                                                'value' => '',
+                                            ],
+                                            'legal_registration_id' => [
+                                                'label' => __('Legal Registration ID', 'fluent-cart'),
+                                                'type'  => 'input',
+                                                'value' => '',
+                                            ],
+                                            'seller_vat_id'         => [
+                                                'label' => __('Seller VAT ID', 'fluent-cart'),
+                                                'type'  => 'input',
+                                                'value' => '',
+                                            ],
+                                            'seller_tax_id'         => [
+                                                'label' => __('Seller Tax ID', 'fluent-cart'),
+                                                'type'  => 'input',
+                                                'value' => '',
+                                            ],
+                                        ]
+                                    ],
+                                ]
+                            ],
+
+                            'settings_hr_3' => [
                                 'type'  => 'html',
                                 'value' => '<hr class="settings-divider">'
                             ],
@@ -1089,7 +1151,7 @@ class StoreSettings implements ArrayableInterface
                             ],
                         ]
                     ],
-                    'subscriptions_setup' => [
+                    'subscriptions_setup'  => [
                         'title'           => __('Subscriptions', 'fluent-cart'),
                         'show_title'      => false,
                         'type'            => 'section',
@@ -1252,6 +1314,7 @@ class StoreSettings implements ArrayableInterface
 
         update_option($this->optionKey, $settings, true);
         $this->storeSettings = $settings;
+        self::$cachedStoreSettings = $this->storeSettings;
 
         $isSlugChanged = Arr::get($prevSettings, 'product_slug') !== Arr::get($settings, 'product_slug');
         $isAccountPageChanged = Arr::get($prevSettings, 'customer_profile_page_slug') !== Arr::get($settings, 'customer_profile_page_slug');
@@ -1379,7 +1442,7 @@ class StoreSettings implements ArrayableInterface
                 return $this->getPageLink($pageId);
             }
         }
-        return '';
+        return home_url();
     }
 
 

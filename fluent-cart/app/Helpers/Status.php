@@ -324,7 +324,15 @@ class Status
         return [
             self::PAYMENT_PAID,
             self::PAYMENT_PARTIALLY_REFUNDED,
-            self::PAYMENT_PARTIALLY_PAID
+            self::PAYMENT_PARTIALLY_PAID,
+        ];
+    }
+
+    public static function getPaymentRetryableStatuses()
+    {
+        return [
+            self::PAYMENT_PENDING,
+            self::PAYMENT_FAILED
         ];
     }
 

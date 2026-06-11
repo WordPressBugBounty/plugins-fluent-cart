@@ -18,7 +18,7 @@ if (!defined('ABSPATH')) exit; // Exit if accessed directly
 
 class ProductsCollection extends Custom_Render_Element
 {
-    public $category = 'fluentcart';
+    public $category = 'fluent-cart';
     public $name = 'fct-products';
     public $icon = 'ti-archive';
 
@@ -31,7 +31,7 @@ class ProductsCollection extends Custom_Render_Element
 
     public function get_label()
     {
-        return esc_html__('Products', 'fluent-cart');
+        return esc_html__('Products (FluentCart)', 'fluent-cart');
     }
 
     public function set_control_groups()

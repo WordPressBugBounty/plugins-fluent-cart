@@ -206,11 +206,27 @@ class OrderController extends Controller
         if (is_wp_error($data)) {
             return $this->sendError($data->get_error_message());
         }
+
+        // Changing the order address recalculates tax server-side
+        // (OrderResource::updateOrderAddressId → reapplyTaxAfterUpdate). Return the
+        // refreshed order with the tax appends so the admin UI can update the tax
+        // summary, totals and payment status without a full page reload.
+        $freshOrder = Order::query()->where('id', $order_id)
+            ->addAppends([
+                'business_info',
+                'customer_tax_number',
+                'is_b2b_order',
+                'display_tax_lines',
+                'display_shipping_tax_lines',
+                'is_reverse_charge_tax_order',
+                'tax_summary',
+            ])
+            ->first();
+
         return $this->sendSuccess([
-            'message' => 'Address updated successfully'
+            'message' => 'Address updated successfully',
+            'order'   => $freshOrder,
         ]);
-
-
     }
 
     public function generateMissingLicenses(Request $request, Order $order)
@@ -521,7 +537,7 @@ class OrderController extends Controller
             (new OrderDeleting($order, $connectedOrderIds, $isTestMode, $order->type))->dispatch();
 
             // Pre-load relations before cleanup so the delete events have address data
-            $order->load('customer', 'shipping_address', 'billing_address');
+            $order->load(['customer', 'shipping_address', 'billing_address']);
 
             $this->deleteOrderRelatedData($connectedOrderIds, $isTestMode);
             $DB->commit();
@@ -617,13 +633,11 @@ class OrderController extends Controller
         if (empty($data['order']['receipt_url'])) {
             $data['order']['receipt_url'] = $url;
         }
-        $meta = OrderMeta::query()->where('order_id', $orderId)
-            ->where('meta_key', 'vat_tax_id')
-            ->first();
-
-        if ($meta) {
-            $data['tax_id'] =  $meta->meta_value;
+        $taxNumber = Arr::get($data, 'order.customer_tax_number', '');
+        if (!empty($taxNumber)) {
+            $data['tax_id'] = $taxNumber;
         }
+        unset($data['order']['customer_tax_number']);
 
         $data['can_send_payment_reminder'] = (new ReminderService())->canSendPaymentReminder($data['order']);
 
@@ -1077,7 +1091,15 @@ class OrderController extends Controller
     {
 
         $order = Order::query()->find($order);
-        $newStatus = $request->get('status');
+        $newStatus = sanitize_text_field($request->get('status', ''));
+
+        $validStatuses = Status::getEditableTransactionStatuses();
+        if (!isset($validStatuses[$newStatus])) {
+            return $this->sendError([
+                'message' => __('Provided transaction status is not valid', 'fluent-cart')
+            ]);
+        }
+
         if ($transaction->status == $newStatus) {
             return $this->sendError([
                 'reload'  => true,
@@ -1161,6 +1183,72 @@ class OrderController extends Controller
             'order_items'     => $orderItems
         ]);
 
+    }
+
+    /**
+     * Calculate tax for an admin order given an address and item list.
+     * No DB writes — pure calculation helper.
+     *
+     * Accepts: { country, state, city, postcode, items: [{post_id, object_id, subtotal, discount_total}] }
+     * Returns: { tax_total, shipping_tax, tax_lines, tax_behavior, tax_country }
+     */
+    public function calculateTax(Request $request)
+    {
+        $address = [
+            'country'  => sanitize_text_field($request->get('country', '')),
+            'state'    => sanitize_text_field($request->get('state', '')),
+            'city'     => sanitize_text_field($request->get('city', '')),
+            'postcode' => sanitize_text_field($request->get('postcode', '')),
+        ];
+
+        $rawItems = $request->get('items', []);
+        if (!is_array($rawItems)) {
+            $rawItems = [];
+        } elseif (count($rawItems) > 100) {
+            $rawItems = array_slice($rawItems, 0, 100);
+        }
+
+        $items = [];
+        foreach ($rawItems as $item) {
+            $items[] = [
+                'post_id'         => (int) Arr::get($item, 'post_id', 0),
+                'object_id'       => (int) Arr::get($item, 'object_id', 0),
+                'subtotal'        => (int) Arr::get($item, 'subtotal', 0),
+                'discount_total'  => (int) Arr::get($item, 'discount_total', 0),
+                'shipping_charge' => (int) Arr::get($item, 'shipping_charge', 0),
+                'quantity'        => max(1, (int) Arr::get($item, 'quantity', 1)),
+            ];
+        }
+
+        $result = \FluentCart\App\Services\Tax\AdminOrderTaxService::calculate($items, $address);
+
+        if ($result === null) {
+            return $this->sendSuccess([
+                'tax_total'    => 0,
+                'shipping_tax' => 0,
+                'tax_lines'    => [],
+                'tax_behavior' => 0,
+                'tax_country'  => '',
+            ]);
+        }
+
+        $taxLines = Arr::get($result, 'tax_lines', []);
+        $strippedTaxLines = array_values(array_map(function ($line) {
+            return [
+                'label'        => Arr::get($line, 'label', ''),
+                'rate_percent' => Arr::get($line, 'rate_percent', 0),
+                'tax_amount'   => (int) Arr::get($line, 'tax_amount', 0),
+                'inclusive'    => (bool) Arr::get($line, 'inclusive', false),
+            ];
+        }, $taxLines));
+
+        return $this->sendSuccess([
+            'tax_total'    => (int) Arr::get($result, 'tax_total', 0),
+            'shipping_tax' => (int) Arr::get($result, 'shipping_tax', 0),
+            'tax_behavior' => (int) Arr::get($result, 'tax_behavior', 0),
+            'tax_country'  => Arr::get($result, 'tax_country', ''),
+            'tax_lines'    => $strippedTaxLines,
+        ]);
     }
 
     protected function prepareOrderItemsWithVariations($orderItems)

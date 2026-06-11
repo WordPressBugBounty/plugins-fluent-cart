@@ -243,7 +243,7 @@ class CouponResource extends BaseResourceApi
         $lineItems = Arr::except(Arr::get($data, 'order_items', []), ['*']);
         $orderId = Arr::get($data, 'order_uuid', null);
         $getAppliedCouponLists = Arr::get($data, 'applied_coupons', []);
-        $previouslyAppliedCouponCodes = null;
+        $previouslyAppliedCouponCodes = new Collection();
 
         if (!empty($orderId)) {
             $order = OrderResource::find($orderId, ['with' => ['order_items', 'appliedCoupons']]);
@@ -287,8 +287,8 @@ class CouponResource extends BaseResourceApi
     {
         $lineItems = Arr::except(Arr::get($data, 'order_items', []), ['*']);
         $orderId = Arr::get($data, 'order_uuid', null);
+        $appliedCouponIds = Arr::get($data, 'applied_coupons', []);
         $previouslyAppliedCouponCodes = null;
-
 
         if (!empty($orderId)) {
             $order = OrderResource::find($orderId, ['with' => 'appliedCoupons']);
@@ -299,9 +299,16 @@ class CouponResource extends BaseResourceApi
             }
         }
 
-        $previouslyAppliedCouponCodes = static::makeCouponFromAppliedCoupons($previouslyAppliedCouponCodes);
+        // When the request carries coupon IDs (current UI state, may include unsaved coupons),
+        // load them directly so freshly applied coupons survive item adjustments before save.
+        if (!empty($appliedCouponIds)) {
+            $couponCodes = Coupon::query()->whereIn('id', $appliedCouponIds)->pluck('code')->toArray();
+            $couponService = new CouponServiceAdmin($lineItems, null, $couponCodes);
+        } else {
+            $previouslyAppliedCouponCodes = static::makeCouponFromAppliedCoupons($previouslyAppliedCouponCodes);
+            $couponService = new CouponServiceAdmin($lineItems, $previouslyAppliedCouponCodes);
+        }
 
-        $couponService = new CouponServiceAdmin($lineItems, $previouslyAppliedCouponCodes);
         $couponService->reapplyCoupons();
 
         $calculated_items = $couponService->getCalculatedLineItems();

@@ -10,6 +10,7 @@ use FluentCart\App\App;
 use FluentCart\App\Helpers\Helper;
 use FluentCart\App\Models\Subscription;
 use FluentCart\App\Modules\Templating\AssetLoader;
+use FluentCart\App\Services\Renderer\CheckoutFieldsSchema;
 use FluentCart\App\Services\TemplateService;
 use FluentCart\App\Services\Translations\TransStrings;
 use FluentCart\App\Vite;
@@ -371,7 +372,13 @@ class CustomerProfileHandler extends ShortCode
                 'logout_url'        => wp_logout_url(home_url()),
                 'datei18'           => TransStrings::dateTimeStrings(),
                 'el_strings'        => TransStrings::elStrings(),
-                'wp_locale'         => get_locale()
+                'wp_locale'         => get_locale(),
+                'is_company_name_enabled' => CheckoutFieldsSchema::isCompanyNameEnabled(),
+                'is_company_name_required' => CheckoutFieldsSchema::isCompanyNameRequired(),
+                'is_vat_number_enabled' => CheckoutFieldsSchema::isVatNumberEnabled(),
+                'is_vat_number_required' => CheckoutFieldsSchema::isVatNumberRequired(),
+                'is_legal_registration_id_enabled' => CheckoutFieldsSchema::isLegalRegistrationIdEnabled(),
+                'is_legal_registration_id_required' => CheckoutFieldsSchema::isLegalRegistrationIdRequired()
             ],
             'fluentCartRestVars'               => [
                 'rest' => Helper::getRestInfo(),

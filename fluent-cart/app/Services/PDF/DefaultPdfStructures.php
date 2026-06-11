@@ -67,7 +67,8 @@ class DefaultPdfStructures
         $blocks[] = self::summaryTable([
             'Subtotal' => '{{order.subtotal_formatted}}',
             'Discount' => '{{order.discount_total_formatted}}',
-            'Tax'      => '{{order.tax_total_formatted}}',
+            'Fees'     => '{{order.fee_lines}}',
+            'Tax'      => '{{order.tax_breakdown}}',
             'Shipping' => '{{order.shipping_total_formatted}}',
         ], 'Total', '{{order.total_amount_formatted}}');
         $blocks[] = self::footer(__('Thank you for your purchase!', 'fluent-cart'));
@@ -106,7 +107,8 @@ class DefaultPdfStructures
         $blocks[] = self::summaryTable([
             'Subtotal' => '{{order.subtotal_formatted}}',
             'Discount' => '{{order.discount_total_formatted}}',
-            'Tax'      => '{{order.tax_total_formatted}}',
+            'Fees'     => '{{order.fee_lines}}',
+            'Tax'      => '{{order.tax_breakdown}}',
         ], 'Total', '{{order.total_amount_formatted}}');
         $blocks[] = self::footer(__('Thank you for your continued subscription!', 'fluent-cart'));
 
@@ -184,7 +186,8 @@ class DefaultPdfStructures
         $blocks[] = self::summaryTable([
             'Subtotal' => '{{order.subtotal_formatted}}',
             'Discount' => '{{order.discount_total_formatted}}',
-            'Tax'      => '{{order.tax_total_formatted}}',
+            'Fees'     => '{{order.fee_lines}}',
+            'Tax'      => '{{order.tax_breakdown}}',
             'Shipping' => '{{order.shipping_total_formatted}}',
         ], 'Amount Due', '{{order.total_amount_formatted}}');
         $blocks[] = self::footer(__('Thank you for your order. Please complete the payment to process your order.', 'fluent-cart'));

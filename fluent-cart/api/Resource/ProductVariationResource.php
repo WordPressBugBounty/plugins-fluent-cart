@@ -96,11 +96,17 @@ class ProductVariationResource extends BaseResourceApi
      */
     public static function create($variant, $params = [])
     {
-        $otherInfo = Arr::get($variant, 'other_info');
+        $otherInfo = Arr::wrap(Arr::get($variant, 'other_info'));
+        $otherInfo['tax_exempt'] = Arr::get($otherInfo, 'tax_exempt', 'no');
+        $otherInfo['tax_class'] = Arr::get($otherInfo, 'tax_class', 'standard');
+
         if (Arr::get($otherInfo, 'payment_type') == 'onetime') {
             $otherInfo = Arr::only($otherInfo, [
                 'payment_type',
                 'description',
+                'tax_class',
+                'tax_exempt',
+                'tax_inclusion',
                 'package_slug',
                 'weight',
                 'weight_unit',
@@ -247,6 +253,9 @@ class ProductVariationResource extends BaseResourceApi
             $otherInfo = Arr::only($otherInfo, [
                 'payment_type',
                 'description',
+                'tax_class',
+                'tax_exempt',
+                'tax_inclusion',
                 'bundle_child_ids',
                 'package_slug',
                 'weight',

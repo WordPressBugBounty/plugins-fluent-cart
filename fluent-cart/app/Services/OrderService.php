@@ -26,6 +26,12 @@ class OrderService
      */
     public static function groupSanitizedData($order_data = []): array
     {
+        // fct_billing_tax_id is the checkout field name for the VAT number; normalise it to
+        // billing_vat_number so extractAddressData maps it into billing_address.vat_number
+        if (isset($order_data['fct_billing_tax_id'])) {
+            $order_data['billing_vat_number'] = $order_data['fct_billing_tax_id'];
+            unset($order_data['fct_billing_tax_id']);
+        }
 
         $billingAddress = static::extractAddressData($order_data, 'billing_');
         $shippingAddress = static::extractAddressData($order_data, 'shipping_');
@@ -380,10 +386,10 @@ class OrderService
             if ((int)Arr::get($orderItem, 'other_info.trial_days', 0) > 0) {
                 return (int)Arr::get($orderItem, 'other_info.signup_fee', 0);
             }
-            return intval(($orderItem['unit_price'] * $orderItem['quantity'])) + (int)Arr::get($orderItem, 'other_info.signup_fee', 0);
+            return (int) Arr::get($orderItem, 'subtotal', intval($orderItem['unit_price'] * $orderItem['quantity'])) + (int)Arr::get($orderItem, 'other_info.signup_fee', 0);
         }
 
-        return intval(($orderItem['unit_price'] * $orderItem['quantity']));
+        return (int) Arr::get($orderItem, 'subtotal', intval($orderItem['unit_price'] * $orderItem['quantity']));
     }
 
     /**

@@ -20,7 +20,7 @@ class PaymentHelper
 
     public function listenerUrl($args = [])
     {
-        $listener = '?fct_payment_listener=1&method=' . $this->slug;
+        $listener = '/?fct_payment_listener=1&method=' . $this->slug;
         $data = apply_filters_deprecated('fluent_cart_ipn_url_' . $this->slug, [
             ['listener_url' => site_url($listener)]
         ], '1.3.16', 'fluent_cart/ipn_url_' . $this->slug, 'Use fluent_cart/ipn_url_' . $this->slug . ' instead of fluent_cart_ipn_url_' . $this->slug . '.');

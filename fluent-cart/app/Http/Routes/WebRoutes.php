@@ -216,7 +216,7 @@ class WebRoutes
                 (new PayPalPartnerRenderer($request->mode))->render(
                     $request->all()
                 );
-                break;
+                return true;
             case 'download-by-id':
             case 'download-file':
                 // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Escaped in view template

@@ -51,6 +51,7 @@
 <?php
 
 use FluentCart\Api\StoreSettings;
+use FluentCart\App\Models\Order;
 use FluentCart\Framework\Support\Arr;
 use FluentCart\App\Helpers\AddressHelper;
 use FluentCart\App\Modules\Tax\TaxModule;
@@ -59,11 +60,11 @@ use FluentCart\App\Services\DateTime\DateTime;
 $settings = new StoreSettings();
 
 /**
- * @var $order
+ * @var Order $order
  */
 
 $profilePage = $settings->getCustomerProfilePage();
-$orderTaxRates = $order->orderTaxRates->first();
+$orderTaxRates = $order->getPrimaryOrderTaxRate();
 
 
 ?>
@@ -183,11 +184,6 @@ $orderTaxRates = $order->orderTaxRates->first();
                                 <div style="margin-bottom: 3px;">
                                     <?php echo esc_html($order->billing_address->getAddressAsText()); ?>
                                 </div>
-                                <?php if (!empty($vat_tax_id)) : ?>
-                                    <div style="margin-bottom: 3px;">
-                                        <?php echo esc_html__('VAT/Tax ID: ', 'fluent-cart'). esc_html($vat_tax_id); ?>
-                                    </div>
-                                <?php endif; ?>
                                 <div style="margin-top: 10px;">
                                     <?php echo esc_html($order->customer->email); ?>
                                 </div>
@@ -203,30 +199,35 @@ $orderTaxRates = $order->orderTaxRates->first();
                                 <?php
                                      $companyName = Arr::get($order->billing_address->meta ?? [], 'other_data.company_name', '');
                                      if ($companyName == '') {
-                                        $companyName = Arr::get($orderTaxRates->meta ?? [], 'vat_reverse.name', '');
+                                        $companyName = $order->getCustomerTaxName();
                                      }
                                      echo esc_html($companyName);
                                 ?>
                                 </div>
                                 <div style="margin-top: 5px;">
                                     <?php
-                                        $vatNumber = Arr::get($orderTaxRates->meta ?? [], 'vat_reverse.vat_number', '');
+                                        $vatNumber = $order->getCustomerTaxNumber();
                                         
                                         if ($vatNumber !== '') {
-                                            echo esc_html__('EU VAT', 'fluent-cart') . ': ' . esc_html($vatNumber);
+                                            $vatLabel = __('VAT/Tax ID', 'fluent-cart');
+                                            echo esc_html($vatLabel) . ': ' . esc_html($vatNumber);
                                         }
                                     ?>
                                 </div>
+                                <?php
+                                $reverseChargeDeclaration = Arr::get($order->getBusinessInfo(), 'reverse_charge_declaration', '');
+                                if ($reverseChargeDeclaration !== ''):
+                                ?>
+                                    <div style="margin-top: 5px;">
+                                        <strong><?php echo esc_html__('Reverse Charge Declaration', 'fluent-cart'); ?>:</strong>
+                                        <?php echo esc_html($reverseChargeDeclaration); ?>
+                                    </div>
+                                <?php endif; ?>
 
                             <?php else: ?>
                                 <div style="margin-top: 10px;">
                                     <?php echo esc_html($order->customer->full_name); ?>
                                 </div>
-                                <?php if (!empty($vat_tax_id)) : ?>
-                                    <div style="margin-bottom: 3px;">
-                                        <?php echo esc_html__('VAT/Tax ID: ', 'fluent-cart'). esc_html($vat_tax_id); ?>
-                                    </div>
-                                <?php endif; ?>
                                 <div style="margin-top: 3px;">
                                     <?php echo esc_html($order->customer->email); ?>
                                 </div>
@@ -327,15 +328,42 @@ $orderTaxRates = $order->orderTaxRates->first();
                                         </td>
                                     </tr>
                                 <?php endif; ?>
+                                <?php
+                                $prorateCredit = (int) \FluentCart\Framework\Support\Arr::get($order->config, 'prorate_credit', 0);
+                                $upgradeDiscount = $order->manual_discount_total - $prorateCredit;
+                                // When the prorate credit IS the whole discount, label the row directly
+                                // instead of showing "Discount" with a single redundant breakdown row.
+                                $onlyProrateCredit = $prorateCredit > 0 && $upgradeDiscount <= 0 && $order->coupon_discount_total <= 0;
+                                ?>
                                 <?php if ($order->manual_discount_total + $order->coupon_discount_total > 0): ?>
                                     <tr>
                                         <td style="padding: 8px 20px 8px 0;text-align: right;border: none;">
-                                            <?php echo esc_html__('Discount', 'fluent-cart'); ?>
+                                            <?php echo $onlyProrateCredit ? esc_html__('Prorate Credit', 'fluent-cart') : esc_html__('Discount', 'fluent-cart'); ?>
                                         </td>
                                         <td style="padding: 8px 8px 8px 0;width: 100px;text-align: right;border: none;">
                                             - <?php echo esc_html(\FluentCart\App\Helpers\Helper::toDecimal($order->manual_discount_total + $order->coupon_discount_total)); ?>
                                         </td>
                                     </tr>
+                                    <?php if ($prorateCredit > 0 && $upgradeDiscount > 0): ?>
+                                        <tr>
+                                            <td style="padding: 2px 20px 2px 20px;text-align: right;border: none;font-size:12px;color:rgb(107,114,128);">
+                                                <?php echo esc_html__('Upgrade Discount', 'fluent-cart'); ?>
+                                            </td>
+                                            <td style="padding: 2px 8px 2px 0;width: 100px;text-align: right;border: none;font-size:12px;color:rgb(107,114,128);">
+                                                <?php echo esc_html(\FluentCart\App\Helpers\Helper::toDecimal($upgradeDiscount)); ?>
+                                            </td>
+                                        </tr>
+                                    <?php endif; ?>
+                                    <?php if ($prorateCredit > 0 && !$onlyProrateCredit): ?>
+                                        <tr>
+                                            <td style="padding: 2px 20px 2px 20px;text-align: right;border: none;font-size:12px;color:rgb(107,114,128);">
+                                                <?php echo esc_html__('Prorate Credit', 'fluent-cart'); ?>
+                                            </td>
+                                            <td style="padding: 2px 8px 2px 0;width: 100px;text-align: right;border: none;font-size:12px;color:rgb(107,114,128);">
+                                                <?php echo esc_html(\FluentCart\App\Helpers\Helper::toDecimal($prorateCredit)); ?>
+                                            </td>
+                                        </tr>
+                                    <?php endif; ?>
                                 <?php endif; ?>
                                 <?php if ($order->shipping_total > 0): ?>
                                     <tr>
@@ -359,11 +387,30 @@ $orderTaxRates = $order->orderTaxRates->first();
                                         </td>
                                     </tr>
                                 <?php endforeach; ?>
-                                <?php if ($order->tax_total > 0): ?>
+                                <?php if ($order->isReverseChargeTaxOrder()): ?>
+                                    <?php
+                                        $rcReversedTotal = $order->getReversedTaxTotal();
+                                        $rcChargeLabel = $rcReversedTotal > 0
+                                            ? sprintf(
+                                                /* translators: %1$s: formatted reversed tax amount */
+                                                __('Tax reversed: %1$s', 'fluent-cart'),
+                                                \FluentCart\App\Helpers\Helper::toDecimal($rcReversedTotal)
+                                            )
+                                            : __('Charge reversed', 'fluent-cart');
+                                    ?>
+                                    <tr>
+                                        <td style="padding: 8px 20px 8px 0;text-align: right;border: none;">
+                                            <?php echo esc_html__('Tax', 'fluent-cart'); ?>
+                                        </td>
+                                        <td style="padding: 8px 8px 8px 0;width: 100px;text-align: right;border: none;">
+                                            <?php echo esc_html($rcChargeLabel); ?>
+                                        </td>
+                                    </tr>
+                                <?php elseif ($order->tax_total > 0): ?>
                                     <tr>
                                         <td style="padding: 8px 20px 8px 0;text-align: right;border: none;">
                                             <?php echo esc_html__('Tax', 'fluent-cart');
-                                            echo esc_html( $order->tax_behavior == 2 ? __('(Included)', 'fluent-cart') : __('(Excluded)', 'fluent-cart'));
+                                            echo esc_html(\FluentCart\App\Helpers\Helper::getOrderTaxLabel($order));
                                             ?>
                                         </td>
                                         <td style="padding: 8px 8px 8px 0;width: 100px;text-align: right;border: none;">
@@ -375,7 +422,7 @@ $orderTaxRates = $order->orderTaxRates->first();
                                     <tr>
                                         <td style="padding: 8px 20px 8px 0;text-align: right;border: none;">
                                             <?php echo esc_html__('Shipping Tax', 'fluent-cart');
-                                            echo esc_html( $order->tax_behavior == 2 ? __('(Included)', 'fluent-cart') : __('(Excluded)', 'fluent-cart'));
+                                            echo esc_html(\FluentCart\App\Helpers\Helper::getOrderTaxLabel($order));
                                             ?>
                                         </td>
                                         <td style="padding: 8px 8px 8px 0;width: 100px;text-align: right;border: none;">
@@ -417,8 +464,7 @@ $orderTaxRates = $order->orderTaxRates->first();
 
                     <!-- tax note -->
                     <?php 
-                    $taxtotal = $order->tax_total + $order->shipping_tax;
-                    if(Arr::get($orderTaxRates->meta ?? [], 'vat_reverse.valid') && !$taxtotal): ?>
+                    if($order->isReverseChargeTaxOrder()): ?>
 
                         <div style="text-align: right; font-size: 14px; margin-top: 10px;">
                             <?php echo '*' . esc_html__('Tax to be paid on reverse charge basis', 'fluent-cart'); ?>

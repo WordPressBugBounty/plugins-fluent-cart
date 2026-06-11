@@ -54,7 +54,10 @@
     <tbody>
     <tr>
         <td>
-            <?php if ($order && $order->tax_total > 0): ?>
+            <?php
+            $isReverseCharge = $order && $order->isReverseChargeTaxOrder();
+            if ($order && ($order->tax_total > 0 || $isReverseCharge)):
+            ?>
             <table align="center" width="100%" border="0" cellpadding="0" cellspacing="0" role="presentation">
                 <tbody style="width:100%">
                 <tr style="width:100%">
@@ -69,11 +72,37 @@
                         </p>
                     </td>
                 </tr>
+                <?php if ($isReverseCharge): ?>
+                <?php
+                    $rcReversedTotal = $order ? $order->getReversedTaxTotal() : 0;
+                    if ($rcReversedTotal > 0) {
+                        $rcTaxLabel = sprintf(
+                            /* translators: %1$s: formatted reversed tax amount */
+                            __('Tax reversed: %1$s', 'fluent-cart'),
+                            \FluentCart\App\Helpers\Helper::toDecimal($rcReversedTotal)
+                        );
+                    } else {
+                        $rcTaxLabel = __('Charge reversed', 'fluent-cart');
+                    }
+                ?>
+                <tr style="width:100%">
+                    <td style="width:70%">
+                        <p style="font-size:14px;color:rgb(55,65,81);margin:0px;line-height:24px;">
+                            <?php esc_html_e('Tax', 'fluent-cart'); ?>
+                        </p>
+                    </td>
+                    <td style="width:30%;text-align:right">
+                        <p style="font-size:14px;color:rgb(55,65,81);margin:0px;line-height:24px;">
+                            <?php echo esc_html($rcTaxLabel); ?>
+                        </p>
+                    </td>
+                </tr>
+                <?php else: ?>
                 <tr style="width:100%">
                     <td style="width:70%">
                         <p style="font-size:14px;color:rgb(55,65,81);margin:0px;line-height:24px;">
                             <?php esc_html_e('Tax', 'fluent-cart');
-                            echo esc_html($order->tax_behavior == 2 ? __(' (Included)', 'fluent-cart') : __(' (Excluded)', 'fluent-cart'));
+                            echo esc_html(\FluentCart\App\Helpers\Helper::getOrderTaxLabel($order));
                             ?>
                         </p>
                     </td>
@@ -83,8 +112,14 @@
                         </p>
                     </td>
                 </tr>
+                <?php endif; ?>
                 </tbody>
             </table>
+            <?php if ($isReverseCharge): ?>
+                <div style="font-size:12px;color:rgb(55,65,81);margin-top:4px;margin-bottom:4px;">
+                    <?php echo '* ' . esc_html__('Tax to be paid on reverse charge basis', 'fluent-cart'); ?>
+                </div>
+            <?php endif; ?>
             <hr style="border-color:rgb(209,213,219);margin-top:8px;margin-bottom:8px;width:100%;border:none;border-top:1px solid #eaeaea">
             <?php endif; ?>
             <table align="center" width="100%" border="0" cellpadding="0" cellspacing="0" role="presentation">

@@ -10,6 +10,7 @@ use FluentCart\App\Http\Requests\EmailSettingsRequest;
 use FluentCart\App\Http\Requests\SchedulingSettingsRequest;
 use FluentCart\App\Services\Email\EmailNotificationMailer;
 use FluentCart\App\Services\Email\EmailNotifications;
+use FluentCart\App\Services\Email\StoreDigestService;
 use FluentCart\App\Services\PDF\ReceiptPdfTemplateService;
 use FluentCart\App\Services\Reminders\ReminderService;
 use FluentCart\App\Services\ShortCodeParser\ShortcodeTemplateBuilder;
@@ -203,6 +204,49 @@ class EmailNotificationController extends Controller
                 'message' => __('Failed to save email settings', 'fluent-cart')
             ]);
         }
+    }
+
+    public function getDigestSettings(): \WP_REST_Response
+    {
+        return $this->sendSuccess([
+            'data' => StoreDigestService::getSettings(),
+        ]);
+    }
+
+    public function saveDigestSettings(Request $request): \WP_REST_Response
+    {
+        $saved = StoreDigestService::saveSettings($request->all());
+
+        return $this->sendSuccess([
+            'data'    => $saved,
+            'message' => __('Store digest settings saved successfully', 'fluent-cart'),
+        ]);
+    }
+
+    public function sendDigestTest(Request $request): \WP_REST_Response
+    {
+        $frequency = sanitize_text_field(Arr::get($request->all(), 'frequency', 'daily'));
+        if (!in_array($frequency, StoreDigestService::CADENCES, true)) {
+            $frequency = 'daily';
+        }
+
+        // Send the test to the configured recipients, falling back to the WP admin email.
+        $recipients = StoreDigestService::getSettings('recipients');
+        if (empty($recipients)) {
+            $recipients = get_bloginfo('admin_email');
+        }
+
+        $sent = StoreDigestService::sendDigest($frequency, (string) $recipients);
+
+        if ($sent) {
+            return $this->sendSuccess([
+                'message' => __('Test digest email sent.', 'fluent-cart'),
+            ]);
+        }
+
+        return $this->sendError([
+            'message' => __('Could not send the test email. Please check your mailing settings and recipients.', 'fluent-cart'),
+        ]);
     }
 
     public function getSchedulingSettings(StoreSettings $storeSettings): array

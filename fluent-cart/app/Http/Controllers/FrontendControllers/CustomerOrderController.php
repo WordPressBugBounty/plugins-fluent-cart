@@ -25,6 +25,7 @@ use FluentCart\App\Services\FileSystem\FileManager;
 use FluentCart\App\Services\Localization\LocalizationManager;
 use FluentCart\App\Services\OrderService;
 use FluentCart\App\Services\Payments\PaymentHelper;
+use FluentCart\App\Services\Renderer\Receipt\TaxSummaryHelper;
 use FluentCart\Framework\Database\Orm\Builder;
 use FluentCart\Framework\Database\Orm\Relations\HasMany;
 use FluentCart\Framework\Http\Request\Request;
@@ -130,7 +131,7 @@ class CustomerOrderController extends BaseFrontendController
         $order = Order::query()
             ->where('uuid', $order_uuid)
             ->where('customer_id', $customer->id)
-            ->with(['customer', 'transactions', 'shipping_address', 'billing_address'])
+            ->with(['customer', 'transactions', 'shipping_address', 'billing_address', 'orderTaxRates.tax_rate'])
             ->with(['order_items' => function ($query) {
                 $query->with([
                     'variantImages',
@@ -168,7 +169,13 @@ class CustomerOrderController extends BaseFrontendController
         $productIds = [];
         foreach ($order->order_items as $item) {
             if ($item->payment_type === 'signup_fee') {
-                continue; // Skip signup fee items
+                $orderItems[] = [
+                    'id'           => $item->id,
+                    'payment_type' => $item->payment_type,
+                    'object_id'    => $item->object_id,
+                    'line_meta'    => $item->line_meta,
+                ];
+                continue;
             }
 
             // Fee items: include with minimal data for frontend display
@@ -197,7 +204,7 @@ class CustomerOrderController extends BaseFrontendController
             if ($item->payment_type == 'subscription' && $signupFee = Arr::get($item->other_info, 'signup_fee')) {
                 $metaLines[] = [
                     'label' => Arr::get($item->other_info, 'signup_fee_name', __('Signup Fee', 'fluent-cart')),
-                    'value' => Helper::toDecimal($signupFee, true, $order->currency)
+                    'value' => html_entity_decode(Helper::toDecimal($signupFee, true, $order->currency))
                 ];
                 $extraAmount = (int)$signupFee;
             }
@@ -217,8 +224,11 @@ class CustomerOrderController extends BaseFrontendController
                 'variant_image' => Arr::get($item, 'variantImages.meta_value.0.url', ''),
                 'url'           => $item->is_custom 
                                     ? ($item->view_url ?? '') : ($item->product->view_url ?? ''),
-                'line_meta'     => $item->line_meta,
-                'id'            => $item->id
+                'line_meta'      => $item->line_meta,
+                'id'             => $item->id,
+                'coupon_discount' => (int) $item->coupon_discount,
+                'discount_total'  => (int) $item->discount_total,
+                'line_total'      => (int) $item->line_total,
 
             ];
             $variationIds[] = $item->object_id;
@@ -248,9 +258,16 @@ class CustomerOrderController extends BaseFrontendController
             'shipping_total'        => $order->shipping_total,
             'coupon_discount_total' => $order->coupon_discount_total,
             'manual_discount_total' => $order->manual_discount_total,
+            'prorate_credit'        => (int) Arr::get($order->config, 'prorate_credit', 0),
             'tax_total'             => $order->tax_total,
             'tax_behavior'          => $order->tax_behavior,
             'shipping_tax'          => $order->shipping_tax,
+            'display_tax_lines'          => $order->getDisplayTaxLines(),
+            'display_shipping_tax_lines' => $order->getDisplayShippingTaxLines(),
+            'is_reverse_charge_tax_order' => $order->isReverseChargeTaxOrder(),
+            'reverse_charge_price_mode'   => $order->getOrderRcMode(),
+            'is_b2b_order'                => $order->isB2BOrder(),
+            'tax_summary'                => TaxSummaryHelper::computeTaxSummary($order),
             'payment_method'        => $order->payment_method,
             'custom_payment_link'   => $this->getCustomPaymentLink($order),
         ];

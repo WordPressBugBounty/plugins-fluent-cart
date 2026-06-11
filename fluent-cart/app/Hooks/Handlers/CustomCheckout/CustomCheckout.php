@@ -43,6 +43,13 @@ class CustomCheckout
             die('No due amount found!');
         }
 
+        // Post-tax credits (plan upgrade) live inside manual_discount_total on the order
+        // but must NOT be redistributed as item-level manual discounts on re-pay — that
+        // would shrink the tax base. They are re-applied post-tax via checkout_data below.
+        $prorateCredit = (int) Arr::get($order->config, 'prorate_credit', 0);
+        $upgradeDiscount = (int) Arr::get($order->config, 'upgrade_discount', 0);
+        $itemManualDiscountTotal = max(0, (int) $order->manual_discount_total - $prorateCredit - $upgradeDiscount);
+
         if ($order->type === Status::ORDER_TYPE_SUBSCRIPTION) {
             $orderItem = $order->order_items->filter(function ($item) {
                 return !in_array($item->payment_type, ['signup_fee', 'fee']);
@@ -79,9 +86,9 @@ class CustomCheckout
                 Arr::set($newItem, 'variation_type', $subscriptionItemData->variation->product_detail->variation_type);
             }
 
-            if ($order->coupon_discount_total > 0 || $order->manual_discount_total > 0) {
+            if ($order->coupon_discount_total > 0 || $itemManualDiscountTotal > 0) {
                 Arr::set($newItem, 'coupon_discount', (int) $order->coupon_discount_total);
-                Arr::set($newItem, 'manual_discount', (int) $order->manual_discount_total);
+                Arr::set($newItem, 'manual_discount', $itemManualDiscountTotal);
             }
 
             $instantCart = CartHelper::generateCartFromCustomVariation($newItem, $orderItem->quantity);
@@ -107,9 +114,9 @@ class CustomCheckout
                 Arr::set($item, 'tax_amount', $orderItem->tax_amount);
                 Arr::set($item, 'post_title', $orderItem->post_title);
 
-                if ($order->manual_discount_total) {
+                if ($itemManualDiscountTotal) {
                     $subtotal = Arr::get($orderItem, 'subtotal');
-                    $manualDiscount = ($subtotal * $order->manual_discount_total) / $order->subtotal;
+                    $manualDiscount = ($subtotal * $itemManualDiscountTotal) / $order->subtotal;
                     $couponDiscount = max(0, $orderItem->discount_total - $manualDiscount);
                     Arr::set($item, 'manual_discount', $manualDiscount);
                     Arr::set($item, 'coupon_discount', $couponDiscount);
@@ -155,7 +162,7 @@ class CustomCheckout
             ];
         }
 
-        $instantCart->checkout_data = [
+        $checkoutData = [
             'is_locked' => 'yes',
             'disable_coupons' => 'yes',
             'custom_checkout' => 'yes',
@@ -163,8 +170,8 @@ class CustomCheckout
             'fees' => $originalFees,
             'custom_checkout_data' => [
                 'coupon_discount_total' => $order->coupon_discount_total,
-                'manual_discount_total' => $order->manual_discount_total,
-                'discount_total' => $order->coupon_discount_total + $order->manual_discount_total,
+                'manual_discount_total' => $itemManualDiscountTotal,
+                'discount_total' => $order->coupon_discount_total + $itemManualDiscountTotal,
                 'shipping_total' => $order->shipping_total,
             ],
             '__cart_notices' => [
@@ -175,6 +182,22 @@ class CustomCheckout
                 ]
             ]
         ];
+
+        if ($prorateCredit > 0) {
+            $checkoutData['prorate_credit'] = [
+                'amount' => $prorateCredit,
+                'title'  => __('Prorate Credit', 'fluent-cart'),
+            ];
+        }
+
+        if ($upgradeDiscount > 0) {
+            $checkoutData['upgrade_discount'] = [
+                'amount' => $upgradeDiscount,
+                'title'  => __('Upgrade Discount', 'fluent-cart'),
+            ];
+        }
+
+        $instantCart->checkout_data = $checkoutData;
 
         $instantCart->save();
 

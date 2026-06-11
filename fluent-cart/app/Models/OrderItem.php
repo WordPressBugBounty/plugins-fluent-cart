@@ -77,7 +77,15 @@ class OrderItem extends Model
 
     protected function getFormattedTotalAttribute()
     {
-        return Helper::toDecimal($this->subtotal);
+        if ($this->line_total == 0 && $this->discount_total == 0) {
+            return Helper::toDecimal($this->subtotal);
+        }
+        return Helper::toDecimal($this->line_total);
+    }
+
+    public function getCouponDiscountAttribute()
+    {
+        return (int) ($this->line_meta['coupon_discount'] ?? 0);
     }
 
     public function setOtherInfoAttribute($value)

@@ -6,13 +6,13 @@ use Bricks\Element;
 if ( ! defined( 'ABSPATH' ) ) exit; // Exit if accessed directly
 
 class ProductTitle extends Element {
-    public $category = 'fluentcart';
+    public $category = 'fluent-cart';
     public $name     = 'fct-product-title';
     public $icon     = 'ti-text';
     public $tag      = 'h1';
 
     public function get_label() {
-        return esc_html__( 'Product title', 'fluent-cart' );
+        return esc_html__( 'Product Title (FluentCart)', 'fluent-cart' );
     }
 
     public function set_controls() {

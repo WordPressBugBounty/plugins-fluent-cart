@@ -7,12 +7,12 @@ use FluentCart\Api\StoreSettings;
 use FluentCart\App\Helpers\Helper;
 use FluentCart\App\Helpers\Status;
 use FluentCart\App\Models\Order;
-use FluentCart\App\Models\OrderMeta;
 use FluentCart\App\Models\Subscription;
 use FluentCart\App\Modules\PaymentMethods\Core\GatewayManager;
 use FluentCart\App\Services\DateTime\DateTime;
 use FluentCart\App\Services\Payments\PaymentReceipt;
 use FluentCart\App\Services\TemplateService;
+use FluentCart\App\Services\Renderer\Receipt\TaxSummaryHelper;
 use FluentCart\Framework\Support\Arr;
 use FluentCart\Framework\Support\Str;
 use FluentCartPro\App\Modules\Licensing\Models\License;
@@ -55,9 +55,21 @@ class OrderParser extends BaseParser
     protected array $methodMap = [
         'item_count'         => 'getItemCount',
         'is_digital'         => 'getIsDigital',
-        'store_vat_display'  => 'getStoreVatDisplay',
-        'buyer_vat_display'  => 'getBuyerVatDisplay',
-        'buyer_company_name' => 'getBuyerCompanyName',
+        'store_vat_display'                => 'getStoreVatDisplay',
+        'store_company_name'               => 'getStoreCompanyName',
+        'store_company_display'            => 'getStoreCompanyDisplay',
+        'store_legal_registration_id'      => 'getStoreLegalRegistrationId',
+        'store_legal_registration_display' => 'getStoreLegalRegistrationDisplay',
+        'store_seller_vat_id'              => 'getStoreSellerVatId',
+        'store_seller_vat_display'         => 'getStoreSellerVatDisplay',
+        'store_seller_tax_id'              => 'getStoreSellerTaxId',
+        'store_tax_display'                => 'getStoreTaxDisplay',
+        'buyer_vat_display'                => 'getBuyerVatDisplay',
+        'buyer_company_name'               => 'getBuyerCompanyName',
+        'buyer_legal_registration_id'      => 'getBuyerLegalRegistrationId',
+        'buyer_reverse_charge_declaration' => 'getBuyerReverseChargeDeclaration',
+        'tax_breakdown'                    => 'getTaxBreakdown',
+        'fee_lines'                        => 'getFeeLines',
     ];
 
     protected array $attributeMap = [
@@ -480,51 +492,120 @@ class OrderParser extends BaseParser
         return ucwords(str_replace(['_', '-'], ' ', $slug));
     }
 
+    public function getFeeLines(): string
+    {
+        if (!$this->order) {
+            return '';
+        }
+
+        $currency  = (string) Arr::get($this->order, 'currency', '');
+        $feeItems  = $this->order->feeItems()->get();
+
+        if ($feeItems->isEmpty()) {
+            return '';
+        }
+
+        $rowStyle  = 'padding:3px 0;font-size:11px;font-weight:600;color:#525866;';
+        $valueStyle = 'text-align:right;';
+        $rows = '';
+
+        foreach ($feeItems as $feeItem) {
+            $rows .= '<tr>'
+                   . '<td style="' . $rowStyle . '">' . esc_html((string) $feeItem->title) . '</td>'
+                   . '<td style="' . $rowStyle . $valueStyle . '">' . CurrencySettings::getPriceHtml((int) $feeItem->subtotal, $currency) . '</td>'
+                   . '</tr>';
+        }
+
+        return $rows;
+    }
+
     public function getTaxBreakdown(): string
     {
         if (!$this->order) {
             return '';
         }
 
-        $currency      = (string) Arr::get($this->order, 'currency', '');
-        $taxTotal      = (int) Arr::get($this->order, 'tax_total', 0);
-        $shippingTax   = (int) Arr::get($this->order, 'shipping_tax', 0);
-        $rowStyle      = 'padding:5px 0;font-size:11px;';
-        $labelStyle    = $rowStyle . 'color:#525866;';
-        $valueStyle    = $rowStyle . 'color:#0E121B;text-align:right;';
+        $currency  = (string) Arr::get($this->order, 'currency', '');
+        $summary   = TaxSummaryHelper::computeTaxSummary($this->order);
 
-        $rows  = '';
-        $rates = $this->order->orderTaxRates ?? null;
+        if (!$summary['shouldRender']) {
+            return '';
+        }
 
-        if ($rates && $rates->count() > 0) {
-            foreach ($rates as $rate) {
-                $label  = $this->resolveTaxRateLabel($rate);
-                $amount = (int) Arr::get($rate, 'total_tax', (int) Arr::get($rate, 'order_tax', 0) + (int) Arr::get($rate, 'shipping_tax', 0));
-                $rows  .= '<tr>'
-                        . '<td style="' . $labelStyle . '">' . esc_html($label) . '</td>'
-                        . '<td style="' . $valueStyle . '">' . CurrencySettings::getPriceHtml($amount, $currency) . '</td>'
-                        . '</tr>';
-            }
+        $headingStyle  = 'padding:8px 0 4px;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;color:#94a3b8;';
+        $mutedStyle    = 'padding:3px 0;font-size:11px;color:#94a3b8;';
+        $normalStyle   = 'padding:3px 0;font-size:11px;font-weight:600;color:#525866;';
+        $totalStyle    = 'padding:6px 0 3px;font-size:11px;font-weight:700;color:#0E121B;border-top:1px solid #e2e8f0;';
+        $valueStyle    = 'text-align:right;';
 
+        $rows = '<tr><td colspan="2" style="' . $headingStyle . '">'
+              . esc_html__('TAX SUMMARY', 'fluent-cart')
+              . '</td></tr>';
+
+        if ($summary['isReverseCharge']) {
+            $rcReversedTotal = isset($summary['reversedTaxTotal']) ? (int) $summary['reversedTaxTotal'] : 0;
+            $rcReversedValue = $rcReversedTotal > 0
+                ? esc_html(Helper::toDecimal($rcReversedTotal))
+                : esc_html__('Charge reversed', 'fluent-cart');
+            $rows .= '<tr>'
+                   . '<td style="' . $totalStyle . '">' . esc_html__('Tax reversed', 'fluent-cart') . '</td>'
+                   . '<td style="' . $totalStyle . $valueStyle . '">' . $rcReversedValue . '</td>'
+                   . '</tr>';
             return $rows;
         }
 
-        if ($taxTotal > 0 || $shippingTax > 0) {
-            if ($shippingTax > 0 && $taxTotal > $shippingTax) {
+        $opFeeRows  = Arr::get($summary, 'feeTaxLineRows', []);
+        $rowCount   = (int) ($summary['inclusiveTax'] > 0) + (int) ($summary['exclusiveTax'] > 0) + count($opFeeRows) + (int) ($summary['shippingTax'] > 0);
+        $shouldShowBreakdown = $rowCount >= 2 || ($rowCount === 1 && !($summary['payableTax'] > 0 || $summary['inclusiveTax'] > 0 || (int) Arr::get($summary, 'inclusiveFeeTax', 0) > 0));
+
+        if ($summary['inclusiveTax'] > 0 && $shouldShowBreakdown) {
+            $rows .= '<tr>'
+                   . '<td style="' . $mutedStyle . '">' . esc_html__('Included in item prices', 'fluent-cart') . '</td>'
+                   . '<td style="' . $mutedStyle . $valueStyle . '">' . CurrencySettings::getPriceHtml($summary['inclusiveTax'], $currency) . '</td>'
+                   . '</tr>';
+        }
+
+        if ($summary['exclusiveTax'] > 0 && $shouldShowBreakdown) {
+            $rows .= '<tr>'
+                   . '<td style="' . $normalStyle . '">' . esc_html__('Added on products', 'fluent-cart') . '</td>'
+                   . '<td style="' . $normalStyle . $valueStyle . '">' . CurrencySettings::getPriceHtml($summary['exclusiveTax'], $currency) . '</td>'
+                   . '</tr>';
+        }
+
+        if ($shouldShowBreakdown) {
+            foreach ($opFeeRows as $feeRow) {
+                $feeLineStyle = $feeRow['inclusive'] ? $mutedStyle : $normalStyle;
                 $rows .= '<tr>'
-                       . '<td style="' . $labelStyle . '">' . esc_html__('Tax', 'fluent-cart') . '</td>'
-                       . '<td style="' . $valueStyle . '">' . CurrencySettings::getPriceHtml($taxTotal - $shippingTax, $currency) . '</td>'
-                       . '</tr>';
-                $rows .= '<tr>'
-                       . '<td style="' . $labelStyle . '">' . esc_html__('Shipping Tax', 'fluent-cart') . '</td>'
-                       . '<td style="' . $valueStyle . '">' . CurrencySettings::getPriceHtml($shippingTax, $currency) . '</td>'
-                       . '</tr>';
-            } else {
-                $rows .= '<tr>'
-                       . '<td style="' . $labelStyle . '">' . esc_html__('Tax', 'fluent-cart') . '</td>'
-                       . '<td style="' . $valueStyle . '">' . CurrencySettings::getPriceHtml($taxTotal, $currency) . '</td>'
+                       . '<td style="' . $feeLineStyle . '">' . esc_html($feeRow['display_label']) . '</td>'
+                       . '<td style="' . $feeLineStyle . $valueStyle . '">' . CurrencySettings::getPriceHtml($feeRow['tax_amount'], $currency) . '</td>'
                        . '</tr>';
             }
+        }
+
+        if ($summary['shippingTax'] > 0 && $shouldShowBreakdown) {
+            $isShippingInclusive = TaxSummaryHelper::isShippingTaxInclusive($this->order);
+            $shippingRowStyle    = $isShippingInclusive ? $mutedStyle : $normalStyle;
+            $shippingRowLabel    = $isShippingInclusive
+                ? esc_html__('Included in shipping prices', 'fluent-cart')
+                : esc_html__('Added on shipping', 'fluent-cart');
+            $rows .= '<tr>'
+                   . '<td style="' . $shippingRowStyle . '">' . $shippingRowLabel . '</td>'
+                   . '<td style="' . $shippingRowStyle . $valueStyle . '">' . CurrencySettings::getPriceHtml($summary['shippingTax'], $currency) . '</td>'
+                   . '</tr>';
+        }
+
+        if ($summary['payableTax'] > 0) {
+            $rows .= '<tr>'
+                   . '<td style="' . $totalStyle . '">' . esc_html__('Total payable tax', 'fluent-cart') . '</td>'
+                   . '<td style="' . $totalStyle . $valueStyle . '">' . CurrencySettings::getPriceHtml($summary['payableTax'], $currency) . '</td>'
+                   . '</tr>';
+        }
+
+        if ($summary['inclusiveTax'] > 0 || !empty($summary['inclusiveFeeTax'])) {
+            $rows .= '<tr>'
+                   . '<td style="' . $mutedStyle . '">' . esc_html__('Total tax in this order', 'fluent-cart') . '</td>'
+                   . '<td style="' . $mutedStyle . $valueStyle . '">' . CurrencySettings::getPriceHtml($summary['totalOrderTax'], $currency) . '</td>'
+                   . '</tr>';
         }
 
         return $rows;
@@ -588,7 +669,7 @@ class OrderParser extends BaseParser
 
     /**
      * Returns formatted buyer VAT display string, e.g. "VAT/Tax ID: XX123456".
-     * Checks OrderMeta vat_tax_id first, then falls back to EU VAT reverse charge number.
+     * Checks business_info first, then falls back to legacy VAT storage.
      */
     public function getBuyerVatDisplay(): string
     {
@@ -596,23 +677,10 @@ class OrderParser extends BaseParser
             return '';
         }
 
-        // Check OrderMeta vat_tax_id first (simple VAT/Tax ID)
-        $vatMeta = OrderMeta::query()
-            ->where('order_id', $this->order->id)
-            ->where('meta_key', 'vat_tax_id')
-            ->orderBy('id', 'DESC')
-            ->first();
-
-        if ($vatMeta && !empty($vatMeta->meta_value)) {
-            return esc_html(__('VAT/Tax ID', 'fluent-cart')) . ': ' . esc_html($vatMeta->meta_value);
-        }
-
-        // Fall back to EU VAT reverse charge number
-        $orderTaxRate = $this->order->orderTaxRates ? $this->order->orderTaxRates->first() : null;
-        $vatNumber = Arr::get($orderTaxRate->meta ?? [], 'vat_reverse.vat_number', '');
-
+        $vatNumber = $this->order->getCustomerTaxNumber();
         if (!empty($vatNumber)) {
-            return esc_html(__('EU VAT', 'fluent-cart')) . ': ' . esc_html($vatNumber);
+            $label = __('VAT/Tax ID', 'fluent-cart');
+            return esc_html($label) . ': ' . esc_html($vatNumber);
         }
 
         return '';
@@ -635,12 +703,109 @@ class OrderParser extends BaseParser
             }
         }
 
-        // Fall back to VAT reverse charge name
-        $orderTaxRate = $this->order->orderTaxRates ? $this->order->orderTaxRates->first() : null;
+        return esc_html($this->order->getCustomerTaxName());
+    }
 
-        return esc_html(Arr::get($orderTaxRate->meta ?? [], 'vat_reverse.name', ''));
+    public function getBuyerLegalRegistrationId(): string
+    {
+        if (!$this->order) {
+            return '';
+        }
+
+        if ($this->order->billing_address) {
+            $regId = Arr::get($this->order->billing_address->meta ?? [], 'other_data.legal_registration_id', '');
+            if (!empty($regId)) {
+                return esc_html($regId);
+            }
+        }
+
+        return esc_html(Arr::get($this->order->getBusinessInfo(), 'legal_registration_id', ''));
+    }
+
+    public function getBuyerReverseChargeDeclaration(): string
+    {
+        if (!$this->order) {
+            return '';
+        }
+
+        return esc_html(Arr::get($this->order->getBusinessInfo(), 'reverse_charge_declaration', ''));
+    }
+
+    // -------------------------------------------------------------------------
+    // Store business info — reads from snapshotted fct_order_meta[store_business_info]
+    // with live StoreSettings fallback for orders placed before this feature.
+    // -------------------------------------------------------------------------
+
+    private function getStoreBusinessField(string $field): string
+    {
+        if (!$this->order) {
+            return '';
+        }
+        $snapshot = $this->order->getMeta('store_business_info', false);
+        if ($snapshot !== false && isset($snapshot[$field])) {
+            return (string) $snapshot[$field];
+        }
+        return (string) $this->storeSettings->get($field, '');
+    }
+
+    public function getStoreCompanyName(): string
+    {
+        return esc_html($this->getStoreBusinessField('company_name'));
+    }
+
+    public function getStoreCompanyDisplay(): string
+    {
+        $val = $this->getStoreBusinessField('company_name');
+        if (empty($val)) {
+            return '';
+        }
+        /* translators: %1$s: store company name */
+        return esc_html(sprintf(__('Company: %1$s', 'fluent-cart'), $val));
+    }
+
+    public function getStoreLegalRegistrationId(): string
+    {
+        return esc_html($this->getStoreBusinessField('legal_registration_id'));
+    }
+
+    public function getStoreLegalRegistrationDisplay(): string
+    {
+        $val = $this->getStoreBusinessField('legal_registration_id');
+        if (empty($val)) {
+            return '';
+        }
+        /* translators: %1$s: store legal registration ID */
+        return esc_html(sprintf(__('Reg. ID: %1$s', 'fluent-cart'), $val));
+    }
+
+    public function getStoreSellerVatId(): string
+    {
+        return esc_html($this->getStoreBusinessField('seller_vat_id'));
+    }
+
+    public function getStoreSellerVatDisplay(): string
+    {
+        $val = $this->getStoreBusinessField('seller_vat_id');
+        if (empty($val)) {
+            return '';
+        }
+        /* translators: %1$s: store seller VAT ID */
+        return esc_html(sprintf(__('VAT ID: %1$s', 'fluent-cart'), $val));
+    }
+
+    public function getStoreSellerTaxId(): string
+    {
+        return esc_html($this->getStoreBusinessField('seller_tax_id'));
+    }
+
+    public function getStoreTaxDisplay(): string
+    {
+        $val = $this->getStoreBusinessField('seller_tax_id');
+        if (empty($val)) {
+            return '';
+        }
+        /* translators: %1$s: store seller tax ID */
+        return esc_html(sprintf(__('Tax ID: %1$s', 'fluent-cart'), $val));
     }
 
 }
-
-

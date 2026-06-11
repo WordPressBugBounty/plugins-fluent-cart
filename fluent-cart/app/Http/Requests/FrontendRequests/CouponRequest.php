@@ -34,7 +34,7 @@ class CouponRequest extends RequestGuard
             "order_items.*.line_total"  => 'numeric',
             "order_items.*.cart_index"  => 'nullable|numeric',
             "order_items.*.rate"  => 'nullable|numeric',
-            "order_items.*.line_meta"  => 'nullable|sanitizeTextArea',
+            "order_items.*.line_meta"  => 'nullable',
             "order_items.*.other_info" => 'nullable|array',
             'applied_coupons' => 'nullable|array',
 
@@ -80,8 +80,12 @@ class CouponRequest extends RequestGuard
             "order_items.*.line_total"  => 'floatval',
             "order_items.*.cart_index"  => 'intval',
             "order_items.*.rate"  => 'floatval',
-            "order_items.*.line_meta"  => 'sanitize_text_field',
-            "order_items.*.other_info" => 'sanitize_text_field',
+            "order_items.*.line_meta"  => function ($value) {
+                return is_array($value) ? $value : sanitize_text_field((string) $value);
+            },
+            "order_items.*.other_info" => function ($value) {
+                return is_array($value) ? $value : sanitize_text_field((string) $value);
+            },
             'applied_coupons.*' => 'intval',
 
             'customer_email' => function ($value) {

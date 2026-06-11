@@ -2,6 +2,7 @@
 
 namespace FluentCart\Api\Checkout;
 
+use FluentCart\Api\Resource\CustomerResource as ApiCustomerResource;
 use FluentCart\Api\Resource\FrontendResource\CustomerAddressResource;
 use FluentCart\Api\Resource\FrontendResource\CustomerResource;
 use FluentCart\Api\StoreSettings;
@@ -63,11 +64,10 @@ class CheckoutApi
         }
         $isLockedCart = $cart->isLocked();
 
-        // todo: we should handle this logic as we have multiple options like  PAYMENT_PARTIALLY_PAID....
         if ($prevOrder &&
             (
                 in_array($prevOrder->status, Status::getOrderSuccessStatuses()) ||
-                $prevOrder->payment_status != Status::PAYMENT_PENDING
+                !in_array($prevOrder->payment_status, Status::getPaymentRetryableStatuses())
             )
         ) {
             wp_send_json([
@@ -135,6 +135,7 @@ class CheckoutApi
 
         $shippingMethodId = Arr::get($orderData, 'others.fc_shipping_method');
 
+        $shippingMethod = null;
         $shippingCharge = 0;
         if (!$cartCheckoutService->isAllDigital()) {
             $shippingMethod = ShippingMethod::query()->find($shippingMethodId);
@@ -165,11 +166,6 @@ class CheckoutApi
 
         $shouldCreateUser = static::shouldCreateUser($orderData, Arr::get($orderData, 'billing_address', []));
 
-        $taxTotal = (int)Arr::get($cart->checkout_data, 'tax_data.tax_total', 0); // behavoir not applied here
-
-        $shippingTax = (int)Arr::get($cart->checkout_data, 'tax_data.shipping_tax', 0);
-        $taxBehavior = apply_filters('fluent_cart/cart/tax_behavior', 0, ['cart' => $cart]);
-
         // Ensure cart has the current payment method before recalculating fees
         $checkoutData = $cart->checkout_data ?? [];
         $checkoutData['payment_method'] = $paymentMethod;
@@ -178,13 +174,39 @@ class CheckoutApi
         $cart->clearFeeCache();
         $fees = $cart->getFees();
 
+        // Recompute cart tax data so fee_tax/fee_tax_lines reflect fees for the current
+        // payment method. The scope prevents ShippingModule from running unnecessarily.
+        do_action('fluent_cart/cart/cart_data_items_updated', ['cart' => $cart, 'scope' => 'payment_method_fee_recalculate']);
+
+        // TaxModule::recalculateTax() refreshes checkout_data['fees'] (RC-adjusted amounts,
+        // deduplication) — reload so persisted fee items match the recomputed fee tax metadata.
+        $fees = (array) Arr::get($cart->checkout_data, 'fees', $fees);
+
+        $taxBehavior = apply_filters('fluent_cart/cart/tax_behavior', 0, ['cart' => $cart]);
+        $taxTotal = (int)Arr::get($cart->checkout_data, 'tax_data.tax_total', 0);
+        $shippingTax = (int)Arr::get($cart->checkout_data, 'tax_data.shipping_tax', 0);
+        $storeTaxBehavior = (int)Arr::get($cart->checkout_data, 'tax_data.store_tax_behavior', $taxBehavior);
+        $exclusiveTaxTotal = (int)Arr::get($cart->checkout_data, 'tax_data.exclusive_tax_total', 0);
+        $feeTax = (int)Arr::get($cart->checkout_data, 'tax_data.fee_tax', 0);
+        $feeTaxLines = (array)Arr::get($cart->checkout_data, 'tax_data.fee_tax_lines', []);
+
+        // For dynamic RC + inclusive pricing, reduce the shipping charge to net before storing.
+        // The fluent_cart/cart/shipping_total filter (registered by TaxModule) handles the logic.
+        $shippingCharge = apply_filters('fluent_cart/cart/shipping_total', $shippingCharge, ['cart' => $cart]);
+
         $checkoutProcessor = new CheckoutProcessor($cartCheckoutHelper->getItems(), [
             'customer_id'               => $customer->id,
             'user_tz'                   => $userTz,
             'create_account_after_paid' => $shouldCreateUser ? 'yes' : 'no',
             'shipping_charge'           => $shippingCharge,
+            'shipping_method_id'        => $shippingMethod ? (int)$shippingMethod->id : 0,
+            'shipping_method_title'     => $shippingMethod ? $shippingMethod->title : '',
             'tax_total'                 => $taxTotal,
             'tax_behavior'              => $taxBehavior,
+            'store_tax_behavior'        => $storeTaxBehavior,
+            'exclusive_tax_total'       => $exclusiveTaxTotal,
+            'fee_tax'                   => $feeTax,
+            'fee_tax_lines'             => $feeTaxLines,
             'shipping_tax'              => $shippingTax,
             'payment_method'            => $paymentMethod,
             'applied_coupons'           => $cart->getDiscountLines(),
@@ -193,9 +215,14 @@ class CheckoutApi
             'cart_hash'                 => $cart->cart_hash,
             'is_locked'                 => $isLockedCart,
             'manual_discount_total'     => $cartCheckoutHelper->getManualDiscountAmount(),
+            'prorate_credit'            => (int) Arr::get($cart->checkout_data, 'prorate_credit.amount', 0),
+            'upgrade_discount'          => (int) Arr::get($cart->checkout_data, 'upgrade_discount.amount', 0),
             'ip_address'                => AddressHelper::getIpAddress(),
             'note'                      => Arr::get($orderData, 'others.order_notes', ''),
-            'tax_id'                    => Arr::get($validatedData, 'billing_tax_id', 0),
+            'tax_id'                    => sanitize_text_field(
+                Arr::get($data, 'fct_billing_tax_id', '')
+                    ?: Arr::get($cart->checkout_data, 'tax_data.vat_number', '')
+            ),
             'fees'                      => $fees,
         ]);
 
@@ -254,9 +281,11 @@ class CheckoutApi
         $billingAddressId = Arr::get($data, 'billing_address_id');
         $orderId = Arr::get($data, 'order_id', null);
 
+        $currentCustomer = is_user_logged_in() ? ApiCustomerResource::getCurrentCustomer() : null;
+
         $shipToDifferent = Arr::get($data, 'ship_to_different', 'no');
 
-        $datKeys = ['country', 'address_1', 'address_2', 'city', 'state', 'postcode', 'phone', 'label'];
+        $datKeys = ['country', 'address_1', 'address_2', 'city', 'state', 'postcode', 'phone', 'label', 'company_name', 'vat_number', 'legal_registration_id'];
 
         if ($billingAddressId) {
             $prevOrder = Order::query()->find($orderId);
@@ -273,23 +302,24 @@ class CheckoutApi
                     ->where('type', 'billing')
                     ->first();
             }
-            if (empty($billingAddress)) {
+            if (empty($billingAddress) && $currentCustomer) {
                 $billingAddress = CustomerAddresses::query()
                     ->where('id', $billingAddressId)
                     ->where('type', 'billing')
+                    ->where('customer_id', $currentCustomer->id)
                     ->first();
             }
 
             if ($billingAddress) {
                 foreach ($datKeys as $key) {
-                    // Guest user, take data from form
-                    if (!is_user_logged_in()) {
-                        $data['billing_' . $key] = Arr::get($data, 'billing_' . $key, '');
-                    } else {
-                        $data['billing_' . $key] = $billingAddress->{$key};
-                    }
+                    $data['billing_' . $key] = $billingAddress->{$key} ?: Arr::get($data, 'billing_' . $key, '');
                 }
             }
+        }
+
+        if (Arr::get($data, 'is_business', 'no') !== 'yes') {
+            $data['billing_company_name'] = '';
+            $data['billing_legal_registration_id'] = '';
         }
 
         if ($shippingAddressId && $shipToDifferent === 'yes') {
@@ -303,22 +333,19 @@ class CheckoutApi
                     ->where('type', 'shipping')
                     ->first();
             }
-            if (empty($shippingAddress)) {
+            if (empty($shippingAddress) && $currentCustomer) {
                 $shippingAddress = CustomerAddresses::query()
                     ->where('id', $shippingAddressId)
                     ->where('type', 'shipping')
+                    ->where('customer_id', $currentCustomer->id)
                     ->first();
             }
 
             if ($shippingAddress) {
-                $data['shipping_full_name'] = $shippingAddress->name;
+                $formFullName = Arr::get($data, 'shipping_full_name', '');
+                $data['shipping_full_name'] = $shippingAddress->name ?: $formFullName;
                 foreach ($datKeys as $key) {
-                    // Guest user, take data from form
-                    if (!is_user_logged_in()) {
-                        $data['shipping_' . $key] = Arr::get($data, 'shipping_' . $key, '');
-                    } else {
-                        $data['shipping_' . $key] = $shippingAddress->{$key};
-                    }
+                    $data['shipping_' . $key] = $shippingAddress->{$key} ?: Arr::get($data, 'shipping_' . $key, '');
                 }
             }
         } else if ($shipToDifferent !== 'yes') {
@@ -609,10 +636,10 @@ class CheckoutApi
         $billingValidations = array_filter(CheckoutFieldsSchema::getCheckoutFieldsRequirements('billing', $fulfillmentType, !$isDifferentShipping));
 
         // Name fields are validated separately below (full_name/first_name/last_name)
-        unset($billingValidations['full_name'], $billingValidations['first_name'], $billingValidations['last_name'], $billingValidations['company_name']);
+        // vat_number uses field name fct_billing_tax_id and is validated separately in the B2B block below
+        unset($billingValidations['full_name'], $billingValidations['first_name'], $billingValidations['last_name'], $billingValidations['vat_number']);
 
-        if (!isset($billingValidations['country'])) {
-            // get store country
+        if (!isset($billingValidations['country']) && empty($data['billing_country'])) {
             $data['billing_country'] = (new StoreSettings())->get('store_country');
         }
 
@@ -621,8 +648,9 @@ class CheckoutApi
             $billingAddress[$key] = Arr::get($data, 'billing_' . $key, '');
         }
         if (!isset($billingAddress['country'])) {
-            // get store country
-            $billingAddress['country'] = (new StoreSettings())->get('store_country');
+            $billingAddress['country'] = !empty($data['billing_country'])
+                ? $data['billing_country']
+                : (new StoreSettings())->get('store_country');
         }
 
         $shippingAddress = [];
@@ -837,6 +865,29 @@ class CheckoutApi
                         Arr::get($field, 'aria-label')
                     ));
                 }
+            }
+        }
+
+        $isB2B = Arr::get($data, 'is_business', 'no') === 'yes';
+
+        if ($isB2B && CheckoutFieldsSchema::isVatNumberRequired()) {
+            $vatNumber = Arr::get($data, 'fct_billing_tax_id', '');
+            if (empty($vatNumber)) {
+                $errors['fct_billing_tax_id']['required'] = __('VAT / Tax ID is required.', 'fluent-cart');
+            }
+        }
+
+        if ($isB2B && CheckoutFieldsSchema::isCompanyNameRequired()) {
+            $companyName = Arr::get($data, 'billing_company_name', '');
+            if (empty($companyName)) {
+                $errors['billing_company_name']['required'] = __('Company Name is required.', 'fluent-cart');
+            }
+        }
+
+        if ($isB2B && CheckoutFieldsSchema::isLegalRegistrationIdRequired()) {
+            $legalRegId = Arr::get($data, 'billing_legal_registration_id', '');
+            if (empty($legalRegId)) {
+                $errors['billing_legal_registration_id']['required'] = __('Legal Registration ID is required.', 'fluent-cart');
             }
         }
 

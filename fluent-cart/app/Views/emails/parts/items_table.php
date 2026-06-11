@@ -15,6 +15,7 @@
 <?php
 
 use FluentCart\Framework\Support\Arr;
+use FluentCart\App\Services\Renderer\Receipt\TaxSummaryHelper;
     $allOrderItems = $order->order_items ? $order->order_items->toArray() : [];
     $orderItems = array_filter($allOrderItems, function ($item) {
         return !in_array($item['payment_type'] ?? '', ['signup_fee', 'fee']);
@@ -24,6 +25,8 @@ use FluentCart\Framework\Support\Arr;
     });
     $transaction = $order->getLatestTransaction();
     $isRefund = $is_refund ?? false;
+    $isReversed = $order->isReverseChargeTaxOrder();
+    $rcMode = $order->getOrderRcMode();
 
 ?>
 
@@ -66,11 +69,7 @@ use FluentCart\Framework\Support\Arr;
                     </p>
                 <?php endif; ?>
 
-                <?php if (!empty($item['setup_info'])): ?>
-                    <p style="font-size:12px;color:rgb(75,85,99);line-height:20px;margin: 3px 0 0 0;">
-                        <?php echo wp_kses_post($item['setup_info']); ?>
-                    </p>
-                <?php endif; ?>
+
 
                 <?php
                     $otherInfo = is_array($item['other_info'] ?? null) ? $item['other_info'] : [];
@@ -92,6 +91,182 @@ use FluentCart\Framework\Support\Arr;
                 </p>
             </td>
         </tr>
+
+        <?php
+            $itemRates = TaxSummaryHelper::getItemTaxRates($item);
+        ?>
+        <?php if (!empty($itemRates)): ?>
+            <tr>
+                <td colspan="3" style="padding: 0 16px 8px;">
+                    <table width="100%" style="border-spacing:0;border-collapse:collapse;">
+                        <?php foreach ($itemRates as $rate):
+                            $pillBg    = $rate['inclusive'] ? '#EAF3DE' : '#FAEEDA';
+                            $pillColor = $rate['inclusive'] ? '#3B6D11' : '#854F0B';
+                            $rateIsInclusive = !empty($rate['inclusive']);
+                            $reversedAmountStyle = ($isReversed && (!$rateIsInclusive || $rcMode === 'dynamic')) ? 'text-decoration:line-through;opacity:0.6;' : '';
+                        ?>
+                            <tr>
+                                <td style="padding: 2px 0;">
+                                    <span style="display:inline-block;padding:2px 7px;border-radius:4px;font-size:11px;background:<?php echo esc_attr($pillBg); ?>;color:<?php echo esc_attr($pillColor); ?>;">
+                                        <?php
+                                            /* translators: %1$s: tax label e.g. "VAT", %2$s: rate percentage e.g. "20" or "7.5" */
+                                            echo esc_html(sprintf(__('%1$s (%2$s%%)', 'fluent-cart'), $rate['label'], rtrim(rtrim(number_format((float) $rate['rate_percent'], 3, '.', ''), '0'), '.')));
+                                        ?>
+                                    </span>
+                                </td>
+                                <td style="text-align:right;padding: 2px 0;">
+                                    <span style="font-size:11px;font-weight:500;color:<?php echo esc_attr($pillColor); ?>;<?php echo esc_attr($reversedAmountStyle); ?>">
+                                        <?php if ($rate['inclusive']): ?>
+                                            <?php /* translators: %1$s: formatted tax amount e.g. "$3.92" */ ?>
+                                            <?php echo esc_html(sprintf(__('incl. %1$s', 'fluent-cart'), \FluentCart\App\Helpers\Helper::toDecimal($rate['tax_amount']))); ?>
+                                        <?php else: ?>
+                                            + <?php echo esc_html(\FluentCart\App\Helpers\Helper::toDecimal($rate['tax_amount'])); ?>
+                                        <?php endif; ?>
+                                    </span>
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
+                    </table>
+                </td>
+            </tr>
+        <?php elseif (!empty($item['tax_amount'])): ?>
+            <?php
+                $itemIsInclusive = TaxSummaryHelper::isPrimaryTaxInclusive($order);
+                $reversedAmountStyle = ($isReversed && (!$itemIsInclusive || $rcMode === 'dynamic')) ? 'text-decoration:line-through;opacity:0.6;' : '';
+                $pillBg    = $itemIsInclusive ? '#EAF3DE' : '#FAEEDA';
+                $pillColor = $itemIsInclusive ? '#3B6D11' : '#854F0B';
+                $pillLabel = $itemIsInclusive ? esc_html__('Tax (incl.)', 'fluent-cart') : esc_html__('Tax (excl.)', 'fluent-cart');
+            ?>
+            <tr>
+                <td colspan="3" style="padding: 0 16px 8px;">
+                    <table width="100%" style="border-spacing:0;border-collapse:collapse;">
+                        <tr>
+                            <td style="padding: 2px 0;">
+                                <span style="display:inline-block;padding:2px 7px;border-radius:4px;font-size:11px;background:<?php echo esc_attr($pillBg); ?>;color:<?php echo esc_attr($pillColor); ?>;">
+                                    <?php echo $pillLabel; ?>
+                                </span>
+                            </td>
+                            <td style="text-align:right;padding: 2px 0;">
+                                <span style="font-size:11px;font-weight:500;color:<?php echo esc_attr($pillColor); ?>;<?php echo esc_attr($reversedAmountStyle); ?>">
+                                    <?php if ($itemIsInclusive): ?>
+                                        <?php /* translators: %1$s: formatted tax amount e.g. "$3.92" */ ?>
+                                        <?php echo esc_html(sprintf(__('incl. %1$s', 'fluent-cart'), \FluentCart\App\Helpers\Helper::toDecimal((int) $item['tax_amount']))); ?>
+                                    <?php else: ?>
+                                        + <?php echo esc_html(\FluentCart\App\Helpers\Helper::toDecimal((int) $item['tax_amount'])); ?>
+                                    <?php endif; ?>
+                                </span>
+                            </td>
+                        </tr>
+                    </table>
+                </td>
+            </tr>
+        <?php endif; ?>
+
+        <?php if (!empty($item['setup_info'])): ?>
+            <tr>
+                <td colspan="3" style="padding: 0 16px 2px;">
+                    <p style="font-size:12px;color:rgb(75,85,99);line-height:20px;margin: 3px 0 0 0;">
+                        <?php echo wp_kses_post($item['setup_info']); ?>
+                    </p>
+                </td>
+            </tr>
+        <?php endif; ?>
+
+        <?php if (($item['payment_type'] ?? '') === 'subscription'): ?>
+            <?php
+                $sfSibling = null;
+                foreach ($allOrderItems as $sfCandidate) {
+                    if (($sfCandidate['payment_type'] ?? '') !== 'signup_fee') {
+                        continue;
+                    }
+                    $parentId = isset($sfCandidate['line_meta']['parent_item_id']) ? (int) $sfCandidate['line_meta']['parent_item_id'] : 0;
+                    if ($parentId && $parentId === (int) $item['id']) {
+                        $sfSibling = $sfCandidate;
+                        break;
+                    }
+                    if (!$parentId && $sfCandidate['object_id'] === $item['object_id']) {
+                        $sfSibling = $sfCandidate;
+                        break;
+                    }
+                }
+                $sfRates = $sfSibling ? TaxSummaryHelper::getItemTaxRates($sfSibling) : [];
+            ?>
+            <?php if (!empty($sfRates)): ?>
+                <tr>
+                    <td colspan="3" style="padding: 0 16px 8px;">
+                        <table width="100%" style="border-spacing:0;border-collapse:collapse;">
+                            <?php foreach ($sfRates as $sfRate):
+                                $sfBg    = $sfRate['inclusive'] ? '#EAF3DE' : '#FAEEDA';
+                                $sfColor = $sfRate['inclusive'] ? '#3B6D11' : '#854F0B';
+                                $sfRateIsInclusive = !empty($sfRate['inclusive']);
+                                $reversedAmountStyle = ($isReversed && (!$sfRateIsInclusive || $rcMode === 'dynamic')) ? 'text-decoration:line-through;opacity:0.6;' : '';
+                            ?>
+                                <tr>
+                                    <td style="padding: 2px 0;">
+                                        <span style="display:inline-block;padding:2px 7px;border-radius:4px;font-size:11px;background:<?php echo esc_attr($sfBg); ?>;color:<?php echo esc_attr($sfColor); ?>;">
+                                            <?php
+                                                /* translators: %1$s: tax label e.g. "VAT", %2$s: rate percentage e.g. "20" or "7.5" */
+                                                echo esc_html(sprintf(__('Setup Fee — %1$s (%2$s%%)', 'fluent-cart'), $sfRate['label'], rtrim(rtrim(number_format((float) $sfRate['rate_percent'], 3, '.', ''), '0'), '.')));
+                                            ?>
+                                        </span>
+                                    </td>
+                                    <td style="text-align:right;padding: 2px 0;">
+                                        <span style="font-size:11px;font-weight:500;color:<?php echo esc_attr($sfColor); ?>;<?php echo esc_attr($reversedAmountStyle); ?>">
+                                            <?php if ($sfRate['inclusive']): ?>
+                                                <?php /* translators: %1$s: formatted tax amount e.g. "$3.92" */ ?>
+                                                <?php echo esc_html(sprintf(__('incl. %1$s', 'fluent-cart'), \FluentCart\App\Helpers\Helper::toDecimal($sfRate['tax_amount']))); ?>
+                                            <?php else: ?>
+                                                + <?php echo esc_html(\FluentCart\App\Helpers\Helper::toDecimal($sfRate['tax_amount'])); ?>
+                                            <?php endif; ?>
+                                        </span>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
+                        </table>
+                    </td>
+                </tr>
+            <?php else: ?>
+                <?php
+                    if ($sfSibling) {
+                        $sfTax = (int) ($sfSibling['tax_amount'] ?? 0);
+                    } else {
+                        $sfOtherInfo = is_array($item['other_info'] ?? null) ? $item['other_info'] : [];
+                        $sfTax       = (int) Arr::get($sfOtherInfo, 'signup_fee_tax', 0);
+                    }
+                ?>
+                <?php if ($sfTax > 0): ?>
+                    <?php
+                        $sfIsInclusive   = TaxSummaryHelper::isPrimaryTaxInclusive($order);
+                        $reversedAmountStyle = ($isReversed && (!$sfIsInclusive || $rcMode === 'dynamic')) ? 'text-decoration:line-through;opacity:0.6;' : '';
+                        $sfFallbackBg    = $sfIsInclusive ? '#EAF3DE' : '#FAEEDA';
+                        $sfFallbackColor = $sfIsInclusive ? '#3B6D11' : '#854F0B';
+                    ?>
+                    <tr>
+                        <td colspan="3" style="padding: 0 16px 8px;">
+                            <table width="100%" style="border-spacing:0;border-collapse:collapse;">
+                                <tr>
+                                    <td style="padding: 2px 0;">
+                                        <span style="display:inline-block;padding:2px 7px;border-radius:4px;font-size:11px;background:<?php echo esc_attr($sfFallbackBg); ?>;color:<?php echo esc_attr($sfFallbackColor); ?>;">
+                                            <?php echo esc_html__('Setup Fee Tax', 'fluent-cart'); ?>
+                                        </span>
+                                    </td>
+                                    <td style="text-align:right;padding: 2px 0;">
+                                        <span style="font-size:11px;font-weight:500;color:<?php echo esc_attr($sfFallbackColor); ?>;<?php echo esc_attr($reversedAmountStyle); ?>">
+                                            <?php if ($sfIsInclusive): ?>
+                                                <?php /* translators: %1$s: formatted tax amount e.g. "$3.92" */ ?>
+                                                <?php echo esc_html(sprintf(__('incl. %1$s', 'fluent-cart'), \FluentCart\App\Helpers\Helper::toDecimal($sfTax))); ?>
+                                            <?php else: ?>
+                                                + <?php echo esc_html(\FluentCart\App\Helpers\Helper::toDecimal($sfTax)); ?>
+                                            <?php endif; ?>
+                                        </span>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+                <?php endif; ?>
+            <?php endif; ?>
+        <?php endif; ?>
     <?php endforeach; ?>
     </tbody>
 </table>
@@ -117,7 +292,16 @@ use FluentCart\Framework\Support\Arr;
                     </tr>
                 <?php endif; ?>
 
-                <?php if ($order->shipping_total > 0): ?>
+                <?php
+                    // Compute summary early so rcShippingAdjustment is available for the shipping row.
+                    $emailTaxSummaryEarly = ($order instanceof \FluentCart\App\Models\Order)
+                        ? TaxSummaryHelper::computeTaxSummary($order)
+                        : ['shouldRender' => false, 'rcShippingAdjustment' => 0, 'rcTotalAdjustment' => 0];
+                    $emailRcShippingAdj = (int) \FluentCart\Framework\Support\Arr::get($emailTaxSummaryEarly, 'rcShippingAdjustment', 0);
+                ?>
+                <?php if ($order->shipping_total > 0):
+                    $emailDisplayShipping = max(0, (int) $order->shipping_total - $emailRcShippingAdj);
+                ?>
                     <tr style="width:100%">
                         <td style="width:70%">
                             <p style="font-size:14px;color:rgb(55,65,81);line-height:24px;margin: 0;">
@@ -126,22 +310,7 @@ use FluentCart\Framework\Support\Arr;
                         </td>
                         <td style="width:30%;text-align:right">
                             <p style="font-size:14px;color:rgb(55,65,81);margin:0;line-height:24px;">
-                                <?php echo esc_html(\FluentCart\App\Helpers\Helper::toDecimal($order->shipping_total)); ?>
-                            </p>
-                        </td>
-                    </tr>
-                <?php endif; ?>
-                <?php if ($order->shipping_tax > 0): ?>
-                    <tr style="width:100%">
-                        <td style="width:70%">
-                            <p style="font-size:14px;color:rgb(55,65,81);line-height:24px;margin: 0;">
-                                <?php echo esc_html__('Shipping Tax', 'fluent-cart'); ?>
-                                <?php echo esc_html($order->tax_behavior == 2 ? __('(Included)', 'fluent-cart') : __('(Excluded)', 'fluent-cart')); ?>
-                            </p>
-                        </td>
-                        <td style="width:30%;text-align:right">
-                            <p style="font-size:14px;color:rgb(55,65,81);margin:0;line-height:24px;">
-                                <?php echo esc_html(\FluentCart\App\Helpers\Helper::toDecimal($order->shipping_tax)); ?>
+                                <?php echo esc_html(\FluentCart\App\Helpers\Helper::toDecimal($emailDisplayShipping)); ?>
                             </p>
                         </td>
                     </tr>
@@ -160,11 +329,18 @@ use FluentCart\Framework\Support\Arr;
                         </td>
                     </tr>
                 <?php endforeach; ?>
+                <?php
+                $prorateCredit = (int) \FluentCart\Framework\Support\Arr::get($order->config, 'prorate_credit', 0);
+                $upgradeDiscount = $order->manual_discount_total - $prorateCredit;
+                // When the prorate credit IS the whole discount, label the row directly
+                // instead of showing "Discount" with a single redundant breakdown row.
+                $onlyProrateCredit = $prorateCredit > 0 && $upgradeDiscount <= 0 && $order->coupon_discount_total <= 0;
+                ?>
                 <?php if ($order->manual_discount_total + $order->coupon_discount_total > 0): ?>
                     <tr style="width:100%">
                         <td style="width:70%">
                             <p style="font-size:14px;color:rgb(55,65,81);line-height:24px;margin: 0;">
-                                <?php echo esc_html__('Discount', 'fluent-cart'); ?>
+                                <?php echo $onlyProrateCredit ? esc_html__('Prorate Credit', 'fluent-cart') : esc_html__('Discount', 'fluent-cart'); ?>
                             </p>
                         </td>
                         <td style="width:30%;text-align:right">
@@ -173,21 +349,200 @@ use FluentCart\Framework\Support\Arr;
                             </p>
                         </td>
                     </tr>
+                    <?php if ($prorateCredit > 0 && $upgradeDiscount > 0): ?>
+                        <tr style="width:100%">
+                            <td style="width:70%;padding-left:12px;">
+                                <p style="font-size:12px;color:rgb(107,114,128);line-height:20px;margin: 0;">
+                                    <?php echo esc_html__('Upgrade Discount', 'fluent-cart'); ?>
+                                </p>
+                            </td>
+                            <td style="width:30%;text-align:right">
+                                <p style="font-size:12px;color:rgb(107,114,128);margin:0;line-height:20px;">
+                                    <?php echo esc_html(\FluentCart\App\Helpers\Helper::toDecimal($upgradeDiscount)); ?>
+                                </p>
+                            </td>
+                        </tr>
+                    <?php endif; ?>
+                    <?php if ($prorateCredit > 0 && !$onlyProrateCredit): ?>
+                        <tr style="width:100%">
+                            <td style="width:70%;padding-left:12px;">
+                                <p style="font-size:12px;color:rgb(107,114,128);line-height:20px;margin: 0;">
+                                    <?php echo esc_html__('Prorate Credit', 'fluent-cart'); ?>
+                                </p>
+                            </td>
+                            <td style="width:30%;text-align:right">
+                                <p style="font-size:12px;color:rgb(107,114,128);margin:0;line-height:20px;">
+                                    <?php echo esc_html(\FluentCart\App\Helpers\Helper::toDecimal($prorateCredit)); ?>
+                                </p>
+                            </td>
+                        </tr>
+                    <?php endif; ?>
                 <?php endif; ?>
-                <?php if ($order->tax_total > 0): ?>
+
+                <?php
+                    $emailTaxSummary = isset($emailTaxSummaryEarly) ? $emailTaxSummaryEarly : (($order instanceof \FluentCart\App\Models\Order)
+                        ? TaxSummaryHelper::computeTaxSummary($order)
+                        : ['shouldRender' => false]);
+                    if ($emailTaxSummary['shouldRender']):
+                ?>
+                <tr style="width:100%">
+                    <td colspan="2" style="padding:12px 0 4px;">
+                        <p style="font-size:10px; font-weight:600; text-transform:uppercase;
+                                  letter-spacing:0.06em; color:#94a3b8; margin:0;">
+                            <?php echo esc_html__('TAX', 'fluent-cart'); ?>
+                        </p>
+                    </td>
+                </tr>
+                <?php if ($emailTaxSummary['isReverseCharge']): ?>
+                    <?php
+                        $rcReversedTotal    = (int) Arr::get($emailTaxSummary, 'reversedTaxTotal', 0);
+                        $rcReversedShipping = (int) Arr::get($emailTaxSummary, 'reversedShippingTax', 0);
+                        $rcReversedValue    = $rcReversedTotal > 0
+                            ? \FluentCart\App\Helpers\Helper::toDecimal($rcReversedTotal)
+                            : __('Charge reversed', 'fluent-cart');
+                    ?>
+                    <?php if ($emailTaxSummary['showRcShippingRow'] && $rcReversedShipping > 0): ?>
                     <tr style="width:100%">
                         <td style="width:70%">
-                            <p style="font-size:14px;color:rgb(55,65,81);line-height:24px;margin: 0;">
-                                <?php echo esc_html__('Tax', 'fluent-cart'); ?>
-                                <?php echo esc_html($order->tax_behavior == 2 ? __('(Included)', 'fluent-cart') : __('(Excluded)', 'fluent-cart')); ?>
+                            <p style="font-size:14px; color:#94a3b8; line-height:24px; margin:0;">
+                                <?php echo esc_html__('Added on shipping', 'fluent-cart'); ?>
                             </p>
                         </td>
-                        <td style="width:30%;text-align:right">
-                            <p style="font-size:14px;color:rgb(55,65,81);margin:0;line-height:24px;">
-                                <?php echo esc_html(\FluentCart\App\Helpers\Helper::toDecimal($order->tax_total)); ?>
+                        <td style="width:30%; text-align:right">
+                            <p style="font-size:14px; color:#94a3b8; margin:0; line-height:24px;">
+                                <span style="text-decoration:line-through;opacity:0.6;"><?php echo esc_html(\FluentCart\App\Helpers\Helper::toDecimal($rcReversedShipping)); ?></span>
                             </p>
                         </td>
                     </tr>
+                    <?php endif; ?>
+                    <tr style="width:100%">
+                        <td style="width:70%">
+                            <p style="font-size:14px; font-weight:700; color:#1e293b; line-height:24px; margin:0;">
+                                <?php echo esc_html__('Tax reversed', 'fluent-cart'); ?>
+                            </p>
+                        </td>
+                        <td style="width:30%; text-align:right">
+                            <p style="font-size:14px; font-weight:700; color:#1e293b; margin:0; line-height:24px;">
+                                <?php echo esc_html($rcReversedValue); ?>
+                            </p>
+                        </td>
+                    </tr>
+                <?php else: ?>
+                    <?php
+                        $emailFeeRowsList    = Arr::get($emailTaxSummary, 'feeTaxLineRows', []);
+                        $rowCount            = (int) ($emailTaxSummary['inclusiveTax'] > 0) + (int) ($emailTaxSummary['exclusiveTax'] > 0) + count($emailFeeRowsList) + (int) ($emailTaxSummary['shippingTax'] > 0);
+                        $shouldShowBreakdown = $rowCount >= 2 || ($rowCount === 1 && !($emailTaxSummary['payableTax'] > 0 || $emailTaxSummary['inclusiveTax'] > 0 || (int) Arr::get($emailTaxSummary, 'inclusiveFeeTax', 0) > 0));
+                    ?>
+                    <?php if ($emailTaxSummary['inclusiveTax'] > 0 && $shouldShowBreakdown): ?>
+                        <tr style="width:100%">
+                            <td style="width:70%">
+                                <p style="font-size:14px; color:#94a3b8; line-height:24px; margin:0;">
+                                    <?php echo esc_html__('Included in item prices', 'fluent-cart'); ?>
+                                </p>
+                            </td>
+                            <td style="width:30%; text-align:right">
+                                <p style="font-size:14px; color:#94a3b8; margin:0; line-height:24px;">
+                                    <?php echo esc_html(\FluentCart\App\Helpers\Helper::toDecimal($emailTaxSummary['inclusiveTax'])); ?>
+                                </p>
+                            </td>
+                        </tr>
+                    <?php endif; ?>
+                    <?php if ($emailTaxSummary['exclusiveTax'] > 0 && $shouldShowBreakdown): ?>
+                        <tr style="width:100%">
+                            <td style="width:70%">
+                                <p style="font-size:14px; font-weight:600; color:#1e293b; line-height:24px; margin:0;">
+                                    <?php echo esc_html__('Added on products', 'fluent-cart'); ?>
+                                </p>
+                            </td>
+                            <td style="width:30%; text-align:right">
+                                <p style="font-size:14px; font-weight:600; color:#1e293b; margin:0; line-height:24px;">
+                                    <?php echo esc_html(\FluentCart\App\Helpers\Helper::toDecimal($emailTaxSummary['exclusiveTax'])); ?>
+                                </p>
+                            </td>
+                        </tr>
+                    <?php endif; ?>
+                    <?php if ($shouldShowBreakdown) : ?>
+                    <?php foreach ($emailFeeRowsList as $emailFeeRow):
+                        $emailFeeColor  = $emailFeeRow['inclusive'] ? '#94a3b8' : '#1e293b';
+                        $emailFeeWeight = $emailFeeRow['inclusive'] ? 'normal' : '600'; ?>
+                        <tr style="width:100%">
+                            <td style="width:70%">
+                                <p style="font-size:14px; font-weight:<?php echo esc_attr($emailFeeWeight); ?>; color:<?php echo esc_attr($emailFeeColor); ?>; line-height:24px; margin:0;">
+                                    <?php echo esc_html($emailFeeRow['display_label']); ?>
+                                </p>
+                            </td>
+                            <td style="width:30%; text-align:right">
+                                <p style="font-size:14px; font-weight:<?php echo esc_attr($emailFeeWeight); ?>; color:<?php echo esc_attr($emailFeeColor); ?>; margin:0; line-height:24px;">
+                                    <?php echo esc_html(\FluentCart\App\Helpers\Helper::toDecimal($emailFeeRow['tax_amount'])); ?>
+                                </p>
+                            </td>
+                        </tr>
+                    <?php endforeach; ?>
+                    <?php endif; ?>
+                    <?php if ($emailTaxSummary['shippingTax'] > 0 && $shouldShowBreakdown):
+                        $isShippingInclusive  = (bool) Arr::get($emailTaxSummary, 'isShippingInclusive', false);
+                        $emailShippingLines   = Arr::get($emailTaxSummary, 'shippingTaxLines', []);
+                        $emailShippingColor   = $isShippingInclusive ? '#94a3b8' : '#1e293b';
+                        $emailShippingWeight  = $isShippingInclusive ? 'normal' : '600';
+                        if (!empty($emailShippingLines)):
+                            foreach ($emailShippingLines as $shLine): ?>
+                                <tr style="width:100%">
+                                    <td style="width:70%">
+                                        <p style="font-size:14px; font-weight:<?php echo esc_attr($emailShippingWeight); ?>; color:<?php echo esc_attr($emailShippingColor); ?>; line-height:24px; margin:0;">
+                                            <?php echo esc_html($shLine['label']); ?>
+                                        </p>
+                                    </td>
+                                    <td style="width:30%; text-align:right">
+                                        <p style="font-size:14px; font-weight:<?php echo esc_attr($emailShippingWeight); ?>; color:<?php echo esc_attr($emailShippingColor); ?>; margin:0; line-height:24px;">
+                                            <?php echo esc_html(\FluentCart\App\Helpers\Helper::toDecimal($shLine['shipping_tax'])); ?>
+                                        </p>
+                                    </td>
+                                </tr>
+                            <?php endforeach;
+                        else: ?>
+                            <tr style="width:100%">
+                                <td style="width:70%">
+                                    <p style="font-size:14px; font-weight:<?php echo esc_attr($emailShippingWeight); ?>; color:<?php echo esc_attr($emailShippingColor); ?>; line-height:24px; margin:0;">
+                                        <?php echo esc_html($isShippingInclusive ? __('Included in shipping prices', 'fluent-cart') : __('Added on shipping', 'fluent-cart')); ?>
+                                    </p>
+                                </td>
+                                <td style="width:30%; text-align:right">
+                                    <p style="font-size:14px; font-weight:<?php echo esc_attr($emailShippingWeight); ?>; color:<?php echo esc_attr($emailShippingColor); ?>; margin:0; line-height:24px;">
+                                        <?php echo esc_html(\FluentCart\App\Helpers\Helper::toDecimal($emailTaxSummary['shippingTax'])); ?>
+                                    </p>
+                                </td>
+                            </tr>
+                        <?php endif; ?>
+                    <?php endif; ?>
+                    <?php if ($emailTaxSummary['payableTax'] > 0): ?>
+                        <tr style="width:100%">
+                            <td style="width:70%">
+                                <p style="font-size:14px; font-weight:700; color:#1e293b; line-height:24px; margin:0; border-top:1px solid #e2e8f0; padding-top:4px;">
+                                    <?php echo esc_html__('Total payable tax', 'fluent-cart'); ?>
+                                </p>
+                            </td>
+                            <td style="width:30%; text-align:right">
+                                <p style="font-size:14px; font-weight:700; color:#1e293b; margin:0; line-height:24px; border-top:1px solid #e2e8f0; padding-top:4px;">
+                                    <?php echo esc_html(\FluentCart\App\Helpers\Helper::toDecimal($emailTaxSummary['payableTax'])); ?>
+                                </p>
+                            </td>
+                        </tr>
+                    <?php endif; ?>
+                    <?php if ($emailTaxSummary['inclusiveTax'] > 0 || $emailTaxSummary['inclusiveFeeTax'] > 0): ?>
+                        <tr style="width:100%">
+                            <td style="width:70%">
+                                <p style="font-size:14px; font-weight:normal; color:#94a3b8; line-height:24px; margin:0;">
+                                    <?php echo esc_html__('Total tax in this order', 'fluent-cart'); ?>
+                                </p>
+                            </td>
+                            <td style="width:30%; text-align:right">
+                                <p style="font-size:14px; font-weight:normal; color:#94a3b8; margin:0; line-height:24px;">
+                                    <?php echo esc_html(\FluentCart\App\Helpers\Helper::toDecimal($emailTaxSummary['totalOrderTax'])); ?>
+                                </p>
+                            </td>
+                        </tr>
+                    <?php endif; ?>
+                <?php endif; ?>
                 <?php endif; ?>
 
                 <?php if ($order->total_refund > 0 && $isRefund): ?>
@@ -205,6 +560,10 @@ use FluentCart\Framework\Support\Arr;
                     </tr>
                 <?php endif; ?>
 
+                <?php
+                    $emailDisplayTotal = max(0, (int) $order->total_amount - (int) $order->total_refund
+                        - (int) \FluentCart\Framework\Support\Arr::get($emailTaxSummaryEarly ?? [], 'rcTotalAdjustment', 0));
+                ?>
                 <tr style="width:100%">
                     <td style="width:70%"><p
                                 style="font-size:16px;font-weight:700;color:rgb(17,24,39);line-height:24px;margin: 0;">
@@ -213,7 +572,7 @@ use FluentCart\Framework\Support\Arr;
                     </td>
                     <td style="width:30%;text-align:right">
                         <p style="font-size:14px;font-weight:700;color:rgb(17,24,39);line-height:24px;margin: 0;">
-                            <?php echo esc_html(\FluentCart\Api\CurrencySettings::getFormattedPrice(($order->total_amount - $order->total_refund), null, false, true, true)); ?>
+                            <?php echo esc_html(\FluentCart\Api\CurrencySettings::getFormattedPrice($emailDisplayTotal, null, false, true, true)); ?>
                         </p>
                     </td>
                 </tr>
@@ -248,9 +607,7 @@ use FluentCart\Framework\Support\Arr;
                 </tbody>
             </table>
             <?php
-                $orderTaxRates = $order->orderTaxRates->first();
-                $taxtotal = $order->tax_total + $order->shipping_tax;   
-                if(Arr::get($orderTaxRates->meta ?? [], 'vat_reverse.valid') && !$taxtotal): ?>
+                if($order->isReverseChargeTaxOrder()): ?>
                 <div style="text-align: right; font-size: 14px; margin-top: 10px;">
                     <?php echo '*' . esc_html__('Tax to be paid on reverse charge basis', 'fluent-cart'); ?>
                 </div>
@@ -259,6 +616,4 @@ use FluentCart\Framework\Support\Arr;
         </td>
     </tr>
 </table>
-
-
 

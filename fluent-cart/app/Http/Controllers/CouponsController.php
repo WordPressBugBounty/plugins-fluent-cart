@@ -175,10 +175,10 @@ class CouponsController extends Controller
     public function reapplyCoupon(Request $request)
     {
         $data = $request->getSafe([
-            'order_uuid'         => 'sanitize_text_field',
+            'order_uuid'        => 'sanitize_text_field',
             'applied_coupons.*' => 'intval',
-            'order_items.*'     => 'sanitize_text_field',
         ]);
+        $data['order_items'] = Arr::except(Arr::get($request->all(), 'order_items', []), ['*']);
 
         $isApplied = CouponResource::reapplyCoupon($data);
 

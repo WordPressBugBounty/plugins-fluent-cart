@@ -134,6 +134,28 @@ class ProductUpdateRequest extends RequestGuard
 
     }
 
+    function validateTaxClassSlug($attribute, $value): ?string
+    {
+        static $checked = [];
+
+        if (empty($value)) {
+            return null;
+        }
+
+        $value = sanitize_text_field($value);
+
+        if (isset($checked[$value])) {
+            return $checked[$value];
+        }
+
+        if (empty(\FluentCart\App\Models\TaxClass::query()->where('slug', $value)->first())) {
+            $checked[$value] = __("Invalid Tax Class.", 'fluent-cart');
+            return $checked[$value];
+        }
+
+        return null;
+    }
+
     public function validatePostDate($attribute, $value): ?string
     {
         if ($this->get('post_status') !== 'future') {
@@ -204,6 +226,7 @@ class ProductUpdateRequest extends RequestGuard
             'detail.other_info.tax_class'         => ['nullable', function ($attribute, $value) {
                 return $this->validateTaxClassId($attribute, $value);
             }],
+            'detail.other_info.tax_exempt'        => 'nullable|sanitizeText|in:yes,no',
             'detail.other_info.active_editor'     => 'nullable|sanitizeText',
             'product_terms'                       => 'nullable|array',
             'product_terms.*'                     => 'nullable|array',
@@ -235,6 +258,12 @@ class ProductUpdateRequest extends RequestGuard
                 },
             ],
             'variants.*.manage_cost'              => 'nullable|sanitizeText|maxLength:10',
+            // Variant tax classes are stored as slugs, not numeric IDs like the
+            // older product-detail tax field.
+            'variants.*.other_info.tax_class'     => ['nullable', function ($attribute, $value) {
+                return $this->validateTaxClassSlug($attribute, $value);
+            }],
+            'variants.*.other_info.tax_exempt'    => 'nullable|sanitizeText|in:yes,no',
 //            'variants.*.shipping_class'           => ['nullable', 'numeric', function ($attribute, $value) {
 //                return $this->validateShippingClassId($attribute, $value);
 //            }],
@@ -406,6 +435,7 @@ class ProductUpdateRequest extends RequestGuard
                 'detail.other_info.use_pricing_table' => 'sanitize_text_field',
                 'detail.other_info.shipping_class'    => 'intval',
                 'detail.other_info.tax_class'         => 'intval',
+                'detail.other_info.tax_exempt'        => 'sanitize_text_field',
                 'detail.other_info.active_editor'     => 'sanitize_text_field',
             ];
 
@@ -492,6 +522,8 @@ class ProductUpdateRequest extends RequestGuard
                             "variants.$index.other_info.signup_fee"       => 'floatval',
                             "variants.$index.other_info.signup_fee_name"  => 'sanitize_text_field',
                             "variants.$index.other_info.installment"      => 'sanitize_text_field',
+                            "variants.$index.other_info.tax_class"        => 'sanitize_text_field',
+                            "variants.$index.other_info.tax_exempt"       => 'sanitize_text_field',
                         ];
 
                         foreach ($otherInfoFieldMap as $field => $sanitizer) {

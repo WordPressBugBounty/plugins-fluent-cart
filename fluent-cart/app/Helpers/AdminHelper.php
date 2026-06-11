@@ -15,7 +15,7 @@ class AdminHelper
     public static function getProductMenu($product, $echo = false, $activeMenu = '')
     {
         // Skip rendering menu when custom editor modal is open
-        if (isset($_GET['custom-editor']) && $_GET['custom-editor'] == 'true') {
+        if (App::request()->get('custom-editor') === 'true') {
             return '';
         }
 
@@ -40,21 +40,13 @@ class AdminHelper
                 'label' => __('Integrations', 'fluent-cart'),
                 'link'  => $baseUrl . 'products/' . $productId . '/integrations'
             ],
-            // 'product_pricing' => [
-            //     'label' => __('Pricing', 'fluent-cart'),
-            //     'link' => $baseUrl . 'products/' . $productId . '/pricing'
-            // ],
-//            'product_integrations' => [
-//                'label' => __('Integrations', 'fluent-cart'),
-//                'link' => $baseUrl . 'products/' . $productId . '/integrations'
-//            ]
         ], [
             'product_id' => $productId,
             'base_url'   => $baseUrl
         ]);
 
         $request = App::request()->all();
-        if (isset($request['action']) && $request['action'] == 'edit') {
+        if (isset($request['action']) && $request['action'] === 'edit') {
             $menuItems['product_details'] = [
                 'label' => __('Edit Pricing', 'fluent-cart'),
                 'link'  => admin_url('admin.php?page=fluent-cart#/products/' . $productId)
@@ -73,11 +65,11 @@ class AdminHelper
             'product_id'   => $productId
         ];
 
-        if ($echo) {
-            App::make('view')->render('admin.admin_product_menu', $data);
-        } else {
+        if (!$echo) {
             return (string)App::make('view')->make('admin.admin_product_menu', $data);
         }
+
+        App::make('view')->render('admin.admin_product_menu', $data);
     }
 
     private static function getProductsMenu($baseUrl)
@@ -106,17 +98,17 @@ class AdminHelper
     {
         $menuItems = self::getMenuItems();
 
-        if ($echo) {
-            App::make('view')->render('admin.admin_menu', [
-                'menu_items' => $menuItems,
-                'active'     => $activeNav
-            ]);
-        } else {
+        if (!$echo) {
             return App::make('view')->make('admin.admin_menu', [
                 'menu_items' => $menuItems,
                 'active'     => $activeNav
             ]);
         }
+
+        App::make('view')->render('admin.admin_menu', [
+            'menu_items' => $menuItems,
+            'active'     => $activeNav
+        ]);
     }
 
     public static function getMenuItems($withSettings = false)
@@ -216,13 +208,5 @@ class AdminHelper
             FLUENTCART_VERSION,
         );
     }
-
-
 }
-
-
-
-
-
-
 

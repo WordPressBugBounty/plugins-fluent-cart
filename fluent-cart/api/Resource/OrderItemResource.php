@@ -227,7 +227,7 @@ class OrderItemResource extends BaseResourceApi
 
                 $itemData = Arr::only($item, ['id', 'title', 'post_id', 'object_id', 'post_title', 'quantity', 'unit_price', 'cost', 'tax_amount', 'discount_total', 'line_total']);
                 $itemData['subtotal'] = Arr::get($item, 'quantity', 0) * Arr::get($item, 'unit_price', 0);
-                $itemData['line_total'] = $itemData['subtotal'] - Arr::get($item, 'discount_total', 0) + Arr::get($item, 'tax_amount', 0);
+                $itemData['line_total'] = $itemData['subtotal'] - Arr::get($item, 'discount_total', 0);
                 $fulfillment_type = Arr::get($item, 'fulfillment_type', 'physical');
 
 
@@ -248,6 +248,11 @@ class OrderItemResource extends BaseResourceApi
                 } else {
                     $existingData = Arr::only($itemData, ['id', 'quantity', 'unit_price', 'cost', 'subtotal', 'tax_amount', 'discount_total', 'line_total', 'shipping_charge']) + ['updated_at' => DateTime::now()];
                     $existingData['fulfilled_quantity'] = $fulfillment_type === 'physical' ? Arr::get($item, 'fulfilled_quantity', 0) : Arr::get($item, 'quantity', 0);
+                    $incomingLineMeta = Arr::get($item, 'line_meta');
+                    if (is_array($incomingLineMeta) && array_key_exists('coupon_discount', $incomingLineMeta)) {
+                        $incomingLineMeta['coupon_discount'] = (int) $incomingLineMeta['coupon_discount'];
+                        $existingData['line_meta'] = json_encode($incomingLineMeta);
+                    }
                     $existingItems[] = $existingData;
                 }
             }

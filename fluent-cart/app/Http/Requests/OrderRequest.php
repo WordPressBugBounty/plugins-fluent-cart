@@ -74,7 +74,13 @@ class OrderRequest extends RequestGuard
             "shipping.*.rate_name"    => 'nullable|sanitizeText|maxLength:100',
             "shipping.*.custom_price" => 'nullable|numeric',
 
-            'deletedItems' => 'nullable|array',
+            'deletedItems'        => 'nullable|array',
+            'tax_behavior'        => 'nullable|numeric|min:0',
+            'tax_lines'           => 'nullable|array',
+            'tax_lines.*.rate_id'    => 'nullable|numeric|min:0',
+            'tax_lines.*.tax_amount' => 'nullable|numeric|min:0',
+            'tax_lines.*.label'      => 'nullable|sanitizeText',
+            'tax_lines.*.is_compound'=> 'nullable',
 
             'applied_coupon'                       => 'nullable|array',
             "applied_coupon.*.id"                  => 'nullable|numeric|min:1',
@@ -135,6 +141,7 @@ class OrderRequest extends RequestGuard
             'shipping_tax'          => 'floatval',
             'shipping_total'        => 'floatval',
             'tax_total'             => 'floatval',
+            'tax_behavior'          => 'intval',
             'total_amount'          => 'floatval',
             'rate'                  => 'sanitize_text_field',
             'note'                  => 'sanitize_text_field',
@@ -165,7 +172,9 @@ class OrderRequest extends RequestGuard
             "order_items.*.line_total"      => 'floatval',
             "order_items.*.cart_index"      => 'intval',
             "order_items.*.rate"            => 'floatval',
-            "order_items.*.line_meta"       => 'sanitize_text_field',
+            "order_items.*.line_meta"       => function ($value) {
+                return is_array($value) ? $value : [];
+            },
             "order_items.*.other_info"      => function ($value) {
                 return is_array($value) ? $value : [];
             },
@@ -182,6 +191,15 @@ class OrderRequest extends RequestGuard
 
             "deletedItems"      => function ($value) {
                 return is_array($value) ? $value : [];
+            },
+            "tax_lines" => function ($value) {
+                return is_array($value) ? $value : [];
+            },
+            "tax_lines.*.rate_id"    => 'intval',
+            "tax_lines.*.tax_amount" => 'intval',
+            "tax_lines.*.label"      => 'sanitize_text_field',
+            "tax_lines.*.is_compound"=> function ($value) {
+                return (bool) $value;
             },
 
             "applied_coupon.*.id"                  => 'intval',

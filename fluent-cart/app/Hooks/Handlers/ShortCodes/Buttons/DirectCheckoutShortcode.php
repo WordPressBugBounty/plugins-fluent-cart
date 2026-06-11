@@ -108,7 +108,7 @@ class DirectCheckoutShortcode extends ShortCode
             $atts['target'] = $target;
         }
 
-        return (new ProductRenderer($product, $rendererConfig))->renderBuyNowButtonBlock($atts);
+        return (new ProductRenderer($product, $rendererConfig))->renderBuyNowButton($atts);
     }
 
     protected function renderAttributes($atts = [])

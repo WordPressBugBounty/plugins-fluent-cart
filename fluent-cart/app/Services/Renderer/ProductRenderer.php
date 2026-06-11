@@ -555,6 +555,7 @@ class ProductRenderer
         }
 
         $stockAvailability = $this->product->detail->getStockAvailability();
+        
 
         if (!Arr::get($stockAvailability, 'manage_stock')) {
             return '';
@@ -566,7 +567,7 @@ class ProductRenderer
         if ($this->defaultVariant) {
             $isStock = $isStock && $this->defaultVariant->isStock();
         }
-        $stockLabel = $isStock ? $stockAvailability['availability'] : __('Out of Stock', 'fluent-cart');
+        $stockLabel = Arr::get($stockAvailability, 'availability');
         $statusClass = $isStock ? ($stockAvailability['class'] ?? '') : 'out-of-stock';
         echo sprintf(
                 '<div class="fct-product-stock %1$s" role="status" aria-live="polite">
@@ -901,11 +902,7 @@ class ProductRenderer
 
                     $this->renderComparePriceWrapperStart($atts);
                     $this->renderVariationComparePrice($variant);
-                    if ($paymentType === 'onetime') {
-                        echo esc_html(Helper::toDecimal($variant->item_price));
-                    } else {
-                        $this->applyVariationPriceFilter($variant, $paymentType);
-                    }
+                    $this->applyVariationPriceFilter($variant, $paymentType);
                     $this->renderComparePriceWrapperEnd();
                 }
 
@@ -944,6 +941,7 @@ class ProductRenderer
         ]));
         do_action('fluent_cart/product/after_price', [
                 'product'       => $this->product,
+                'variant'       => $variant,
                 'current_price' => $variant->item_price,
                 'scope'         => 'product_variant_price'
         ]);
@@ -1191,6 +1189,15 @@ class ProductRenderer
             $buyNowAttributes['data-enable-modal-checkout'] = 'yes';
         }
 
+        $isShortcode = !empty($atts['is_shortcode']);
+        if ($isShortcode) {
+            ob_start();
+            $this->renderAttributes($buyNowAttributes);
+            $wrapperAttributes = ob_get_clean();
+        } else {
+            $wrapperAttributes = RenderHelper::getBlockWrapperAttributes($buyNowAttributes);
+        }
+
         $buyButtonText = apply_filters('fluent_cart/product/buy_now_button_text', $atts['buy_now_text'], [
                 'product' => $this->product
         ]);
@@ -1207,7 +1214,7 @@ class ProductRenderer
             )
             : $buyButtonText;
         ?>
-        <a <?php $this->renderAttributes($buyNowAttributes); ?> aria-label="<?php echo esc_attr($buyNowAriaLabel); ?>">
+        <a <?php echo $wrapperAttributes; ?> aria-label="<?php echo esc_attr($buyNowAriaLabel); ?>">
             <?php echo wp_kses_post($buyButtonText); ?>
         </a>
         <?php
@@ -1218,10 +1225,11 @@ class ProductRenderer
         $text = Arr::get($atts, 'text', __('Buy Now', 'fluent-cart'));
         $variantIds = Arr::get($atts, 'variant_ids', []);
         $variantId  = Arr::get($variantIds, 0);
+        $customClass = trim(Arr::get($atts, 'class', ''));
+        $extraClass = trim(Arr::get($atts, 'extra_class', ''));
 
         $defaults = [
                 'buy_now_text' => $text,
-                'class'        => '',
                 'target'       => '',
                 'rel'          => '',
                 'is_shortcode' => false,
@@ -1243,7 +1251,11 @@ class ProductRenderer
                 'quantity'    => 1
         ], site_url());
 
-        $buyNowClass = trim('wp-block-button__link wp-element-button ' . Arr::get($atts, 'class', ''));
+        $buyNowClass = $customClass ?: 'wp-block-button__link wp-element-button';
+        if ($extraClass) {
+            $buyNowClass .= ' ' . $extraClass;
+        }
+        $buyNowClass = trim($buyNowClass);
         if ($stockStatus === 'out-of-stock') {
             $buyNowClass .= ' out-of-stock';
         }
@@ -1275,20 +1287,13 @@ class ProductRenderer
             $buyNowAttributes['data-fct-instant-checkout-button'] = '';
             $buyNowAttributes['data-enable-modal-checkout'] = 'yes';
         }
-        $wrapperAttributes = '';
-        $isShortcode       = !empty($atts['is_shortcode']);
-
+        $isShortcode = !empty($atts['is_shortcode']);
         if ($isShortcode) {
-            foreach ($buyNowAttributes as $attr => $value) {
-                if ($value === '') {
-                    $wrapperAttributes .= esc_attr($attr) . ' ';
-                } else {
-                    $wrapperAttributes .= sprintf('%s="%s" ', esc_attr($attr), esc_attr((string)$value));
-                }
-            }
-            $wrapperAttributes = trim($wrapperAttributes);
+            ob_start();
+            $this->renderAttributes($buyNowAttributes);
+            $wrapperAttributes = ob_get_clean();
         } else {
-            $wrapperAttributes = get_block_wrapper_attributes($buyNowAttributes);
+            $wrapperAttributes = RenderHelper::getBlockWrapperAttributes($buyNowAttributes);
         }
 
         $buyButtonText = apply_filters('fluent_cart/product/buy_now_button_text', $atts['buy_now_text'], [
@@ -1316,6 +1321,7 @@ class ProductRenderer
                 'data-product-id'                     => $this->product->ID,
                 'class'                               => 'fluent-cart-add-to-cart-button',
                 'data-variation-type'                 => $this->product->detail->variation_type,
+                'data-icon-only'                      => !empty($atts['is_icon_only']) ? 'true' : 'false',
         ];
 
         $defaultVariantData = $this->getDefaultVariantData();
@@ -1340,6 +1346,17 @@ class ProductRenderer
         $addToCartText = apply_filters('fluent_cart/product/add_to_cart_text', $atts['add_to_cart_text'], [
                 'product' => $this->product
         ]);
+
+        $isShortcode = !empty($atts['is_shortcode']);
+        if ($isShortcode) {
+            ob_start();
+            $this->renderAttributes($cartAttributes);
+            $wrapperAttributes = ob_get_clean();
+        } else {
+            $wrapperAttributes = RenderHelper::getBlockWrapperAttributes($cartAttributes);
+        }
+
+
         // Render add to cart if product supports onetime, or if out of stock (to show "Not Available")
         if ($this->hasOnetime || $isOutOfStock) :
             ?>
@@ -1354,7 +1371,7 @@ class ProductRenderer
                 )
                 : $addToCartText;
             ?>
-            <button <?php $this->renderAttributes($cartAttributes); ?>
+            <button <?php echo $wrapperAttributes; ?>
                     aria-label="<?php echo esc_attr($addToCartAriaLabel); ?>">
                 <span class="text">
                     <?php echo wp_kses_post($addToCartText); ?>
@@ -1380,9 +1397,9 @@ class ProductRenderer
 
     public function renderAddToCartButtonBlock($atts = [])
     {
-
         $text = Arr::get($atts, 'text', __('Add To Cart', 'fluent-cart'));
-        $extraClass = trim(Arr::get($atts, 'class', ''));
+        $customClass = trim(Arr::get($atts, 'class', ''));
+        $extraClass = trim(Arr::get($atts, 'extra_class', ''));
 
         $defaults = [
                 'add_to_cart_text' => $text,
@@ -1390,12 +1407,16 @@ class ProductRenderer
 
         $atts = wp_parse_args($atts, $defaults);
 
+        $buttonClasses = ['fct-loader', 'wp-block-button__link wp-element-button'];
+        $buttonClass = $customClass ?: implode(' ', $buttonClasses);
+
         $cartAttributes = [
                 'data-fluent-cart-add-to-cart-button'  => '',
-                'class'                               => 'wp-block-button__link wp-element-button fct-loader',
+                'class'                               => $buttonClass,
                 'data-cart-id'                        => $this->defaultVariant ? $this->defaultVariant->id : '',
                 'data-product-id'                     => $this->product->ID,
                 'data-variation-type'                 => $this->product->detail->variation_type,
+                'data-icon-only'                      => !empty($atts['is_icon_only']) ? 'true' : 'false',
         ];
 
         if ($extraClass) {
@@ -1428,20 +1449,13 @@ class ProductRenderer
                 'product' => $this->product
         ]);
 
-        $wrapperAttributes = '';
-        $isShortcode       = !empty($atts['is_shortcode']);
-
+        $isShortcode = !empty($atts['is_shortcode']);
         if ($isShortcode) {
-            foreach ($cartAttributes as $attr => $value) {
-                if ($value === '') {
-                    $wrapperAttributes .= esc_attr($attr) . ' ';
-                } else {
-                    $wrapperAttributes .= sprintf('%s="%s" ', esc_attr($attr), esc_attr((string)$value));
-                }
-            }
-            $wrapperAttributes = trim($wrapperAttributes);
+            ob_start();
+            $this->renderAttributes($cartAttributes);
+            $wrapperAttributes = ob_get_clean();
         } else {
-            $wrapperAttributes = get_block_wrapper_attributes($cartAttributes);
+            $wrapperAttributes = RenderHelper::getBlockWrapperAttributes($cartAttributes);
         }
 
         ?>

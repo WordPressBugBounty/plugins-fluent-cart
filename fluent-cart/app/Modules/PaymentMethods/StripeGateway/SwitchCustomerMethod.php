@@ -30,7 +30,7 @@ class SwitchCustomerMethod
     public function switchPayMethod($data, $subscriptionId)
     {
         if (!$this->validateRequest($data, $subscriptionId)) {
-            throw new \Exception('Invalid request');
+            throw new \Exception(__('Invalid request', 'fluent-cart'));
         }
 
         $subscriptionModel = Subscription::query()->where('id', $subscriptionId)->first();

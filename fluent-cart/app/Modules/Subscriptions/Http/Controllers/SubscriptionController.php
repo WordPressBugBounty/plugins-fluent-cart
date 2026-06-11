@@ -37,6 +37,7 @@ class SubscriptionController extends Controller
             'order.billing_address',
             'order.shipping_address',
         ])
+            ->addAppends(['business_info', 'is_reverse_charge_tax_order'])
             ->find($subscriptionOrderId);
 
         if (is_wp_error($subscription) || empty($subscription)) {
@@ -47,9 +48,10 @@ class SubscriptionController extends Controller
             );
         }
 
-        // Attach parent order's addresses directly to subscription for consistent access
+        // Attach parent order's addresses and business info directly to subscription for consistent access
         $subscription->billing_address = $subscription->order->billing_address ?? null;
         $subscription->shipping_address = $subscription->order->shipping_address ?? null;
+        $subscription->business_info = $subscription->order ? $subscription->order->getBusinessInfo() : [];
 
         $subscription->related_orders = Order::query()
             ->with(['order_items' => function ($query) {

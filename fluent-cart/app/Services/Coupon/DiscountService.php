@@ -499,14 +499,29 @@ class DiscountService
 
     private function getItemEffectiveSubtotal(array $item)
     {
-        $subtotal = (int) $item['subtotal'];
         if (Arr::get($item, 'other_info.payment_type') === 'subscription'
             && Arr::get($item, 'other_info.trial_days', 0) > 0
         ) {
-            $quantity = (int) Arr::get($item, 'quantity', 1);
-            $subtotal = (int) Arr::get($item, 'other_info.signup_fee', 0) * ($quantity > 0 ? $quantity : 1);
+            $quantity = max(1, (int) Arr::get($item, 'quantity', 1));
+            // When dynamic RC has already adjusted signup_fee to the net amount, use the
+            // pre-adjustment gross value so the coupon always applies to the original price.
+            $signupFee = Arr::get($item, 'other_info.original_signup_fee') !== null
+                ? (int) Arr::get($item, 'other_info.original_signup_fee')
+                : (int) Arr::get($item, 'other_info.signup_fee', 0);
+            return $signupFee * $quantity;
         }
-        return $subtotal;
+
+        // When dynamic RC has already reduced unit_price to the net (tax-stripped) amount,
+        // use the saved gross price so the coupon is always calculated against the original
+        // inclusive price — regardless of whether VAT number was entered before or after
+        // the coupon was applied.
+        $originalUnitPrice = Arr::get($item, 'line_meta.original_unit_price');
+        if ($originalUnitPrice !== null) {
+            $quantity = max(1, (int) Arr::get($item, 'quantity', 1));
+            return (int) $originalUnitPrice * $quantity;
+        }
+
+        return (int) $item['subtotal'];
     }
 
     public function saveCart()

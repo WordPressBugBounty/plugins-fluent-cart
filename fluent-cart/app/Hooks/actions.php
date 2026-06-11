@@ -31,7 +31,9 @@ use FluentCart\App\Http\Routes\WebRoutes;
 (new FluentCart\App\Hooks\Handlers\CustomCheckout\CustomCheckout())->register();
 
 // Tax Module Init
-(new \FluentCart\App\Modules\Tax\TaxModule())->register();
+add_action('init', function () {
+    (new \FluentCart\App\Modules\Tax\TaxModule())->register();
+}, 1);
 
 // Turnstile Module Init
 (new \FluentCart\App\Modules\Turnstile\TurnstileInit())->register(\FluentCart\App\App::getInstance());
@@ -177,6 +179,10 @@ if (defined('WP_CLI') && WP_CLI) {
 
 \FluentCart\App\Modules\Subscriptions\SubscriptionModule::register();
 \FluentCart\App\Modules\Shipping\ShippingModule::register();
+
+// MCP (Model Context Protocol) — operator AI tools. Ships OFF; enabled in
+// Settings → Features & addon → MCP. See MCPInit::boot() for the bootstrap.
+\FluentCart\App\Modules\MCP\MCPInit::boot();
 
 $app->ready(function () use ($app) {
     \FluentCart\App\Models\Connection\ConnectionManager::connect($this->app);

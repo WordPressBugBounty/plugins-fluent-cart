@@ -18,7 +18,7 @@ class Webhook
 
     public static function getURL(): string
     {
-        return site_url() . self::WEBHOOK_ENDPOINT;
+        return trailingslashit(site_url()) . self::WEBHOOK_ENDPOINT;
     }
 
     public static function getEvents(): array

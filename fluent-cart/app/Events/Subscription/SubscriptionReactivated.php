@@ -16,7 +16,7 @@ class SubscriptionReactivated extends EventDispatcher
     public ?Order $order;
     public ?Customer $customer;
 
-    public function __construct(Subscription $subscription, Order $order = null, Customer $customer = null)
+    public function __construct(Subscription $subscription, ?Order $order = null, ?Customer $customer = null)
     {
         $this->subscription = $subscription;
         $this->order = $order;

@@ -14,4 +14,19 @@ class RenderHelper
             }
         }
     }
+
+    public static function getBlockWrapperAttributes(array $attributes = [])
+    {
+        if (
+            !empty(\WP_Block_Supports::$block_to_render)
+            && is_array(\WP_Block_Supports::$block_to_render)
+            && !empty(\WP_Block_Supports::$block_to_render['blockName'])
+        ) {
+            return get_block_wrapper_attributes($attributes);
+        }
+
+        ob_start();
+        static::renderAtts($attributes);
+        return ob_get_clean();
+    }
 }

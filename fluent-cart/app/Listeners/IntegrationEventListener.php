@@ -293,6 +293,10 @@ class IntegrationEventListener
 
         $order = Order::with(['order_items', 'customer', 'shipping_address', 'billing_address'])
             ->find($action->object_id);
+        
+        if (!$order) {
+            return;
+        }
 
         $eventData = [
             'order'    => $order,

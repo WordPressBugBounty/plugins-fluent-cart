@@ -40,17 +40,6 @@ class CheckoutRenderer
         $formData = Arr::get($cart->checkout_data, 'form_data', []);
         $this->storeSettings = new StoreSettings();
 
-        $billingValidations = array_filter(CheckoutFieldsSchema::getCheckoutFieldsRequirements('billing', 'physical'));
-        $storeCountry = (new StoreSettings())->get('store_country');
-        if (!Arr::has($billingValidations, 'country') && Arr::get($formData, 'billing_country') !== $storeCountry) {
-            $formData['billing_country'] = $storeCountry;
-            // save $this->cart
-            $checkoutData = $this->cart->checkout_data;
-            $checkoutData['form_data'] = $formData;
-            $this->cart->checkout_data = $checkoutData;
-            $this->cart->save();
-        }
-
         $fallbackCountry = '';
         $HTTP_CF_IP_COUNTRY = Arr::get(App::request()->server(), 'HTTP_CF_IPCOUNTRY');
 
@@ -220,7 +209,6 @@ class CheckoutRenderer
                         <div class="fct_checkout_form_items">
                             <?php $this->renderNameFields(); ?>
 
-
                             <?php $this->renderCreateAccountField(); ?>
 
                             <?php do_action('fluent_cart/before_billing_fields', ['cart' => $this->cart]); ?>
@@ -317,6 +305,120 @@ class CheckoutRenderer
         (new FormFieldRenderer())->renderSection($schema);
     }
 
+    public function renderB2BToggle()
+    {
+        if (!CheckoutFieldsSchema::hasAnyBusinessFields()) {
+            return;
+        }
+
+        $isB2B = Arr::get($this->cart->checkout_data, 'form_data.is_business', 'no') === 'yes';
+
+        $hasBusinessSection = CheckoutFieldsSchema::isCompanyNameEnabled()
+            || CheckoutFieldsSchema::isLegalRegistrationIdEnabled()
+            || CheckoutFieldsSchema::isVatNumberEnabled();
+
+        $extraAtts = [
+            'data-fluent-cart-b2b-toggle' => 'yes',
+            'aria-expanded'               => $isB2B ? 'true' : 'false',
+        ];
+        if ($hasBusinessSection) {
+            $extraAtts['aria-controls'] = 'fct_b2b_business_section';
+        }
+        ?>
+        <div class="fct_b2b_toggle_wrapper fct-has-default-font-size">
+            <?php
+            (new FormFieldRenderer())->renderField([
+                'type'           => 'checkbox',
+                'id'             => 'is_business',
+                'name'           => 'is_business',
+                'checkbox_value' => 'yes',
+                'label'          => __('I am purchasing as a business', 'fluent-cart'),
+                'value'          => $isB2B ? 'yes' : '',
+                'extra_atts'     => $extraAtts,
+            ]);
+            ?>
+        </div>
+        <?php
+        $this->renderBusinessDetailsSection($isB2B);
+    }
+
+    public function renderBusinessDetailsSection($isVisible)
+    {
+        $hasCompany  = CheckoutFieldsSchema::isCompanyNameEnabled();
+        $hasLegalReg = CheckoutFieldsSchema::isLegalRegistrationIdEnabled();
+        $hasVat      = CheckoutFieldsSchema::isVatNumberEnabled();
+
+        if (!$hasCompany && !$hasLegalReg && !$hasVat) {
+            return;
+        }
+
+        $formData         = Arr::get($this->cart->checkout_data, 'form_data', []);
+        $isCompanyRequired = CheckoutFieldsSchema::isCompanyNameRequired();
+        $isLegalRequired  = CheckoutFieldsSchema::isLegalRegistrationIdRequired();
+        $style = $isVisible ? '' : 'display:none';
+        ?>
+        <div id="fct_b2b_business_section"
+             data-fluent-cart-b2b-section
+             class="fct_checkout_form_section fct_b2b_business_section"
+             style="<?php echo esc_attr($style); ?>"
+             role="group"
+             aria-label="<?php esc_attr_e('Business Details', 'fluent-cart'); ?>">
+            <div class="fct_form_section_body">
+                <div class="fct_checkout_input_group">
+                    <?php if ($hasCompany): ?>
+                        <?php
+                        $companyLabel = __('Company Name', 'fluent-cart');
+                        $companyValue = Arr::get($formData, 'billing_company_name', '');
+                        ?>
+                        <div data-fluent-cart-checkout-page-form-input-wrapper
+                             class="fct_input_wrapper"
+                             id="billing_company_name_wrapper">
+                            <label for="billing_company_name" class="sr-only">
+                                <?php echo esc_html($companyLabel); ?>
+                            </label>
+                            <input type="text"
+                                   name="billing_company_name"
+                                   id="billing_company_name"
+                                   autocomplete="organization"
+                                   placeholder="<?php echo esc_attr($companyLabel . ($isCompanyRequired ? ' *' : '')); ?>"
+                                   value="<?php echo esc_attr($companyValue); ?>"
+                                   aria-label="<?php echo esc_attr($companyLabel); ?>"
+                                   <?php if ($isCompanyRequired): ?> data-b2b-required="yes"<?php endif; ?>
+                                   <?php if ($isCompanyRequired && $isVisible): ?> required aria-required="true"<?php endif; ?>
+                            />
+                        </div>
+                    <?php endif; ?>
+
+                    <?php if ($hasLegalReg): ?>
+                        <?php
+                        $legalLabel = __('Legal Registration ID', 'fluent-cart');
+                        $legalValue = Arr::get($formData, 'billing_legal_registration_id', '');
+                        ?>
+                        <div data-fluent-cart-checkout-page-form-input-wrapper
+                             class="fct_input_wrapper"
+                             id="billing_legal_registration_id_wrapper">
+                            <label for="billing_legal_registration_id" class="sr-only">
+                                <?php echo esc_html($legalLabel); ?>
+                            </label>
+                            <input type="text"
+                                   name="billing_legal_registration_id"
+                                   id="billing_legal_registration_id"
+                                   autocomplete="off"
+                                   placeholder="<?php echo esc_attr($legalLabel . ($isLegalRequired ? ' *' : '')); ?>"
+                                   value="<?php echo esc_attr($legalValue); ?>"
+                                   aria-label="<?php echo esc_attr($legalLabel); ?>"
+                                   <?php if ($isLegalRequired): ?> data-b2b-required="yes"<?php endif; ?>
+                                   <?php if ($isLegalRequired && $isVisible): ?> required aria-required="true"<?php endif; ?>
+                            />
+                        </div>
+                    <?php endif; ?>
+                    <?php do_action('fluent_cart/checkout/b2b_extra_fields', ['cart' => $this->cart]); ?>
+                </div>
+            </div>
+        </div>
+        <?php
+    }
+
     public function validateAddressField($config, $fields)
     {
 
@@ -407,6 +509,8 @@ class CheckoutRenderer
         echo '<div class="fct_checkout_billing_and_shipping">';
 
         $this->renderBillingAddressFields();
+
+        $this->renderB2BToggle();
 
         if (!$requireShipping) {
             echo '</div>';
@@ -628,6 +732,8 @@ class CheckoutRenderer
 
 
         $selectedId = Arr::get($this->cart->checkout_data, 'shipping_data.shipping_method_id', '');
+
+        $selectedId = CartHelper::resolveAutoSelectShippingMethod($this->cart, $availableShippingMethods ?: [], $selectedId);
 
         if (!$availableShippingMethods || is_wp_error($availableShippingMethods)) {
             (new ShippingMethodsRender($availableShippingMethods, $selectedId))->render();

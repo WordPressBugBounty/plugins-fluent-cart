@@ -48,6 +48,7 @@ return [
     'Badge Settings' => __('Badge Settings', 'fluent-cart'),
     'Badge Style' => __('Badge Style', 'fluent-cart'),
     'Badge Text' => __('Badge Text', 'fluent-cart'),
+    'Badge count shows' => __('Badge count shows', 'fluent-cart'),
     'Behavior' => __('Behavior', 'fluent-cart'),
     'Best Discount (All Variants)' => __('Best Discount (All Variants)', 'fluent-cart'),
     'Bg Color' => __('Bg Color', 'fluent-cart'),
@@ -95,6 +96,8 @@ return [
     'Completed' => __('Completed', 'fluent-cart'),
     'Condition' => __('Condition', 'fluent-cart'),
     'Contains the block elements used to render a product.' => __('Contains the block elements used to render a product.', 'fluent-cart'),
+    'Count distinct products' => __('Count distinct products', 'fluent-cart'),
+    'Count total item quantity' => __('Count total item quantity', 'fluent-cart'),
     'Country / Region' => __('Country / Region', 'fluent-cart'),
     'Country/Region' => __('Country/Region', 'fluent-cart'),
     'Coupon' => __('Coupon', 'fluent-cart'),
@@ -458,4 +461,5 @@ return [
     'Z → A' => __('Z → A', 'fluent-cart'),
     'discount' => __('discount', 'fluent-cart'),
     '— Select a condition —' => __('— Select a condition —', 'fluent-cart'),
+    '⚠ Deprecated: VAT is now rendered inside the B2B section automatically. This block will be removed in a future version — please remove it from your template.' => __('⚠ Deprecated: VAT is now rendered inside the B2B section automatically. This block will be removed in a future version — please remove it from your template.', 'fluent-cart'),
 ];

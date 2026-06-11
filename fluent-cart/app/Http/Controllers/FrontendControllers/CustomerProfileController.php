@@ -273,7 +273,7 @@ class CustomerProfileController extends BaseFrontendController
         $customer = CustomerResource::getCurrentCustomer(true);
 
         // Sanitize and retrieve the request data
-        $data = $request->getSafe($request->sanitize());
+        $data = CustomerAddressResource::normalizeBusinessFields($request->getSafe($request->sanitize()));
 
         // Attempt to create a new address for the logged-in customer
         $isCreated = CustomerAddressResource::create(
@@ -307,7 +307,7 @@ class CustomerProfileController extends BaseFrontendController
         $customer = CustomerResource::getCurrentCustomer();
 
         // Sanitize and retrieve the request data
-        $data = $request->getSafe($request->sanitize());
+        $data = CustomerAddressResource::normalizeBusinessFields($request->getSafe($request->sanitize()));
 
         // Retrieve the address ID from the request
         $id = $request->getSafe('id', 'intval');

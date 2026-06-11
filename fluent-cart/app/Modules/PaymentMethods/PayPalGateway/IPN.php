@@ -10,6 +10,7 @@ use FluentCart\App\Models\Subscription;
 use FluentCart\App\Modules\PaymentMethods\PayPalGateway\API\API;
 use FluentCart\App\Modules\Subscriptions\Services\SubscriptionService;
 use FluentCart\App\Services\DateTime\DateTime;
+use FluentCart\App\Services\Payments\SubscriptionHelper;
 use FluentCart\Framework\Support\Arr;
 
 class IPN
@@ -511,9 +512,10 @@ class IPN
 
         $payer = ($paypalSubscription && !is_wp_error($paypalSubscription)) ? Arr::get($paypalSubscription, 'subscriber', []) : [];
         if ($paypalSubscription && !is_wp_error($paypalSubscription)) {
+            $subscriptionUpdateData['status'] = (new SubscriptionManager)->getCorrectSubscriptionStatus(Arr::get($paypalSubscription, 'status'));
             $nextBillingDate = Arr::get($paypalSubscription, 'billing_info.next_billing_time');
             if ($nextBillingDate) {
-                $subscriptionUpdateData['next_billing_date'] = gmdate('Y-m-d H:i:s', strtotime($nextBillingDate));
+                $subscriptionUpdateData['next_billing_date'] = SubscriptionHelper::safeTimestampToDatetime($nextBillingDate);
             }
 
             $payerId = Arr::get($paypalSubscription, 'subscriber.payer_id');

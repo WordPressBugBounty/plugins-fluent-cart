@@ -414,6 +414,7 @@ class AssetLoader
                 'is_drawer_hidden'     => CartLoader::shouldHideCartDrawer(),
                 'is_admin_bar_showing' => is_admin_bar_showing(),
                 'cart_item_count'      => $isInstantCheckout ? 0 : ($cart ? count($cart->cart_data ?? []) : 0),
+                'cart_total_quantity'  => $isInstantCheckout ? 0 : ($cart ? array_sum(array_map(function ($item) { return (int) ($item['quantity'] ?? 1); }, $cart->cart_data ?? [])) : 0),
             ],
             'fluentcart_utm_vars'    => [
                 'allowed_keys' => UtmHelper::allowedUtmParameterKey()

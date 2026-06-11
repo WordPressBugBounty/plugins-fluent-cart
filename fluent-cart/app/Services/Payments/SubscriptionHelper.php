@@ -154,16 +154,49 @@ class SubscriptionHelper
         return $trialDays;
     }
 
+    /**
+     * Safely convert a date string or Unix timestamp to a GMT datetime string.
+     * Returns null when the value is falsy, zero, or a negative timestamp
+     * (guards against strtotime() returning false or a year-0 negative value).
+     *
+     * @param string|int|null $value
+     * @return string|null
+     */
+    public static function safeTimestampToDatetime($value): ?string
+    {
+        if (!$value) {
+            return null;
+        }
+        $ts = is_numeric($value) ? (int) $value : strtotime($value);
+        if (!$ts || $ts <= 0) {
+            return null;
+        }
+        return gmdate('Y-m-d H:i:s', $ts);
+    }
+
     public static function getSubscriptionsGracePeriodDays()
     {
-        return apply_filters('fluent_cart/subscription/grace_period_days', [
+        $defaults = [
             'daily'       => 1,
             'weekly'      => 3,
             'monthly'     => 7,
             'quarterly'   => 15,
             'half_yearly' => 15,
             'yearly'      => 15,
-        ]);
+        ];
+
+        $gracePeriods = apply_filters('fluent_cart/subscription/grace_period_days', $defaults);
+
+        if (!is_array($gracePeriods)) {
+            $gracePeriods = [];
+        }
+
+        foreach ($defaults as $interval => $defaultDays) {
+            $days = $gracePeriods[$interval] ?? $defaultDays;
+            $gracePeriods[$interval] = is_numeric($days) ? max(0, (int) $days) : $defaultDays;
+        }
+
+        return array_intersect_key($gracePeriods, $defaults);
     }
 
 }

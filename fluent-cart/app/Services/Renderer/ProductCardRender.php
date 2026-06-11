@@ -335,6 +335,7 @@ class ProductCardRender
         $minPrice = $this->product->detail->min_price;
         $maxPrice = $this->product->detail->max_price;
         $comparePrice = 0;
+        $firstVariant = null;
 
         if ($isSimple) {
             $firstVariant = $this->product->variants->first();
@@ -403,6 +404,7 @@ class ProductCardRender
 
             <?php do_action('fluent_cart/product/after_price', [
                     'product'       => $this->product,
+                    'variant'       => $firstVariant,
                     'current_price' => $minPrice,
                     'scope'         => 'product_card'
             ]); ?>

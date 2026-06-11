@@ -341,8 +341,8 @@ class SubscriptionManager
 
         $processedSubscriptionItem = [
             'billing_interval' => Arr::get($subscriptionModel, 'billing_interval'),
-            'recurring_amount' => Arr::get($subscriptionModel, 'recurring_amount'),
-            'line_total'       => intval(Arr::get($subscriptionModel, 'recurring_amount')),
+            'recurring_amount' => Arr::get($subscriptionModel, 'recurring_total'),
+            'line_total'       => intval(Arr::get($subscriptionModel, 'recurring_total')),
             'id'               => Arr::get($subscriptionModel, 'variation_id'),
             'trial_days'       => $trialDays,
             'product_id'       => Arr::get($subscriptionModel, 'product_id'),

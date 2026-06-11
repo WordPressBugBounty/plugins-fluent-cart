@@ -15,22 +15,30 @@ class CheckoutFieldsSchema
     public static function titleMap(): array
     {
         return [
-            'full_name'    => __('Name', 'fluent-cart'),
-            'first_name'   => __('First Name', 'fluent-cart'),
-            'last_name'    => __('Last Name', 'fluent-cart'),
-            'email'        => __('Email', 'fluent-cart'),
-            'company_name' => __('Company Name', 'fluent-cart'),
+            'full_name'  => __('Name', 'fluent-cart'),
+            'first_name' => __('First Name', 'fluent-cart'),
+            'last_name'  => __('Last Name', 'fluent-cart'),
+            'email'      => __('Email', 'fluent-cart'),
         ];
     }
 
     public static function typeMap(): array
     {
         return [
-            'full_name'    => 'text',
-            'first_name'   => 'text',
-            'last_name'    => 'text',
-            'email'        => 'email',
-            'company_name' => 'text',
+            'full_name'  => 'text',
+            'first_name' => 'text',
+            'last_name'  => 'text',
+            'email'      => 'email',
+        ];
+    }
+
+    private static function autocompleteMap(): array
+    {
+        return [
+            'full_name'  => 'name',
+            'first_name' => 'given-name',
+            'last_name'  => 'family-name',
+            'email'      => 'email',
         ];
     }
 
@@ -55,15 +63,18 @@ class CheckoutFieldsSchema
             $fieldData['full_name'] = $customerName;
             $fieldData['email'] = $customerEmail;
 
-            $fieldData['company_name'] = Arr::get($cart->checkout_data, 'form_data.billing_company_name', '');
-
         }
 
         $fieldsSchema = self::getFieldsSettings();
 
         $titleMap = static::titleMap();
+        $autocompleteMap = static::autocompleteMap();
         $nameFields = [];
-        foreach (Arr::get($fieldsSchema, 'basic_info') as $fieldKey => $basicField) {
+        $infoFields = Arr::get($fieldsSchema, 'basic_info', []);
+        foreach ($infoFields as $fieldKey => $basicField) {
+            if (!isset($titleMap[$fieldKey])) {
+                continue;
+            }
             if (Arr::get($basicField, 'enabled', 'no') !== 'yes') {
                 continue;
             }
@@ -79,7 +90,7 @@ class CheckoutFieldsSchema
                 'label'        => '',
                 'aria-label'   => $label,
                 'placeholder'  => $label . ($isRequired ? ' *' : ''),
-                'autocomplete' => 'organization',
+                'autocomplete' => isset($autocompleteMap[$fieldKey]) ? $autocompleteMap[$fieldKey] : 'on',
                 'value'        => Arr::get($fieldData, $fieldKey)
             ];
         }
@@ -348,6 +359,7 @@ class CheckoutFieldsSchema
 
         $shippingConfig = Arr::get($fieldsConfig, 'shipping_address', []);
         $billingConfig = Arr::get($fieldsConfig, 'billing_address', []);
+        $businessConfig = Arr::get($fieldsConfig, 'business_details', []);
         $basicConfig = Arr::get($fieldsConfig, 'basic_info', []);
         $basicSchema = [];
 
@@ -399,9 +411,9 @@ class CheckoutFieldsSchema
                 'billing'  => self::getRequirementType($billingConfig, 'postcode'),
                 'shipping' => self::getRequirementType($shippingConfig, 'postcode')
             ],
-            'company_name' => [
-                'billing'  => self::getRequirementType($billingConfig, 'company_name'),
-                'shipping' => self::getRequirementType($shippingConfig, 'company_name')
+            'vat_number'   => [
+                'billing'  => self::getRequirementType($businessConfig, 'vat_number'),
+                'shipping' => ''
             ],
             'phone'        => [
                 'billing'  => self::getRequirementType($billingConfig, 'phone'),
@@ -462,11 +474,25 @@ class CheckoutFieldsSchema
                     'type'      => 'email',
                     'can_alter' => 'no',
                 ],
-                'company_name' => [
+            ],
+            'business_details' => [
+                'company_name'          => [
                     'label'     => __('Company', 'fluent-cart'),
                     'type'      => 'text',
                     'can_alter' => 'yes',
-                ]
+                ],
+                'vat_number'            => [
+                    'label'     => __('VAT/GST/Tax Number', 'fluent-cart'),
+                    'help_text' => __('Show a VAT/GST/Tax number field at checkout for customers to provide their tax ID.', 'fluent-cart'),
+                    'type'      => 'text',
+                    'can_alter' => 'yes',
+                ],
+                'legal_registration_id' => [
+                    'label'     => __('Legal Registration ID', 'fluent-cart'),
+                    'help_text' => __('Show a legal registration / business ID field at checkout (e.g. company registration number).', 'fluent-cart'),
+                    'type'      => 'text',
+                    'can_alter' => 'yes',
+                ],
             ],
             'billing_address'  => [
                 'country'   => [
@@ -557,6 +583,11 @@ class CheckoutFieldsSchema
 
     public static function getFieldsSettings()
     {
+        static $cached = null;
+        if ($cached !== null) {
+            return $cached;
+        }
+
         $defaults = [
             'basic_info'       => [
                 'full_name'    => [
@@ -575,10 +606,20 @@ class CheckoutFieldsSchema
                     'required' => 'yes',
                     'enabled'  => 'yes'
                 ],
-                'company_name' => [
+            ],
+            'business_details' => [
+                'company_name'          => [
                     'required' => 'no',
                     'enabled'  => 'no'
-                ]
+                ],
+                'vat_number'            => [
+                    'required' => 'no',
+                    'enabled'  => 'no'
+                ],
+                'legal_registration_id' => [
+                    'required' => 'no',
+                    'enabled'  => 'no'
+                ],
             ],
             'billing_address'  => [
                 'country'      => [
@@ -665,7 +706,17 @@ class CheckoutFieldsSchema
             return $defaults;
         }
 
-        $groupFields = ['basic_info', 'billing_address', 'shipping_address'];
+        // Migrate company_name and vat_number from the old basic_info location for existing stores
+        if (empty($savedConfig['business_details']) && !empty($savedConfig['basic_info'])) {
+            if (!empty($savedConfig['basic_info']['company_name'])) {
+                $savedConfig['business_details']['company_name'] = $savedConfig['basic_info']['company_name'];
+            }
+            if (!empty($savedConfig['basic_info']['vat_number'])) {
+                $savedConfig['business_details']['vat_number'] = $savedConfig['basic_info']['vat_number'];
+            }
+        }
+
+        $groupFields = ['basic_info', 'billing_address', 'shipping_address', 'business_details'];
 
         foreach ($defaults as $key => $default) {
             $savedValues = Arr::get($savedConfig, $key, []);
@@ -676,7 +727,7 @@ class CheckoutFieldsSchema
             $defaults[$key] = wp_parse_args($savedValues, $default);
         }
 
-        return $defaults;
+        return ($cached = $defaults);
     }
 
     public static function isTermsRequired(): bool
@@ -728,5 +779,51 @@ class CheckoutFieldsSchema
         $isFirstNameEnabled = static::isFirstNameEnabled();
         $isLastNameEnabled = static::isLastNameEnabled();
         return !($isFirstNameEnabled || $isLastNameEnabled);
+    }
+
+    public static function isVatNumberEnabled(): bool
+    {
+        $fieldSettings = self::getFieldsSettings();
+        return Arr::get($fieldSettings, 'business_details.vat_number.enabled') === 'yes';
+    }
+
+    public static function isCompanyNameEnabled(): bool
+    {
+        $fieldSettings = self::getFieldsSettings();
+        return Arr::get($fieldSettings, 'business_details.company_name.enabled') === 'yes';
+    }
+
+    public static function isCompanyNameRequired(): bool
+    {
+        $fieldSettings = self::getFieldsSettings();
+        return Arr::get($fieldSettings, 'business_details.company_name.enabled') === 'yes'
+            && Arr::get($fieldSettings, 'business_details.company_name.required') === 'yes';
+    }
+
+    public static function isVatNumberRequired(): bool
+    {
+        $fieldSettings = self::getFieldsSettings();
+        return Arr::get($fieldSettings, 'business_details.vat_number.enabled') === 'yes'
+            && Arr::get($fieldSettings, 'business_details.vat_number.required') === 'yes';
+    }
+
+    public static function isLegalRegistrationIdEnabled(): bool
+    {
+        $fieldSettings = self::getFieldsSettings();
+        return Arr::get($fieldSettings, 'business_details.legal_registration_id.enabled') === 'yes';
+    }
+
+    public static function isLegalRegistrationIdRequired(): bool
+    {
+        $fieldSettings = self::getFieldsSettings();
+        return Arr::get($fieldSettings, 'business_details.legal_registration_id.enabled') === 'yes'
+            && Arr::get($fieldSettings, 'business_details.legal_registration_id.required') === 'yes';
+    }
+
+    public static function hasAnyBusinessFields(): bool
+    {
+        return static::isCompanyNameEnabled()
+            || static::isVatNumberEnabled()
+            || static::isLegalRegistrationIdEnabled();
     }
 }

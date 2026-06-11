@@ -57,7 +57,7 @@ class AttributeGroup extends Model
     /**
      * hasMany: Group has many Terms
      *
-     * @return \FluentCart\Framework\Database\Orm\Relations\hasMany
+     * @return \FluentCart\Framework\Database\Orm\Relations\HasMany
      */
     public function terms()
     {

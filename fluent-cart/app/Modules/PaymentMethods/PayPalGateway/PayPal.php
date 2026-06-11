@@ -642,8 +642,20 @@ class PayPal extends AbstractPaymentGateway
         $totalPrice = $checkOutHelper->getItemsAmountTotal(false) + $shippingCharge;
 
         $tax = $checkOutHelper->getCart()->checkout_data['tax_data'] ?? [];
-        if (Arr::get($tax, 'tax_behavior', 0) == 1) {
-            $totalPrice = $totalPrice + Arr::get($tax, 'tax_total', 0) + Arr::get($tax, 'shipping_tax', 0);
+        $taxBehavior = (int) Arr::get($tax, 'tax_behavior', 0);
+        $storeTaxBehavior = (int) Arr::get($tax, 'store_tax_behavior', $taxBehavior);
+
+        if ($taxBehavior === 1) {
+            // Pure exclusive — add all tax including fee tax (tax_total contains both).
+            $totalPrice = $totalPrice + (int) Arr::get($tax, 'tax_total', 0)
+                                         + (int) Arr::get($tax, 'shipping_tax', 0);
+        } elseif ($taxBehavior === 3) {
+            // Mixed — add only exclusive product tax + fee/shipping if store is exclusive.
+            $totalPrice = $totalPrice + (int) Arr::get($tax, 'exclusive_tax_total', 0);
+            if ($storeTaxBehavior === 1) {
+                $totalPrice = $totalPrice + (int) Arr::get($tax, 'fee_tax', 0)
+                                     + (int) Arr::get($tax, 'shipping_tax', 0);
+            }
         }
 
         $items = $checkOutHelper->getItems();

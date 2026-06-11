@@ -4,6 +4,7 @@ namespace FluentCart\Api\Resource;
 
 use FluentCart\App\App;
 use FluentCart\App\Models\CustomerAddresses;
+use FluentCart\App\Services\Renderer\CheckoutFieldsSchema;
 use FluentCart\Framework\Database\Orm\Builder;
 use FluentCart\Framework\Support\Arr;
 
@@ -123,6 +124,9 @@ class CustomerAddressResource extends BaseResourceApi
         // Assign the customer ID to the data array
         $data['customer_id'] = $id;
 
+        $data = static::normalizeBusinessFields($data);
+        $data = static::mergeAddressMetaFields($data);
+
         // Create a new address record with the given data
         $isCreated = static::getQuery()->create($data);
 
@@ -206,6 +210,9 @@ class CustomerAddressResource extends BaseResourceApi
             ]);
         }
 
+        $data = static::normalizeBusinessFields($data);
+        $data = static::mergeAddressMetaFields($data, $address);
+
         $address->update($data);
         $address->refresh();
 
@@ -236,6 +243,56 @@ class CustomerAddressResource extends BaseResourceApi
         return static::makeErrorResponse([
             ['code' => 400, 'message' => __('Failed updating shipping address', 'fluent-cart')]
         ]);
+    }
+
+    public static function normalizeBusinessFields(array $data): array
+    {
+        $type = Arr::get($data, 'type', 'billing');
+
+        if ($type !== 'billing') {
+            unset($data['company_name'], $data['vat_number'], $data['legal_registration_id']);
+            return $data;
+        }
+
+        if (!CheckoutFieldsSchema::isCompanyNameEnabled()) {
+            unset($data['company_name']);
+        }
+
+        if (!CheckoutFieldsSchema::isVatNumberEnabled()) {
+            unset($data['vat_number']);
+        }
+
+        if (!CheckoutFieldsSchema::isLegalRegistrationIdEnabled()) {
+            unset($data['legal_registration_id']);
+        }
+
+        return $data;
+    }
+
+    private static function mergeAddressMetaFields(array $data, ?CustomerAddresses $address = null): array
+    {
+        $meta = $address ? $address->meta : Arr::get($data, 'meta', []);
+        $meta = is_array($meta) ? $meta : [];
+
+        $metaKeys = ['company_name', 'vat_number', 'legal_registration_id'];
+        foreach ($metaKeys as $metaKey) {
+            if (!array_key_exists($metaKey, $data)) {
+                continue;
+            }
+
+            $value = Arr::get($data, $metaKey);
+
+            if ($value === '' || $value === null) {
+                unset($meta['other_data'][$metaKey]);
+            } else {
+                Arr::set($meta, 'other_data.' . $metaKey, $value);
+            }
+        }
+
+        $data['meta'] = $meta;
+        unset($data['company_name'], $data['vat_number'], $data['legal_registration_id']);
+
+        return $data;
     }
 
     /**

@@ -63,11 +63,11 @@ class DBMigrator
         CustomersMigrator::class,
         OrderAddressesMigrator::class,
         OrderDownloadPermissionsMigrator::class,
-        OrderMetaMigrator::class,
         OrderOperationsMigrator::class,
         OrdersItemsMigrator::class,
         OrdersMigrator::class,
         OrderTaxRateMigrator::class,
+        OrderMetaMigrator::class,
         OrderTransactionsMigrator::class,
         ProductDetailsMigrator::class,
         ProductDownloadsMigrator::class,
@@ -138,6 +138,13 @@ class DBMigrator
         if (!$currentDBVersion || version_compare($currentDBVersion, FLUENTCART_DB_VERSION, '<')) {
 
             update_option('_fluent_cart_db_version', FLUENTCART_DB_VERSION, 'no');
+
+            // 2026-04-25
+            TaxRatesMigrator::upgradeShippingOverridePrecision();
+
+            // 2026-05-27
+            TaxRatesMigrator::fixPostcodeRangeSeparator();
+            OrdersMigrator::addFeeTotalColumn();
 
             // 2026-05-10
             AttributeGroupsMigrator::dropLegacyTitleUniqueIndexes();
@@ -443,7 +450,86 @@ class DBMigrator
             // without deactivation/reactivation still apply new columns
             \FluentCart\Database\Migrations\ShippingZonesMigrator::migrated();
             \FluentCart\Database\Migrations\ShippingClassesMigrator::migrated();
+            \FluentCart\Database\Migrations\SubscriptionsMigrator::migrated();
 
+
+            // 2026-05-06
+            // Backfill, dedup, then add unique index — must run in this order
+            // so the constraint can be applied without "Duplicate entry" errors.
+            TaxClassesMigrator::backfillNullSlugs();
+            TaxClassesMigrator::deduplicateSlugs();
+            TaxClassesMigrator::addSlugUniqueIndex();
+
+            // Ensure Standard tax class exists for all installs
+            TaxClassesMigrator::seedDefaultTaxClass();
+
+            // 2026-05-15
+            // Move EU VAT country registrations from wp_options blob to fct_meta rows.
+            \FluentCart\Database\Migrations\EuVatRegistrationMigrator::migrate();
+
+            // 2026-06-10
+            // One-time migration: move legacy price_suffix into the correct split field
+            // based on the store's tax_inclusion setting at the time of migration.
+            if (!get_option('_fluent_cart_price_suffix_migrated')) {
+                $taxSettings = get_option('fluent_cart_tax_configuration_settings', []);
+                $legacySuffix = isset($taxSettings['price_suffix']) ? $taxSettings['price_suffix'] : '';
+                $hasIncluded  = isset($taxSettings['price_suffix_included']) && $taxSettings['price_suffix_included'] !== '';
+                $hasExcluded  = isset($taxSettings['price_suffix_excluded']) && $taxSettings['price_suffix_excluded'] !== '';
+
+                if ($legacySuffix !== '' && !$hasIncluded && !$hasExcluded) {
+                    $taxInclusion = isset($taxSettings['tax_inclusion']) ? $taxSettings['tax_inclusion'] : 'excluded';
+                    if ($taxInclusion === 'excluded') {
+                        $taxSettings['price_suffix_excluded'] = $legacySuffix;
+                    } else {
+                        $taxSettings['price_suffix_included'] = $legacySuffix;
+                    }
+                    update_option('fluent_cart_tax_configuration_settings', $taxSettings, true);
+                }
+                update_option('_fluent_cart_price_suffix_migrated', '1', 'no');
+            }
+
+            // 2026-05-18
+            // One-time migration: copy seller identity fields from the Pro seller_details fct_meta
+            // entry into fluent_cart_store_settings. Guarded by a sentinel so it runs exactly once.
+            if (!get_option('_fluent_cart_seller_details_migrated')) {
+                $sellerDetails = fluent_cart_get_option('seller_details', []);
+                if (is_array($sellerDetails) && !empty($sellerDetails)) {
+                    $storeSettingsOption = get_option('fluent_cart_store_settings', []);
+                    if (!is_array($storeSettingsOption)) {
+                        $storeSettingsOption = [];
+                    }
+                    $fieldMap = [
+                        'seller_vat_id'                => 'seller_vat_id',
+                        'seller_tax_id'                => 'seller_tax_id',
+                        'seller_legal_name'            => 'company_name',
+                        'seller_legal_registration_id' => 'legal_registration_id',
+                    ];
+                    $changed = false;
+                    foreach ($fieldMap as $fromKey => $toKey) {
+                        if (!empty($sellerDetails[$fromKey]) && empty($storeSettingsOption[$toKey])) {
+                            $storeSettingsOption[$toKey] = sanitize_text_field($sellerDetails[$fromKey]);
+                            $changed = true;
+                        }
+                    }
+                    if ($changed) {
+                        update_option('fluent_cart_store_settings', $storeSettingsOption, true);
+                    }
+                }
+                update_option('_fluent_cart_seller_details_migrated', '1', 'no');
+            }
+
+            // 2026-06-03
+            // Fix: convert zero-date datetime columns to NULL (Issue #1911).
+            // Zero-dates arise on MySQL servers without STRICT_TRANS_TABLES when an
+            // empty string is written to a DATETIME column.
+            $table_name = $wpdb->prefix . 'fct_subscriptions';
+            foreach (['next_billing_date', 'canceled_at', 'expire_at'] as $col) {
+                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+                $wpdb->query($wpdb->prepare(
+                    "UPDATE %i SET `{$col}` = NULL WHERE `{$col}` IN ('0000-00-00 00:00:00', '0000-00-00')",
+                    $table_name
+                ));
+            }
         }
     }
 

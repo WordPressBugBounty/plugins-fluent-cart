@@ -85,7 +85,7 @@ class AddToCartShortcode extends ShortCode
             $atts['class'] = $buttonClass;
         }
 
-        return (new ProductRenderer($product, $rendererConfig))->renderAddToCartButtonBlock($atts);
+        return (new ProductRenderer($product, $rendererConfig))->renderAddToCartButton($atts);
     }
 }
 

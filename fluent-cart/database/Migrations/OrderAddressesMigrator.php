@@ -26,6 +26,7 @@ class OrderAddressesMigrator extends Migrator
     public static function migrated()
     {
         static::addMetaColumn();
+        static::addIndexIfNotExists('idx_order_addresses_order_id_type', ['order_id', 'type']);
     }
 
     public static function addMetaColumn()

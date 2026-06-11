@@ -67,7 +67,8 @@ class ModalCheckoutRenderer
     {
         $maps = [
                 'payment_methods' => 'renderPaymentMethods',
-                'summary_group' => 'renderSummaryGroup'
+                'summary_group' => 'renderSummaryGroup',
+                'checkout_summary' => 'renderCheckoutSummary'
         ];
 
         if(isset($maps[$fragmentName])) {
@@ -111,6 +112,26 @@ class ModalCheckoutRenderer
 
     public function renderForm()
     {
+        // Without a billing country in checkout_data, the tax recalc below
+        // produces no per-item tax. Pre-fill from the current customer's
+        // primary billing address (if any) so the per-item tax badge can
+        // render on the very first modal open instead of only after the
+        // customer interacts with the address form.
+        $this->maybePopulateFormDataFromCustomer();
+
+        // Trigger the recalc only when the cart hasn't been taxed yet. Once
+        // line_meta.tax_config is on the item, the badge already renders from
+        // existing data — another recalc here would just duplicate work
+        // (Tax + Shipping each call $cart->save() on this action).
+        // Payload shape matches Cart::addItem() so every handler receives the
+        // data it expects.
+        if (empty(Arr::get($this->cart->cart_data, '0.line_meta.tax_config'))) {
+            do_action('fluent_cart/cart/cart_data_items_updated', [
+                'cart'       => $this->cart,
+                'scope'      => 'modal_open',
+                'scope_data' => null,
+            ]);
+        }
         ?>
             <div class="fct-modal-checkout-form-wrapper" data-fluent-cart-checkout-page>
                 <form
@@ -131,11 +152,47 @@ class ModalCheckoutRenderer
     }
 
 
-    public function renderCheckoutDetails() 
+    private function maybePopulateFormDataFromCustomer()
+    {
+        if (!$this->customer) {
+            return;
+        }
+
+        $checkoutData = is_array($this->cart->checkout_data) ? $this->cart->checkout_data : [];
+        $formData     = Arr::get($checkoutData, 'form_data', []);
+
+        // Never clobber an answer the customer has actively chosen; only
+        // pre-fill when the cart has no billing country yet.
+        if (!empty(Arr::get($formData, 'billing_country'))) {
+            return;
+        }
+
+        $primaryBilling = $this->customer->primary_billing_address;
+        if (!$primaryBilling) {
+            return;
+        }
+
+        foreach ($primaryBilling->getFormattedDataForCheckout('billing_') as $key => $value) {
+            if (!isset($formData[$key]) || $formData[$key] === '' || $formData[$key] === null) {
+                $formData[$key] = $value;
+            }
+        }
+
+        $checkoutData['form_data'] = $formData;
+        $this->cart->checkout_data = $checkoutData;
+        // No explicit save — the recalc action that follows persists this
+        // together with the newly computed tax data, avoiding a double write.
+    }
+
+    public function renderCheckoutDetails()
     {
         ?>
             <div class="fct-modal-checkout-details">
-                <?php $this->renderCheckoutSummary();?>
+                <!-- Stable swap target: tax recalculation re-renders the item card
+                     here via the checkout_summary fragment. -->
+                <div data-fct-modal-checkout-summary>
+                    <?php $this->renderCheckoutSummary(); ?>
+                </div>
 
                 <?php $this->checkoutRenderer->renderAddressFields(); ?>
 
@@ -158,8 +215,21 @@ class ModalCheckoutRenderer
     {
         $title = Arr::get($this->cart->cart_data, '0.title', '');
         $postTitle = Arr::get($this->cart->cart_data, '0.post_title', '');
-        $subTotal = Helper::toDecimal(Arr::get($this->cart->cart_data, '0.subtotal', 0));
+        $subTotal          = Helper::toDecimal(Arr::get($this->cart->cart_data, '0.subtotal', 0));
+        $couponDiscount    = (int) Arr::get($this->cart->cart_data, '0.coupon_discount', 0);
+        $subtotalRaw       = (int) Arr::get($this->cart->cart_data, '0.subtotal', 0);
+        $lineTotalRaw      = (int) Arr::get($this->cart->cart_data, '0.line_total', 0);
+        $hasCouponDiscount = $couponDiscount > 0 && $lineTotalRaw < $subtotalRaw;
         $media = Arr::get($this->cart->cart_data, '0.featured_media', '');
+
+        // Mirror CartItemRenderer's event payload so the shared line-item hooks
+        // (e.g. the per-item tax breakdown) also fire in modal checkout.
+        $lineItemEventInfo = [
+            'item'    => Arr::get($this->cart->cart_data, '0', []),
+            'cart'    => $this->cart,
+            'product' => null,
+            'variant' => null,
+        ];
 
         ?>
             <div class="fct-modal-checkout-summary">
@@ -178,10 +248,24 @@ class ModalCheckoutRenderer
                             </h3>
                         </div>
 
-                        <span class="fct-modal-cs-line-price">
-                            <?php echo $subTotal;?>
-                        </span>
+                        <?php if ($hasCouponDiscount) : ?>
+                            <div class="fct-modal-cs-price-wrapper">
+                                <span class="fct-modal-cs-line-price fct-modal-cs-line-price--original" aria-label="<?php esc_attr_e('Original price', 'fluent-cart'); ?>">
+                                    <?php echo esc_html(Helper::toDecimal($subtotalRaw)); ?>
+                                </span>
+                                <span class="fct-modal-cs-line-price fct-modal-cs-line-price--discounted" aria-label="<?php esc_attr_e('Discounted price', 'fluent-cart'); ?>">
+                                    <?php echo esc_html(Helper::toDecimal($lineTotalRaw)); ?>
+                                </span>
+                            </div>
+                        <?php else : ?>
+                            <span class="fct-modal-cs-line-price">
+                                <?php echo esc_html($subTotal); ?>
+                            </span>
+                        <?php endif; ?>
+                        <?php do_action('fluent_cart/cart/line_item/after_total', $lineItemEventInfo); ?>
                     </div>
+
+                    <?php do_action('fluent_cart/cart/line_item/footer_start', $lineItemEventInfo); ?>
 
                     <?php $this->renderPaymentTypeInfo(); ?>
 
@@ -212,7 +296,6 @@ class ModalCheckoutRenderer
         $paymentType = Arr::get($otherInfo, 'payment_type', '');
         $itemPrice = Arr::get($this->cart->cart_data, '0.unit_price', 0);
 
-
         if ($paymentType === 'subscription') {
             $subscriptionInfo = Helper::generateSubscriptionInfo($otherInfo, $itemPrice);
             $setupFeeInfo = Helper::generateSetupFeeInfo($otherInfo);
@@ -240,7 +323,29 @@ class ModalCheckoutRenderer
                     <?php endif; ?>
                 </div>
             <?php
+            return;
         }
+
+        $quantity = (int) Arr::get($this->cart->cart_data, '0.quantity', 1);
+        if ($quantity < 2) {
+            return;
+        }
+
+        $lineItemEventInfo = [
+            'item'    => Arr::get($this->cart->cart_data, '0', []),
+            'cart'    => $this->cart,
+            'product' => null,
+            'variant' => null,
+        ];
+        ?>
+        <div class="fct-modal-cs-payment-info">
+            <?php
+            /* translators: %1$s: formatted unit price */
+            printf(esc_html__('%1$s each', 'fluent-cart'), esc_html(Helper::toDecimal($itemPrice)));
+            ?>
+            <?php do_action('fluent_cart/cart/line_item/unit_price_hint', $lineItemEventInfo); ?>
+        </div>
+        <?php
     }
 
     public function renderPromoCode() {

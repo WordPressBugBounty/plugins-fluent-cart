@@ -4,7 +4,7 @@ Tags: ecommerce, cart, checkout, subscriptions, payments
 Requires at least: 6.7
 Tested up to: 6.9
 Requires PHP: 7.4
-Stable tag: 1.3.28
+Stable tag: 1.4.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -313,98 +313,60 @@ This service is provided by PayPal: [Terms of Service](https://www.paypal.com/le
 
 == Changelog ==
 
-= 1.3.28 (May 14, 2026) =
-- Adds Elementor widgets: Search Bar, Store Logo, Dashboard Button, and Package Description
-- Adds Draggable and reorderable summary sections in the Elementor Product Info widget
-- Adds Elementor Popup support for Single Product variations, gallery, and quantity
-- Adds Sort By toggle for the Bricks Products Collection element
-- Improves Elementor widget grouping under the “FluentCart Product” category
-- Improves 1-column checkout layout rendering in Elementor templates
-- Improves LearnDash course management support
-- Improves Mollie payment list currency handling
-- Improves Coupon failure messages at checkout
-- Improves Bricks element grouping under the “FluentCart” category
-- Improves Admin menu spacing on mobile
-- Improves Decimal trimming logic for tax rate formatting
-- Fixes Elementor Single Product widgets syncing with active variations
-- Fixes Buy button state updates for active variations
-- Fixes Stock badge clearing for variations without stock data
-- Fixes Stock label rendering as raw markup
-- Fixes Empty Elementor product widgets leaving empty wrappers
-- Fixes Product-template widget visibility outside Single Product documents
-- Fixes Elementor Product Info rendering and Select2 change events
-- Fixes Pricing Table shortcode and block rendering with `group_by` tabs
-- Fixes Single Product shortcode rendering for variations, thumbnails, and quantity
-- Fixes Product description rendering with third-party shortcodes and blocks
-- Fixes FSE rendering for Customer Dashboard, Product Card, Product Search, and Pricing Table blocks
-- Fixes Admin receipt access on records showing not-found pages
-- Fixes Search Bar widget “Same Tab” behavior
-- Fixes Enter key submitting the product title form
-- Fixes Bricks Product Title rendering consistency
-- Fixes French overseas territory VAT mapping issue
-
-= 1.3.28 (May 13, 2026) =
-- Fixes Subscription Pause action permission state (canPause)
-- Improves Bricks Builder with sort-by toggle, standardized element categories, and refined ProductTitle render
-- Fixes Product title field submitting the form on Enter key
-- Improves Admin menu horizontal padding on desktop and mobile
-- Fixes Pricing Table frontend rendering, group_by tabs, and shortcode output buffering
-- Fixes Single Product shortcode registration and rendering
-- Fixes Coupon errors now show the specific reason
-- Fixes Search Bar "Same Tab" selection ignored and defaulting to "New Tab"
-- Fixes few Gutenberg blocks not rendering in FSE templates and template parts
-
-= 1.3.27 (May 8, 2026) =
-- Adds List/Grid view switcher and advanced product filtering for Bricks
-- Adds Copy Variation ID action for simple product pricing panel
-- Adds Licensing Sites, Site pages, and advanced site filtering
-- Adds SubscriptionReactivated event
-- Fixes Order bump free-shipping checkbox issue
-- Fixes Missing shortcode variables in PDF receipt emails
-- Fixes Long file names overflowing receipt page download buttons
-- Fixes Cart allowing mixed or multiple subscriptions
-- Fixes Offline subscriptions with 100% recurring coupons issue when Subscription Activated
-- Fixes Subscription reactivation after refunds
-- Fixes PayPal IPN subscription handling
-- Fixes Redundant admin table search requests
-- Fixes Amount formatting and customer profile display in Site Detail view (Pro)
-- Fixes PHP warnings from deleted/invalid store pages
-- Fixes Admin menu active state style bleeding
-- Fixes Bricks Builder dynamic tag name mismatch
-- Fixes Authorize.net subscription issue
-- Improves Animation experience for table filters
-- Improves Bricks Builder pagination rendering and performance
-- Improves Product Pricing edit UX
-
-= 1.3.26 (May 5, 2026) =
-- Adds Square Payment gateway
-- Adds Private products support in discounts, coupons, and order bumps
-- Adds Subscription setup fee to receipts and emails
-- Fixes Order/invoice dates showing the previous day in profiles
-- Fixes Coupon expiration timezone mismatch
-- Fixes Duplicate success toast on product update
-- Fixes Email preview created_at DateTime issue
-- Fixes Safari chevron icon visibility issue
-- Fixes Menu button and dropdown styling issues
-- Fixes LearnDash course expiry resolution for users
-- Improves button feedback with visual indicators only
-- Fixes Skip subscription field validation when subscription is disabled
-- Fixes Auto-expand Additional display prices section when subscription is enabled
-
-= 1.3.25 (Apr 30, 2026) =
-- Fixes Sites with www and non-www counted as separate activations
-- Fixes Subscription orders with coupon discounts getting stuck after checkout
-- Fixes Duplicate renewal records created during payment processing
-- Fixes Page freeze when clicking empty mini cart
-- Fixes Max-width constraints and responsive padding on product pages
-- Fixes Incorrect coupon expiration time in admin dashboard
-- Fixes Shipping overcharge with multiple shipping classes in cart
-- Fixes Free shipping adding class surcharges with multiple shipping classes
-- Fixes Paddle subscriptions not cancelling immediately after refund
-- Fixes Customer lifetime stats not updating after refund
-- Fixes Double encryption when saving Stripe settings
-- Fixes Raw transaction and subscription status keys shown in customer portal
-- Improves Product variation management
+= 1.4.0 (Jun 11, 2026) =
+- Adds EU B2B reverse charge support across all order surfaces
+- Adds Per-item tax rate breakdowns on checkout, admin, emails, PDFs, and receipts
+- Adds Mixed-cart tax handling for inclusive and exclusive tax products
+- Adds Per-variation tax inclusion overrides
+- Adds Tax class selector for shipping overrides
+- Adds City and postcode-based tax overrides
+- Adds Country-specific EU VAT collection mode
+- Adds Built-in tax rates for Africa, Americas, Asia, Europe, and Oceania
+- Adds Tax enable/disable controls per country
+- Adds Automatic tax calculation for admin-created orders
+- Adds Tax setup step to the onboarding wizard
+- Adds Separate price suffix labels for inclusive and exclusive taxes
+- Adds Seller Tax ID in store settings
+- Adds Reverse Charge (RC) badge on the Taxes admin page
+- Adds `fluentcart_eu_vat_number_validate` filter for custom VAT validation
+- Adds `fluent_cart/tax_collecting` filter for runtime tax control
+- Adds `reset_tax` WP-CLI command
+- Adds Store Digest emails with daily, weekly, and monthly schedules
+- Adds Per-item coupon discounts in line meta with strikethrough display
+- Adds B2B badges on admin and customer order pages
+- Adds B2B purchase and reverse charge filters in orders table
+- Adds Unit price rounding tooltip for 1-cent mismatches
+- Adds Hash-based deep linking for settings sections
+- Adds Configurable product list columns
+- Adds `fluent_cart/show_admin_top_bar` filter
+- Adds Bricks BuySection support with query-based product selection
+- Adds Bricks product selection controls for Gallery, Content, Short Description, Stock, and Price Range elements
+- Adds Bricks iframe embed support in Product Content element
+- Adds Pricing Table product-per-row layout and configurable badges
+- Adds Live settings propagation without page reloads
+- Adds Automatic selection of the only available shipping method at checkout
+- Adds Permission-based global search result visibility
+- Fixes Tax calculations and display issues across reverse charge, mixed carts, shipping labels, tax breakdowns, rate badges, tooltips, and coupon calculations
+- Fixes Subscription currency display in billing columns
+- Fixes Zero-value renewal orders appearing after subscription reactivation
+- Fixes Subscription expiry race conditions, orphaned metadata, and invalid next billing dates
+- Fixes Canceled subscriptions incorrectly retaining grace periods
+- Fixes Missing subscription links on renewal orders and parent order fallback handling
+- Fixes Payment retries being incorrectly blocked
+- Fixes Stripe refund retrieval when refund data is not included in charge objects
+- Fixes Paddle renewal migrations, double submissions, cancellation overlays, receipt validation, and end-of-period cancellation emails (Pro)
+- Fixes Mollie mixed-cart tax calculations before payment processing (Pro)
+- Fixes Checkout address priority, state validation, B2B field preservation, and country detection
+- Fixes Coupon strikethrough display in modal checkout
+- Fixes Coupon null reference errors when no coupons are applied
+- Fixes Order currency display using store currency instead of order currency
+- Fixes Fulfillment type inheritance from product variations in admin orders
+- Fixes Shipping method title display on admin order details
+- Fixes PDF rendering for billing names, fee summaries, and seller identity information (Pro)
+- Fixes SVG logo path warnings after ZIP installation
+- Fixes Webhook failures caused by 301 redirects on subdirectory installs
+- Fixes Turnstile fallback handling when auto-verification fails
+- Fixes NULL value rounding issues in subscription reports
 
 = 1.3.23 (Apr 28, 2026) =
 - Adds Subscription access end date in cancellation emails

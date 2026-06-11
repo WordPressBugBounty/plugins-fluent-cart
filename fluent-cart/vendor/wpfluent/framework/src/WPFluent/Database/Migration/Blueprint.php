@@ -570,9 +570,15 @@ class Blueprint
     {
         $tbl = Schema::table($this->table);
 
-        $row = Schema::db()->get_row(
-            "SHOW COLUMNS FROM {$tbl} WHERE Field = '{$column}'"
-        );
+        $rows = (array) Schema::db()->get_results("SHOW COLUMNS FROM {$tbl}");
+
+        $row = null;
+        foreach ($rows as $r) {
+            if ($r->Field === $column) {
+                $row = $r;
+                break;
+            }
+        }
 
         if (!$row) {
             return null;
@@ -587,10 +593,15 @@ class Blueprint
         }
 
         if ($row->Default !== null) {
-            $def .= " DEFAULT '" . addslashes($row->Default) . "'";
+            $default = $row->Default;
+            // SQLite's SHOW COLUMNS returns defaults with surrounding quotes
+            if (Schema::isSqlite() && preg_match("/^'(.*)'$/s", $default, $m)) {
+                $default = $m[1];
+            }
+            $def .= " DEFAULT '" . addslashes($default) . "'";
         }
 
-        if (str_contains($row->Extra, 'auto_increment')) {
+        if (!empty($row->Extra) && str_contains($row->Extra, 'auto_increment')) {
             $def .= ' AUTO_INCREMENT';
         }
 

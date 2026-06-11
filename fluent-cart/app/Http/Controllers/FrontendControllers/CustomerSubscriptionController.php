@@ -167,6 +167,16 @@ class CustomerSubscriptionController extends BaseFrontendController
 
     public function updatePaymentMethod(Request $request, $subscription_uuid)
     {
+        $errorResponse = $this->checkUserLoggedIn();
+        if ($errorResponse !== null) {
+            return $errorResponse;
+        }
+
+        $customer = CustomerResource::getCurrentCustomer();
+        if (!$customer) {
+            return $this->sendError(['message' => __('Customer not found', 'fluent-cart')]);
+        }
+
         $data = $request->input('data');
         $method = $data['method'];
         $subscriptionUuid = $subscription_uuid;
@@ -177,7 +187,10 @@ class CustomerSubscriptionController extends BaseFrontendController
             ]);
         }
 
-        $subscription = Subscription::query()->where('uuid', $subscriptionUuid)->first();
+        $subscription = Subscription::query()
+            ->where('uuid', $subscriptionUuid)
+            ->where('customer_id', $customer->id)
+            ->first();
 
         if (empty($subscription)) {
             return $this->sendError([
@@ -202,6 +215,16 @@ class CustomerSubscriptionController extends BaseFrontendController
 
     public function getOrCreatePlan(Request $request, $subscription_uuid)
     {
+        $errorResponse = $this->checkUserLoggedIn();
+        if ($errorResponse !== null) {
+            return $errorResponse;
+        }
+
+        $customer = CustomerResource::getCurrentCustomer();
+        if (!$customer) {
+            return $this->sendError(['message' => __('Customer not found', 'fluent-cart')]);
+        }
+
         $data = $request->input('data');
         $method = sanitize_text_field(Arr::get($data, 'method', ''));
         $reason = sanitize_text_field(Arr::get($data, 'reason', ''));
@@ -212,7 +235,10 @@ class CustomerSubscriptionController extends BaseFrontendController
             ]);
         }
 
-        $subscription = Subscription::query()->where('uuid', $subscription_uuid)->first();
+        $subscription = Subscription::query()
+            ->where('uuid', $subscription_uuid)
+            ->where('customer_id', $customer->id)
+            ->first();
         if (empty($subscription)) {
             return $this->sendError([
                 'message' => __('Subscription not found', 'fluent-cart')
@@ -246,13 +272,21 @@ class CustomerSubscriptionController extends BaseFrontendController
         $newPaymentMethod = sanitize_text_field(Arr::get($data, 'newPaymentMethod', ''));
         $currentPaymentMethod = sanitize_text_field(Arr::get($data, 'currentPaymentMethod', ''));
 
+        $customer = CustomerResource::getCurrentCustomer();
+        if (!$customer) {
+            return $this->sendError(['message' => __('Customer not found', 'fluent-cart')]);
+        }
+
         if (!$newPaymentMethod || !$currentPaymentMethod || !$subscription_uuid) {
             return $this->sendError([
                 'message' => __('Missing required parameters', 'fluent-cart')
             ]);
         }
 
-        $subscription = Subscription::query()->where('uuid', $subscription_uuid)->first();
+        $subscription = Subscription::query()
+            ->where('uuid', $subscription_uuid)
+            ->where('customer_id', $customer->id)
+            ->first();
         if (empty($subscription)) {
             return $this->sendError([
                 'message' => __('Subscription not found', 'fluent-cart')
@@ -288,13 +322,21 @@ class CustomerSubscriptionController extends BaseFrontendController
         $newVendorSubscriptionId = sanitize_text_field(Arr::get($data, 'newVendorSubscriptionId', ''));
         $method = sanitize_text_field(Arr::get($data, 'method', ''));
 
+        $customer = CustomerResource::getCurrentCustomer();
+        if (!$customer) {
+            return $this->sendError(['message' => __('Customer not found', 'fluent-cart')]);
+        }
+
         if (!$newVendorSubscriptionId || !$method || !$subscription_uuid) {
             return $this->sendError([
                 'message' => __('Missing required parameters', 'fluent-cart')
             ]);
         }
 
-        $subscription = Subscription::query()->where('uuid', $subscription_uuid)->first();
+        $subscription = Subscription::query()
+            ->where('uuid', $subscription_uuid)
+            ->where('customer_id', $customer->id)
+            ->first();
         if (empty($subscription)) {
             return $this->sendError([
                 'message' => __('Subscription not found', 'fluent-cart')

@@ -6,6 +6,7 @@ use FluentCart\Api\Resource\ProductVariationResource;
 use FluentCart\App\Http\Requests\ProductVariationRequest;
 use FluentCart\App\Models\Product;
 use FluentCart\App\Models\ProductVariation;
+use FluentCart\App\Models\TaxClass;
 use FluentCart\Framework\Http\Request\Request;
 use FluentCart\Framework\Support\Arr;
 
@@ -25,7 +26,7 @@ class ProductVariationController extends Controller
 
     public function find(Request $request, ProductVariation $product): array
     {
-        //
+        return [];
     }
 
     public function create(ProductVariationRequest $request)
@@ -69,6 +70,51 @@ class ProductVariationController extends Controller
             return $isUpdated;
         }
         return $this->response->sendSuccess($isUpdated);
+    }
+
+    public function updateTaxSettings(Request $request, $variantId)
+    {
+        $variant = ProductVariation::query()->find($variantId);
+
+        if (!$variant) {
+            return $this->sendError([
+                'message' => __('Variant not found', 'fluent-cart')
+            ]);
+        }
+
+        $taxExempt = sanitize_text_field($request->get('tax_exempt', 'no'));
+        $taxClassSlug = sanitize_text_field($request->get('tax_class', ''));
+        $otherInfo = $variant->other_info ?: [];
+
+        if (!$taxClassSlug) {
+            $taxClassSlug = sanitize_text_field(Arr::get($otherInfo, 'tax_class', 'standard'));
+        }
+
+        if (!$taxClassSlug) {
+            $taxClassSlug = 'standard';
+        }
+
+        if (!TaxClass::query()->where('slug', $taxClassSlug)->exists()) {
+            return $this->sendError([
+                'message' => __('Invalid tax class', 'fluent-cart')
+            ], 422);
+        }
+
+        $otherInfo['tax_exempt'] = $taxExempt === 'yes' ? 'yes' : 'no';
+        $otherInfo['tax_class'] = $taxClassSlug;
+
+        $variant->update([
+            'other_info' => $otherInfo
+        ]);
+
+        return $this->sendSuccess([
+            'message'        => $otherInfo['tax_exempt'] === 'yes'
+                ? __('Variation is now tax exempt', 'fluent-cart')
+                : __('Tax will be charged on this variation', 'fluent-cart'),
+            'tax_exempt'     => $otherInfo['tax_exempt'],
+            'tax_class'      => $otherInfo['tax_class'],
+            'tax_class_slug' => $otherInfo['tax_class']
+        ]);
     }
 
     public function delete(Request $request, $variantId)

@@ -198,8 +198,11 @@ class PlanUpgradeService
 
     public static function calculateUpgradeToDiscount(Order $order, OrderItem $originalItem)
     {
-        // check for signup fee item
-        $totalPaid = $originalItem->line_total - $originalItem->refund_total;
+        // The prorate credit reflects what the customer actually PAID for the plan they
+        // are leaving — tax included — so it isn't undercredited by the tax they paid.
+        // For tax-exclusive lines the tax was added on top (add tax_amount); for inclusive
+        // lines it is already baked into line_total. Then prorated by days remaining below.
+        $totalPaid = self::itemUnrefundedPaidWithTax($originalItem);
 
         $additionalItemIds = Arr::get($originalItem->line_meta, 'additional_item_ids', []);
         if (!empty($additionalItemIds)) {
@@ -209,10 +212,16 @@ class PlanUpgradeService
 
             foreach ($additionalItems as $item) {
                 if (Arr::get($item->line_meta, 'parent_item_id', '') == $originalItem->id) {
-                    $totalPaid += $item->line_total - $item->refund_total;
+                    $totalPaid += self::itemUnrefundedPaidWithTax($item);
                 }
             }
         }
+
+        // Chained upgrade: post-tax adjustments don't reduce line totals, so on an order
+        // that itself came from an upgrade, line_total overstates what was paid by the
+        // gifted upgrade discount — remove it from the credit base. The previous prorate
+        // credit stays: it is money the customer actually paid on earlier plans.
+        $totalPaid -= (int) Arr::get($order->config, 'upgrade_discount', 0);
 
         if ($originalItem->payment_type === 'onetime') {
             return $totalPaid < 0 ? 0 : $totalPaid;
@@ -252,9 +261,34 @@ class PlanUpgradeService
             $daysRemaining = $divider;
         }
 
-        $discountAmount = intval($totalPaid / $divider * $daysRemaining);
+        // Multiply before dividing and round (not truncate) so float imprecision can't
+        // shave a cent — e.g. 11900/365*365 = 11899.9999998 would truncate to 11899.
+        $discountAmount = (int) round($totalPaid * $daysRemaining / $divider);
 
         return $discountAmount < 0 ? 0 : $discountAmount;
+    }
+
+    /**
+     * Unrefunded amount the customer actually paid for an order item, tax included (cents).
+     *
+     * Exclusive tax was added on top of line_total, so it is added back here. Inclusive
+     * tax is already part of line_total and must not be double-counted.
+     *
+     * Refunds are allocated against line_total (see Order::updateRefundedItems), so the
+     * exclusive tax is scaled to the unrefunded fraction of the line — otherwise a
+     * refunded line would still contribute its tax_amount to the upgrade credit.
+     */
+    private static function itemUnrefundedPaidWithTax(OrderItem $item)
+    {
+        $lineTotal = (int) $item->line_total;
+        $unrefunded = max(0, $lineTotal - (int) $item->refund_total);
+        $inclusive = (bool) Arr::get($item->line_meta, 'tax_config.inclusive', false);
+
+        if ($inclusive || $lineTotal <= 0) {
+            return $unrefunded;
+        }
+
+        return $unrefunded + (int) round((int) $item->tax_amount * $unrefunded / $lineTotal);
     }
 
 

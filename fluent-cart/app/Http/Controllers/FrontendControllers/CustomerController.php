@@ -74,22 +74,25 @@ class CustomerController extends Controller
 
     public function updateAddressSelect(Request $request, $customerAddressId)
     {
-        $address = CustomerAddressResource::find($customerAddressId, ['with' => $request->get('with', [])]);
-
-        if (!$address) {
+        $customer = CustomerResource::getCurrentCustomer();
+        if (!$customer) {
             return $this->sendError([
                 'message' => __('Address not found', 'fluent-cart')
             ]);
         }
 
-        // Verify address belongs to current customer before any cart mutation
-        $customerId = Arr::get($address, 'address.customer_id');
-        $customer = \FluentCart\Api\Resource\CustomerResource::getCurrentCustomer();
-        if (empty($customer) || $customer->id != $customerId) {
+        $addressModel = CustomerAddresses::query()
+            ->where('id', $customerAddressId)
+            ->where('customer_id', $customer->id)
+            ->first();
+
+        if (!$addressModel) {
             return $this->sendError([
-                'message' => __('You are not authorized to view this address', 'fluent-cart')
+                'message' => __('Address not found', 'fluent-cart')
             ]);
         }
+
+        $address = ['address' => $addressModel];
 
         //update address into cart
         $addressId = Arr::get($address, 'address.id');
@@ -265,7 +268,7 @@ class CustomerController extends Controller
         $validations = array_filter(CheckoutFieldsSchema::getCheckoutFieldsRequirements($type, $fulfillmentType, false));
 
         // Name fields are validated via basic_info, not address sections
-        unset($validations['full_name'], $validations['first_name'], $validations['last_name'], $validations['company_name']);
+        unset($validations['full_name'], $validations['first_name'], $validations['last_name']);
 
         $address = [];
         foreach ($validations as $key => $validation) {
@@ -473,6 +476,18 @@ class CustomerController extends Controller
         }
 
         $address['type'] = Arr::get($data, 'type');
+
+        if (empty($address['name'])) {
+            if (!empty($address['full_name'])) {
+                $address['name'] = $address['full_name'];
+            } else {
+                $firstName = trim(Arr::get($address, 'first_name', ''));
+                $lastName = trim(Arr::get($address, 'last_name', ''));
+                if ($firstName || $lastName) {
+                    $address['name'] = trim($firstName . ' ' . $lastName);
+                }
+            }
+        }
 
         return $address;
     }

@@ -12,7 +12,7 @@ use FluentCart\App\Models\WpModels\TermRelationship;
 use FluentCart\App\Models\WpModels\TermTaxonomy;
 use FluentCart\App\Vite;
 use FluentCart\Framework\Database\Orm\Builder;
-use FluentCart\Framework\Database\Orm\Relations\hasOne;
+use FluentCart\Framework\Database\Orm\Relations\HasOne;
 use FluentCart\Framework\Support\Arr;
 use FluentCart\Framework\Support\Str;
 
@@ -149,9 +149,9 @@ class Product extends Model
 
     /**
      * One2One: Product belongs to one Post meta which is : Gallery Image
-     * @return hasOne
+     * @return HasOne
      */
-    public function postmeta(): hasOne
+    public function postmeta(): HasOne
     {
         return $this->hasOne(PostMeta::class, 'post_id', 'ID')
             ->where('postmeta.meta_key', 'fluent-products-gallery-image');

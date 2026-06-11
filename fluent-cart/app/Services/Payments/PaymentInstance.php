@@ -63,19 +63,39 @@ class PaymentInstance
             return 0;
         }
 
+        $taxBehavior = (int) $this->order->tax_behavior;
+
         $extraItems = $this->order->order_items->filter(function ($item) {
             return $item->payment_type !== 'subscription' && $item->payment_type !== 'signup_fee' && $item->payment_type !== 'fee';
         });
 
         $extraAmount = 0;
         foreach ($extraItems as $item) {
-            $extraAmount += $item->line_total;
+            $extraAmount += (int) $item->line_total;
+
+            if ($taxBehavior === 1) {
+                $extraAmount += (int) $item->tax_amount;
+            } elseif ($taxBehavior === 3) {
+                $inclusive = (bool) Arr::get($item->line_meta, 'tax_config.inclusive', false);
+                if (!$inclusive) {
+                    $extraAmount += (int) $item->tax_amount;
+                }
+            }
         }
 
         // shipping charge, in case addons are physical products
-        $shippingCharge = $this->order->shipping_total;
+        $shippingCharge = (int) $this->order->shipping_total;
         if ($shippingCharge) {
             $extraAmount += $shippingCharge;
+
+            if ($taxBehavior === 1) {
+                $extraAmount += (int) $this->order->shipping_tax;
+            } elseif ($taxBehavior === 3) {
+                $storeTaxBehavior = (int) $this->order->getMeta('store_tax_behavior', 1);
+                if ($storeTaxBehavior === 1) {
+                    $extraAmount += (int) $this->order->shipping_tax;
+                }
+            }
         }
 
         return $extraAmount;

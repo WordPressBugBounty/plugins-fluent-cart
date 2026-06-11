@@ -86,8 +86,33 @@ class Processor
 
 
 
-        $taxTotal = $this->toDecimal($order->tax_total) + $this->toDecimal($order->shipping_tax);
-        if ($taxTotal > 0 && $order->tax_behavior == 1) {
+        $taxBehavior       = (int) $order->tax_behavior;
+        $exclusiveTaxTotal = (int) $order->getMeta('exclusive_tax_total');
+        $storeTaxBehavior  = (int) $order->getMeta('store_tax_behavior');
+        $feeTax            = (int) $order->getMeta('fee_tax');
+
+        // Fallback: if meta missing (old order), use tax_behavior as store_tax_behavior
+        if (empty($storeTaxBehavior) && $taxBehavior > 0) {
+            $storeTaxBehavior = $taxBehavior;
+        }
+
+        if ($taxBehavior === 1) {
+            // Pure exclusive: all tax is additive on top of item prices.
+            // tax_total includes product + fee tax (both exclusive).
+            $taxTotal = $this->toDecimal($order->tax_total) + $this->toDecimal($order->shipping_tax);
+        } elseif ($taxBehavior === 3) {
+            // Mixed: only exclusive product + fee tax is additive; shipping conditional.
+            $taxTotal = $this->toDecimal($exclusiveTaxTotal);
+            if ($storeTaxBehavior === 1) {
+                // Store is exclusive: fees and shipping are also exclusive.
+                $taxTotal += $this->toDecimal($order->shipping_tax);
+                $taxTotal += $this->toDecimal($feeTax);
+            }
+        } else {
+            $taxTotal = 0;
+        }
+
+        if ($taxTotal > 0) {
             $purchaseUnits['amount']['breakdown']['tax_total'] = [
                 'currency_code' => $transaction->currency,
                 'value'         => number_format($taxTotal, 2, '.', ''),

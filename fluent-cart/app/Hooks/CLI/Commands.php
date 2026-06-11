@@ -520,6 +520,8 @@ class Commands
 
         delete_option('fluent_cart_plugin_once_activated');
         delete_option('fluent_cart_store_settings');
+        delete_option('fluent_cart_tax_configuration_settings');
+        delete_option('fluent_cart_has_tax_configure');
 
         delete_option('__fluent_cart_edd2_migration_steps');
         delete_option('_fluent_edd_failed_payment_logs');
@@ -1493,6 +1495,33 @@ class Commands
             'customer'    => $customer,
             'transaction' => $transaction,
         ];
+    }
+
+    public function reset_tax($args, $assoc_args)
+    {
+        $this->authorize();
+
+        delete_option('fluent_cart_tax_configuration_settings');
+        delete_option('fluent_cart_has_tax_configure');
+
+        $db = fluentCart('db');
+
+        $db->table('fct_meta')
+            ->whereIn('object_type', ['tax', 'eu_vat_registration', 'tax_override'])
+            ->delete();
+
+        $db->table('fct_tax_rates')->delete();
+        $db->table('fct_tax_classes')->delete();
+
+        $now = gmdate('Y-m-d H:i:s');
+        $db->table('fct_tax_classes')->insert([
+            'title'      => 'Standard',
+            'slug'       => 'standard',
+            'created_at' => $now,
+            'updated_at' => $now,
+        ]);
+
+        \WP_CLI::success('Tax configuration has been fully reset. Visit the Tax settings page to reconfigure.');
     }
 
     public function sync_stripe_renwals($args, $assoc_args)

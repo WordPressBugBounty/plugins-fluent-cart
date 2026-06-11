@@ -2,6 +2,7 @@
 
 namespace FluentCart\App\Services\Filter;
 
+use Closure;
 use FluentCart\Api\ModuleSettings;
 use FluentCart\App\App;
 use FluentCart\App\Helpers\AddressHelper;
@@ -67,7 +68,9 @@ class OrderFilter extends BaseFilter
             'refunded'           => 'payment_status',
             'partially_refunded' => 'payment_status',
             'upgraded_to'        => 'upgraded_to',
-            'upgraded_from'      => 'upgraded_from'
+            'upgraded_from'      => 'upgraded_from',
+            'b2b_purchase'       => 'b2b_purchase',
+            'reverse_charge'     => 'reverse_charge',
         ];
     }
 
@@ -90,6 +93,14 @@ class OrderFilter extends BaseFilter
     }
 
 
+    public static function b2bMetaCondition(): Closure
+    {
+        return function ($q) {
+            $q->where('meta_key', 'business_info')
+              ->whereRaw("(NULLIF(JSON_UNQUOTE(JSON_EXTRACT(meta_value, '$.company_name')), '') IS NOT NULL OR NULLIF(JSON_UNQUOTE(JSON_EXTRACT(meta_value, '$.legal_registration_id')), '') IS NOT NULL OR NULLIF(JSON_UNQUOTE(JSON_EXTRACT(meta_value, '$.tax_number')), '') IS NOT NULL)");
+        };
+    }
+
     public function applyActiveViewFilter(?string $activeView = null): void
     {
         $activeView = $activeView ?? $this->activeView;
@@ -106,6 +117,12 @@ class OrderFilter extends BaseFilter
                 return $query
                     ->whereRaw("JSON_EXTRACT(config, '$.upgraded_from') IS NOT NULL")
                     ->whereRaw("JSON_EXTRACT(config, '$.upgraded_from') != 0");
+            } else if ($activeView === 'b2b_purchase') {
+                return $query->whereHas('orderMeta', static::b2bMetaCondition());
+            } else if ($activeView === 'reverse_charge') {
+                return $query->whereHas('orderTaxRates', function ($q) {
+                    $q->whereRaw("JSON_EXTRACT(meta, '$.reverse_charge_applied') = true");
+                });
             } else {
                 return $query->where(
                     $tabsMap[$activeView],
@@ -490,6 +507,60 @@ class OrderFilter extends BaseFilter
 
             'children' => $utmChildren
         ];
+
+        $filters['tax'] = [
+            'label'    => __('Tax Property', 'fluent-cart'),
+            'value'    => 'tax',
+            'children' => [
+                [
+                    'label'       => __('B2B Purchase', 'fluent-cart'),
+                    'value'       => 'b2b_purchase',
+                    'filter_type' => 'custom',
+                    'type'        => 'selections',
+                    'options'     => [
+                        'yes' => __('Yes', 'fluent-cart'),
+                        'no'  => __('No', 'fluent-cart'),
+                    ],
+                    'is_multiple' => false,
+                    'is_only_in'  => true,
+                    'callback'    => static function ($query, $item) {
+                        $value = Arr::get($item, 'value');
+                        $selected = is_array($value) ? Arr::get($value, 0, '') : $value;
+                        if ($selected === 'yes') {
+                            $query->whereHas('orderMeta', static::b2bMetaCondition());
+                        } else {
+                            $query->whereDoesntHave('orderMeta', static::b2bMetaCondition());
+                        }
+                    },
+                ],
+                [
+                    'label'       => __('Reverse Charge', 'fluent-cart'),
+                    'value'       => 'reverse_charge',
+                    'filter_type' => 'custom',
+                    'type'        => 'selections',
+                    'options'     => [
+                        'yes' => __('Yes', 'fluent-cart'),
+                        'no'  => __('No', 'fluent-cart'),
+                    ],
+                    'is_multiple' => false,
+                    'is_only_in'  => true,
+                    'callback'    => static function ($query, $item) {
+                        $value = Arr::get($item, 'value');
+                        $selected = is_array($value) ? Arr::get($value, 0, '') : $value;
+                        if ($selected === 'yes') {
+                            $query->whereHas('orderTaxRates', function ($q) {
+                                $q->whereRaw("JSON_EXTRACT(meta, '$.reverse_charge_applied') = true");
+                            });
+                        } else {
+                            $query->whereDoesntHave('orderTaxRates', function ($q) {
+                                $q->whereRaw("JSON_EXTRACT(meta, '$.reverse_charge_applied') = true");
+                            });
+                        }
+                    },
+                ],
+            ],
+        ];
+
         return LabelFilter::advanceFilterOptionsForOther($filters);
     }
 

@@ -135,7 +135,7 @@ class Helper
     public static function convertWeight($value, $fromUnit, $toUnit)
     {
         if ($fromUnit === $toUnit || !$value) {
-            return (float) $value;
+            return (float)$value;
         }
 
         $toGrams = [
@@ -472,7 +472,7 @@ class Helper
                 }
             }
 
-            if($withTranslatedDigit) {
+            if ($withTranslatedDigit) {
                 $amount = self::translateNumber($amount);
             }
         }
@@ -573,21 +573,21 @@ class Helper
     {
         $currencies = apply_filters_deprecated('fluent-cart/available_currencies', [
             [
-            'BDT' => [
-                "label"  => __('Bangladeshi Taka', 'fluent-cart'),
-                "value"  => 'BDT',
-                "symbol" => '৳',
-            ],
-            'USD' => [
-                "label"  => __('United State Dollar', 'fluent-cart'),
-                "value"  => 'USD',
-                "symbol" => '$',
-            ],
-            'GBP' => [
-                "label"  => __('United Kingdom', 'fluent-cart'),
-                "value"  => 'GBP',
-                "symbol" => '£',
-            ],
+                'BDT' => [
+                    "label"  => __('Bangladeshi Taka', 'fluent-cart'),
+                    "value"  => 'BDT',
+                    "symbol" => '৳',
+                ],
+                'USD' => [
+                    "label"  => __('United State Dollar', 'fluent-cart'),
+                    "value"  => 'USD',
+                    "symbol" => '$',
+                ],
+                'GBP' => [
+                    "label"  => __('United Kingdom', 'fluent-cart'),
+                    "value"  => 'GBP',
+                    "symbol" => '£',
+                ],
             ], []
         ], '1.3.16', 'fluent_cart/available_currencies', 'Use fluent_cart/available_currencies instead of fluent-cart/available_currencies.');
 
@@ -976,7 +976,7 @@ class Helper
 
         // Normalize / defaults
         $trialDays = $data['trial_days'] ?? 0;
-        $interval = (string)($data['interval'] ?  $data['interval'] : 'monthly');
+        $interval = (string)($data['interval'] ? $data['interval'] : 'monthly');
 
         $unit = '';
         if (isset($intervalOptions[$interval])) {
@@ -1132,19 +1132,19 @@ class Helper
         }
     }
 
-    public static function generateSubscriptionInfo($otherInfo, $itemPrice): ?string
+    public static function generateSubscriptionInfo($otherInfo, $itemPrice, $currencyCode = null): ?string
     {
         // Convert to array only if it's an object
         if (is_object($otherInfo)) {
             $otherInfo = json_decode(json_encode($otherInfo), true);
         }
 
-        $price = self::toDecimal($itemPrice);
+        $price = self::toDecimal($itemPrice, true, $currencyCode);
         $recurringDiscountAmount = Arr::get($otherInfo, 'recurring_discounts.amount', 0);
 
         if ($recurringDiscountAmount) {
             $newRecurringAmount = $itemPrice - $recurringDiscountAmount;
-            $price = "<del>" . $price . "</del> " . self::toDecimal($newRecurringAmount);
+            $price = "<del>" . $price . "</del> " . self::toDecimal($newRecurringAmount, true, $currencyCode);
         }
 
         $repeatInterval = Arr::get($otherInfo, 'repeat_interval', '');
@@ -1156,24 +1156,24 @@ class Helper
         if (isset($intervalOptions[$repeatInterval])) {
             $intervalUnit = $intervalOptions[$repeatInterval];
         } else if ($repeatInterval) {
-                $intervalOptions = static::getAvailableSubscriptionIntervalOptions();
-                foreach ($intervalOptions as $option) {
-                    if ($option['value'] === $repeatInterval) {
-                        $intervalUnit = strtolower($option['label']);
-                        break;
-                    }
+            $intervalOptions = static::getAvailableSubscriptionIntervalOptions();
+            foreach ($intervalOptions as $option) {
+                if ($option['value'] === $repeatInterval) {
+                    $intervalUnit = strtolower($option['label']);
+                    break;
                 }
+            }
 
-                if (!$intervalUnit) {
-                    $intervalUnit = ucwords(str_replace(['_', '-'], ' ', $repeatInterval));
-                }
+            if (!$intervalUnit) {
+                $intervalUnit = ucwords(str_replace(['_', '-'], ' ', $repeatInterval));
+            }
         }
 
         $intervalLabel = Helper::getTranslatedIntervalUnit($intervalUnit);
 
         $interval = $intervalUnit
             ? sprintf(
-                /* translators: %s is the interval (e.g., day, week, month, quarter, half_year, year) */
+            /* translators: %s is the interval (e.g., day, week, month, quarter, half_year, year) */
                 __('per %s', 'fluent-cart'),
                 $intervalLabel
             )
@@ -1205,7 +1205,7 @@ class Helper
         return !empty($otherInfo) ? $paymentInfo : null;
     }
 
-    public static function generateSetupFeeInfo($otherInfo): ?string
+    public static function generateSetupFeeInfo($otherInfo, $asArray = false)
     {
         // Convert to array if it's an object
         if (is_object($otherInfo)) {
@@ -1223,12 +1223,31 @@ class Helper
 
         if ($originalSetupFee = Arr::get($otherInfo, 'original_signup_fee', 0)) {
             if ($fee != $originalSetupFee) {
-                return __('Adjusted setup fee', 'fluent-cart') . CurrencySettings::getPriceHtml($fee, null, true, true);
+                $title = __('Adjusted setup fee', 'fluent-cart');
+                $formattedAmount = CurrencySettings::getPriceHtml($fee, null, true, true);
+
+                if ($asArray) {
+                    return [
+                        'signup_fee_name'      => $title,
+                        'signup_fee'           => $fee,
+                        'signup_fee_formatted' => $formattedAmount,
+                    ];
+                }
+                return $title . $formattedAmount;
             }
         }
 
+        $formattedAmount = CurrencySettings::getPriceHtml($fee, null, true, true);
+        if ($asArray) {
+            return [
+                'signup_fee_name'      => $signupFeeName,
+                'signup_fee'           => $fee,
+                'signup_fee_formatted' => $formattedAmount,
+            ];
+        }
 
-        return $signupFeeName . ' ' . CurrencySettings::getPriceHtml($fee, null, true, true);
+
+        return $signupFeeName . ' ' . $formattedAmount;
     }
 
     public static function generateTrialInfo($otherInfo)
@@ -1501,11 +1520,11 @@ class Helper
      * Get the current user Model.
      * @return User|\FluentCart\Framework\Database\Orm\Builder|\FluentCart\Framework\Database\Orm\Builder[]|\FluentCart\Framework\Database\Orm\Collection|\FluentCart\Framework\Database\Orm\Model|null
      */
-    public static function getCurrentUser()
+    public static function getCurrentUser($refresh = false)
     {
         static $user = false;
 
-        if ($user !== false) {
+        if (!$refresh && $user !== false) {
             return $user;
         }
 
@@ -1598,12 +1617,12 @@ class Helper
     public static function humanIntervalMaps($interval = '')
     {
         $intervals = [
-            'daily'   => __('day', 'fluent-cart'),
-            'weekly'  => __('week', 'fluent-cart'),
-            'monthly' => __('month', 'fluent-cart'),
-            'quarterly' => __('quarter', 'fluent-cart'),
+            'daily'       => __('day', 'fluent-cart'),
+            'weekly'      => __('week', 'fluent-cart'),
+            'monthly'     => __('month', 'fluent-cart'),
+            'quarterly'   => __('quarter', 'fluent-cart'),
             'half_yearly' => __('six month', 'fluent-cart'),
-            'yearly'  => __('year', 'fluent-cart'),
+            'yearly'      => __('year', 'fluent-cart'),
         ];
 
         return Arr::get($intervals, $interval);
@@ -1616,33 +1635,33 @@ class Helper
     {
         $intervals = [
             [
-                'label' => __('Yearly', 'fluent-cart'),
-                'value' => 'yearly',
+                'label'     => __('Yearly', 'fluent-cart'),
+                'value'     => 'yearly',
                 'map_value' => 'year',
             ],
             [
-                'label' => __('Half Yearly', 'fluent-cart'),
-                'value' => 'half_yearly',
+                'label'     => __('Half Yearly', 'fluent-cart'),
+                'value'     => 'half_yearly',
                 'map_value' => 'half_year',
             ],
             [
-                'label' => __('Quarterly', 'fluent-cart'),
-                'value' => 'quarterly',
+                'label'     => __('Quarterly', 'fluent-cart'),
+                'value'     => 'quarterly',
                 'map_value' => 'quarter',
             ],
             [
-                'label' => __('Monthly', 'fluent-cart'),
-                'value' => 'monthly',
+                'label'     => __('Monthly', 'fluent-cart'),
+                'value'     => 'monthly',
                 'map_value' => 'month',
             ],
             [
-                'label' => __('Weekly', 'fluent-cart'),
-                'value' => 'weekly',
+                'label'     => __('Weekly', 'fluent-cart'),
+                'value'     => 'weekly',
                 'map_value' => 'week',
             ],
             [
-                'label' => __('Daily', 'fluent-cart'),
-                'value' => 'daily',
+                'label'     => __('Daily', 'fluent-cart'),
+                'value'     => 'daily',
                 'map_value' => 'day',
             ]
         ];
@@ -1684,8 +1703,8 @@ class Helper
 
         $maxTrialDaysAllowed = apply_filters('fluent_cart/max_trial_days_allowed', 365, [
             'existing_trial_days' => $trialDays,
-            'repeat_interval' => $repeatInterval,
-            'interval_in_days' => $intervalInDays,
+            'repeat_interval'     => $repeatInterval,
+            'interval_in_days'    => $intervalInDays,
         ]);
 
         return min($trialDays + $intervalInDays, $maxTrialDaysAllowed); // return the minimum of the sum of the existing trial days and the interval days, and the max trial allowed
@@ -1826,8 +1845,8 @@ class Helper
 
         return strtr(
             (string)$number,
-            array_combine(range(0,9),
-            $digits)
+            array_combine(range(0, 9),
+                $digits)
         );
     }
 
@@ -1868,5 +1887,31 @@ class Helper
         }
 
         return $default;
+    }
+
+    public static function formatTaxRatePercent(float $rate): string
+    {
+        $formatted = number_format($rate, 4, '.', '');
+        if (strpos($formatted, '.') !== false) {
+            $formatted = rtrim($formatted, '0');
+            $formatted = rtrim($formatted, '.');
+        }
+        return $formatted;
+    }
+
+    /**
+     * Returns the tax label for order-level tax rows (tax_total, not per-item).
+     * For mixed orders, indicates tax varies per item.
+     *
+     * @param \FluentCart\App\Models\Order $order
+     * @return string
+     */
+    public static function getOrderTaxLabel($order) {
+        if ((int) $order->tax_behavior === 3) {
+            return esc_html__('(Varies)', 'fluent-cart');
+        }
+        return (int) $order->tax_behavior === 2
+            ? esc_html__('(Included)', 'fluent-cart')
+            : esc_html__('(Excluded)', 'fluent-cart');
     }
 }

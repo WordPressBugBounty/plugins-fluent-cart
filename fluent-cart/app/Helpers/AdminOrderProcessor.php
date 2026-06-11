@@ -87,6 +87,7 @@ class AdminOrderProcessor
                 }
             }
 
+            $variation = null;
             if (!$variationTitle) {
                 $variation = ProductVariation::query()->find(Arr::get($checkoutItem, 'object_id', 0));
                 if ($variation) {
@@ -94,6 +95,17 @@ class AdminOrderProcessor
                 }
             }
 
+            if (!$variation) {
+                $variation = ProductVariation::query()->find(Arr::get($checkoutItem, 'object_id', 0));
+            }
+
+            $fulfillmentType = Arr::get($checkoutItem, 'fulfillment_type', '');
+            if (!$fulfillmentType && $variation) {
+                $fulfillmentType = $variation->fulfillment_type;
+            }
+            if (!$fulfillmentType) {
+                $fulfillmentType = 'digital';
+            }
 
             $item = [
                 'payment_type'     => $paymentType,
@@ -101,7 +113,7 @@ class AdminOrderProcessor
                 'object_id'        => Arr::get($checkoutItem, 'object_id'),
                 'post_title'       => $postTitle,
                 'title'            => $variationTitle,
-                'fulfillment_type' => Arr::get($checkoutItem, 'fulfillment_type', 'digital'),
+                'fulfillment_type' => $fulfillmentType,
                 'quantity'         => $quantity,
                 'cost'             => (int)Arr::get($checkoutItem, 'cost', 0),
                 'unit_price'       => $unitPrice,
@@ -109,6 +121,7 @@ class AdminOrderProcessor
                 'tax_amount'       => $tax,
                 'shipping_charge'  => $shippingCharge,
                 'discount_total'   => $discountTotal,
+                'coupon_discount'  => (int)Arr::get($checkoutItem, 'discount_total', 0),
                 'other_info'       => $args,
                 'line_meta'        => []
             ];
@@ -119,11 +132,16 @@ class AdminOrderProcessor
                 $singupFeeAmount = (int)Arr::get($checkoutItem, 'other_info.signup_fee', 0);
 
                 $childDiscontTotal = 0;
+                $childCouponDiscount = 0;
                 $signupFeeSubtotal = $singupFeeAmount * $quantity;
+                $couponDiscount = $item['coupon_discount'];
+
                 if ($discountTotal) {
                     // Distribute discount with signup fee and item
                     $childDiscontTotal = (int)($discountTotal / ($subtotal + $signupFeeSubtotal) * $signupFeeSubtotal);
                     $discountTotal -= $childDiscontTotal;
+                    $childCouponDiscount = (int) round($couponDiscount * $signupFeeSubtotal / ($subtotal + $signupFeeSubtotal));
+                    $couponDiscount -= $childCouponDiscount;
                 }
 
                 $childItem = [
@@ -140,10 +158,12 @@ class AdminOrderProcessor
                     'tax_amount'       => 0,
                     'shipping_charge'  => 0,
                     'discount_total'   => $childDiscontTotal,
+                    'coupon_discount'  => $childCouponDiscount,
                     'line_meta'        => []
                 ];
 
                 $item['discount_total'] = $discountTotal;
+                $item['coupon_discount'] = $couponDiscount;
                 $item['additional_items'] = [$childItem];
 
                 Arr::set($item, 'other_info.signup_fee', $singupFeeAmount);
@@ -289,6 +309,12 @@ class AdminOrderProcessor
                 unset($orderItem['bundle_items']);
             }
 
+            if (!empty($orderItem['coupon_discount'])) {
+                $lineMeta = Arr::get($orderItem, 'line_meta', []);
+                $lineMeta['coupon_discount'] = (int) $orderItem['coupon_discount'];
+                $orderItem['line_meta'] = $lineMeta;
+            }
+
             $createdItem = OrderItem::query()->create($orderItem);
 
             if ($additionalItems) {
@@ -298,6 +324,9 @@ class AdminOrderProcessor
                     $additionalItem['line_total'] = $additionalItem['subtotal'] - $additionalItem['discount_total'];
                     $mata = Arr::get($additionalItem, 'line_meta', []);
                     $mata['parent_item_id'] = $createdItem->id;
+                    if (!empty($additionalItem['coupon_discount'])) {
+                        $mata['coupon_discount'] = (int) $additionalItem['coupon_discount'];
+                    }
                     $additionalItem['line_meta'] = $mata;
                     OrderItem::query()->create($additionalItem);
                 }
@@ -320,6 +349,9 @@ class AdminOrderProcessor
                     $bundleItem['payment_type'] = 'bundle';
                     $meta = Arr::get($bundleItem, 'line_meta', []);
                     $meta['bundle_parent_item_id'] = $createdItem->id;
+                    if (!empty($bundleItem['coupon_discount'])) {
+                        $meta['coupon_discount'] = (int) $bundleItem['coupon_discount'];
+                    }
                     $bundleItem['line_meta'] = $meta;
                     $bundleItem = OrderItem::query()->create($bundleItem);
                     $bundleItemIds[] = $bundleItem->id;

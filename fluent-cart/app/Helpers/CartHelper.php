@@ -387,6 +387,8 @@ class CartHelper
             $shippingMethodAmount += $totalShippingCharge;
         }
 
+        $shippingMethodAmount = (int)round($shippingMethodAmount);
+
         $remainingShippingMethodAmount = ($shippingMethodAmount - $totalItemWiseShippingCharge);
 
         if (!$onceDistributed) {
@@ -841,5 +843,44 @@ class CartHelper
             return false;
         }
         return $variationId;
+    }
+
+    /**
+     * @param \FluentCart\App\Models\Cart $cart
+     * @param array|\WP_Error             $methods
+     * @param string|int|null             $currentSelectedId
+     * @return string|int|null
+     */
+    public static function resolveAutoSelectShippingMethod($cart, $methods, $currentSelectedId)
+    {
+        if ($currentSelectedId || empty($methods) || is_wp_error($methods) || count($methods) !== 1) {
+            return $currentSelectedId;
+        }
+
+        $method = $methods[0];
+
+        $shouldAutoSelect = apply_filters('fluent_cart/shipping/auto_select_single_method', true, [
+            'cart'   => $cart,
+            'method' => $method,
+        ]);
+
+        if (!$shouldAutoSelect) {
+            return $currentSelectedId;
+        }
+
+        $charge = static::calculateShippingMethodCharge($method, $cart->cart_data);
+
+        $cart->checkout_data = array_merge(
+            (array) $cart->checkout_data,
+            [
+                'shipping_data' => [
+                    'shipping_method_id' => $method->id,
+                    'shipping_charge'    => is_array($charge) ? Arr::get($charge, 'shipping_amount', 0) : $charge,
+                ],
+            ]
+        );
+        $cart->save();
+
+        return $method->id;
     }
 }

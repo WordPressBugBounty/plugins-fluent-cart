@@ -74,7 +74,13 @@ class SubscriptionService
             $taxTotal = $subscriptionModel->recurring_tax_total;
         }
         
-        if (!$taxTotal && $parentOrder->tax_behavior == 2 && $parentOrderItem) {
+        // A subscription item may be inclusive even when the parent order is mixed (behavior=3).
+        // Check the per-item line_meta to determine the actual inclusion for this item.
+        $isItemInclusive = $parentOrder->tax_behavior === 2
+            || ($parentOrder->tax_behavior === 3 && $parentOrderItem !== null
+                && (bool) Arr::get((array) $parentOrderItem->line_meta, 'tax_config.inclusive', false));
+
+        if (!$taxTotal && $isItemInclusive && $parentOrderItem) {
             $taxTotal = (int) Arr::get($parentOrderItem->other_info, 'recurring_tax', 0);
         }
 
@@ -285,6 +291,11 @@ class SubscriptionService
 
         foreach ($meta as $key => $value) {
             $subscriptionModel->updateMeta($key, $value);
+        }
+
+        // validity_expired_at should only exist when status IS expired
+        if ($subscriptionModel->status !== Status::SUBSCRIPTION_EXPIRED) {
+            $subscriptionModel->deleteMeta('validity_expired_at');
         }
 
         if ($oldStatus === $subscriptionModel->status) {

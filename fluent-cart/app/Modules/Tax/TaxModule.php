@@ -9,10 +9,12 @@ use FluentCart\Framework\Support\Arr;
 use FluentCart\App\Helpers\CartHelper;
 use FluentCart\App\Models\Cart;
 use FluentCart\App\Models\OrderTaxRate;
-use FluentCart\App\Services\Renderer\EUVatRenderer;
+use FluentCart\App\Services\Renderer\VatFieldRenderer;
 use FluentCart\App\Services\Renderer\CartSummaryRender;
+use FluentCart\App\Services\Renderer\CheckoutFieldsSchema;
 use FluentCart\Api\Resource\FrontendResource\CartResource;
 use FluentCart\App\Services\Localization\LocalizationManager;
+use FluentCart\App\Services\Tax\TaxManager;
 
 class TaxModule
 {
@@ -21,20 +23,96 @@ class TaxModule
 
     public function register()
     {
+        $this->getSettings();
+
+        add_action('fluent_cart/checkout/prepare_other_data', [$this, 'storeBusinessInfoOnOrder'], 9, 1);
+
+        add_filter('fluent_cart/checkout/after_patch_checkout_data_fragments', [$this, 'maybeRerenderEuVatField'], 10, 2);
+        $this->initCheckoutActions();
+        $this->registerAjaxHandlers();
+
+        // Registered unconditionally so that stale RC price adjustments are restored
+        // when tax is disabled after RC was active. No-op when tax is enabled
+        // (recalculateTax registered below runs the full recalculation instead).
+        add_action('fluent_cart/cart/cart_data_items_updated', [$this, 'maybeRestoreRcAdjustedPrices']);
+        // Registered unconditionally: Case 2 catches non-tax rounding from any module;
+        // Case 1 (RC) fast-exits when tax is off (no rcAdjustment stored).
+        add_action('fluent_cart/cart/line_item/price_note', [$this, 'renderUnitPriceRoundingTooltip'], 20, 1);
+        add_action('fluent_cart/cart/line_item/unit_price_hint', [$this, 'renderUnitPriceRoundingTooltip'], 10, 1);
+
         if (!$this->isEnabled()) {
             return;
         }
 
+        add_action('fluent_cart/cart/line_item/footer_start', [$this, 'renderCheckoutLineItemTaxLabel'], 10, 1);
+        add_action('fluent_cart/cart/line_item/after_setup_fee_info', [$this, 'renderCheckoutSetupFeeTaxLabel'], 10, 1);
+        add_action('fluent_cart/cart/line_item/setup_fee_price_info', [$this, 'renderCheckoutSetupFeeTaxTooltip'], 10, 1);
+        add_action('fluent_cart/cart/line_item/setup_fee_price_note', [$this, 'renderCheckoutSetupFeeTaxInfo'], 10, 1);
+        add_action('fluent_cart/cart/line_item/after_total', [$this, 'renderCheckoutLineItemTaxTooltip'], 10, 1);
+        add_action('fluent_cart/cart/line_item/price_note', [$this, 'renderCheckoutLineItemTaxInfo'], 10, 1);
+
         add_filter('fluent_cart/cart/estimated_total', function ($total, $data) {
             $cart = $data['cart'];
-            if (Arr::get($cart->checkout_data, 'tax_data.tax_behavior', 0) == 1) {
-                $taxTotal = (int)Arr::get($cart->checkout_data, 'tax_data.tax_total', 0);
-                $total += (int)$taxTotal;
-                // adds shipping tax as well
-                $shippingTax = (int)Arr::get($cart->checkout_data, 'tax_data.shipping_tax', 0);
-                $total += (int)$shippingTax;
+            $taxData = Arr::get($cart->checkout_data, 'tax_data', []);
+            if (is_array($taxData) && array_key_exists('exclusive_tax_total', $taxData)) {
+                $total += (int) $taxData['exclusive_tax_total'];
+
+                // Shipping and fees always use the store-level inclusive flag.
+                // Fall back to tax_behavior if store_tax_behavior absent (old cart data).
+                $storeBehavior = (int) Arr::get($taxData, 'store_tax_behavior',
+                    Arr::get($taxData, 'tax_behavior', 0));
+
+                if ($storeBehavior === 1) {
+                    $total += (int) Arr::get($taxData, 'shipping_tax', 0);
+                    // fee_tax is also exclusive when store is exclusive
+                    $total += (int) Arr::get($taxData, 'fee_tax', 0);
+                }
+
+                $rcMode = $this->getEffectiveRcMode();
+                if ($rcMode === 'dynamic' && $this->isReverseChargeCheckout($cart->checkout_data)) {
+                    $inclusiveAdj = (int) Arr::get($taxData, 'reverse_charge_inclusive_adjustment', 0);
+                    if ($inclusiveAdj > 0) {
+                        $total -= $inclusiveAdj;
+                    }
+                    // Inclusive shipping is now reduced at source via fluent_cart/cart/shipping_total,
+                    // so getShippingTotal() already returns the net amount — no further adjustment here.
+                }
+            } else {
+                // Backward compat: old tax_data without exclusive_tax_total.
+                if (Arr::get($taxData, 'tax_behavior', 0) == 1) {
+                    $total += (int) Arr::get($taxData, 'tax_total', 0);
+                    $total += (int) Arr::get($taxData, 'shipping_tax', 0);
+                }
             }
             return $total;
+        }, 10, 2);
+
+        // Reduce the raw shipping_charge by the inclusive shipping VAT for dynamic RC orders.
+        // This makes getShippingTotal() return the net amount, so the actual gateway charge
+        // and the stored shipping_total on the order are correct (not overcharged).
+        add_filter('fluent_cart/cart/shipping_total', function ($shippingTotal, $data) {
+            $cart = Arr::get($data, 'cart');
+            if (!$cart || $shippingTotal <= 0) {
+                return $shippingTotal;
+            }
+            $taxData = Arr::get($cart->checkout_data, 'tax_data', []);
+            if (!is_array($taxData)) {
+                return $shippingTotal;
+            }
+            $rcMode = $this->getEffectiveRcMode();
+            if ($rcMode !== 'dynamic' || !$this->isReverseChargeCheckout($cart->checkout_data)) {
+                return $shippingTotal;
+            }
+            $storeBehavior = (int) Arr::get($taxData, 'store_tax_behavior',
+                Arr::get($taxData, 'tax_behavior', 2));
+            if ($storeBehavior !== 2) {
+                return $shippingTotal;
+            }
+            $rcShippingTax = (int) Arr::get($taxData, 'reverse_charge_shipping_tax', 0);
+            if ($rcShippingTax > 0) {
+                $shippingTotal = max(0, $shippingTotal - $rcShippingTax);
+            }
+            return $shippingTotal;
         }, 10, 2);
 
         //new hook to get changes
@@ -52,148 +130,410 @@ class TaxModule
                 return;
             }
 
-            $taxAmount = (int)Arr::get($cart->checkout_data, 'tax_data.tax_total', 0);
-            $taxLines = Arr::get($cart->checkout_data, 'tax_data.tax_lines', []);
-            $shippingTax = (int)Arr::get($cart->checkout_data, 'tax_data.shipping_tax', 0);
-            $isInclusive = Arr::get($cart->checkout_data, 'tax_data.tax_behavior', 2) === 2;
-            $isReverseCharge = Arr::get($cart->checkout_data, 'tax_data.valid', false);
+            $taxAmount   = (int) Arr::get($cart->checkout_data, 'tax_data.tax_total', 0);
+            $shippingTax = (int) Arr::get($cart->checkout_data, 'tax_data.shipping_tax', 0);
+            $isReverseCharge = $this->isReverseChargeCheckout($cart->checkout_data);
 
-            // if (!$taxAmount && !$isReverseCharge && !$shippingTax) {
-            //     return;
-            // }
-
-
-            // Show breakdown by tax rate if available
-            if (!empty($taxLines) && !$isReverseCharge) {
-                $this->renderCompoundTaxRow($cart);
-            } else {
-                // Fallback to showing total tax if no breakdown available
-                $this->renderTaxRow($cart);
-                ?>
-                <?php
+            if (!$taxAmount && !$isReverseCharge && !$shippingTax) {
+                return;
             }
 
-            $this->renderShippingTaxRow($cart);
+            $this->renderTaxSummaryBox($cart);
         });
 
         add_action('fluent_cart/checkout/prepare_other_data', [$this, 'prepareOtherData'], 10, 1);
 
-        add_action('fluent_cart/product/after_price', function () {
-            $priceSuffix = Arr::get($this->taxSettings, 'price_suffix', '');
+        add_action('fluent_cart/product/after_price', function ($data) {
+            if (Arr::get($data, 'scope') === 'price_range') {
+                return;
+            }
+            $variant     = isset($data['variant']) ? $data['variant'] : null;
+            $priceSuffix = $this->resolvePriceSuffix($variant);
             if ($priceSuffix) {
                 echo '<span class="fct_price_suffix">' . wp_kses_post($priceSuffix) . '</span>';
             }
-        });
+        }, 10, 1);
 
-        add_filter('fluent_cart/product/price_suffix_atts', function ($suffix) {
-            $priceSuffix = Arr::get($this->taxSettings, 'price_suffix', '');
-            if ($priceSuffix) {
-                return $priceSuffix;
-            }
-            return $suffix;
-        });
+        add_filter('fluent_cart/product/price_suffix_atts', function ($suffix, $context) {
+            $variant     = isset($context['variant']) ? $context['variant'] : null;
+            $priceSuffix = $this->resolvePriceSuffix($variant);
+            return $priceSuffix ?: $suffix;
+        }, 10, 2);
 
-        add_filter('fluent_cart/checkout/after_patch_checkout_data_fragments', [$this, 'maybeRerenderEuVatField'], 10, 2);
-
-        $this->initCheckoutActions();
-        $this->registerAjaxHandlers();
+        add_filter('fluent_cart/cart/fees', [$this, 'applyRcFeeAdjustments'], 20, 2);
 
         add_action('fluent_cart/cart/cart_data_items_updated', [$this, 'recalculateTax']);
     }
 
+    private function resolvePriceSuffix($variant)
+    {
+        $includedSuffix = Arr::get($this->taxSettings, 'price_suffix_included', '');
+        $excludedSuffix = Arr::get($this->taxSettings, 'price_suffix_excluded', '');
+
+        if ($variant !== null) {
+            $taxInclusion = Arr::get($variant->other_info ?: [], 'tax_inclusion', '');
+        } else {
+            $taxInclusion = '';
+        }
+
+        if ($taxInclusion === 'included') {
+            $isInclusive = true;
+        } elseif ($taxInclusion === 'excluded') {
+            $isInclusive = false;
+        } else {
+            $isInclusive = Arr::get($this->taxSettings, 'tax_inclusion') === 'included';
+        }
+
+        $suffix = $isInclusive ? $includedSuffix : $excludedSuffix;
+
+        if (!$suffix) {
+            $suffix = Arr::get($this->taxSettings, 'price_suffix', '');
+        }
+
+        return $suffix;
+    }
+
     public function renderTaxRow($cart, $atts = '')
     {
-        $taxAmount = (int)Arr::get($cart->checkout_data, 'tax_data.tax_total', 0);
-        $shippingTax = (int)Arr::get($cart->checkout_data, 'tax_data.shipping_tax', 0);
-        $isInclusive = Arr::get($cart->checkout_data, 'tax_data.tax_behavior', 2) === 2;
-        $isReverseCharge = Arr::get($cart->checkout_data, 'tax_data.valid', false);
+        $taxAmount         = (int) Arr::get($cart->checkout_data, 'tax_data.tax_total', 0);
+        $reversedTaxAmount = (int) Arr::get($cart->checkout_data, 'tax_data.reverse_charge_tax_total', 0);
+        $isReverseCharge   = $this->isReverseChargeCheckout($cart->checkout_data);
+        $taxLines = Arr::get($cart->checkout_data, 'tax_data.tax_lines', []);
+        $taxCountry = Arr::get($cart->checkout_data, 'tax_data.tax_country', '');
+        $taxLabel = Arr::get($taxLines, '0.label', '');
+
+        if (!$taxLabel) {
+            $taxLabel = $taxCountry ? static::getCountryTaxTitle($taxCountry) : __('Tax', 'fluent-cart');
+        }
         ?>
         <li <?php echo $atts; ?>>
             <span class="fct_summary_label">
-                <?php if ($isReverseCharge && $taxAmount == 0): ?>
-                    <?php echo esc_html__('Reverse Charge (No Tax)', 'fluent-cart'); ?>
-                <?php elseif ($isInclusive) : ?>
-                    <?php echo esc_html__('Tax Estimate (Included)', 'fluent-cart'); ?>
+                <?php echo esc_html($taxLabel); ?>
+            </span>
+            <span class="fct_summary_value">
+                <?php if ($isReverseCharge && $taxAmount === 0) : ?>
+                    <?php
+                    /* translators: %1$s: formatted reversed tax amount */
+                    echo esc_html(sprintf(__('Tax reversed: %1$s', 'fluent-cart'), Helper::toDecimal($reversedTaxAmount)));
+                    ?>
                 <?php else : ?>
-                    <?php echo esc_html__('Tax Estimate (Excluded)', 'fluent-cart'); ?>
+                    <?php echo esc_html(Helper::toDecimal($taxAmount)); ?>
                 <?php endif; ?>
             </span>
-            <span class="fct_summary_value"><?php echo esc_html(Helper::toDecimal($taxAmount)); ?></span>
         </li>
         <?php
     }
 
     public function renderShippingTaxRow($cart, $atts = '')
     {
+        $shippingTax     = (int) Arr::get($cart->checkout_data, 'tax_data.shipping_tax', 0);
+        $isReverseCharge = $this->isReverseChargeCheckout($cart->checkout_data);
+        $rcShippingTax   = (int) Arr::get($cart->checkout_data, 'tax_data.reverse_charge_shipping_tax', 0);
 
-        $shippingTax = (int)Arr::get($cart->checkout_data, 'tax_data.shipping_tax', 0);
-        $isInclusive = Arr::get($cart->checkout_data, 'tax_data.tax_behavior', 2) === 2;
-
-        if ($shippingTax == 0) {
+        if ($shippingTax <= 0 && (!$isReverseCharge || $rcShippingTax <= 0)) {
             return '';
         }
+
+        $displayAmount = $isReverseCharge ? $rcShippingTax : $shippingTax;
+        $storeBehavior = (int) Arr::get($cart->checkout_data, 'tax_data.store_tax_behavior',
+            Arr::get($cart->checkout_data, 'tax_data.tax_behavior', 2));
+        $isInclusive = $storeBehavior === 2;
         ?>
-        <li <?php echo $atts; ?>>
-            <!-- shipping tax -->
+        <li data-fct-shipping-tax-row <?php echo $atts; ?>>
             <span class="fct_summary_label">
-                        <?php if ($isInclusive) : ?>
-                            <?php echo esc_html__('Shipping Tax (Included)', 'fluent-cart'); ?>
-                        <?php else : ?>
-                            <?php echo esc_html__('Shipping Tax (Excluded)', 'fluent-cart'); ?>
-                        <?php endif; ?>
+                <?php if ($isInclusive) : ?>
+                    <?php echo esc_html__('Shipping Tax (Included)', 'fluent-cart'); ?>
+                <?php else : ?>
+                    <?php echo esc_html__('Shipping Tax (Excluded)', 'fluent-cart'); ?>
+                <?php endif; ?>
+            </span>
+            <span class="fct_summary_value"<?php echo $isReverseCharge ? ' style="text-decoration:line-through;opacity:0.6;"' : ''; ?>>
+                <?php echo esc_html(Helper::toDecimal($displayAmount)); ?>
+            </span>
+        </li>
+        <?php
+        return '';
+    }
+
+    public function renderTaxSummaryBox($cart)
+    {
+        $taxData           = Arr::get($cart->checkout_data, 'tax_data', []);
+        $taxTotal          = (int) Arr::get($taxData, 'tax_total', 0);
+        $exclusiveTaxTotal = (int) Arr::get($taxData, 'exclusive_tax_total', $taxTotal);
+        $feeTaxLines       = (array) Arr::get($taxData, 'fee_tax_lines', []);
+        $shippingTax       = (int) Arr::get($taxData, 'shipping_tax', 0);
+        $isReverseCharge         = $this->isReverseChargeCheckout($cart->checkout_data);
+        $reversedTaxTotalDisplay = (int) Arr::get($taxData, 'reverse_charge_tax_total', 0);
+
+        $inclusiveFeeTax = 0;
+        $exclusiveFeeTax = 0;
+        foreach ($feeTaxLines as $feeTaxLine) {
+            if (!empty($feeTaxLine['inclusive'])) {
+                $inclusiveFeeTax += (int) Arr::get($feeTaxLine, 'tax_amount', 0);
+            } else {
+                $exclusiveFeeTax += (int) Arr::get($feeTaxLine, 'tax_amount', 0);
+            }
+        }
+        // Fallback: if no fee_tax_lines (old cart data), use aggregate fee_tax as exclusive
+        if (empty($feeTaxLines)) {
+            $exclusiveFeeTax = (int) Arr::get($taxData, 'fee_tax', 0);
+        }
+
+        $inclusiveTax        = max(0, $taxTotal - $exclusiveTaxTotal - $exclusiveFeeTax - $inclusiveFeeTax);
+        $productExclusiveTax = max(0, $exclusiveTaxTotal);
+
+        $isShippingInclusive = \FluentCart\App\Services\Renderer\Receipt\TaxSummaryHelper::isShippingTaxInclusiveFromTaxData(
+            is_array($taxData) ? $taxData : []
+        );
+
+        $payableTax    = $productExclusiveTax + $exclusiveFeeTax + ($isShippingInclusive ? 0 : $shippingTax);
+        $totalOrderTax = $inclusiveTax + $inclusiveFeeTax + ($isShippingInclusive ? $shippingTax : 0) + $payableTax;
+
+        $feeRows  = \FluentCart\App\Services\Renderer\Receipt\TaxSummaryHelper::buildFeeTaxLineRows($feeTaxLines);
+        $feeCount = count($feeRows);
+        if (empty($feeTaxLines) && (int) Arr::get($taxData, 'fee_tax', 0) > 0) {
+            $feeCount = 1;
+        }
+        $rowCount = (int) ($inclusiveTax > 0) + (int) ($productExclusiveTax > 0) + $feeCount + (int) ($shippingTax > 0);
+        // Show breakdowns when multiple rows exist, or when the single row has no visible "total" row to represent it
+        // (e.g. inclusive-shipping-only: payableTax=0, inclusiveTax=0 → neither total row shows → must show the breakdown row)
+        $shouldShowBreakdown = $rowCount >= 2 || ($rowCount === 1 && !($payableTax > 0 || $inclusiveTax > 0 || $inclusiveFeeTax > 0));
+
+        $tooltipId = 'fct-tax-summary-tooltip-' . Helper::getUidSerial();
+        ?>
+        <li class="fct_tax_summary_li" data-fct-tax-summary>
+            <div class="fct_tax_summary_box">
+                <div class="fct_tax_summary_header">
+                    <span class="fct_tax_summary_heading">
+                        <?php esc_html_e('TAX', 'fluent-cart'); ?>
                     </span>
-            <span class="fct_summary_value"><?php echo esc_html(Helper::toDecimal($shippingTax)); ?></span>
+                    <div class="fct_item_tax_hint">
+                        <button
+                            type="button"
+                            class="fct_item_tax_hint_button"
+                            aria-label="<?php esc_attr_e('Tax information', 'fluent-cart'); ?>"
+                            aria-describedby="<?php echo esc_attr($tooltipId); ?>"
+                        >
+                            <span aria-hidden="true">i</span>
+                        </button>
+                        <div class="fct_item_tax_tooltip" id="<?php echo esc_attr($tooltipId); ?>" role="tooltip">
+                            <span class="fct_item_tax_tooltip_heading">
+                                <?php esc_html_e('About your tax', 'fluent-cart'); ?>
+                            </span>
+                            <?php if ($isReverseCharge) : ?>
+                            <span class="fct_item_tax_tooltip_line">
+                                <?php esc_html_e('Tax has been reversed for this order.', 'fluent-cart'); ?>
+                            </span>
+                            <?php else : ?>
+                                <?php if ($payableTax > 0) : ?>
+                                <span class="fct_item_tax_tooltip_line">
+                                    <?php esc_html_e('"Total payable tax" is added on top of listed prices.', 'fluent-cart'); ?>
+                                </span>
+                                <?php endif; ?>
+                                <?php if ($inclusiveTax > 0) : ?>
+                                <span class="fct_item_tax_tooltip_line">
+                                    <?php esc_html_e('"Included in item prices" is already built into product prices.', 'fluent-cart'); ?>
+                                </span>
+                                <?php endif; ?>
+                                <?php if ($payableTax === 0 && $inclusiveTax === 0) : ?>
+                                <span class="fct_item_tax_tooltip_line">
+                                    <?php esc_html_e('No tax applies to this order.', 'fluent-cart'); ?>
+                                </span>
+                                <?php endif; ?>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                </div>
+                <div class="fct_tax_summary_rows">
+                    <?php if ($isReverseCharge) : ?>
+                        <?php
+                            $rcShippingDisplay  = (int) Arr::get($taxData, 'reverse_charge_shipping_tax', 0);
+                            $rcInclusiveAdj     = (int) Arr::get($taxData, 'reverse_charge_inclusive_adjustment', 0);
+                            $rcExclusiveNonShip = max(0, $reversedTaxTotalDisplay - $rcShippingDisplay - $rcInclusiveAdj);
+                            $rcBreakdownCount   = (int) ($rcInclusiveAdj > 0) + (int) ($rcExclusiveNonShip > 0) + (int) ($rcShippingDisplay > 0);
+                        ?>
+                        <?php if ($rcBreakdownCount >= 2) : ?>
+                            <?php if ($rcInclusiveAdj > 0) : ?>
+                            <div class="fct_tax_summary_row fct_tax_summary_row--muted">
+                                <span class="fct_tax_summary_row_label">
+                                    <?php esc_html_e('Included in item prices', 'fluent-cart'); ?>
+                                </span>
+                                <span class="fct_tax_summary_row_amount" style="text-decoration:line-through;opacity:0.6;">
+                                    <?php echo esc_html(Helper::toDecimal($rcInclusiveAdj)); ?>
+                                </span>
+                            </div>
+                            <?php endif; ?>
+                            <?php if ($rcExclusiveNonShip > 0) : ?>
+                            <div class="fct_tax_summary_row">
+                                <span class="fct_tax_summary_row_label">
+                                    <?php esc_html_e('Added on products', 'fluent-cart'); ?>
+                                </span>
+                                <span class="fct_tax_summary_row_amount" style="text-decoration:line-through;opacity:0.6;">
+                                    <?php echo esc_html(Helper::toDecimal($rcExclusiveNonShip)); ?>
+                                </span>
+                            </div>
+                            <?php endif; ?>
+                            <?php if ($rcShippingDisplay > 0) : ?>
+                            <div class="fct_tax_summary_row<?php echo $isShippingInclusive ? ' fct_tax_summary_row--muted' : ''; ?>">
+                                <span class="fct_tax_summary_row_label">
+                                    <?php echo $isShippingInclusive ? esc_html__('Included in shipping prices', 'fluent-cart') : esc_html__('Added on shipping', 'fluent-cart'); ?>
+                                </span>
+                                <span class="fct_tax_summary_row_amount" style="text-decoration:line-through;opacity:0.6;">
+                                    <?php echo esc_html(Helper::toDecimal($rcShippingDisplay)); ?>
+                                </span>
+                            </div>
+                            <?php endif; ?>
+                        <?php elseif ($rcShippingDisplay > 0) : ?>
+                        <div class="fct_tax_summary_row fct_tax_summary_row--muted">
+                            <span class="fct_tax_summary_row_label">
+                                <?php echo $isShippingInclusive ? esc_html__('Included in shipping prices', 'fluent-cart') : esc_html__('Added on shipping', 'fluent-cart'); ?>
+                            </span>
+                            <span class="fct_tax_summary_row_amount" style="text-decoration:line-through;opacity:0.6;">
+                                <?php echo esc_html(Helper::toDecimal($rcShippingDisplay)); ?>
+                            </span>
+                        </div>
+                        <?php endif; ?>
+                        <div class="fct_tax_summary_row fct_tax_summary_row--total">
+                            <span class="fct_tax_summary_row_label">
+                                <?php esc_html_e('Tax reversed', 'fluent-cart'); ?>
+                            </span>
+                            <span class="fct_tax_summary_row_amount">
+                                <?php echo esc_html(Helper::toDecimal($reversedTaxTotalDisplay)); ?>
+                            </span>
+                        </div>
+                    <?php else : ?>
+                        <?php if ($inclusiveTax > 0 && $shouldShowBreakdown) : ?>
+                        <div class="fct_tax_summary_row fct_tax_summary_row--muted">
+                            <span class="fct_tax_summary_row_label">
+                                <?php esc_html_e('Included in item prices', 'fluent-cart'); ?>
+                            </span>
+                            <span class="fct_tax_summary_row_amount">
+                                <?php echo esc_html(Helper::toDecimal($inclusiveTax)); ?>
+                            </span>
+                        </div>
+                        <?php endif; ?>
+                        <?php if ($productExclusiveTax > 0 && $shouldShowBreakdown) : ?>
+                        <div class="fct_tax_summary_row">
+                            <span class="fct_tax_summary_row_label">
+                                <?php esc_html_e('Added on products', 'fluent-cart'); ?>
+                            </span>
+                            <span class="fct_tax_summary_row_amount">
+                                <?php echo esc_html(Helper::toDecimal($productExclusiveTax)); ?>
+                            </span>
+                        </div>
+                        <?php endif; ?>
+                        <?php if ($shouldShowBreakdown) : ?>
+                        <?php foreach ($feeRows as $feeRow) : ?>
+                        <div class="fct_tax_summary_row<?php echo $feeRow['inclusive'] ? ' fct_tax_summary_row--muted' : ''; ?>">
+                            <span class="fct_tax_summary_row_label">
+                                <?php echo esc_html($feeRow['display_label']); ?>
+                            </span>
+                            <span class="fct_tax_summary_row_amount">
+                                <?php echo esc_html(Helper::toDecimal($feeRow['tax_amount'])); ?>
+                            </span>
+                        </div>
+                        <?php endforeach; ?>
+                        <?php endif; ?>
+                        <?php if (empty($feeTaxLines) && (int) Arr::get($taxData, 'fee_tax', 0) > 0 && $shouldShowBreakdown) : ?>
+                        <div class="fct_tax_summary_row">
+                            <span class="fct_tax_summary_row_label">
+                                <?php esc_html_e('Added on fees', 'fluent-cart'); ?>
+                            </span>
+                            <span class="fct_tax_summary_row_amount">
+                                <?php echo esc_html(Helper::toDecimal((int) Arr::get($taxData, 'fee_tax', 0))); ?>
+                            </span>
+                        </div>
+                        <?php endif; ?>
+                        <?php if ($shippingTax > 0 && $shouldShowBreakdown) : ?>
+                        <div class="fct_tax_summary_row<?php echo $isShippingInclusive ? ' fct_tax_summary_row--muted' : ''; ?>">
+                            <span class="fct_tax_summary_row_label">
+                                <?php if ($isShippingInclusive) : ?>
+                                    <?php esc_html_e('Included in shipping prices', 'fluent-cart'); ?>
+                                <?php else : ?>
+                                    <?php esc_html_e('Added on shipping', 'fluent-cart'); ?>
+                                <?php endif; ?>
+                            </span>
+                            <span class="fct_tax_summary_row_amount">
+                                <?php echo esc_html(Helper::toDecimal($shippingTax)); ?>
+                            </span>
+                        </div>
+                        <?php endif; ?>
+                        <?php if ($payableTax > 0) : ?>
+                        <div class="fct_tax_summary_row fct_tax_summary_row--total">
+                            <span class="fct_tax_summary_row_label">
+                                <?php esc_html_e('Total payable tax', 'fluent-cart'); ?>
+                            </span>
+                            <span class="fct_tax_summary_row_amount">
+                                <?php echo esc_html(Helper::toDecimal($payableTax)); ?>
+                            </span>
+                        </div>
+                        <?php endif; ?>
+                        <?php if ($inclusiveTax > 0 || $inclusiveFeeTax > 0) : ?>
+                        <div class="fct_tax_summary_row fct_tax_summary_row--muted">
+                            <span class="fct_tax_summary_row_label">
+                                <?php esc_html_e('Total tax in this order', 'fluent-cart'); ?>
+                            </span>
+                            <span class="fct_tax_summary_row_amount">
+                                <?php echo esc_html(Helper::toDecimal($totalOrderTax)); ?>
+                            </span>
+                        </div>
+                        <?php endif; ?>
+                    <?php endif; ?>
+                </div>
+            </div>
         </li>
         <?php
     }
 
-    public function renderCompoundTaxRow($cart, $atts = '')
+    public function maybeRestoreRcAdjustedPrices($data)
     {
-        $taxAmount = (int)Arr::get($cart->checkout_data, 'tax_data.tax_total', 0);
-        $taxLines = Arr::get($cart->checkout_data, 'tax_data.tax_lines', []);
-        $shippingTax = (int)Arr::get($cart->checkout_data, 'tax_data.shipping_tax', 0);
-        $isInclusive = Arr::get($cart->checkout_data, 'tax_data.tax_behavior', 2) === 2;
-        $isReverseCharge = Arr::get($cart->checkout_data, 'tax_data.valid', false);
-
-        foreach ($taxLines as $taxLine) {
-            $rateLabel = Arr::get($taxLine, 'label', 'Tax');
-            $rateTaxAmount = (int)Arr::get($taxLine, 'tax_amount', 0);
-            $isCompound = Arr::get($taxLine, 'is_compound', false);
-            $taxableBase = (int)Arr::get($taxLine, 'taxable_amount', 0);
-            $ratePercent = Arr::get($taxLine, 'rate_percent', 0);
-
-            // Build the label with compound indicator if needed
-            $displayLabel = $rateLabel;
-            if ($isCompound) {
-                $displayLabel .= ' (' . __('Compound', 'fluent-cart') . ')';
-            }
-
-            // Add calculation details if available
-            if ($taxableBase && $ratePercent) {
-                $displayLabel .= ' [' . Helper::toDecimal($taxableBase) . ' × ' . number_format($ratePercent, 2) . '%]';
-            }
-            ?>
-            <li>
-                <span class="fct_summary_label">
-                    <?php if ($isInclusive) : ?>
-                        <?php echo esc_html($displayLabel . ' (' . __('Included', 'fluent-cart') . ')'); ?>
-                    <?php else : ?>
-                        <?php echo esc_html($displayLabel . ' (' . __('Excluded', 'fluent-cart') . ')'); ?>
-                    <?php endif; ?>
-                </span>
-                <span class="fct_summary_value"><?php echo esc_html(Helper::toDecimal($rateTaxAmount)); ?></span>
-            </li>
-            <?php
+        if ($this->isEnabled()) {
+            return; // full recalculation handled by recalculateTax registered below
         }
+
+        $cart         = Arr::get($data, 'cart');
+        $cartLines    = (array) $cart->cart_data;
+        $checkoutData = $cart->checkout_data;
+
+        $hasRcMeta = !empty(Arr::get($checkoutData, 'tax_data.rc_adjusted_fees'));
+
+        if (!$hasRcMeta) {
+            foreach ($cartLines as $line) {
+                if (
+                    Arr::get($line, 'line_meta.original_unit_price') !== null ||
+                    Arr::get($line, 'other_info.original_signup_fee') !== null
+                ) {
+                    $hasRcMeta = true;
+                    break;
+                }
+            }
+        }
+
+        if (!$hasRcMeta) {
+            return;
+        }
+
+        $this->recalculateTax($data);
     }
 
     public function recalculateTax($data)
     {
         $cart = Arr::get($data, 'cart');
 
-        // Persist dynamic fees so tax pipeline can see them
+        // Get all fees (stored + dynamic) at gross (pre-RC) amounts so dynamic
+        // fees added via fluent_cart/cart/fees are included in the tax pipeline.
+        // Temporarily remove applyRcFeeAdjustments so it cannot override dynamic
+        // fee amounts with previously-stored RC-net values; calculateCartTax()
+        // recomputes the RC adjustment from scratch if RC is still active.
         $checkoutData = $cart->checkout_data;
-        $checkoutData['fees'] = $cart->getFees();
+        remove_filter('fluent_cart/cart/fees', [$this, 'applyRcFeeAdjustments'], 20);
+        $cart->clearFeeCache();
+        try {
+            $checkoutData['fees'] = $cart->getFees();
+        } finally {
+            add_filter('fluent_cart/cart/fees', [$this, 'applyRcFeeAdjustments'], 20, 2);
+            $cart->clearFeeCache();
+        }
 
         $fillData = $this->calculateCartTax([
             'cart_data'     => $cart->cart_data,
@@ -209,22 +549,81 @@ class TaxModule
         $changes = Arr::get($data, 'changes', []);
 
         $watchings = array_filter($changes, function ($value, $key) {
-            return preg_match('/^(billing_|shipping_|ship_to_|fct_billing_tax)/i', $key);
+            return preg_match('/^(billing_|shipping_|ship_to_|fct_billing_tax|is_business)/i', $key);
         }, ARRAY_FILTER_USE_BOTH);
 
         if (empty($watchings)) {
             return $fillData;
         }
 
-        // Persist dynamic fees so tax pipeline can see them
+        if (isset($changes['is_business']) && $changes['is_business'] === 'no') {
+            $checkoutData = Arr::get($fillData, 'checkout_data', []);
+            if (Arr::get($checkoutData, 'tax_data.valid', false)) {
+                $checkoutData['tax_data']['valid'] = false;
+                unset($checkoutData['tax_data']['name']);
+                unset($checkoutData['tax_data']['address']);
+                unset($checkoutData['tax_data']['country']);
+                $fillData['checkout_data'] = $checkoutData;
+            }
+        }
+
+        // Persist dynamic fees so tax pipeline can see them. Use gross (pre-RC)
+        // amounts to prevent compounding when the address changes while RC is active.
         $cart = Arr::get($data, 'cart');
         if ($cart) {
             $checkoutData = Arr::get($fillData, 'checkout_data', []);
-            $checkoutData['fees'] = $cart->getFees();
+            remove_filter('fluent_cart/cart/fees', [$this, 'applyRcFeeAdjustments'], 20);
+            $cart->clearFeeCache();
+            try {
+                $checkoutData['fees'] = $cart->getFees();
+            } finally {
+                add_filter('fluent_cart/cart/fees', [$this, 'applyRcFeeAdjustments'], 20, 2);
+                $cart->clearFeeCache();
+            }
             $fillData['checkout_data'] = $checkoutData;
         }
 
+        $fillData['checkout_data'] = $this->maybeInvalidateVatValidationForCountryChange(
+            Arr::get($fillData, 'checkout_data', []),
+            [
+                'ship_to_different' => Arr::get($data, 'prev_data.ship_to_different', Arr::get($fillData, 'checkout_data.form_data.ship_to_different', 'no')),
+                'billing_country'   => Arr::get($data, 'prev_data.billing_country', Arr::get($fillData, 'checkout_data.form_data.billing_country', '')),
+                'shipping_country'  => Arr::get($data, 'prev_data.shipping_country', Arr::get($fillData, 'checkout_data.form_data.shipping_country', '')),
+            ]
+        );
+
         return $this->calculateCartTax($fillData);
+    }
+
+    public function maybeInvalidateVatValidationForCountryChange($checkoutData, $previousFormData = [])
+    {
+        if (!Arr::get($checkoutData, 'tax_data.valid', false)) {
+            return $checkoutData;
+        }
+
+        $taxCalculationBasis = Arr::get($this->taxSettings, 'tax_calculation_basis', 'shipping');
+
+        $previousApplicableCountry = $this->getTaxApplicableCountry($taxCalculationBasis, [
+            'ship_to_different' => Arr::get($previousFormData, 'ship_to_different', Arr::get($checkoutData, 'form_data.ship_to_different', 'no')),
+            'billing_country'   => Arr::get($previousFormData, 'billing_country', Arr::get($checkoutData, 'form_data.billing_country', '')),
+            'shipping_country'  => Arr::get($previousFormData, 'shipping_country', Arr::get($checkoutData, 'form_data.shipping_country', '')),
+        ]);
+
+        $currentApplicableCountry = $this->getTaxApplicableCountry(
+            $taxCalculationBasis,
+            Arr::get($checkoutData, 'form_data', [])
+        );
+
+        if ($previousApplicableCountry === $currentApplicableCountry) {
+            return $checkoutData;
+        }
+
+        unset($checkoutData['tax_data']['valid']);
+        unset($checkoutData['tax_data']['name']);
+        unset($checkoutData['tax_data']['address']);
+        unset($checkoutData['tax_data']['country']);
+
+        return $checkoutData;
     }
 
     public function getSettings()
@@ -237,16 +636,515 @@ class TaxModule
             'tax_inclusion'         => 'included',
             'tax_calculation_basis' => 'shipping',
             'tax_rounding'          => 'item',
+            'checkout_tax_breakdown_display' => 'both',
             'enable_tax'            => 'no',
             'eu_vat_settings'       => [
                 'require_vat_number'              => 'no',
-                'local_reverse_charge'            => 'yes',
+                'local_reverse_charge'            => 'no',
+                'reverse_charge_price_mode'       => 'fixed',
                 'vat_reverse_excluded_categories' => []
             ]
         ];
 
         $savedSettings = get_option('fluent_cart_tax_configuration_settings', []);
-        return $this->taxSettings = wp_parse_args($savedSettings, $defaultSettings);
+        $settings = wp_parse_args($savedSettings, $defaultSettings);
+
+        // country_registrations live in fct_meta — inject so all consumers see one shape.
+        $registrations = TaxManager::getInstance()->getEuVatRegistrations();
+        $settings['eu_vat_settings']['country_registrations'] = $registrations;
+
+        return $this->taxSettings = $settings;
+    }
+
+    private function getEffectiveRcMode()
+    {
+        $settings = $this->getSettings();
+        return Arr::get($settings, 'eu_vat_settings.reverse_charge_price_mode', 'fixed');
+    }
+
+    protected function getCheckoutTaxBreakdownDisplayMode()
+    {
+        $mode = Arr::get($this->getSettings(), 'checkout_tax_breakdown_display', 'both');
+
+        if (!in_array($mode, ['both', 'label', 'tooltip'], true)) {
+            return 'both';
+        }
+
+        return $mode;
+    }
+
+    protected function normalizeCheckoutLineTaxRates($item)
+    {
+        $rates = Arr::get($item, 'line_meta.tax_config.rates', []);
+        if (empty($rates) || !is_array($rates)) {
+            return [];
+        }
+
+        $isInclusive = (bool) Arr::get($item, 'line_meta.tax_config.inclusive', false);
+        $normalizedRates = [];
+
+        foreach ($rates as $rate) {
+            $taxAmount = (int) Arr::get($rate, 'tax_amount', 0);
+            $ratePercent = (float) Arr::get($rate, 'rate_percent', 0);
+            $taxableAmount = (int) Arr::get($rate, 'taxable_amount', 0);
+
+            if ($taxAmount <= 0 && $ratePercent <= 0) {
+                continue;
+            }
+
+            $normalizedRates[] = [
+                'label'          => (string) Arr::get($rate, 'label', __('Tax', 'fluent-cart')),
+                'short_label'    => $this->getCheckoutLineTaxShortLabel((string) Arr::get($rate, 'label', '')),
+                'formatted_rate' => Helper::formatTaxRatePercent((float) $ratePercent),
+                'tax_amount'     => $taxAmount,
+                'display_base'   => $isInclusive ? max(0, $taxableAmount - $taxAmount) : $taxableAmount,
+                'inclusive'      => $isInclusive,
+            ];
+        }
+
+        return $normalizedRates;
+    }
+
+    protected function getCheckoutLineTaxShortLabel($label)
+    {
+        $label = trim((string) $label);
+
+        if (!$label) {
+            return __('Tax', 'fluent-cart');
+        }
+
+        return $label;
+    }
+
+    private function shouldRateStrikethrough($isReversed, $rateIsInclusive, $rcMode)
+    {
+        if (!$isReversed) {
+            return false;
+        }
+        return !$rateIsInclusive || $rcMode === 'dynamic';
+    }
+
+    public function renderCheckoutLineItemTaxLabel($data)
+    {
+        $mode = $this->getCheckoutTaxBreakdownDisplayMode();
+        if (!in_array($mode, ['both', 'label'], true)) {
+            return;
+        }
+
+        $item = Arr::get($data, 'item', []);
+        $rates = $this->normalizeCheckoutLineTaxRates($item);
+        if (empty($rates)) {
+            return;
+        }
+        $cart = CartHelper::getCart();
+        $isReversed = $cart ? $this->isReverseChargeCheckout($cart->checkout_data) : false;
+        $rcMode = $this->getEffectiveRcMode();
+        $this->renderTaxBadges($rates, $isReversed, $rcMode);
+    }
+
+    public function renderCheckoutSetupFeeTaxLabel($data)
+    {
+        $mode = $this->getCheckoutTaxBreakdownDisplayMode();
+        if (!in_array($mode, ['both', 'label'], true)) {
+            return;
+        }
+
+        $item = Arr::get($data, 'item', []);
+        $signupFeeTaxConfig = Arr::get($item, 'signup_fee_tax_config', []);
+        $rates = Arr::get($signupFeeTaxConfig, 'rates', []);
+        if (empty($rates) || !is_array($rates)) {
+            return;
+        }
+
+        $isInclusive = (bool) Arr::get($signupFeeTaxConfig, 'inclusive', false);
+        $normalizedRates = [];
+        foreach ($rates as $rate) {
+            $taxAmount = (int) Arr::get($rate, 'tax_amount', 0);
+            $ratePercent = (float) Arr::get($rate, 'rate_percent', 0);
+            if ($taxAmount <= 0 && $ratePercent <= 0) {
+                continue;
+            }
+            $normalizedRates[] = [
+                'short_label'    => $this->getCheckoutLineTaxShortLabel((string) Arr::get($rate, 'label', '')),
+                'formatted_rate' => Helper::formatTaxRatePercent((float) $ratePercent),
+                'inclusive'      => $isInclusive,
+                'tax_amount'     => $taxAmount,
+            ];
+        }
+
+        if (empty($normalizedRates)) {
+            return;
+        }
+        $cart = CartHelper::getCart();
+        $isReversed = $cart ? $this->isReverseChargeCheckout($cart->checkout_data) : false;
+        $rcMode = $this->getEffectiveRcMode();
+        $this->renderTaxBadges($normalizedRates, $isReversed, $rcMode);
+    }
+
+    private function renderTaxBadges(array $normalizedRates, $isReversed = false, $rcMode = 'fixed')
+    {
+        ?>
+        <div class="fct_item_tax_badges" aria-label="<?php esc_attr_e('Tax breakdown', 'fluent-cart'); ?>">
+            <?php foreach ($normalizedRates as $rate) : ?>
+                <div class="fct_item_tax_badge_row">
+                    <span class="fct_item_tax_badge <?php echo esc_attr($rate['inclusive'] ? 'is-inclusive' : 'is-exclusive'); ?>">
+                        <span>
+                            <?php
+                            $badgeText = sprintf(
+                            /* translators: %1$s: tax label, %2$s: tax rate percent */
+                                    __('%1$s (%2$s%%)', 'fluent-cart'),
+                                    $rate['short_label'],
+                                    $rate['formatted_rate']
+                            );
+                            echo esc_html($badgeText);
+                            ?>
+                        </span>
+                    </span>
+                    <?php if (!empty($rate['tax_amount']) && (int) $rate['tax_amount'] > 0) : ?>
+                        <?php $rateReversedClass = $this->shouldRateStrikethrough($isReversed, $rate['inclusive'], $rcMode) ? ' is-reversed' : ''; ?>
+                        <span class="fct_item_tax_badge_amount <?php echo esc_attr($rate['inclusive'] ? 'is-inclusive' : 'is-exclusive'); ?><?php echo esc_attr($rateReversedClass); ?>">
+                            <?php
+                            $amountText = $rate['inclusive']
+                                ? sprintf(
+                                    /* translators: %1$s: formatted tax amount */
+                                    __('incl. %1$s', 'fluent-cart'),
+                                    Helper::toDecimal((int) $rate['tax_amount'])
+                                )
+                                : sprintf(
+                                    /* translators: %1$s: formatted tax amount */
+                                    __('+ %1$s', 'fluent-cart'),
+                                    Helper::toDecimal((int) $rate['tax_amount'])
+                                );
+                            echo esc_html($amountText);
+                            ?>
+                        </span>
+                    <?php endif; ?>
+                </div>
+            <?php endforeach; ?>
+        </div>
+        <?php
+    }
+
+    private function getSetupFeeTaxData($item)
+    {
+        $signupFeeTaxConfig = Arr::get($item, 'signup_fee_tax_config', []);
+        $rawRates = Arr::get($signupFeeTaxConfig, 'rates', []);
+        if (empty($rawRates) || !is_array($rawRates)) {
+            return null;
+        }
+
+        $isInclusive = (bool) Arr::get($signupFeeTaxConfig, 'inclusive', false);
+        $rates = [];
+        foreach ($rawRates as $rate) {
+            $taxAmount   = (int) Arr::get($rate, 'tax_amount', 0);
+            $ratePercent = (float) Arr::get($rate, 'rate_percent', 0);
+            if ($taxAmount <= 0 && $ratePercent <= 0) {
+                continue;
+            }
+            $taxableAmount = (int) Arr::get($rate, 'taxable_amount', 0);
+            $rates[] = [
+                'short_label'    => $this->getCheckoutLineTaxShortLabel((string) Arr::get($rate, 'label', '')),
+                'formatted_rate' => Helper::formatTaxRatePercent((float) $ratePercent),
+                'tax_amount'     => $taxAmount,
+                'display_base'   => $isInclusive ? max(0, $taxableAmount - $taxAmount) : $taxableAmount,
+            ];
+        }
+
+        if (empty($rates)) {
+            return null;
+        }
+
+        $setupFee = (int) Arr::get($item, 'other_info.signup_fee', 0);
+        $totalTax = array_sum(array_map(function ($rate) {
+            return (int) $rate['tax_amount'];
+        }, $rates));
+
+        return [
+            'rates'         => $rates,
+            'is_inclusive'  => $isInclusive,
+            'total_tax'     => $totalTax,
+            'display_total' => $isInclusive ? $setupFee : $setupFee + $totalTax,
+            'primary_label' => Arr::get($rates, '0.short_label', __('Tax', 'fluent-cart')),
+        ];
+    }
+
+    public function renderCheckoutSetupFeeTaxTooltip($data)
+    {
+        $mode = $this->getCheckoutTaxBreakdownDisplayMode();
+        if (!in_array($mode, ['both', 'tooltip'], true)) {
+            return;
+        }
+
+        $item    = Arr::get($data, 'item', []);
+        $taxData = $this->getSetupFeeTaxData($item);
+        if (!$taxData) {
+            return;
+        }
+
+        $cart = CartHelper::getCart();
+        $isReversed = $cart ? $this->isReverseChargeCheckout($cart->checkout_data) : false;
+        $rcMode = $this->getEffectiveRcMode();
+
+        $rates        = $taxData['rates'];
+        $isInclusive  = $taxData['is_inclusive'];
+        $displayTotal = $taxData['display_total'];
+        if ($isReversed) {
+            if ($taxData['is_inclusive'] && $rcMode === 'dynamic') {
+                $displayTotal = $taxData['display_total'] - $taxData['total_tax'];
+            } else {
+                $displayTotal = (int) Arr::get($data, 'item.other_info.signup_fee', 0);
+            }
+        }
+        $tooltipId    = 'fct-item-tax-tooltip-' . Helper::getUidSerial();
+        ?>
+        <div class="fct_item_tax_hint">
+            <button
+                type="button"
+                class="fct_item_tax_hint_button"
+                aria-label="<?php esc_attr_e('View tax breakdown for this item', 'fluent-cart'); ?>"
+                aria-describedby="<?php echo esc_attr($tooltipId); ?>"
+            >
+                <span aria-hidden="true">i</span>
+            </button>
+            <div class="fct_item_tax_tooltip" id="<?php echo esc_attr($tooltipId); ?>" role="tooltip">
+                <span class="fct_item_tax_tooltip_heading">
+                    <?php echo esc_html($isInclusive ? __('Tax-inclusive price', 'fluent-cart') : __('Tax-exclusive price', 'fluent-cart')); ?>
+                </span>
+                <?php foreach ($rates as $rate) : ?>
+                    <?php $lineReversedClass = $this->shouldRateStrikethrough($isReversed, isset($rate['inclusive']) ? (bool)$rate['inclusive'] : $taxData['is_inclusive'], $rcMode) ? ' is-reversed' : ''; ?>
+                    <span class="fct_item_tax_tooltip_line<?php echo esc_attr($lineReversedClass); ?>">
+                        <?php
+                        $lineText = sprintf(
+                            /* translators: %1$s: tax base amount, %2$s: tax label, %3$s: tax rate percent, %4$s: tax amount */
+                            __('Base %1$s + %2$s %3$s%% %4$s', 'fluent-cart'),
+                            Helper::toDecimal($rate['display_base']),
+                            $rate['short_label'],
+                            $rate['formatted_rate'],
+                            Helper::toDecimal($rate['tax_amount'])
+                        );
+                        echo esc_html($lineText);
+                        ?>
+                    </span>
+                <?php endforeach; ?>
+                <span class="fct_item_tax_tooltip_line is-total">
+                    <?php
+                    echo esc_html(sprintf(
+                        /* translators: %1$s: line total amount */
+                        __('Total %1$s', 'fluent-cart'),
+                        Helper::toDecimal($displayTotal)
+                    ));
+                    ?>
+                </span>
+            </div>
+        </div>
+        <?php
+    }
+
+    public function renderCheckoutSetupFeeTaxInfo($data)
+    {
+        $mode = $this->getCheckoutTaxBreakdownDisplayMode();
+        if (!in_array($mode, ['both', 'label'], true)) {
+            return;
+        }
+
+        $item    = Arr::get($data, 'item', []);
+        $taxData = $this->getSetupFeeTaxData($item);
+        if (!$taxData) {
+            return;
+        }
+
+        $isInclusive  = $taxData['is_inclusive'];
+        $totalTax     = $taxData['total_tax'];
+        $primaryLabel = $taxData['primary_label'];
+
+        $priceNote = $isInclusive
+            ? sprintf(
+                /* translators: %1$s: tax label */
+                __('%1$s incl.', 'fluent-cart'),
+                $primaryLabel
+            )
+            : sprintf(
+                /* translators: %1$s: tax amount, %2$s: tax label */
+                __('+ %1$s %2$s', 'fluent-cart'),
+                Helper::toDecimal($totalTax),
+                strtolower($primaryLabel)
+            );
+        ?>
+        <span class="fct_setup_fee_price_note"><?php echo esc_html($priceNote); ?></span>
+        <?php
+    }
+
+    public function renderCheckoutLineItemTaxTooltip($data)
+    {
+        $mode = $this->getCheckoutTaxBreakdownDisplayMode();
+        if (!in_array($mode, ['both', 'tooltip'], true)) {
+            return;
+        }
+
+        $item  = Arr::get($data, 'item', []);
+        $rates = $this->normalizeCheckoutLineTaxRates($item);
+        if (empty($rates)) {
+            return;
+        }
+
+        $cart = CartHelper::getCart();
+        $isReversed = $cart ? $this->isReverseChargeCheckout($cart->checkout_data) : false;
+        $rcMode = $this->getEffectiveRcMode();
+
+        $isInclusive   = (bool) Arr::get($rates, '0.inclusive', false);
+        $itemSubtotal  = (int) Arr::get($item, 'line_total', Arr::get($item, 'subtotal', 0));
+        $itemTaxAmount = array_sum(array_map(function ($rate) {
+            return (int) Arr::get($rate, 'tax_amount', 0);
+        }, $rates));
+        if ($isReversed) {
+            if ($isInclusive && $rcMode === 'dynamic') {
+                $displayTotal = $itemSubtotal - $itemTaxAmount;
+            } else {
+                $displayTotal = $itemSubtotal;
+            }
+        } else {
+            $displayTotal = $isInclusive ? $itemSubtotal : $itemSubtotal + $itemTaxAmount;
+        }
+        $tooltipId    = 'fct-item-tax-tooltip-' . Helper::getUidSerial();
+        ?>
+        <div class="fct_item_tax_hint">
+            <button
+                type="button"
+                class="fct_item_tax_hint_button"
+                aria-label="<?php esc_attr_e('View tax breakdown for this item', 'fluent-cart'); ?>"
+                aria-describedby="<?php echo esc_attr($tooltipId); ?>"
+            >
+                <span aria-hidden="true">i</span>
+            </button>
+            <div class="fct_item_tax_tooltip" id="<?php echo esc_attr($tooltipId); ?>" role="tooltip">
+                <span class="fct_item_tax_tooltip_heading">
+                    <?php echo esc_html($isInclusive ? __('Tax-inclusive price', 'fluent-cart') : __('Tax-exclusive price', 'fluent-cart')); ?>
+                </span>
+                <?php foreach ($rates as $rate) : ?>
+                    <?php $lineReversedClass = $this->shouldRateStrikethrough($isReversed, $rate['inclusive'], $rcMode) ? ' is-reversed' : ''; ?>
+                    <span class="fct_item_tax_tooltip_line<?php echo esc_attr($lineReversedClass); ?>">
+                        <?php
+                        $lineText = sprintf(
+                            /* translators: %1$s: tax base amount, %2$s: tax label, %3$s: tax rate percent, %4$s: tax amount */
+                            __('Base %1$s + %2$s %3$s%% %4$s', 'fluent-cart'),
+                            Helper::toDecimal($rate['display_base']),
+                            $rate['short_label'],
+                            $rate['formatted_rate'],
+                            Helper::toDecimal($rate['tax_amount'])
+                        );
+                        echo esc_html($lineText);
+                        ?>
+                    </span>
+                <?php endforeach; ?>
+                <span class="fct_item_tax_tooltip_line is-total">
+                    <?php
+                    echo esc_html(sprintf(
+                        /* translators: %1$s: line total amount */
+                        __('Total %1$s', 'fluent-cart'),
+                        Helper::toDecimal($displayTotal)
+                    ));
+                    ?>
+                </span>
+            </div>
+        </div>
+        <?php
+    }
+
+    public function renderCheckoutLineItemTaxInfo($data)
+    {
+        $mode = $this->getCheckoutTaxBreakdownDisplayMode();
+        if (!in_array($mode, ['both', 'label'], true)) {
+            return;
+        }
+
+        $item  = Arr::get($data, 'item', []);
+        $rates = $this->normalizeCheckoutLineTaxRates($item);
+        if (empty($rates)) {
+            return;
+        }
+
+        $isInclusive   = (bool) Arr::get($rates, '0.inclusive', false);
+        $itemTaxAmount = array_sum(array_map(function ($rate) {
+            return (int) Arr::get($rate, 'tax_amount', 0);
+        }, $rates));
+        $primaryLabel = Arr::get($rates, '0.short_label', __('Tax', 'fluent-cart'));
+
+        $priceNote = $isInclusive
+            ? sprintf(
+                /* translators: %1$s: tax label */
+                __('%1$s incl.', 'fluent-cart'),
+                $primaryLabel
+            )
+            : sprintf(
+                /* translators: %1$s: tax amount, %2$s: tax label */
+                __('+ %1$s %2$s', 'fluent-cart'),
+                Helper::toDecimal($itemTaxAmount),
+                strtolower($primaryLabel)
+            );
+        ?>
+        <div class="fct_item_tax_price_note"><?php echo esc_html($priceNote); ?></div>
+        <?php
+    }
+
+    public function renderUnitPriceRoundingTooltip($data)
+    {
+        $item      = Arr::get($data, 'item', []);
+        $quantity  = (int) Arr::get($item, 'quantity', 1);
+
+        if ($quantity < 2) {
+            return;
+        }
+
+        $unitPrice = (int) Arr::get($item, 'unit_price', 0);
+        $subtotal  = (int) Arr::get($item, 'subtotal', 0);
+
+        if ($unitPrice <= 0) {
+            return;
+        }
+
+        $shouldShow = false;
+
+        // Case 1 — TaxModule RC dynamic: the applied per-unit tax adjustment is rounded,
+        // so unit_price * qty may differ from the exact net by up to (qty - 1) cents.
+        $rcAdjustment = (int) Arr::get($item, 'line_meta.reverse_charge_adjustment', 0);
+        if ($rcAdjustment > 0) {
+            $rates          = (array) Arr::get($item, 'line_meta.tax_config.rates', []);
+            $actualTaxTotal = (int) array_sum(array_map('intval', array_column($rates, 'tax_amount')));
+            $diff           = abs($rcAdjustment - $actualTaxTotal);
+            if ($diff > 0 && $diff <= $quantity) {
+                $shouldShow = true;
+            }
+        }
+
+        // Case 2 — generic: unit_price * qty already doesn't match subtotal
+        // (future dynamic pricing or any other module that stores a rounded unit_price)
+        if (!$shouldShow && $subtotal > 0) {
+            $diff = abs(($unitPrice * $quantity) - $subtotal);
+            if ($diff > 0 && $diff <= $quantity) {
+                $shouldShow = true;
+            }
+        }
+
+        if (!$shouldShow) {
+            return;
+        }
+
+        $tooltipId = 'fct-unit-price-rounding-' . Helper::getUidSerial();
+        ?>
+        <div class="fct_item_tax_hint">
+            <button
+                type="button"
+                class="fct_item_tax_hint_button"
+                aria-label="<?php esc_attr_e('Unit price rounding information', 'fluent-cart'); ?>"
+                aria-describedby="<?php echo esc_attr($tooltipId); ?>"
+            >
+                <span aria-hidden="true">i</span>
+            </button>
+            <div class="fct_item_tax_tooltip fct_unit_price_rounding_tooltip" id="<?php echo esc_attr($tooltipId); ?>" role="tooltip">
+                <?php esc_html_e('Unit price is rounded for display. The line total is calculated at full precision, so it always reconciles exactly.', 'fluent-cart'); ?>
+            </div>
+        </div>
+        <?php
     }
 
     public function isEnabled()
@@ -259,6 +1157,36 @@ class TaxModule
     {
         $lineItems = Arr::get($fillData, 'cart_data', []);
         $checkoutData = Arr::get($fillData, 'checkout_data', []);
+
+        // Pre-restore: undo any previous dynamic RC unit_price adjustment before TaxCalculator
+        // runs, so it always sees original gross prices. Fixes: rounding residual in subtotal,
+        // incorrect tax badge amounts after RC removal, and signup_fee_tax being zeroed too early.
+        foreach ($lineItems as &$lineItem) {
+            if (isset($lineItem['line_meta']['original_unit_price'])) {
+                $qty = max(1, (int) Arr::get($lineItem, 'quantity', 1));
+                $lineItem['unit_price'] = (int) $lineItem['line_meta']['original_unit_price'];
+                $lineItem['subtotal']   = $lineItem['unit_price'] * $qty;
+                $lineItem['line_total'] = max(0, $lineItem['subtotal'] - (int) Arr::get($lineItem, 'discount_total', 0));
+                unset($lineItem['line_meta']['original_unit_price'], $lineItem['line_meta']['reverse_charge_adjustment']);
+            }
+            if (isset($lineItem['other_info']['original_signup_fee'])) {
+                $lineItem['other_info']['signup_fee'] = (int) $lineItem['other_info']['original_signup_fee'];
+                unset($lineItem['other_info']['original_signup_fee']);
+            }
+        }
+        unset($lineItem);
+
+        // Tax is disabled — return the pre-restored line items untouched.
+        // Pre-restore above already reverted any dynamic RC unit_price adjustments,
+        // so this also handles the case where RC was applied before tax was disabled.
+        if (!$this->isEnabled()) {
+            if (!empty($fillData['checkout_data']['tax_data']['valid'])) {
+                $fillData['checkout_data']['tax_data']['valid'] = false;
+            }
+            $fillData['cart_data'] = $lineItems;
+            return $fillData;
+        }
+
         $country = '';
         $state = '';
         $postCode = '';
@@ -290,7 +1218,6 @@ class TaxModule
             $postCode = $storeSettings->get('store_postcode');
         }
 
-        // Add taxable fee items to the tax calculation pipeline
         $fees = (array)Arr::get($checkoutData, 'fees', []);
         $feeItems = [];
         foreach ($fees as $fee) {
@@ -302,11 +1229,12 @@ class TaxModule
         $allItems = array_merge($lineItems, $feeItems);
 
         $taxCalculator = new TaxCalculator($allItems, [
-            'inclusive' => false,
-            'country'   => $country,
-            'state'     => $state,
-            'city'      => $city,
-            'postcode'  => $postCode,
+            'inclusive'    => false,
+            'country'      => $country,
+            'state'        => $state,
+            'city'         => $city,
+            'postcode'     => $postCode,
+            'tax_rounding' => Arr::get($taxSettings, 'tax_rounding', 'item'),
         ]);
 
         if (empty($checkoutData['tax_data'])) {
@@ -314,27 +1242,209 @@ class TaxModule
         }
 
         $taxTotal = $taxCalculator->getTotalTax();
+        $exclusiveTaxTotal = $taxCalculator->getExclusiveTaxTotal();
         $shippingTax = $taxCalculator->getShippingTax();
+        $shippingTaxLines = $taxCalculator->getShippingTaxByRates();
         $taxCountry = $taxCalculator->getTaxCountry();
         $taxLines = $taxCalculator->getTaxLinesByRates();
 
+
         // Separate product and fee items from taxed lines
         $allTaxedLines = $taxCalculator->getTaxedLines();
+
         $productLines = [];
         $feeTax = 0;
+        $feeTaxLines = [];
         foreach ($allTaxedLines as $taxedLine) {
             if (!empty($taxedLine['is_fee'])) {
-                $feeTax += (int)Arr::get($taxedLine, 'tax_amount', 0);
+                $taxAmount = (int) Arr::get($taxedLine, 'tax_amount', 0);
+                $feeTax += $taxAmount;
+                $feeTaxLines[] = [
+                    'label'      => Arr::get($taxedLine, 'title', ''),
+                    'tax_amount' => $taxAmount,
+                    'inclusive'  => (bool) Arr::get($taxedLine, 'line_meta.tax_config.inclusive', false),
+                ];
             } else {
                 $productLines[] = $taxedLine;
             }
         }
 
+        $signupFeeTaxTotal = 0;
+        foreach ($productLines as $taxedLine) {
+            if (Arr::get($taxedLine, 'other_info.payment_type') === 'subscription') {
+                $signupFeeTaxTotal += (int) Arr::get($taxedLine, 'other_info.signup_fee_tax', 0);
+            }
+        }
+
+        $shouldApplyReverseCharge = $this->shouldApplyReverseCharge($checkoutData, $country, $lineItems);
+        $rcMode = $this->getEffectiveRcMode();
+
+        // If the customer previously validated a VAT number but local_reverse_charge
+        // was turned off by the admin mid-session, strip the validation state now.
+        // This ensures the UI re-renders without the Remove button and subsequent
+        // order placement also sees a clean non-RC cart.
+        if (!$shouldApplyReverseCharge
+            && $country
+            && Arr::get($checkoutData, 'tax_data.valid', false)
+            && !$this->canApplyVatValidation($country)
+        ) {
+            $checkoutData['tax_data']['valid'] = false;
+            unset($checkoutData['tax_data']['name'], $checkoutData['tax_data']['country'], $checkoutData['tax_data']['address']);
+        }
+
+        // Capture signup_fee_tax BEFORE the RC zeroing block sets it to 0.
+        $signupFeeTaxesByIndex = [];
+        if ($shouldApplyReverseCharge && $rcMode === 'dynamic') {
+            foreach ($productLines as $idx => $pLine) {
+                $signupFeeTaxesByIndex[$idx] = (int) Arr::get($pLine, 'other_info.signup_fee_tax', 0);
+            }
+        }
+
+        $inclusiveTaxAdjustment = 0;
+        $reversedTaxTotal       = 0;
+        $reversedShippingTax    = 0;
+        if ($shouldApplyReverseCharge) {
+            $inclusivePortion  = $taxTotal - $exclusiveTaxTotal - $feeTax;
+            $reversedInclusive = ($rcMode === 'dynamic') ? $inclusivePortion : 0;
+            $reversedTaxTotal  = $exclusiveTaxTotal + $feeTax + $shippingTax + $reversedInclusive;
+            $inclusiveTaxAdjustment = $inclusivePortion;
+            $reversedShippingTax = $shippingTax;
+            $taxTotal = 0;
+            $exclusiveTaxTotal = 0;
+            $shippingTax = 0;
+            $shippingTaxLines = [];
+            $feeTax      = 0;
+            $feeTaxLines = [];
+            $signupFeeTaxTotal = 0;
+            $taxLines = array_map(function ($taxLine) {
+                $taxLine['tax_amount'] = 0;
+                return $taxLine;
+            }, $taxLines);
+            // Also zero out tax_amount in product lines to prevent order items from having non-zero tax
+            $productLines = array_map(function ($productLine) {
+                $productLine['tax_amount'] = 0;
+                if (Arr::get($productLine, 'other_info.payment_type') === 'subscription') {
+                    $productLine['other_info']['signup_fee_tax'] = 0;
+                    $productLine['other_info']['first_iteration_tax'] = 0;
+                }
+                return $productLine;
+            }, $productLines);
+        }
+
+        if ($shouldApplyReverseCharge && $rcMode === 'dynamic') {
+
+            // --- Product lines: adjust unit_price to net for inclusive-tax lines ---
+            // Pre-restore guarantees gross prices and cleared meta on every pass — no idempotency guard needed.
+            foreach ($productLines as $lineIdx => &$line) {
+                $isInclusive = (bool) Arr::get($line, 'line_meta.tax_config.inclusive', false);
+                if (!$isInclusive) {
+                    continue;
+                }
+
+                $rateAmounts = Arr::get($line, 'line_meta.tax_config.rates', []);
+                $adjustment  = (int) array_sum(array_column($rateAmounts, 'tax_amount'));
+
+                if ($adjustment > 0) {
+                    $adjustment = max(0, min($adjustment, (int) $line['subtotal']));
+                    $adjustment = (int) apply_filters('fluent_cart/tax/reverse_charge_line_adjustment', $adjustment, [
+                        'line'    => $line,
+                        'rc_mode' => $rcMode,
+                    ]);
+                    // Re-clamp after filter — prevents a buggy filter from producing negative unit_price
+                    $adjustment = max(0, min($adjustment, (int) $line['subtotal']));
+
+                    $quantity          = max(1, (int) $line['quantity']);
+                    $adjustmentPerUnit = (int) round($adjustment / $quantity, 0, PHP_ROUND_HALF_UP);
+
+                    if ($adjustmentPerUnit > 0) {
+                        $newUnitPrice = $line['unit_price'] - $adjustmentPerUnit;
+                        $line['line_meta']['original_unit_price']       = $line['unit_price'];
+                        $line['unit_price']                             = $newUnitPrice;
+                        // Use exact subtraction instead of newUnitPrice * quantity.
+                        // When $adjustment doesn't divide evenly by $quantity,
+                        // round($adjustment/$quantity) * $quantity can exceed $adjustment
+                        // by up to ($quantity - 1) cents, making the stored subtotal
+                        // 1 cent short. E.g. 3 × $10, $5 tax → round(500/3)=167,
+                        // 167×3=501 ≠ 500, subtotal becomes $24.99 instead of $25.00.
+                        $line['subtotal']                                = (int) $line['subtotal'] - $adjustment;
+                        $line['line_total']                              = max(0, $line['subtotal'] - (int) Arr::get($line, 'discount_total', 0));
+                        $line['line_meta']['reverse_charge_adjustment']  = $adjustment;
+                    }
+                }
+
+                // Signup fee adjustment — use pre-captured value (RC block zeroes other_info.signup_fee_tax)
+                $signupFee    = (int) Arr::get($line, 'other_info.signup_fee', 0);
+                $signupFeeTax = isset($signupFeeTaxesByIndex[$lineIdx]) ? $signupFeeTaxesByIndex[$lineIdx] : 0;
+                if ($signupFee > 0 && $signupFeeTax > 0) {
+                    $line['other_info']['original_signup_fee'] = $signupFee;
+                    $line['other_info']['signup_fee']          = max(0, $signupFee - $signupFeeTax);
+                }
+
+            }
+            unset($line);
+
+            // --- Inclusive fee items: compute net amounts ---
+            $rcAdjustedFees = [];
+            foreach ($allTaxedLines as $taxedLine) {
+                if (empty($taxedLine['is_fee'])) {
+                    continue;
+                }
+                $feeTaxConfig   = Arr::get($taxedLine, 'line_meta.tax_config', []);
+                $isFeeInclusive = (bool) Arr::get($feeTaxConfig, 'inclusive', false);
+                if (!$isFeeInclusive) {
+                    continue;
+                }
+                $feeKey      = Arr::get($taxedLine, 'other_info.fee_key', '');
+                $feeSource   = Arr::get($taxedLine, 'other_info.source', 'custom');
+                $feeItemTax  = (int) array_sum(array_column(Arr::get($feeTaxConfig, 'rates', []), 'tax_amount'));
+                $feeAmount   = (int) $taxedLine['unit_price'];
+                if ($feeKey && $feeItemTax > 0) {
+                    $rcAdjustedFees[$feeSource . ':' . $feeKey] = max(0, $feeAmount - $feeItemTax);
+                }
+            }
+            $checkoutData['tax_data']['rc_adjusted_fees'] = $rcAdjustedFees;
+
+            // Disarm the estimated_total filter — total is already net via unit_price
+            $inclusiveTaxAdjustment = 0;
+
+            do_action('fluent_cart/tax/reverse_charge_applied', [
+                'checkout_data' => $checkoutData,
+                'product_lines' => $productLines,
+            ]);
+
+        } else {
+
+            // Pre-restore already returned product lines to gross prices and cleared RC meta.
+            // Clear fee adjustments — priority-20 filter becomes no-op on next getFees() call.
+            unset($checkoutData['tax_data']['rc_adjusted_fees']);
+
+            if (!$shouldApplyReverseCharge) {
+                do_action('fluent_cart/tax/reverse_charge_removed', [
+                    'checkout_data' => $checkoutData,
+                    'product_lines' => $productLines,
+                ]);
+            }
+        }
+
         $checkoutData['tax_data']['tax_total'] = $taxTotal;
-        $checkoutData['tax_data']['tax_behavior'] = $taxCalculator->getTaxBahaviorValue();
+        $checkoutData['tax_data']['exclusive_tax_total'] = $exclusiveTaxTotal;
+        $checkoutData['tax_data']['reverse_charge_inclusive_adjustment'] = $inclusiveTaxAdjustment;
+        $checkoutData['tax_data']['reverse_charge_tax_total']           = $reversedTaxTotal;
+        $checkoutData['tax_data']['tax_behavior'] = $taxTotal === 0 && $shippingTax === 0 && $shouldApplyReverseCharge
+            ? 0
+            : $taxCalculator->getTaxBehaviorValue();
+
+        // NEW: always expose store-level inclusive mode separately
+        $checkoutData['tax_data']['store_tax_behavior'] = $taxCalculator->getStoreTaxBehaviorValue();
+
         $checkoutData['tax_data']['tax_country'] = $taxCountry;
         $checkoutData['tax_data']['shipping_tax'] = $shippingTax;
+        $checkoutData['tax_data']['shipping_tax_lines'] = $shippingTaxLines;
+        $checkoutData['tax_data']['reverse_charge_shipping_tax'] = $reversedShippingTax;
+        $checkoutData['tax_data']['reverse_charge_price_mode'] = $shouldApplyReverseCharge ? $this->getEffectiveRcMode() : 'fixed';
         $checkoutData['tax_data']['fee_tax'] = $feeTax;
+        $checkoutData['tax_data']['fee_tax_lines'] = $feeTaxLines;
+        $checkoutData['tax_data']['signup_fee_tax'] = $signupFeeTaxTotal;
         $checkoutData['tax_data']['tax_lines'] = $taxLines;
         $fillData['checkout_data'] = $checkoutData;
 
@@ -348,29 +1458,64 @@ class TaxModule
         return $fillData;
     }
 
+    protected function shouldApplyReverseCharge($checkoutData, $taxApplicableCountry, $lineItems = [])
+    {
+        if (!Arr::get($checkoutData, 'tax_data.valid', false)) {
+            return false;
+        }
+
+        $validatedCountry = Arr::get($checkoutData, 'tax_data.country', '');
+        if (!$validatedCountry || $validatedCountry !== $taxApplicableCountry) {
+            return false;
+        }
+
+        if (!$this->canApplyVatValidation($taxApplicableCountry)) {
+            return false;
+        }
+
+        if (Arr::get($this->taxSettings, 'eu_vat_settings.local_reverse_charge', 'no') === 'yes') {
+            $excludedCategories = Arr::get($this->taxSettings, 'eu_vat_settings.vat_reverse_excluded_categories', []);
+            if (!empty($excludedCategories)) {
+                $productIds = array_column((array)$lineItems, 'post_id');
+                if (!empty($productIds)) {
+                    $productTerms = $this->getTermsByProductIds($productIds);
+                    foreach ($productTerms as $terms) {
+                        if (array_intersect($terms, $excludedCategories)) {
+                            return false;
+                        }
+                    }
+                }
+            }
+        }
+
+        return true;
+    }
+
+    protected function isReverseChargeCheckout($checkoutData)
+    {
+        return Arr::get($checkoutData, 'tax_data.valid', false)
+            && (int) Arr::get($checkoutData, 'tax_data.tax_behavior', 2) === 0;
+    }
+
     public function maybeRerenderEuVatField($fragments, $args)
     {
-        $taxSettings = $this->getSettings();
-        $taxEnabled = Arr::get($taxSettings, 'enable_tax', 'no') === 'yes';
-        $euVatEnabled = Arr::get($taxSettings, 'eu_vat_settings.require_vat_number', 'no') === 'yes';
+        $vatNumberEnabled = CheckoutFieldsSchema::isVatNumberEnabled();
 
-        $cart = Arr::get($args, 'cart');
-
-        // all changes are relevant for tax , so not checking changes for now
-
-
-        if (!$taxEnabled || !$euVatEnabled) {
+        if (!$vatNumberEnabled) {
             return $fragments;
         }
 
+        $changes = Arr::get($args, 'changes', []);
+        $countryTriggers = ['billing_country', 'shipping_country', 'ship_to_different', 'is_business'];
+        if (empty(array_intersect(array_keys($changes), $countryTriggers))) {
+            return $fragments;
+        }
+
+        $cart = Arr::get($args, 'cart');
         $taxApplicableCountry = $this->getTaxApplicableCountry(Arr::get($this->taxSettings, 'tax_calculation_basis'), $cart->checkout_data['form_data']);
 
-        $euCountryCodes = LocalizationManager::getInstance()->taxContinents('EU');
-        $euCountryCodes = Arr::get($euCountryCodes, 'countries');
-        $isEuCountry = in_array($taxApplicableCountry, $euCountryCodes);
-
         ob_start();
-        (new EUVatRenderer($isEuCountry, $taxApplicableCountry))->render($cart);
+        (new VatFieldRenderer($taxApplicableCountry))->renderInner($cart->checkout_data);
         $euVatView = ob_get_clean();
 
         $fragments[] = [
@@ -392,11 +1537,74 @@ class TaxModule
         }
 
         $checkoutData = $cart->checkout_data;
-        $taxCountry = Arr::get($checkoutData, 'tax_data.tax_country', '');
 
+        // Order-placement safety: if the cart carries a stale RC state (admin turned off
+        // local_reverse_charge after the customer validated their VAT but before they
+        // placed the order), recalculate at full rate and patch the order totals before
+        // any tax records are written.
+        if ($this->isReverseChargeCheckout($checkoutData)) {
+            $rcTaxCountry = Arr::get($checkoutData, 'tax_data.tax_country', '');
+            if ($rcTaxCountry && !$this->canApplyVatValidation($rcTaxCountry)) {
+                $refreshed    = $this->calculateCartTax([
+                    'cart_data'     => $cart->cart_data,
+                    'checkout_data' => $checkoutData,
+                ]);
+                $checkoutData = $refreshed['checkout_data'];
+
+                $newTaxTotal       = (int) Arr::get($checkoutData, 'tax_data.tax_total', 0);
+                $newShippingTax    = (int) Arr::get($checkoutData, 'tax_data.shipping_tax', 0);
+                $newTaxBehavior    = (int) Arr::get($checkoutData, 'tax_data.tax_behavior', 0);
+                $storeTaxBehavior  = (int) Arr::get($checkoutData, 'tax_data.store_tax_behavior', $newTaxBehavior);
+                $exclusiveTaxTotal = (int) Arr::get($checkoutData, 'tax_data.exclusive_tax_total', 0);
+                $feeTax            = (int) Arr::get($checkoutData, 'tax_data.fee_tax', 0);
+
+                // total_amount was computed with RC-zeroed tax, and the draft's fee_total never
+                // absorbed fee_tax (behavior was 0 then) — so the full additive portion goes on top.
+                $addedTax = 0;
+                if ($newTaxBehavior === 1) {
+                    $addedTax = $newTaxTotal + $newShippingTax;
+                } elseif ($newTaxBehavior === 3) {
+                    $addedTax = $exclusiveTaxTotal;
+                    if ($storeTaxBehavior === 1) {
+                        $addedTax += $feeTax + $newShippingTax;
+                    }
+                }
+
+                $order->tax_total    = $newTaxTotal;
+                $order->shipping_tax = $newShippingTax;
+                $order->tax_behavior = $newTaxBehavior;
+                $order->total_amount = $order->total_amount + $addedTax;
+                $order->save();
+
+                // CheckoutProcessor::persistTaxMeta() already ran with the RC-zeroed values.
+                $order->updateMeta('exclusive_tax_total', $exclusiveTaxTotal);
+                $order->updateMeta('store_tax_behavior', $storeTaxBehavior);
+                $order->updateMeta('fee_tax', $feeTax);
+                $feeTaxLines = (array) Arr::get($checkoutData, 'tax_data.fee_tax_lines', []);
+                if (!empty($feeTaxLines)) {
+                    $order->updateMeta('fee_tax_lines', $feeTaxLines);
+                }
+
+                if ($addedTax > 0) {
+                    // The pending charge transaction was created from the pre-patch total —
+                    // sync it so the gateway charges the tax-adjusted amount.
+                    $pendingTransaction = \FluentCart\App\Models\OrderTransaction::query()
+                        ->where('order_id', $order->id)
+                        ->where('transaction_type', \FluentCart\App\Helpers\Status::TRANSACTION_TYPE_CHARGE)
+                        ->where('status', \FluentCart\App\Helpers\Status::PAYMENT_PENDING)
+                        ->first();
+                    if ($pendingTransaction) {
+                        $pendingTransaction->total = $order->total_amount;
+                        $pendingTransaction->save();
+                    }
+                }
+            }
+        }
+
+        $taxCountry = Arr::get($checkoutData, 'tax_data.tax_country', '');
         // add store vat number into tax data
         $taxSettings = $this->getSettings();
-        $isEuCountry = LocalizationManager::getInstance()->continentFromCountry($taxCountry ?? '') === 'EU';
+        $isEuCountry = LocalizationManager::getInstance()->isEuTaxCountry($taxCountry ?? '');
 
         $storeVatNumber = '';
         if ($isEuCountry) {
@@ -416,6 +1624,7 @@ class TaxModule
         }
 
         $customerVatData = [];
+        $isReverseChargeApplied = $this->isReverseChargeCheckout($checkoutData);
         if (Arr::get($cart->checkout_data, 'tax_data.valid', false)) {
             $customerVatData = Arr::get($checkoutData, 'tax_data');
             $order = $data['order'];
@@ -424,54 +1633,136 @@ class TaxModule
             );
         }
 
-        foreach ($cart->cart_data as $item) {
-            $taxMeta = Arr::get($item, 'line_meta.tax_config.rates.0', []);
-            $rateId = Arr::get($taxMeta, 'rate_id');
+        $taxMeta = [
+            'tax_country'            => $taxCountry,
+            'store_vat_number'       => $storeVatNumber,
+            'reverse_charge_applied' => $isReverseChargeApplied,
+            'shipping_inclusive'     => (int) Arr::get($checkoutData, 'tax_data.store_tax_behavior', 2) === 2,
+        ];
 
-            if (!$rateId) {
-                $rateId = 0; // assume this rate is from JSON tax rate
-            }
+        if ($isReverseChargeApplied && !empty($customerVatData)) {
+            $taxMeta['vat_reverse'] = $customerVatData;
+        }
 
-            $shippingTax = (int)Arr::get($taxMeta, 'shipping_tax', 0);
-            $taxAmount = (int)Arr::get($taxMeta, 'tax_amount', 0);
-            $taxMeta = Arr::get($item, 'line_meta.tax_config', []);
-            $taxMeta['tax_country'] = $taxCountry;
-            $taxMeta['store_vat_number'] = $storeVatNumber;
-
-            if (!empty($customerVatData)) {
-                $taxMeta['vat_reverse'] = $customerVatData;
-                $taxAmount = 0;
-                $shippingTax = 0;
-            }
-
-            $orderTaxRate = OrderTaxRate::query()->where('order_id', $order->id)
-                ->where('tax_rate_id', $rateId)
-                ->first();
-
-            if (!$orderTaxRate) {
-                $orderTaxRate = OrderTaxRate::create([
-                    'order_id'     => $order->id,
-                    'tax_rate_id'  => $rateId,
-                    'shipping_tax' => $shippingTax,
-                    'order_tax'    => $taxAmount,
-                    'total_tax'    => $shippingTax + $taxAmount,
-                    'meta'         => $taxMeta
-                ]);
-            } else {
-                $orderTaxRate->update([
-                    'shipping_tax' => $shippingTax,
-                    'order_tax'    => $taxAmount,
-                    'total_tax'    => $shippingTax + $taxAmount,
-                    'meta'         => $taxMeta
-                ]);
+        if ($isReverseChargeApplied) {
+            $taxMeta['reverse_charge_original_tax_total'] = (int) Arr::get(
+                $checkoutData, 'tax_data.reverse_charge_tax_total', 0
+            );
+            $taxMeta['reverse_charge_price_mode'] = $this->getEffectiveRcMode();
+            $taxMeta['reverse_charge_original_shipping_tax'] = (int) Arr::get(
+                $checkoutData, 'tax_data.reverse_charge_shipping_tax', 0
+            );
+            // Flag: shipping_total was stored at net (VAT already stripped) for this order.
+            // Display code uses this to skip the rcShippingAdjustment on post-order surfaces.
+            $rcModeForMeta = (string) Arr::get($checkoutData, 'tax_data.reverse_charge_price_mode', 'fixed');
+            $storeBehaviorForMeta = (int) Arr::get($checkoutData, 'tax_data.store_tax_behavior', 2);
+            $rcShippingTaxForMeta = (int) Arr::get($checkoutData, 'tax_data.reverse_charge_shipping_tax', 0);
+            if ($rcModeForMeta === 'dynamic' && $storeBehaviorForMeta === 2 && $rcShippingTaxForMeta > 0) {
+                $taxMeta['shipping_net_stored'] = true;
             }
         }
+
+        static::persistTaxRates(
+            $order->id,
+            Arr::get($checkoutData, 'tax_data.tax_lines', []),
+            $taxMeta,
+            (int) Arr::get($checkoutData, 'tax_data.shipping_tax', 0),
+            Arr::get($checkoutData, 'tax_data.shipping_tax_lines', [])
+        );
+    }
+
+    public function storeBusinessInfoOnOrder($data)
+    {
+        $cart        = Arr::get($data, 'cart');
+        $order       = Arr::get($data, 'order');
+        $requestData = Arr::get($data, 'request_data', []);
+
+        if (!$cart || !$order || !$order->id) {
+            return;
+        }
+
+        // Snapshot store's business identity at order placement so post-order surfaces
+        // (receipts, PDFs, emails) show the values that were valid when the order was placed,
+        // even if the admin later changes them in store settings.
+        $storeSettings = new StoreSettings();
+        $order->updateMeta('store_business_info', [
+            'company_name'          => (string) $storeSettings->get('company_name', ''),
+            'legal_registration_id' => (string) $storeSettings->get('legal_registration_id', ''),
+            'seller_vat_id'         => (string) $storeSettings->get('seller_vat_id', ''),
+            'seller_tax_id'         => (string) $storeSettings->get('seller_tax_id', ''),
+        ]);
+
+        $checkoutData = $cart->checkout_data;
+
+        // Prefer the live request value; fall back to cart only when the key was never submitted
+        $isBusinessCheckout = apply_filters(
+            'fluent_cart/checkout/is_business',
+            array_key_exists('is_business', $requestData)
+                ? Arr::get($requestData, 'is_business', 'no') === 'yes'
+                : Arr::get($checkoutData, 'form_data.is_business', 'no') === 'yes',
+            ['checkout_data' => $checkoutData, 'order' => $order]
+        );
+
+        if (!$isBusinessCheckout) {
+            return;
+        }
+
+        // Use the submitted POST values as the primary source; fall back to the cart's
+        // persisted checkout_data for any field the DataWatcher may not have saved yet
+        $taxNumber   = sanitize_text_field(
+            Arr::get($requestData, 'fct_billing_tax_id', '')
+                ?: Arr::get($checkoutData, 'tax_data.vat_number', '')
+        );
+        $companyName = sanitize_text_field(
+            Arr::get($requestData, 'billing_company_name', '')
+                ?: Arr::get($checkoutData, 'form_data.billing_company_name', '')
+        );
+        $legalRegId  = sanitize_text_field(
+            Arr::get($requestData, 'billing_legal_registration_id', '')
+                ?: Arr::get($checkoutData, 'form_data.billing_legal_registration_id', '')
+        );
+        $declarationNote = sanitize_text_field(Arr::get($checkoutData, 'tax_data.declaration_note', ''));
+
+        if ($declarationNote === '') {
+            $declarationNote = sanitize_text_field(App::request()->get('fct_vat_declaration_note', ''));
+        }
+
+        if (!$taxNumber && !$companyName && !$legalRegId) {
+            return;
+        }
+
+        $businessInfo = [];
+
+        if ($companyName) {
+            $businessInfo['company_name'] = $companyName;
+        }
+
+        if ($legalRegId) {
+            $businessInfo['legal_registration_id'] = $legalRegId;
+        }
+
+        if ($taxNumber) {
+            $businessInfo['tax_number']           = $taxNumber;
+            $businessInfo['tax_number_validated']  = false;
+            $businessInfo['tax_number_country']    = '';
+
+            if (Arr::get($checkoutData, 'tax_data.valid', false)) {
+                $businessInfo['tax_number_validated'] = true;
+                $businessInfo['tax_number_country']   = sanitize_text_field(Arr::get($checkoutData, 'tax_data.country', ''));
+                $businessInfo['tax_number_name']      = sanitize_text_field(Arr::get($checkoutData, 'tax_data.name', ''));
+                if ($declarationNote !== '') {
+                    $businessInfo['reverse_charge_declaration'] = $declarationNote;
+                }
+            }
+        }
+
+        $order->updateMeta('business_info', $businessInfo);
     }
 
 
     public function initCheckoutActions()
     {
-        add_action('fluent_cart/before_payment_methods', [$this, 'renderTaxField'], 10, 1);
+        add_action('fluent_cart/checkout/b2b_extra_fields', [$this, 'renderTaxField'], 10, 1);
     }
 
     public function registerAjaxHandlers()
@@ -487,57 +1778,22 @@ class TaxModule
     {
         $cart = Arr::get($data, 'cart');
 
-        $checkoutData = $cart->checkout_data;
-        $vatNumber = Arr::get($checkoutData, 'tax_data.vat_number', '');
-
-        $euVatEnabled = Arr::get($this->taxSettings, 'eu_vat_settings.require_vat_number', 'no');
         $taxApplicableCountry = $this->getTaxApplicableCountry(
             Arr::get($this->taxSettings, 'tax_calculation_basis'),
-            Arr::get($checkoutData, 'form_data')
+            Arr::get($cart->checkout_data, 'form_data')
         );
 
-        $isEuCountry = LocalizationManager::getInstance()->continentFromCountry($taxApplicableCountry) === 'EU';
-
-        $isEuVatRcAvailable = false;
-        if ($isEuCountry && $euVatEnabled === 'yes') {
-            $isEuVatRcAvailable = true;
+        // On checkout page load, if the cart has a stale RC state (admin turned
+        // off local_reverse_charge after the customer validated), recalculate now
+        // so the correct tax totals and Apply/Remove state render immediately.
+        if (
+            Arr::get($cart->checkout_data, 'tax_data.valid', false)
+            && !$this->canApplyVatValidation($taxApplicableCountry)
+        ) {
+            $this->recalculateTax($data);
         }
 
-        ?>
-        <div class="fct_checkout_tax_wrapper" data-fluent-cart-checkout-page-tax-wrapper>
-            <?php if ($isEuVatRcAvailable): ?>
-                <div class="fct_checkout_form_section">
-                    <div class="fct_form_section_header">
-                        <h4 class="fct_form_section_header_label"><?php echo esc_html__('EU VAT', 'fluent-cart'); ?></h4>
-                    </div>
-
-                    <div class="fct_form_section_body">
-                        <div class="fct_tax_field">
-                            <div data-fluent-cart-checkout-page-form-input-wrapper class="fct_tax_input_wrapper"
-                                 id="fct_billing_tax_id_wrapper">
-                                <input
-                                    data-fluent-cart-checkout-page-tax-id
-                                    type="text"
-                                    name="fct_billing_tax_id"
-                                    autocomplete="tax-id"
-                                    placeholder="<?php echo esc_html__('Enter Tax ID', 'fluent-cart'); ?>"
-                                    id="fct_billing_tax_id"
-                                    value="<?php echo esc_attr($vatNumber) ?? ''; ?>"
-                                />
-
-                                <button data-fluent-cart-checkout-page-tax-apply-btn>
-                                    <?php echo esc_html__('Apply', 'fluent-cart'); ?>
-                                </button>
-                            </div>
-                            <span data-fluent-cart-checkout-page-tax-loading class="fct_tax_loading"></span>
-                            <span data-fluent-cart-checkout-page-form-error class="fct_form_error"></span>
-                            <?php $this->renderValidNote($checkoutData); ?>
-                        </div>
-                    </div>
-                </div>
-            <?php endif; ?>
-        </div>
-        <?php
+        (new VatFieldRenderer($taxApplicableCountry))->render($cart);
     }
 
     public function getTaxApplicableCountry($calculationBasis, $formData)
@@ -557,33 +1813,21 @@ class TaxModule
 
     }
 
-    public function renderValidNote($checkoutData)
+    public function canApplyVatValidation($countryCode)
     {
-        $isValid = Arr::get($checkoutData, 'tax_data.valid', false);
-        ?>
+        if (!$countryCode) {
+            return false;
+        }
 
-        <div class="fct_vat_valid_note <?php echo !$isValid ? 'is-hidden' : ''; ?>"
-             data-fluent-cart-tax-valid-note-wrapper>
-                <span data-fluent-cart-tax-valid-note>
-                    <?php echo esc_html__('Valid VAT number', 'fluent-cart'); ?>
-                    <?php $name = Arr::get($checkoutData, 'tax_data.name', '');
-                    if ($name): ?>
-                        — <?php echo esc_html($name); ?>
-                    <?php endif; ?>
-                </span>
+        $settings = $this->getSettings();
 
-            <?php if (Arr::get($checkoutData, 'tax_data.tax_total') != 0): ?>
-                <span class="ml-2" style="color: #ffa500;">
-                        <?php echo esc_html__('(Reverse Charge not Applied)', 'fluent-cart'); ?>
-                    </span>
-            <?php endif; ?>
+        if (Arr::get($settings, 'enable_tax', 'no') !== 'yes') {
+            return false;
+        }
 
-            <button data-fluent-cart-tax-remove-btn>
-                <?php echo esc_html__('Remove', 'fluent-cart'); ?>
-            </button>
-        </div>
-
-        <?php
+        $storeCountry = (new StoreSettings())->get('store_country');
+        return Arr::get($settings, 'eu_vat_settings.local_reverse_charge', 'no') === 'yes'
+            || $countryCode !== $storeCountry;
     }
 
     public function handleVatValidation()
@@ -594,11 +1838,19 @@ class TaxModule
             wp_send_json(['message' => __('Security check failed', 'fluent-cart')], 403);
         }
 
-        if (Arr::get($this->taxSettings, 'eu_vat_settings.require_vat_number', 'yes') !== 'yes') {
-            wp_send_json(['message' => __('EU VAT reverse charge is not enabled!', 'fluent-cart')], 422);
+        if (!$this->isEnabled()) {
+            wp_send_json(['message' => __('Tax is not enabled.', 'fluent-cart')], 422);
+        }
+
+        if (!CheckoutFieldsSchema::isVatNumberEnabled()) {
+            wp_send_json(['message' => __('VAT number collection is not enabled.', 'fluent-cart')], 422);
         }
 
         $cart = CartHelper::getCart();
+
+        if (empty($cart->checkout_data) || empty($cart->checkout_data['form_data'])) {
+            wp_send_json(['message' => __('Invalid checkout session.', 'fluent-cart')], 422);
+        }
 
         $taxCalculationBasis = Arr::get($this->taxSettings, 'tax_calculation_basis');
         $formData = Arr::get($cart->checkout_data, 'form_data', []);
@@ -610,24 +1862,31 @@ class TaxModule
             $countryCode = Arr::get($formData, 'shipping_country', '');
         }
 
-        $vatNumber = isset($_REQUEST['vat_number']) ? sanitize_text_field(wp_unslash($_REQUEST['vat_number'])) : '';
-
         $storeCountry = (new StoreSettings())->get('store_country');
         if ($taxCalculationBasis === 'store') {
             $countryCode = $storeCountry;
         }
 
-        if (!$countryCode || !$vatNumber) {
+        $euCountryCodes = Arr::get(LocalizationManager::getInstance()->taxContinents('EU'), 'countries', []);
+
+        if (!$countryCode || !in_array($countryCode, $euCountryCodes)) {
+            wp_send_json(['message' => __('VAT validation is only available for EU countries.', 'fluent-cart')], 422);
+        }
+
+        if (!$this->canApplyVatValidation($countryCode)) {
+            wp_send_json(['message' => __('VAT reverse charge is not available for this country.', 'fluent-cart')], 422);
+        }
+
+        $vatNumber = isset($_REQUEST['vat_number']) ? sanitize_text_field(wp_unslash($_REQUEST['vat_number'])) : '';
+
+        if (!$vatNumber) {
             wp_send_json(['message' => __('Missing required data', 'fluent-cart')], 422);
         }
 
-        // check if the $vatNumber contains any EU country code prefix remove it and get only vat number
-        $euCountry = LocalizationManager::getInstance()->taxContinents('EU');
-        $euCountryCodes = Arr::get($euCountry, 'countries', []);
-
-        foreach ($euCountryCodes as $i => $code) {
-            if (strpos($vatNumber, $code) === 0) { // Check if $code is at the beginning of $vatNumber
-                $vatNumber = substr($vatNumber, strlen($code)); // Remove the prefix
+        // Strip EU country code prefix from VAT number if present
+        foreach ($euCountryCodes as $code) {
+            if (strpos($vatNumber, $code) === 0) {
+                $vatNumber = substr($vatNumber, strlen($code));
                 break;
             }
         }
@@ -642,26 +1901,56 @@ class TaxModule
             wp_send_json(['message' => __('VAT number is not valid!', 'fluent-cart')], 422);
         }
 
-        // if there is any excluded category in the cart, then don't apply VAT reverse charge
-        $excludedCategories = Arr::get($this->taxSettings, 'eu_vat_settings.vat_reverse_excluded_categories', []);
-        $productIds = array_column($cart->cart_data, 'post_id');
-        $productTerms = $this->getTermsByProductIds($productIds);
-
+        $localRc = Arr::get($this->taxSettings, 'eu_vat_settings.local_reverse_charge', 'no');
         $isExcluded = false;
-        foreach ($productTerms as $productId => $terms) {
-            if (array_intersect($terms, $excludedCategories)) {
-                $isExcluded = true;
-                break;
+        if ($localRc === 'yes') {
+            // if there is any excluded category in the cart, then don't apply VAT reverse charge
+            $excludedCategories = Arr::get($this->taxSettings, 'eu_vat_settings.vat_reverse_excluded_categories', []);
+            $productIds = array_column($cart->cart_data, 'post_id');
+            $productTerms = $this->getTermsByProductIds($productIds);
+            foreach ($productTerms as $productId => $terms) {
+                if (array_intersect($terms, $excludedCategories)) {
+                    $isExcluded = true;
+                    break;
+                }
             }
         }
 
-        //make existing tax zero if local reverse charge is enabled
         if (!$isExcluded) {
-            if (Arr::get($this->taxSettings, 'eu_vat_settings.local_reverse_charge', 'yes') === 'yes'
-                || $countryCode !== $storeCountry) {
-                $taxData['tax_total'] = 0;
-                $taxData['shipping_tax'] = 0;
-                $taxData['tax_behavior'] = 0;
+            if ($localRc === 'yes' || $countryCode !== $storeCountry) {
+                $cartTaxData  = Arr::get($cart->checkout_data, 'tax_data', []);
+                $inclusiveAdj = (int) Arr::get($cartTaxData, 'reverse_charge_inclusive_adjustment', 0);
+
+                $existingRcTotal = (int) Arr::get($cartTaxData, 'reverse_charge_tax_total', 0);
+                if ($existingRcTotal > 0) {
+                    $taxData['reverse_charge_tax_total'] = $existingRcTotal;
+                    $taxData['reverse_charge_shipping_tax'] = (int) Arr::get($cartTaxData, 'reverse_charge_shipping_tax', 0);
+                } else {
+                    $rcExclusiveTax = (int) Arr::get($cartTaxData, 'exclusive_tax_total', 0);
+                    $rcFeeTax       = (int) Arr::get($cartTaxData, 'fee_tax', 0);
+                    $rcShippingTax  = (int) Arr::get($cartTaxData, 'shipping_tax', 0);
+                    $rcTaxTotal     = (int) Arr::get($cartTaxData, 'tax_total', 0);
+                    $rcMode         = $this->getEffectiveRcMode();
+                    $rcInclPortion  = max(0, $rcTaxTotal - $rcExclusiveTax - $rcFeeTax - $rcShippingTax);
+                    $rcReversedIncl = ($rcMode === 'dynamic') ? $rcInclPortion : 0;
+                    $taxData['reverse_charge_tax_total']    = $rcExclusiveTax + $rcFeeTax + $rcShippingTax + $rcReversedIncl;
+                    $taxData['reverse_charge_shipping_tax'] = $rcShippingTax;
+                }
+                $taxData['reverse_charge_inclusive_adjustment'] = $inclusiveAdj;
+                $taxData['tax_total']          = 0;
+                $taxData['exclusive_tax_total'] = 0;
+                $taxData['shipping_tax']        = 0;
+                $taxData['tax_behavior']        = 0;
+                $taxData['fee_tax']             = 0;
+                $taxData['signup_fee_tax']      = 0;
+                $taxData['shipping_tax_lines']  = [];
+                $existingTaxLines = isset($cartTaxData['tax_lines']) && is_array($cartTaxData['tax_lines'])
+                    ? $cartTaxData['tax_lines']
+                    : [];
+                $taxData['tax_lines'] = array_map(function ($line) {
+                    $line['tax_amount'] = 0;
+                    return $line;
+                }, $existingTaxLines);
             }
         }
 
@@ -671,14 +1960,19 @@ class TaxModule
         }
         $checkoutData['tax_data'] = array_merge($checkoutData['tax_data'], $taxData);
         $cart->checkout_data = $checkoutData;
-        $cart->update();
+        $fillData = $this->calculateCartTax([
+            'cart_data'     => $cart->cart_data,
+            'checkout_data' => $cart->checkout_data,
+        ]);
+        $cart->fill($fillData);
+        $cart->save();
 
         ob_start();
         (new CartSummaryRender($cart))->render(false);
         $cartSummaryInner = ob_get_clean();
 
         ob_start();
-        (new EUVatRenderer(true, Arr::get($taxData, 'tax_country')))->render($cart);
+        (new VatFieldRenderer(Arr::get($taxData, 'country', $countryCode)))->renderInner($checkoutData);
         $euVatView = ob_get_clean();
 
         wp_send_json([
@@ -728,9 +2022,18 @@ class TaxModule
             unset($checkoutData['tax_data']['address']);
             unset($checkoutData['tax_data']['vat_number']);
             unset($checkoutData['tax_data']['country']);
+            unset($checkoutData['tax_data']['declaration_note']);
+            unset($checkoutData['tax_data']['reverse_charge_tax_total']);
+            unset($checkoutData['tax_data']['reverse_charge_shipping_tax']);
+            unset($checkoutData['tax_data']['reverse_charge_inclusive_adjustment']);
         }
 
         $cart->checkout_data = $checkoutData;
+        $fillData = $this->calculateCartTax([
+            'cart_data'     => $cart->cart_data,
+            'checkout_data' => $cart->checkout_data,
+        ]);
+        $cart->fill($fillData);
         $cart->save();
 
         ob_start();
@@ -775,16 +2078,35 @@ class TaxModule
 
     protected function validateEuVatNumber($countryCode, $vatNumber)
     {
+        /*
+         * Allow third parties to validate a VAT number without using the VIES SOAP service.
+         *
+         * Return null  → FluentCart performs its default SOAP validation.
+         * Return array → treated as a successful validation result (same shape as SOAP response:
+         *                'country', 'vat_number', 'valid' => true, 'name', 'address').
+         * Return WP_Error → treated as a validation error; its message is forwarded to the customer.
+         */
+
+        $thirdPartyResult = apply_filters('fluent_cart/tax/validate_eu_vat_number', null, [
+            'country_code' => $countryCode,
+            'vat_number'   => $vatNumber,
+        ]);
+
+        if (is_wp_error($thirdPartyResult) || is_array($thirdPartyResult)) {
+            return $thirdPartyResult;
+        }
+
         try {
             $wsdl = "https://ec.europa.eu/taxation_customs/vies/checkVatService.wsdl";
 
             if (!class_exists('\\SoapClient')) {
-                throw new \Exception(__('SOAP is not available on the server.', 'fluent-cart'));
+                return new \WP_Error('service_unavailable', __('SOAP is not available on the server.', 'fluent-cart'));
             }
 
             $client = new \SoapClient($wsdl, [
-                'exceptions' => true,
-                'trace'      => true,
+                'exceptions'         => true,
+                'trace'              => true,
+                'connection_timeout' => 10,
             ]);
 
             $params = [
@@ -795,10 +2117,19 @@ class TaxModule
             $result = $client->checkVat($params);
 
             if (empty($result->valid)) {
-                throw new \Exception(
+                // VIES signals member-state service unavailable with name "---"
+                if (isset($result->name) && $result->name === '---') {
+                    return new \WP_Error(
+                        'service_unavailable',
+                        __('The VAT validation service is temporarily unavailable. Please try again later.', 'fluent-cart')
+                    );
+                }
+                // Definitive answer from VIES: the number is not registered.
+                return new \WP_Error(
+                    'invalid',
                     sprintf(
-                    /* translators: %s is the country code */
-                        __('Invalid VAT number for country %s!', 'fluent-cart'),
+                    /* translators: %1$s is the country code */
+                        __('Invalid VAT number for country %1$s!', 'fluent-cart'),
                         $countryCode
                     )
                 );
@@ -815,9 +2146,156 @@ class TaxModule
             return $taxData;
 
         } catch (\SoapFault $e) {
-            return new \WP_Error('soap_fault', $e->getMessage());
+            return new \WP_Error('soap_fault', __('The VAT validation service is temporarily unavailable. Please try again later.', 'fluent-cart'));
         } catch (\Exception $e) {
             return new \WP_Error('invalid', $e->getMessage());
+        }
+    }
+
+    public function validateVatForAdmin($countryCode, $vatNumber)
+    {
+        return $this->validateEuVatNumber($countryCode, $vatNumber);
+    }
+
+    /**
+     * Persist tax-rate rows for an order.
+     *
+     * Accepts the output of AdminOrderTaxService::calculate() (or the equivalent
+     * data built inside prepareOtherData) and writes / updates fct_order_tax_rate rows.
+     *
+     * @param int   $orderId   The order ID.
+     * @param array $taxLines  Array of ['rate_id', 'label', 'tax_amount'] — one entry per rate.
+     * @param array $taxMeta   Arbitrary meta merged into every row (country, vat numbers, etc.).
+     * @param int   $shippingTax Total shipping tax for the order (distributed proportionally).
+     */
+    public static function persistTaxRates($orderId, $taxLines, $taxMeta, $shippingTax = 0, $shippingTaxLines = [])
+    {
+        if (empty($taxLines)) {
+            OrderTaxRate::query()
+                ->where('order_id', $orderId)
+                ->where('tax_rate_id', '!=', 0)
+                ->delete();
+
+            // Zero-tax sentinel row — keeps fct_order_tax_rate populated for every order.
+            $existing = OrderTaxRate::query()
+                ->where('order_id', $orderId)
+                ->where('tax_rate_id', 0)
+                ->first();
+
+            if (!$existing) {
+                OrderTaxRate::create([
+                    'order_id'     => $orderId,
+                    'tax_rate_id'  => 0,
+                    'shipping_tax' => (int) $shippingTax,
+                    'order_tax'    => 0,
+                    'total_tax'    => (int) $shippingTax,
+                    'meta'         => $taxMeta,
+                ]);
+            } else {
+                $existing->update([
+                    'shipping_tax' => (int) $shippingTax,
+                    'order_tax'    => 0,
+                    'total_tax'    => (int) $shippingTax,
+                    'meta'         => $taxMeta,
+                ]);
+            }
+            return;
+        }
+
+        // Re-index to guarantee 0-based iteration; callers may pass associative arrays.
+        $taxLines = array_values($taxLines);
+        $activeRateIds = array_values(array_unique(array_map(function ($taxLine) {
+            return (int) Arr::get($taxLine, 'rate_id', 0);
+        }, $taxLines)));
+
+        // Remove stale persisted rows from prior tax compositions, including the zero-tax sentinel.
+        OrderTaxRate::query()
+            ->where('order_id', $orderId)
+            ->where(function ($query) use ($activeRateIds) {
+                $query->where('tax_rate_id', 0)
+                    ->orWhereNotIn('tax_rate_id', $activeRateIds);
+            })
+            ->delete();
+
+        // Build exact per-rate shipping tax map from checkout-time calculation when available.
+        // Falls back to proportional split for admin order recalculation and legacy callers.
+        $shippingTaxByRateId = [];
+        foreach ($shippingTaxLines as $stl) {
+            $stlRateId = (int) Arr::get($stl, 'rate_id', 0);
+            if ($stlRateId > 0) {
+                $shippingTaxByRateId[$stlRateId] = (int) Arr::get($stl, 'shipping_tax', 0);
+            }
+        }
+
+        $lineShippingTaxes = [];
+        if (!empty($shippingTaxByRateId)) {
+            // Exact amounts from checkout calculator — no proportional approximation needed.
+            foreach ($taxLines as $taxLine) {
+                $rateId              = (int) Arr::get($taxLine, 'rate_id', 0);
+                $lineShippingTaxes[] = isset($shippingTaxByRateId[$rateId]) ? $shippingTaxByRateId[$rateId] : 0;
+            }
+            // Reconcile rounding differences so persisted rows always sum to the order-level total.
+            $exactSum = array_sum($lineShippingTaxes);
+            $lastIdx  = count($lineShippingTaxes) - 1;
+            if ($lastIdx >= 0 && $exactSum !== (int) $shippingTax) {
+                $lineShippingTaxes[$lastIdx] += ((int) $shippingTax - $exactSum);
+            }
+        } else {
+            // Proportional split (admin order recalculation and legacy callers without exact breakdown).
+            // Assign rounding remainder to the last rate so the sum always equals shipping_tax exactly.
+            $totalOrderTax = array_reduce($taxLines, function ($carry, $line) {
+                return $carry + (int) Arr::get($line, 'tax_amount', 0);
+            }, 0);
+            $distributedTotal = 0;
+            foreach ($taxLines as $taxLine) {
+                $orderTax          = (int) Arr::get($taxLine, 'tax_amount', 0);
+                $share             = ($shippingTax > 0 && $totalOrderTax > 0)
+                    ? (int) round($shippingTax * ($orderTax / $totalOrderTax))
+                    : 0;
+                $lineShippingTaxes[] = $share;
+                $distributedTotal   += $share;
+            }
+            $lastIdx = count($lineShippingTaxes) - 1;
+            if ($lastIdx >= 0) {
+                $lineShippingTaxes[$lastIdx] += ($shippingTax - $distributedTotal);
+            }
+        }
+
+        foreach ($taxLines as $index => $taxLine) {
+            $rateId          = (int) Arr::get($taxLine, 'rate_id', 0);
+            $orderTax        = (int) Arr::get($taxLine, 'tax_amount', 0);
+            $lineShippingTax = $lineShippingTaxes[$index];
+            $lineMeta        = array_merge($taxMeta, [
+                'label'          => sanitize_text_field((string) Arr::get($taxLine, 'label', '')),
+                'rate_percent'   => (float) Arr::get($taxLine, 'rate_percent', 0),
+                'is_compound'    => (bool) Arr::get($taxLine, 'is_compound', false),
+                'taxable_amount' => (int) Arr::get($taxLine, 'taxable_amount', 0),
+                'inclusive'      => Arr::get($taxLine, 'inclusive', null),
+                'is_mixed_inclusive' => (bool) Arr::get($taxLine, 'is_mixed_inclusive', false),
+            ]);
+
+            $existing = OrderTaxRate::query()
+                ->where('order_id', $orderId)
+                ->where('tax_rate_id', $rateId)
+                ->first();
+
+            if (!$existing) {
+                OrderTaxRate::create([
+                    'order_id'     => $orderId,
+                    'tax_rate_id'  => $rateId,
+                    'shipping_tax' => $lineShippingTax,
+                    'order_tax'    => $orderTax,
+                    'total_tax'    => $lineShippingTax + $orderTax,
+                    'meta'         => $lineMeta,
+                ]);
+            } else {
+                $existing->update([
+                    'shipping_tax' => $lineShippingTax,
+                    'order_tax'    => $orderTax,
+                    'total_tax'    => $lineShippingTax + $orderTax,
+                    'meta'         => $lineMeta,
+                ]);
+            }
         }
     }
 
@@ -827,38 +2305,54 @@ class TaxModule
         return Arr::get($taxSettings, 'enable_tax', 'no') === 'yes';
     }
 
+    /**
+     * Whether reverse charge can be applied for a given customer country.
+     * Same logic as canApplyVatValidation() but accessible statically for renderers.
+     * Returns false when local_reverse_charge is off AND the country equals the store country.
+     */
+    public static function canApplyReverseCharge($countryCode)
+    {
+        if (!$countryCode || !static::isTaxEnabled()) {
+            return false;
+        }
+        $taxSettings  = get_option('fluent_cart_tax_configuration_settings', []);
+        $storeCountry = (new StoreSettings())->get('store_country');
+        return Arr::get($taxSettings, 'eu_vat_settings.local_reverse_charge', 'no') === 'yes'
+            || $countryCode !== $storeCountry;
+    }
+
     public static function euVatCountyOptions()
     {
-        $eu_vat_countries = [
-            ['label' => 'Austria', 'value' => 'AT'],
-            ['label' => 'Belgium', 'value' => 'BE'],
-            ['label' => 'Bulgaria', 'value' => 'BG'],
-            ['label' => 'Croatia', 'value' => 'HR'],
-            ['label' => 'Cyprus', 'value' => 'CY'],
-            ['label' => 'Czech Republic', 'value' => 'CZ'],
-            ['label' => 'Denmark', 'value' => 'DK'],
-            ['label' => 'Estonia', 'value' => 'EE'],
-            ['label' => 'Finland', 'value' => 'FI'],
-            ['label' => 'France', 'value' => 'FR'],
-            ['label' => 'Germany', 'value' => 'DE'],
-            ['label' => 'Greece', 'value' => 'GR'],
-            ['label' => 'Hungary', 'value' => 'HU'],
-            ['label' => 'Ireland', 'value' => 'IE'],
-            ['label' => 'Italy', 'value' => 'IT'],
-            ['label' => 'Latvia', 'value' => 'LV'],
-            ['label' => 'Lithuania', 'value' => 'LT'],
-            ['label' => 'Luxembourg', 'value' => 'LU'],
-            ['label' => 'Malta', 'value' => 'MT'],
-            ['label' => 'Netherlands', 'value' => 'NL'],
-            ['label' => 'Poland', 'value' => 'PL'],
-            ['label' => 'Portugal', 'value' => 'PT'],
-            ['label' => 'Romania', 'value' => 'RO'],
-            ['label' => 'Slovakia', 'value' => 'SK'],
-            ['label' => 'Slovenia', 'value' => 'SI'],
-            ['label' => 'Spain', 'value' => 'ES'],
-            ['label' => 'Sweden', 'value' => 'SE'],
-        ];
-        return $eu_vat_countries;
+        $continents = require dirname(__DIR__, 2) . '/Services/Localization/i18n/eu_tax_countries.php';
+        $euCountries = Arr::get($continents, 'EU.countries', []);
+        $countries = LocalizationManager::getCountries();
+        $taxPresets = require dirname(__DIR__, 2) . '/Services/Tax/tax.php';
+        $countryOptions = [];
+
+        foreach ($euCountries as $countryCode) {
+            $preset = isset($taxPresets[$countryCode]) ? $taxPresets[$countryCode] : [];
+            $taxEntries = isset($preset['tax']) ? (array) $preset['tax'] : [];
+            $defaultRates = [];
+            $defaultRate = 0;
+
+            foreach ($taxEntries as $entry) {
+                $slug = isset($entry['type']) ? $entry['type'] : 'standard';
+                $rate = isset($entry['rate']) ? (float) $entry['rate'] : 0;
+                $defaultRates[$slug] = $rate;
+                if ($slug === 'standard') {
+                    $defaultRate = $rate;
+                }
+            }
+
+            $countryOptions[] = [
+                'label'         => Arr::get($countries, $countryCode, $countryCode),
+                'value'         => $countryCode,
+                'default_rate'  => $defaultRate,
+                'default_rates' => $defaultRates,
+            ];
+        }
+
+        return $countryOptions;
     }
 
     public static function taxTitleLists(): array
@@ -918,6 +2412,28 @@ class TaxModule
             return $countryTaxTitles[$countryCode];
         }
         return __('VAT', 'fluent-cart');
+    }
+
+    public function applyRcFeeAdjustments($fees, $context)
+    {
+        $cart = Arr::get($context, 'cart');
+        if (!$cart) {
+            return $fees;
+        }
+        $rcAdjustedFees = Arr::get($cart->checkout_data, 'tax_data.rc_adjusted_fees', []);
+        if (empty($rcAdjustedFees)) {
+            return $fees;
+        }
+        foreach ($fees as &$fee) {
+            $key          = Arr::get($fee, 'key', '');
+            $source       = Arr::get($fee, 'source', 'custom');
+            $compositeKey = $source . ':' . $key;
+            if ($key && isset($rcAdjustedFees[$compositeKey])) {
+                $fee['amount'] = (int) $rcAdjustedFees[$compositeKey];
+            }
+        }
+        unset($fee);
+        return $fees;
     }
 
 }

@@ -1107,6 +1107,23 @@ class Str
     }
 
     /**
+     * Escape SQL LIKE wildcards (% and _) in a user-supplied search term.
+     *
+     * Pairs with `where('col', 'LIKE', '%'.Str::likeEscape($term).'%')` or
+     * `whereLike($col, $term)`. Uses `\` as the escape character — works as
+     * a no-op for MySQL/MariaDB (default LIKE escape is `\`); on SQLite or
+     * PostgreSQL, also append `ESCAPE '\\'` to the LIKE clause so the
+     * escapes take effect.
+     *
+     * @param  string  $value
+     * @return string
+     */
+    public static function likeEscape($value)
+    {
+        return addcslashes((string) $value, '%_\\');
+    }
+
+    /**
      * Replace a given value in the string sequentially with an array.
      *
      * @param  string  $search

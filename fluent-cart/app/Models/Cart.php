@@ -846,12 +846,13 @@ class Cart extends Model
         }
 
         $validatedFee = [
-            'key'     => sanitize_key($fee['key']),
-            'label'   => sanitize_text_field($fee['label']),
-            'amount'  => $amount,
-            'taxable' => !empty($fee['taxable']),
-            'source'  => sanitize_key($fee['source'] ?? 'custom'),
-            'meta'    => (array) ($fee['meta'] ?? []),
+            'key'       => sanitize_key($fee['key']),
+            'label'     => sanitize_text_field($fee['label']),
+            'amount'    => $amount,
+            'taxable'   => !empty($fee['taxable']),
+            'inclusive' => !empty($fee['inclusive']),
+            'source'    => sanitize_key($fee['source'] ?? 'custom'),
+            'meta'      => (array) ($fee['meta'] ?? []),
         ];
 
         $checkoutData = $this->checkout_data ?? [];
@@ -1041,12 +1042,13 @@ class Cart extends Model
 
             // Last wins — later entries (from filter) override earlier ones (stored)
             $validFees[$compositeKey] = [
-                'key'     => sanitize_key($fee['key']),
-                'label'   => sanitize_text_field($fee['label']),
-                'amount'  => $amount,
-                'taxable' => !empty($fee['taxable']),
-                'source'  => $source,
-                'meta'    => (array) ($fee['meta'] ?? []),
+                'key'       => sanitize_key($fee['key']),
+                'label'     => sanitize_text_field($fee['label']),
+                'amount'    => $amount,
+                'taxable'   => !empty($fee['taxable']),
+                'inclusive' => !empty($fee['inclusive']),
+                'source'    => $source,
+                'meta'      => (array) ($fee['meta'] ?? []),
             ];
         }
 
@@ -1117,6 +1119,13 @@ class Cart extends Model
             'cart' => $this
         ]);
 
+        // Prorate credit and upgrade discount (plan upgrade) are post-tax adjustments: the
+        // estimated_total filter has already added tax on the full price, now reduce the
+        // payable total.
+        $finalTotal = max(0, $finalTotal
+            - (int) Arr::get($this->checkout_data ?? [], 'prorate_credit.amount', 0)
+            - (int) Arr::get($this->checkout_data ?? [], 'upgrade_discount.amount', 0));
+
         do_action('fluent_cart/cart/after_totals_calculation', [
             'cart'  => $this,
             'total' => $finalTotal,
@@ -1145,6 +1154,9 @@ class Cart extends Model
         if ($feeTotal > 0) {
             $total += $feeTotal;
         }
+
+        $total -= (int) Arr::get($this->checkout_data ?? [], 'prorate_credit.amount', 0);
+        $total -= (int) Arr::get($this->checkout_data ?? [], 'upgrade_discount.amount', 0);
 
         return max(0, $total);
     }

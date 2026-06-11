@@ -48,6 +48,16 @@ class IPN
 
         $refunds = Arr::get($charge, 'refunds.data', []);
 
+        if (empty($refunds)) {
+            $chargeId = Arr::get($charge, 'id', '');
+            if ($chargeId) {
+                $refundsResponse = (new API())->getStripeObject('charges/' . $chargeId . '/refunds');
+                if (!is_wp_error($refundsResponse)) {
+                    $refunds = Arr::get($refundsResponse, 'data', []);
+                }
+            }
+        }
+
         if (!$refunds) {
             return false;
         }

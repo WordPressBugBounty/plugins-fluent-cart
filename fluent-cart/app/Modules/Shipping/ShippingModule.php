@@ -38,7 +38,8 @@ class ShippingModule
         $ignores = [
             'apply_coupons',
             'discounts_recalculated',
-            'remove_coupon'
+            'remove_coupon',
+            'payment_method_fee_recalculate',
         ];
 
         if (in_array($scope, $ignores)) {

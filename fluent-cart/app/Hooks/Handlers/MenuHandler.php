@@ -56,6 +56,12 @@ class MenuHandler
             }
         });
 
+        // Inline dark mode init script for all FluentCart admin pages (prevents flicker)
+        add_action('admin_head', [$this, 'outputFluentCartDarkModeScript']);
+
+        // Enqueue dark mode toggle JS for taxonomy pages
+        add_action('admin_head', [$this, 'enqueueDarkModeToggleForTaxonomy']);
+
         // Add a post display state for special WC pages.
         add_filter('display_post_states', array($this, 'addDisplayPostStates'), 10, 2);
 
@@ -106,6 +112,64 @@ class MenuHandler
 
         return $states;
 
+    }
+
+    public function outputFluentCartDarkModeScript()
+    {
+        global $pagenow;
+        $page     = $_GET['page'] ?? '';
+        $postType = $_GET['post_type'] ?? '';
+
+        // post.php?post=ID&action=edit omits post_type; resolve it from the post ID.
+        if ($pagenow === 'post.php' && empty($postType)) {
+            $postId   = (int) App::request()->get('post', 0);
+            $postType = $postId ? (string) get_post_type($postId) : '';
+        }
+
+        $isFluentCartPage  = $page === 'fluent-cart';
+        $isTaxonomyList    = $pagenow === 'edit-tags.php' && $postType === FluentProducts::CPT_NAME;
+        $isTermEditPage    = $pagenow === 'term.php' && $postType === FluentProducts::CPT_NAME;
+        $isProductEditPage = ($pagenow === 'post.php' || $pagenow === 'edit.php') && $postType === FluentProducts::CPT_NAME;
+
+        if (!$isFluentCartPage && !$isTaxonomyList && !$isTermEditPage && !$isProductEditPage) {
+            return;
+        }
+
+        // Runs synchronously in <head> before any paint — applies the dark class and
+        // data-fct-theme attribute to <html> so logos and the theme icon render correctly
+        // from the very first frame, with no light-to-dark flash.
+        echo '<script>' . $this->getDarkModeInitScript() . '</script>';
+    }
+
+    public function enqueueDarkModeToggleForTaxonomy()
+    {
+        global $pagenow;
+        $postType = $_GET['post_type'] ?? '';
+
+        $isTaxonomyList = $pagenow === 'edit-tags.php' && $postType === FluentProducts::CPT_NAME;
+        $isTermEditPage = $pagenow === 'term.php' && $postType === FluentProducts::CPT_NAME;
+
+        if ($isTaxonomyList || $isTermEditPage) {
+            Vite::enqueueScript(
+                'fluent_cart_dark_mode_toggle',
+                'admin/dark-mode-toggle.js',
+                [],
+                FLUENTCART_VERSION,
+                true
+            );
+        }
+    }
+
+    private function getDarkModeInitScript(): string
+    {
+        return "(function(){" .
+               "var k='fluent_theme_mode',c='fluent_theme_dark'," .
+               "s=localStorage.getItem(k)||localStorage.getItem('fcart_admin_theme')," .
+               "t=s==='dark'?'dark':s==='light'?'light':'system'," .
+               "d=s==='dark'||s==='system:dark'||((!s||s==='system')&&window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches);" .
+               "document.documentElement.setAttribute('data-fct-theme',t);" .
+               "if(d)document.documentElement.classList.add(c);" .
+               "})();";
     }
 
     public function init()
@@ -378,7 +442,15 @@ class MenuHandler
         Vite::enqueueScript($slug . '_admin_app_start', 'admin/bootstrap/app.js', [$slug . '_global_admin_hooks']);
 
         //Don't register this script using vite.
-        wp_enqueue_script($slug . '_global_admin_hooks', Vite::getEnqueuePath('admin/admin_hooks.js'), [], FLUENTCART_VERSION, true);
+        if (!wp_script_is('wp-hooks', 'registered')) {
+            $suffix = (defined('SCRIPT_DEBUG') && SCRIPT_DEBUG) ? '' : '.min';
+            wp_register_script('wp-hooks', includes_url('js/dist/hooks' . $suffix . '.js'),  ['wp-polyfill'],   FLUENTCART_VERSION, true);
+        }
+        if (!wp_script_is('wp-hooks', 'enqueued')) {
+            wp_enqueue_script('wp-hooks');
+        }
+
+        wp_enqueue_script($slug . '_global_admin_hooks', Vite::getEnqueuePath('admin/admin_hooks.js'), ['wp-hooks'], FLUENTCART_VERSION, true);
 
         $manager = GatewayManager::getInstance();
         $payment_routes = $manager->getRoutes();
@@ -496,6 +568,20 @@ class MenuHandler
             'el_strings'            => TransStrings::elStrings(),
             'wp_locale'             => get_locale(),
             'is_full_name_required' => CheckoutFieldsSchema::isFullNameRequired(),
+            'business_details'      => [
+                'company_name' => [
+                    'enabled'  => CheckoutFieldsSchema::isCompanyNameEnabled(),
+                    'required' => CheckoutFieldsSchema::isCompanyNameRequired(),
+                ],
+                'vat_number' => [
+                    'enabled'  => CheckoutFieldsSchema::isVatNumberEnabled(),
+                    'required' => CheckoutFieldsSchema::isVatNumberRequired(),
+                ],
+                'legal_registration_id' => [
+                    'enabled'  => CheckoutFieldsSchema::isLegalRegistrationIdEnabled(),
+                    'required' => CheckoutFieldsSchema::isLegalRegistrationIdRequired(),
+                ],
+            ],
             'fct_editor_frame'      => '',
         ]);
 

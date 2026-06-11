@@ -299,7 +299,7 @@ class EmailNotificationMailer
 
     public function sendAsyncOrderMail($emailName, $orderId)
     {
-        $order = Order::query()->with(['customer', 'shipping_address', 'billing_address', 'transactions'])->find($orderId);
+        $order = Order::query()->with(['customer', 'shipping_address', 'billing_address', 'transactions', 'orderTaxRates'])->find($orderId);
 
         if ($order) {
             $transaction = [];

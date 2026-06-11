@@ -3,8 +3,8 @@
 namespace FluentCart\App\Modules\Templating\Bricks;
 
 use Bricks\Elements;
-use Bricks\Query;
 use FluentCart\Framework\Support\Arr;
+use FluentCart\App\Models\Product;
 
 class BricksLoader
 {
@@ -42,7 +42,7 @@ class BricksLoader
             'ProductContent'          => 'fct-product-content',
             'ProductStock'            => 'fct-product-stock',
             'PriceRange'              => 'fct-price-range',
-            'ProductAddToCart'        => 'fct-product-buy-section',
+            'BuySection'              => 'fct-product-buy-section',
             'ProductGallery'          => 'fct-product-gallery',
             'ProductsCollection'      => 'fct-products',
         ];
@@ -169,5 +169,35 @@ class BricksLoader
         });
         </script>
         <?php
+    }
+
+    /**
+     * Get product options for select controls.
+     * Limits to 50 recent products for editor performance.
+     * Users can search or use manual product ID for others.
+     */
+    public static function getProductOptions()
+    {
+        if (!class_exists('\FluentCart\App\Models\Product')) {
+            return [];
+        }
+
+        $options = [];
+
+        try {
+            $products = Product::query()
+                ->where('post_status', 'publish')
+                ->orderBy('post_date', 'DESC')
+                ->limit(50)
+                ->get();
+
+            foreach ($products as $product) {
+                $options[$product->ID] = $product->post_title;
+            }
+        } catch (\Exception $e) {
+            // Silently fail if models aren't available
+        }
+
+        return $options;
     }
 }

@@ -68,13 +68,9 @@ class PricingTableShortCode extends ShortCode
             });
 
         $activeVariants = [];
-        $getActiveVariants = explode(',', Arr::get($shortcodeAttributes, 'active_variant'));
+        $activeVariantItems = array_filter(explode(',', Arr::get($shortcodeAttributes, 'active_variant', '')));
 
-        foreach ($getActiveVariants as $item) {
-            if (empty($item)) {
-                continue;
-            }
-            // Check if the item contains an '=' sign using Str::contains()
+        foreach ($activeVariantItems as $item) {
             if (Str::contains($item, '=')) {
                 list($key, $value) = explode('=', $item);
                 $activeVariants[trim($key)] = trim($value);

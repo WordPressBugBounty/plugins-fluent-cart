@@ -574,9 +574,20 @@ class AddressHelper
             if ($addressModel && $addressModel->customer_id == $currentCustomer->id) {
                 $addressData = $addressModel->getFormattedDataForCheckout($type . '_');
 
+                $businessInfoFields = [$type . '_company_name', $type . '_legal_registration_id'];
                 foreach ($addressData as $key => $value) {
-                    if (!isset($data[$key]) || $data[$key] === '' || $data[$key] !== $value) {
+                    if ($value !== '') {
+                        if (in_array($key, $businessInfoFields) && !empty($data[$key])) {
+                            continue;
+                        }
                         $data[$key] = $value;
+                    }
+                }
+
+                if ($type === 'billing') {
+                    $vatNumber = Arr::get($addressData, 'billing_vat_number', '');
+                    if ((!isset($data['fct_billing_tax_id']) || $data['fct_billing_tax_id'] === '') && $vatNumber !== '') {
+                        $data['fct_billing_tax_id'] = $vatNumber;
                     }
                 }
             }

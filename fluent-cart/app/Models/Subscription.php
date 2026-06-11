@@ -82,6 +82,30 @@ class Subscription extends Model
         });
     }
 
+    public function getNextBillingDateAttribute($value)
+    {
+        if (empty($value) || $value === '0000-00-00 00:00:00' || $value === '0000-00-00') {
+            return null;
+        }
+        return $value;
+    }
+
+    public function getCanceledAtAttribute($value)
+    {
+        if (empty($value) || $value === '0000-00-00 00:00:00' || $value === '0000-00-00') {
+            return null;
+        }
+        return $value;
+    }
+
+    public function getExpireAtAttribute($value)
+    {
+        if (empty($value) || $value === '0000-00-00 00:00:00' || $value === '0000-00-00') {
+            return null;
+        }
+        return $value;
+    }
+
     public function meta()
     {
         return $this->hasMany(SubscriptionMeta::class, 'subscription_id', 'id');
@@ -215,6 +239,22 @@ class Subscription extends Model
         return $this->belongsTo(Order::class, 'parent_order_id', 'id');
     }
 
+    public function getBusinessInfoAttribute(): array
+    {
+        if ($this->relationLoaded('order') && $this->order) {
+            return $this->order->getBusinessInfo();
+        }
+        return [];
+    }
+
+    public function getIsReverseChargeTaxOrderAttribute(): bool
+    {
+        if ($this->relationLoaded('order') && $this->order) {
+            return $this->order->isReverseChargeTaxOrder();
+        }
+        return false;
+    }
+
     /**
      * Get the currency for the subscription
      *
@@ -268,7 +308,7 @@ class Subscription extends Model
 
         $recurringTotal = $this->recurring_total ?? 0;
 
-        return Helper::generateSubscriptionInfo($otherInfo, $recurringTotal) ?? '';
+        return Helper::generateSubscriptionInfo($otherInfo, $recurringTotal, $this->currency) ?? '';
     }
 
     public function addLog($title, $description = '', $type = 'info', $by = '')
@@ -754,34 +794,32 @@ class Subscription extends Model
      * @param int $batchSize Number of subscriptions to process per batch
      * @return array Statistics about processed subscriptions
      */
-    public static function checkAndExpireSubscriptions($batchSize = 100)
+   public static function checkAndExpireSubscriptions($batchSize = 100)
     {
         $stats = [
-            'checked' => 0,
-            'validity_expired' => 0,
-            'batches' => 0,
+            'checked'           => 0,
+            'validity_expired'  => 0,
+            'batches'           => 0,
+            'expired_ids'       => [],
         ];
 
         $lastId = 0;
 
-        $gracePeriodDays = SubscriptionHelper::getSubscriptionsGracePeriodDays();
-
-        $caseSql  = 'CASE billing_interval ';
-        $bindings = [];
-
-        foreach ($gracePeriodDays as $interval => $days) {
-            $caseSql   .= 'WHEN ? THEN ? ';
-            $bindings[] = $interval;
-            $bindings[] = $days;
-        }
-
-        $caseSql   .= 'ELSE ? END';
-        $bindings[] = 7;
-
-        $cutoffSql = "DATE_SUB(?, INTERVAL ($caseSql) DAY)";
-
         do {
-            // Include canceled subscriptions to check if validity is yet to expired
+            $currentTime = time();
+            $now = gmdate('Y-m-d H:i:s', $currentTime);
+
+            $gracePeriodDays = SubscriptionHelper::getSubscriptionsGracePeriodDays();
+
+            $cutoffDates = [];
+            foreach ($gracePeriodDays as $interval => $days) {
+                $cutoffDates[$interval] = gmdate('Y-m-d H:i:s', $currentTime - ((int)$days * DAY_IN_SECONDS));
+            }
+
+            $defaultGraceDays = 7;
+            $defaultCutoff = gmdate('Y-m-d H:i:s', $currentTime - ($defaultGraceDays * DAY_IN_SECONDS));
+            $knownIntervals = array_keys($cutoffDates);
+
             $subscriptions = Subscription::query()
                 ->whereIn('status', [
                     Status::SUBSCRIPTION_ACTIVE,
@@ -789,77 +827,141 @@ class Subscription extends Model
                     Status::SUBSCRIPTION_CANCELED,
                 ])
                 ->whereNotNull('next_billing_date')
+                ->where('next_billing_date', '>', '0000-00-00 00:00:00')
                 ->where('id', '>', $lastId)
-                ->whereRaw(
-                    "next_billing_date < $cutoffSql",
-                    array_merge(
-                        [gmdate('Y-m-d H:i:s', time())],
-                        $bindings
-                    )
-                )
+                ->where(function ($query) use ($now, $cutoffDates, $knownIntervals, $defaultCutoff) {
+                    $query->where(function ($subQuery) use ($cutoffDates, $knownIntervals, $defaultCutoff) {
+                        $subQuery->whereIn('status', [
+                            Status::SUBSCRIPTION_ACTIVE,
+                            Status::SUBSCRIPTION_TRIALING,
+                        ])->where(function ($dateQuery) use ($cutoffDates, $knownIntervals, $defaultCutoff) {
+                            $index = 0;
+
+                            foreach ($cutoffDates as $interval => $cutoff) {
+                                $method = $index === 0 ? 'where' : 'orWhere';
+
+                                $dateQuery->{$method}(function ($intervalQuery) use ($interval, $cutoff) {
+                                    $intervalQuery->where('billing_interval', $interval)
+                                        ->where('next_billing_date', '<', $cutoff);
+                                });
+
+                                $index++;
+                            }
+
+                            $dateQuery->orWhere(function ($intervalQuery) use ($knownIntervals, $defaultCutoff) {
+                                $intervalQuery->where(function ($unknownIntervalQuery) use ($knownIntervals) {
+                                    $unknownIntervalQuery->whereNotIn('billing_interval', $knownIntervals)
+                                        ->orWhereNull('billing_interval');
+                                })->where('next_billing_date', '<', $defaultCutoff);
+                            });
+                        });
+                    })->orWhere(function ($subQuery) use ($now) {
+                        $subQuery->where('status', Status::SUBSCRIPTION_CANCELED)
+                            ->where('next_billing_date', '<', $now);
+                    });
+                })
                 ->orderBy('id', 'ASC')
                 ->limit($batchSize)
                 ->with(['order', 'customer'])
                 ->get();
 
             if ($subscriptions->isEmpty()) {
-                break; // No more subscriptions to process
+                break;
             }
 
             $stats['batches']++;
             $stats['checked'] += $subscriptions->count();
 
             foreach ($subscriptions as $subscription) {
+                $nextBillingTimestamp = strtotime($subscription->next_billing_date);
+
+                if (!$nextBillingTimestamp || $nextBillingTimestamp <= 0) {
+                    continue;
+                }
+
                 if ($subscription->status === Status::SUBSCRIPTION_CANCELED) {
                     if (isset($subscription->config['upgraded_to_sub_id'])) {
                         continue;
                     }
-                }
-                $gracePeriod = $gracePeriodDays[$subscription->billing_interval] ?? 7;
-                $cutoff = gmdate('Y-m-d H:i:s', time() - ($gracePeriod * DAY_IN_SECONDS));
 
-                if ($subscription->next_billing_date < $cutoff) {
-                    $updateData = [
-                        'next_billing_date' => NULL,
-                    ];
-
-                    // Only change status to EXPIRED for active/trialing subscriptions
-                    if ($subscription->status !== Status::SUBSCRIPTION_CANCELED) {
-                        $updateData['status'] = Status::SUBSCRIPTION_EXPIRED;
+                    if ($subscription->getMeta('validity_expired_at')) {
+                        continue;
                     }
 
-                    $subscription->updateMeta('validity_expired_at', gmdate('Y-m-d H:i:s'));
+                    if ($nextBillingTimestamp >= $currentTime) {
+                        continue;
+                    }
 
-                    $subscription->fill($updateData);
-                    $subscription->save();
+                    $cutoff = $now;
+                } else {
+                    $graceDays = $gracePeriodDays[$subscription->billing_interval] ?? $defaultGraceDays;
+                    $graceDays = max(0, (int)$graceDays);
+                    $cutoffTimestamp = $currentTime - ($graceDays * DAY_IN_SECONDS);
 
-                    $event = new \FluentCart\App\Events\Subscription\SubscriptionValidityExpired(
-                        $subscription,
-                        $subscription->order,
-                        $subscription->customer,
-                    );
+                    if ($nextBillingTimestamp >= $cutoffTimestamp) {
+                        continue;
+                    }
 
-                    $event->dispatch();
-
-                    $stats['validity_expired']++;
+                    $cutoff = gmdate('Y-m-d H:i:s', $cutoffTimestamp);
                 }
 
+                $updateData = [
+                    'next_billing_date' => NULL,
+                    'updated_at'        => gmdate('Y-m-d H:i:s', $currentTime),
+                ];
+
+                if ($subscription->status !== Status::SUBSCRIPTION_CANCELED) {
+                    $updateData['status'] = Status::SUBSCRIPTION_EXPIRED;
+                }
+
+                $updated = Subscription::query()
+                    ->where('id', $subscription->id)
+                    ->where('status', $subscription->status)
+                    ->where('next_billing_date', $subscription->next_billing_date)
+                    ->where('next_billing_date', '<', $cutoff)
+                    ->update($updateData);
+
+                if (!$updated) {
+                    continue;
+                }
+
+                $subscription = Subscription::query()
+                    ->with(['order', 'customer'])
+                    ->find($subscription->id);
+
+                if (!$subscription) {
+                    continue;
+                }
+
+                $subscription->updateMeta('validity_expired_at', gmdate('Y-m-d H:i:s', $currentTime));
+
+                $event = new \FluentCart\App\Events\Subscription\SubscriptionValidityExpired(
+                    $subscription,
+                    $subscription->order,
+                    $subscription->customer
+                );
+
+                $event->dispatch();
+
+                $stats['validity_expired']++;
+                $stats['expired_ids'][] = $subscription->id;
             }
 
             $lastId = $subscriptions->last()->id;
 
             unset($subscriptions);
-
         } while (true);
 
         if ($stats['checked'] > 0) {
+            $expiredList = !empty($stats['expired_ids']) ? ' (IDs: ' . implode(', ', $stats['expired_ids']) . ')' : '';
             fluent_cart_add_log(
                 'Subscription Validity Expiration Check',
                 sprintf(
-                    'Checked: %d subscriptions, Status changed to Expired: %d, Batches: %d',
+                    'Checked: %d subscriptions, Status changed to Expired: %d, Batches: %d%s',
                     $stats['checked'],
                     $stats['validity_expired'],
-                    $stats['batches']
+                    $stats['batches'],
+                    $expiredList
                 ),
                 'info',
                 $stats

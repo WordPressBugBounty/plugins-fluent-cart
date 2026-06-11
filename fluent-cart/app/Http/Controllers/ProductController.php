@@ -153,6 +153,8 @@ class ProductController extends Controller
             'other_info'       => [
                 'description'        => '',
                 'payment_type'       => 'onetime',
+                'tax_class'          => 'standard',
+                'tax_exempt'         => 'no',
                 'times'              => '',
                 'repeat_interval'    => '',
                 'trial_days'         => '',
@@ -402,7 +404,7 @@ class ProductController extends Controller
         ]);
 
         return $this->sendSuccess([
-            'message' => __('Tax Class updated successfully', 'fluent-cart')
+            'message' => __('Tax profile updated successfully', 'fluent-cart')
         ]);
     }
 
@@ -420,7 +422,59 @@ class ProductController extends Controller
             'other_info' => $otherInfo
         ]);
         return $this->sendSuccess([
-            'message' => __('Tax Class removed successfully', 'fluent-cart')
+            'message' => __('Tax profile removed successfully', 'fluent-cart')
+        ]);
+    }
+
+    public function toggleTaxExempt(Request $request, $postId)
+    {
+        $productDetail = ProductDetail::query()->where('post_id', $postId)->first();
+        if (empty($productDetail)) {
+            return $this->sendError([
+                'message' => __('Product not found', 'fluent-cart')
+            ]);
+        }
+
+        $otherInfo = $productDetail->other_info ?: [];
+        $taxExempt = sanitize_text_field($request->get('tax_exempt', 'no'));
+        $existingTaxClass = Arr::get($otherInfo, 'tax_class');
+        // Product-level tax settings live on product detail, so convert the UI
+        // slug back to the stored tax-class ID before persisting the change.
+        $taxClassSlug = sanitize_text_field($request->get('tax_class', ''));
+        $otherInfo['tax_exempt'] = $taxExempt === 'yes' ? 'yes' : 'no';
+
+        if (!$taxClassSlug) {
+            $defaultClass = TaxClass::query()->where('slug', 'standard')->first();
+            $resolvedTaxClassId = $existingTaxClass ?: ($defaultClass ? $defaultClass->id : null);
+            if ($resolvedTaxClassId) {
+                $resolvedTaxClass = TaxClass::query()->find($resolvedTaxClassId);
+                $taxClassSlug = $resolvedTaxClass ? $resolvedTaxClass->slug : 'standard';
+            } else {
+                $taxClassSlug = 'standard';
+            }
+        } else {
+            $taxClass = TaxClass::query()->where('slug', $taxClassSlug)->first();
+            if (!$taxClass) {
+                return $this->sendError([
+                    'message' => __('Invalid tax class', 'fluent-cart')
+                ], 422);
+            }
+            $resolvedTaxClassId = $taxClass->id;
+        }
+
+        $otherInfo['tax_class'] = $resolvedTaxClassId;
+
+        $productDetail->update([
+            'other_info' => $otherInfo
+        ]);
+
+        return $this->sendSuccess([
+            'message'        => $taxExempt === 'yes'
+                ? __('Product is now tax exempt', 'fluent-cart')
+                : __('Tax will be charged on this product', 'fluent-cart'),
+            'tax_exempt'     => $otherInfo['tax_exempt'],
+            'tax_class'      => $otherInfo['tax_class'],
+            'tax_class_slug' => $taxClassSlug ?: 'standard'
         ]);
     }
 

@@ -104,7 +104,7 @@ class Airwallex extends AbstractPaymentGateway
 
     public function fields()
     {
-        $webhook_url = site_url() . '?fct_payment_listener=1&method=airwallex';
+        $webhook_url = trailingslashit(site_url()) . '?fct_payment_listener=1&method=airwallex';
         $webhook_instructions = sprintf(
             '<div>
                 <p><b>%1$s</b><code class="copyable-content">%2$s</code></p>

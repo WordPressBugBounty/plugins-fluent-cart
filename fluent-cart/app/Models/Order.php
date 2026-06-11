@@ -20,6 +20,7 @@ use FluentCart\Framework\Database\Orm\Relations\HasManyThrough;
 use FluentCart\Framework\Database\Orm\Relations\HasOne;
 use FluentCart\Framework\Database\Orm\Relations\MorphMany;
 use FluentCart\Framework\Support\Arr;
+use FluentCart\App\Services\Renderer\Receipt\TaxSummaryHelper;
 use FluentCartPro\App\Modules\Licensing\Models\License;
 
 /**
@@ -120,6 +121,7 @@ class Order extends Model
         'shipping_total'        => 'double',
         'fee_total'             => 'double',
         'tax_total'             => 'double',
+        'tax_behavior'          => 'integer',
         'total_amount'          => 'double',
         'customer_id'           => 'integer',
     ];
@@ -463,6 +465,273 @@ class Order extends Model
         return OrderMeta::where('order_id', $this->id)
             ->where('meta_key', $metaKey)
             ->delete();
+    }
+
+    public function getBusinessInfo(): array
+    {
+        $businessInfo = $this->getMeta('business_info', []);
+
+        return is_array($businessInfo) ? $businessInfo : [];
+    }
+
+    public function getPrimaryOrderTaxRate()
+    {
+        return $this->orderTaxRates ? $this->orderTaxRates->first() : null;
+    }
+
+    public function getReversedTaxTotal()
+    {
+        $this->loadMissing(['orderTaxRates']);
+        $primaryRate = $this->getPrimaryOrderTaxRate();
+        if (!$primaryRate) {
+            return 0;
+        }
+        return (int) Arr::get(
+            is_array($primaryRate->meta) ? $primaryRate->meta : [],
+            'reverse_charge_original_tax_total',
+            0
+        );
+    }
+
+    public function isB2BOrder(): bool
+    {
+        return !empty($this->getBusinessInfo());
+    }
+
+    public function getIsB2BOrderAttribute(): bool
+    {
+        return $this->isB2BOrder();
+    }
+
+    public function isReverseChargeTaxOrder(): bool
+    {
+        $orderTaxRate = $this->getPrimaryOrderTaxRate();
+        $reverseChargeApplied = Arr::get($orderTaxRate->meta ?? [], 'reverse_charge_applied', null);
+
+        if ($reverseChargeApplied !== null) {
+            return (bool) $reverseChargeApplied;
+        }
+
+        return $this->hasValidatedCustomerTaxNumber() && ((int) $this->tax_total + (int) $this->shipping_tax) === 0;
+    }
+
+    public function getOrderRcMode(): string
+    {
+        $this->loadMissing(['orderTaxRates']);
+        $primaryRate = $this->getPrimaryOrderTaxRate();
+        $stored = Arr::get((array) ($primaryRate ? $primaryRate->meta : []), 'reverse_charge_price_mode', null);
+        if ($stored !== null) {
+            return (string) $stored;
+        }
+        return (string) Arr::get(
+            get_option('fluent_cart_tax_configuration_settings', []),
+            'eu_vat_settings.reverse_charge_price_mode',
+            'fixed'
+        );
+    }
+
+    public function getDisplayTaxLines(): array
+    {
+        $displayTaxLines = [];
+        $isReverseCharge = $this->isReverseChargeTaxOrder();
+
+        foreach ($this->orderTaxRates ?: [] as $orderTaxRate) {
+            $meta = $this->normalizeOrderTaxRateMeta((array) $orderTaxRate->meta, (int) $orderTaxRate->tax_rate_id);
+
+            $ratePercent   = (float) Arr::get($meta, 'rate_percent', 0);
+            $rateTaxAmount = (int) $orderTaxRate->order_tax;
+            $taxableAmount = (int) Arr::get($meta, 'taxable_amount', 0);
+            $isCompound    = (bool) Arr::get($meta, 'is_compound', false);
+            $isMixedInclusive = (bool) Arr::get($meta, 'is_mixed_inclusive', false);
+            $lineInclusive = Arr::get($meta, 'inclusive', null);
+            $label         = trim((string) Arr::get($meta, 'label', ''));
+
+            if ($isReverseCharge) {
+                if ($ratePercent <= 0) {
+                    continue;
+                }
+            } elseif ($rateTaxAmount <= 0) {
+                continue;
+            }
+
+            $displayLabel = $label ?: __('Tax', 'fluent-cart');
+
+            if ($ratePercent > 0) {
+                $displayLabel .= ' (' . Helper::formatTaxRatePercent($ratePercent) . '%)';
+            }
+
+            if ($isCompound) {
+                $displayLabel .= ' (' . __('Compound', 'fluent-cart') . ')';
+            }
+
+            if ($taxableAmount > 0 && !$isMixedInclusive) {
+                if ($lineInclusive === null) {
+                    $displayBase = $this->tax_behavior == 2
+                        ? max(0, $taxableAmount - $rateTaxAmount)
+                        : $taxableAmount;
+                } else {
+                    $displayBase = $lineInclusive
+                        ? max(0, $taxableAmount - $rateTaxAmount)
+                        : $taxableAmount;
+                }
+
+                $displayLabel .= ' ' . sprintf(
+                    __('on %s', 'fluent-cart'),
+                    html_entity_decode(Helper::toDecimal($displayBase), ENT_QUOTES, 'UTF-8')
+                );
+            }
+
+            $displayTaxLines[] = [
+                'label'     => $displayLabel,
+                'order_tax' => $rateTaxAmount,
+                'total_tax' => (int) $orderTaxRate->total_tax,
+                'rate_id'   => (int) $orderTaxRate->tax_rate_id,
+            ];
+        }
+
+        return $displayTaxLines;
+    }
+
+    public function getDisplayTaxLinesAttribute(): array
+    {
+        return $this->getDisplayTaxLines();
+    }
+
+    public function getDisplayShippingTaxLines(): array
+    {
+        $displayLines = [];
+        foreach ($this->orderTaxRates ?: [] as $orderTaxRate) {
+            $shippingTax = (int) $orderTaxRate->shipping_tax;
+            if ($shippingTax <= 0) {
+                continue;
+            }
+            $meta        = $this->normalizeOrderTaxRateMeta((array) $orderTaxRate->meta, (int) $orderTaxRate->tax_rate_id);
+            $ratePercent = (float) Arr::get($meta, 'rate_percent', 0);
+            $label       = trim((string) Arr::get($meta, 'label', ''));
+            $rateName    = $label ?: __('Tax', 'fluent-cart');
+            if ($ratePercent > 0) {
+                $formattedRatePercent = Helper::formatTaxRatePercent($ratePercent);
+                /* translators: %1$s: tax rate name e.g. "VAT", %2$s: rate percentage e.g. "19" */
+                $displayLabel = sprintf(__('%1$s (%2$s%%) on shipping', 'fluent-cart'), $rateName, $formattedRatePercent);
+            } else {
+                /* translators: %1$s: tax rate name e.g. "VAT" */
+                $displayLabel = sprintf(__('%1$s on shipping', 'fluent-cart'), $rateName);
+            }
+            $displayLines[] = [
+                'label'        => $displayLabel,
+                'shipping_tax' => $shippingTax,
+            ];
+        }
+        return $displayLines;
+    }
+
+    public function getDisplayShippingTaxLinesAttribute(): array
+    {
+        return $this->getDisplayShippingTaxLines();
+    }
+
+    protected function normalizeOrderTaxRateMeta(array $meta, int $taxRateId): array
+    {
+        if (
+            array_key_exists('label', $meta) ||
+            array_key_exists('rate_percent', $meta) ||
+            array_key_exists('taxable_amount', $meta) ||
+            array_key_exists('is_compound', $meta)
+        ) {
+            return $meta;
+        }
+
+        $legacyRates = (array) Arr::get($meta, 'rates', []);
+        if (!$legacyRates) {
+            return $meta;
+        }
+
+        $legacyRateMeta = [];
+
+        foreach ($legacyRates as $legacyRate) {
+            if ((int) Arr::get($legacyRate, 'rate_id', 0) === $taxRateId) {
+                $legacyRateMeta = (array) $legacyRate;
+                break;
+            }
+        }
+
+        if (!$legacyRateMeta) {
+            $legacyRateMeta = (array) reset($legacyRates);
+        }
+
+        if (!$legacyRateMeta) {
+            return $meta;
+        }
+
+        return array_merge($meta, [
+            'label'          => Arr::get($legacyRateMeta, 'label', ''),
+            'rate_percent'   => (float) Arr::get($legacyRateMeta, 'rate_percent', Arr::get($legacyRateMeta, 'rate', 0)),
+            'taxable_amount' => (int) Arr::get($legacyRateMeta, 'taxable_amount', 0),
+            'is_compound'    => (bool) Arr::get($legacyRateMeta, 'is_compound', false),
+            'inclusive'      => Arr::get($legacyRateMeta, 'inclusive', null),
+            'is_mixed_inclusive' => (bool) Arr::get($legacyRateMeta, 'is_mixed_inclusive', false),
+        ]);
+    }
+
+    public function getCustomerTaxNumber(): string
+    {
+        $businessInfoTaxNumber = (string) Arr::get($this->getBusinessInfo(), 'tax_number', '');
+        if (!empty($businessInfoTaxNumber)) {
+            return $businessInfoTaxNumber;
+        }
+
+        $legacyTaxNumber = (string) $this->getMeta('vat_tax_id', '');
+        if (!empty($legacyTaxNumber)) {
+            return $legacyTaxNumber;
+        }
+
+        $orderTaxRate = $this->getPrimaryOrderTaxRate();
+
+        return (string) Arr::get($orderTaxRate->meta ?? [], 'vat_reverse.vat_number', '');
+    }
+
+    public function getTaxSummaryAttribute(): array
+    {
+        return TaxSummaryHelper::computeTaxSummary($this);
+    }
+
+    public function getBusinessInfoAttribute(): array
+    {
+        return $this->getBusinessInfo();
+    }
+
+    public function getIsReverseChargeTaxOrderAttribute(): bool
+    {
+        return $this->isReverseChargeTaxOrder();
+    }
+
+    public function getCustomerTaxNumberAttribute(): string
+    {
+        return $this->getCustomerTaxNumber();
+    }
+
+    public function hasValidatedCustomerTaxNumber(): bool
+    {
+        $businessInfo = $this->getBusinessInfo();
+        if (!empty($businessInfo['tax_number'])) {
+            return (bool) Arr::get($businessInfo, 'tax_number_validated', false);
+        }
+
+        $orderTaxRate = $this->getPrimaryOrderTaxRate();
+
+        return (bool) Arr::get($orderTaxRate->meta ?? [], 'vat_reverse.valid', false);
+    }
+
+    public function getCustomerTaxName(): string
+    {
+        $businessInfoTaxName = (string) Arr::get($this->getBusinessInfo(), 'tax_number_name', '');
+        if (!empty($businessInfoTaxName)) {
+            return $businessInfoTaxName;
+        }
+
+        $orderTaxRate = $this->getPrimaryOrderTaxRate();
+
+        return (string) Arr::get($orderTaxRate->meta ?? [], 'vat_reverse.name', '');
     }
 
     public function getTotalPaidAmount()
