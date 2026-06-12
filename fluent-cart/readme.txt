@@ -4,7 +4,7 @@ Tags: ecommerce, cart, checkout, subscriptions, payments
 Requires at least: 6.7
 Tested up to: 6.9
 Requires PHP: 7.4
-Stable tag: 1.4.0
+Stable tag: 1.4.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -312,6 +312,11 @@ This service is provided by PayPal: [Terms of Service](https://www.paypal.com/le
 
 
 == Changelog ==
+
+= 1.4.1 (Jun 12, 2026) =
+- Adds MCP support for AI agents.
+- Adds Real-time cart sync across browser tabs.
+- Fixes Duplicate database upgrade runs after plugin updates.
 
 = 1.4.0 (Jun 11, 2026) =
 - Adds EU B2B reverse charge support across all order surfaces

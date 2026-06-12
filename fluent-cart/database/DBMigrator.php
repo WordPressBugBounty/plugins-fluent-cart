@@ -137,6 +137,16 @@ class DBMigrator
 
         if (!$currentDBVersion || version_compare($currentDBVersion, FLUENTCART_DB_VERSION, '<')) {
 
+            // Right after a plugin update, multiple requests (admin page +
+            // heartbeat/ajax) hit init before the version option is written and
+            // would all run the schema changes in parallel, producing
+            // duplicate-index / duplicate-entry errors. Only the request that
+            // wins the advisory lock proceeds; the others skip — the winner
+            // updates the version option for everyone.
+            if (!self::acquireMigrationLock()) {
+                return;
+            }
+
             update_option('_fluent_cart_db_version', FLUENTCART_DB_VERSION, 'no');
 
             // 2026-04-25
@@ -530,7 +540,64 @@ class DBMigrator
                     $table_name
                 ));
             }
+
+            self::releaseMigrationLock();
         }
+    }
+
+    /**
+     * Try to acquire the cross-request migration lock.
+     *
+     * Uses a MySQL advisory lock (GET_LOCK with zero wait) so only one request
+     * runs the schema upgrade at a time. If the connection dies mid-migration,
+     * MySQL releases the lock automatically when the connection closes.
+     *
+     * @return bool True when this request may run the migration.
+     */
+    private static function acquireMigrationLock()
+    {
+        global $wpdb;
+
+        if (Schema::isSqlite()) {
+            // GET_LOCK is MySQL-only; SQLite has no concurrent writers.
+            return true;
+        }
+
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+        $acquired = $wpdb->get_var($wpdb->prepare(
+            "SELECT GET_LOCK(%s, 0)",
+            self::getMigrationLockName()
+        ));
+
+        // NULL means the server could not create the lock — fail open so a
+        // locking hiccup can never block schema upgrades entirely.
+        return $acquired === null || (string)$acquired === '1';
+    }
+
+    private static function releaseMigrationLock()
+    {
+        global $wpdb;
+
+        if (Schema::isSqlite()) {
+            return;
+        }
+
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+        $wpdb->query($wpdb->prepare(
+            "SELECT RELEASE_LOCK(%s)",
+            self::getMigrationLockName()
+        ));
+    }
+
+    private static function getMigrationLockName()
+    {
+        global $wpdb;
+
+        // GET_LOCK names are server-wide; scope to this site's DB and prefix
+        // so two WordPress installs on one MySQL server can't block each other.
+        $dbName = defined('DB_NAME') ? DB_NAME : '';
+
+        return 'fct_db_migration_' . md5($dbName . '|' . $wpdb->prefix);
     }
 
     public static function migrateDown($network_wide = false)

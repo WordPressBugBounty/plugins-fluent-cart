@@ -727,4 +727,30 @@ return [
             ],
         ],
     ],
+    "IO" => [
+        "group" => "AS",
+        "tax"   => [
+            [
+                'rate'     => 0,
+                'compound' => false,
+                'type'     => 'zero',
+            ],
+        ],
+    ],
+    "TL" => [
+        "group" => "AS",
+        "tax"   => [
+            [
+                'rate'     => 2.5,
+                'compound' => false,
+                'type'     => 'standard',
+                'name'     => 'IST',
+            ],
+            [
+                'rate'     => 0,
+                'compound' => false,
+                'type'     => 'zero',
+            ],
+        ],
+    ],
 ];

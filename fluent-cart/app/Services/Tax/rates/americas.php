@@ -1309,4 +1309,592 @@ return [
             ],
         ],
     ],
+    "AG" => [
+        "group" => "NA",
+        "tax"   => [
+            [
+                'rate'     => 15,
+                'compound' => false,
+                'type'     => 'standard',
+                'name'     => 'VAT',
+            ],
+            [
+                'rate'     => 0,
+                'compound' => false,
+                'type'     => 'zero',
+            ],
+        ],
+    ],
+    "AI" => [
+        "group" => "NA",
+        "tax"   => [
+            [
+                'rate'     => 0,
+                'compound' => false,
+                'type'     => 'zero',
+            ],
+        ],
+    ],
+    "AW" => [
+        "group" => "NA",
+        "tax"   => [
+            [
+                'rate'     => 0,
+                'compound' => false,
+                'type'     => 'zero',
+            ],
+        ],
+    ],
+    "BB" => [
+        "group" => "NA",
+        "tax"   => [
+            [
+                'rate'     => 17.5,
+                'compound' => false,
+                'type'     => 'standard',
+                'name'     => 'VAT',
+            ],
+            [
+                'rate'     => 0,
+                'compound' => false,
+                'type'     => 'zero',
+            ],
+        ],
+    ],
+    "BL" => [
+        "group" => "NA",
+        "tax"   => [
+            [
+                'rate'     => 0,
+                'compound' => false,
+                'type'     => 'zero',
+            ],
+        ],
+    ],
+    "BM" => [
+        "group" => "NA",
+        "tax"   => [
+            [
+                'rate'     => 0,
+                'compound' => false,
+                'type'     => 'zero',
+            ],
+        ],
+    ],
+    "BQ" => [
+        "group" => "NA",
+        "tax"   => [
+            [
+                'rate'     => 8,
+                'compound' => false,
+                'type'     => 'standard',
+                'name'     => 'ABB',
+            ],
+            [
+                'rate'     => 0,
+                'compound' => false,
+                'type'     => 'zero',
+            ],
+        ],
+    ],
+    "BS" => [
+        "group" => "NA",
+        "tax"   => [
+            [
+                'rate'     => 10,
+                'compound' => false,
+                'type'     => 'standard',
+                'name'     => 'VAT',
+            ],
+            [
+                'rate'     => 0,
+                'compound' => false,
+                'type'     => 'zero',
+            ],
+        ],
+    ],
+    "BZ" => [
+        "group" => "NA",
+        "tax"   => [
+            [
+                'rate'     => 12.5,
+                'compound' => false,
+                'type'     => 'standard',
+                'name'     => 'GST',
+            ],
+            [
+                'rate'     => 0,
+                'compound' => false,
+                'type'     => 'zero',
+            ],
+        ],
+    ],
+    "CR" => [
+        "group" => "NA",
+        "tax"   => [
+            [
+                'rate'     => 13,
+                'compound' => false,
+                'type'     => 'standard',
+                'name'     => 'IVA',
+            ],
+            [
+                'rate'     => 0,
+                'compound' => false,
+                'type'     => 'zero',
+            ],
+        ],
+    ],
+    "CU" => [
+        "group" => "NA",
+        "tax"   => [
+            [
+                'rate'     => 0,
+                'compound' => false,
+                'type'     => 'zero',
+            ],
+        ],
+    ],
+    "CW" => [
+        "group" => "NA",
+        "tax"   => [
+            [
+                'rate'     => 9,
+                'compound' => false,
+                'type'     => 'standard',
+                'name'     => 'OB',
+            ],
+            [
+                'rate'     => 0,
+                'compound' => false,
+                'type'     => 'zero',
+            ],
+        ],
+    ],
+    "DM" => [
+        "group" => "NA",
+        "tax"   => [
+            [
+                'rate'     => 15,
+                'compound' => false,
+                'type'     => 'standard',
+                'name'     => 'VAT',
+            ],
+            [
+                'rate'     => 0,
+                'compound' => false,
+                'type'     => 'zero',
+            ],
+        ],
+    ],
+    "DO" => [
+        "group" => "NA",
+        "tax"   => [
+            [
+                'rate'     => 18,
+                'compound' => false,
+                'type'     => 'standard',
+                'name'     => 'ITBIS',
+            ],
+            [
+                'rate'     => 0,
+                'compound' => false,
+                'type'     => 'zero',
+            ],
+        ],
+    ],
+    "FK" => [
+        "group" => "SA",
+        "tax"   => [
+            [
+                'rate'     => 0,
+                'compound' => false,
+                'type'     => 'zero',
+            ],
+        ],
+    ],
+    "GD" => [
+        "group" => "NA",
+        "tax"   => [
+            [
+                'rate'     => 15,
+                'compound' => false,
+                'type'     => 'standard',
+                'name'     => 'VAT',
+            ],
+            [
+                'rate'     => 0,
+                'compound' => false,
+                'type'     => 'zero',
+            ],
+        ],
+    ],
+    "GP" => [
+        "group" => "NA",
+        "tax"   => [
+            [
+                'rate'     => 8.5,
+                'compound' => false,
+                'type'     => 'standard',
+                'name'     => 'TVA',
+            ],
+            [
+                'rate'     => 0,
+                'compound' => false,
+                'type'     => 'zero',
+            ],
+        ],
+    ],
+    "GS" => [
+        "group" => "SA",
+        "tax"   => [
+            [
+                'rate'     => 0,
+                'compound' => false,
+                'type'     => 'zero',
+            ],
+        ],
+    ],
+    "GT" => [
+        "group" => "NA",
+        "tax"   => [
+            [
+                'rate'     => 12,
+                'compound' => false,
+                'type'     => 'standard',
+                'name'     => 'IVA',
+            ],
+            [
+                'rate'     => 0,
+                'compound' => false,
+                'type'     => 'zero',
+            ],
+        ],
+    ],
+    "GY" => [
+        "group" => "SA",
+        "tax"   => [
+            [
+                'rate'     => 14,
+                'compound' => false,
+                'type'     => 'standard',
+                'name'     => 'VAT',
+            ],
+            [
+                'rate'     => 0,
+                'compound' => false,
+                'type'     => 'zero',
+            ],
+        ],
+    ],
+    "HN" => [
+        "group" => "NA",
+        "tax"   => [
+            [
+                'rate'     => 15,
+                'compound' => false,
+                'type'     => 'standard',
+                'name'     => 'ISV',
+            ],
+            [
+                'rate'     => 0,
+                'compound' => false,
+                'type'     => 'zero',
+            ],
+        ],
+    ],
+    "HT" => [
+        "group" => "NA",
+        "tax"   => [
+            [
+                'rate'     => 10,
+                'compound' => false,
+                'type'     => 'standard',
+                'name'     => 'TCA',
+            ],
+            [
+                'rate'     => 0,
+                'compound' => false,
+                'type'     => 'zero',
+            ],
+        ],
+    ],
+    "JM" => [
+        "group" => "NA",
+        "tax"   => [
+            [
+                'rate'     => 15,
+                'compound' => false,
+                'type'     => 'standard',
+                'name'     => 'GCT',
+            ],
+            [
+                'rate'     => 0,
+                'compound' => false,
+                'type'     => 'zero',
+            ],
+        ],
+    ],
+    "KN" => [
+        "group" => "NA",
+        "tax"   => [
+            [
+                'rate'     => 17,
+                'compound' => false,
+                'type'     => 'standard',
+                'name'     => 'VAT',
+            ],
+            [
+                'rate'     => 0,
+                'compound' => false,
+                'type'     => 'zero',
+            ],
+        ],
+    ],
+    "KY" => [
+        "group" => "NA",
+        "tax"   => [
+            [
+                'rate'     => 0,
+                'compound' => false,
+                'type'     => 'zero',
+            ],
+        ],
+    ],
+    "LC" => [
+        "group" => "NA",
+        "tax"   => [
+            [
+                'rate'     => 15,
+                'compound' => false,
+                'type'     => 'standard',
+                'name'     => 'VAT',
+            ],
+            [
+                'rate'     => 0,
+                'compound' => false,
+                'type'     => 'zero',
+            ],
+        ],
+    ],
+    "MF" => [
+        "group" => "NA",
+        "tax"   => [
+            [
+                'rate'     => 0,
+                'compound' => false,
+                'type'     => 'zero',
+            ],
+        ],
+    ],
+    "MQ" => [
+        "group" => "NA",
+        "tax"   => [
+            [
+                'rate'     => 8.5,
+                'compound' => false,
+                'type'     => 'standard',
+                'name'     => 'TVA',
+            ],
+            [
+                'rate'     => 0,
+                'compound' => false,
+                'type'     => 'zero',
+            ],
+        ],
+    ],
+    "MS" => [
+        "group" => "NA",
+        "tax"   => [
+            [
+                'rate'     => 10,
+                'compound' => false,
+                'type'     => 'standard',
+                'name'     => 'VAT',
+            ],
+            [
+                'rate'     => 0,
+                'compound' => false,
+                'type'     => 'zero',
+            ],
+        ],
+    ],
+    "NI" => [
+        "group" => "NA",
+        "tax"   => [
+            [
+                'rate'     => 15,
+                'compound' => false,
+                'type'     => 'standard',
+                'name'     => 'IVA',
+            ],
+            [
+                'rate'     => 0,
+                'compound' => false,
+                'type'     => 'zero',
+            ],
+        ],
+    ],
+    "PA" => [
+        "group" => "NA",
+        "tax"   => [
+            [
+                'rate'     => 7,
+                'compound' => false,
+                'type'     => 'standard',
+                'name'     => 'ITBM',
+            ],
+            [
+                'rate'     => 0,
+                'compound' => false,
+                'type'     => 'zero',
+            ],
+        ],
+    ],
+    "PM" => [
+        "group" => "NA",
+        "tax"   => [
+            [
+                'rate'     => 0,
+                'compound' => false,
+                'type'     => 'zero',
+            ],
+        ],
+    ],
+    "PR" => [
+        "group" => "NA",
+        "tax"   => [
+            [
+                'rate'     => 11.5,
+                'compound' => false,
+                'type'     => 'standard',
+                'name'     => 'SUT',
+            ],
+            [
+                'rate'     => 0,
+                'compound' => false,
+                'type'     => 'zero',
+            ],
+        ],
+    ],
+    "SR" => [
+        "group" => "SA",
+        "tax"   => [
+            [
+                'rate'     => 10,
+                'compound' => false,
+                'type'     => 'standard',
+                'name'     => 'OB',
+            ],
+            [
+                'rate'     => 0,
+                'compound' => false,
+                'type'     => 'zero',
+            ],
+        ],
+    ],
+    "SV" => [
+        "group" => "NA",
+        "tax"   => [
+            [
+                'rate'     => 13,
+                'compound' => false,
+                'type'     => 'standard',
+                'name'     => 'IVA',
+            ],
+            [
+                'rate'     => 0,
+                'compound' => false,
+                'type'     => 'zero',
+            ],
+        ],
+    ],
+    "SX" => [
+        "group" => "NA",
+        "tax"   => [
+            [
+                'rate'     => 5,
+                'compound' => false,
+                'type'     => 'standard',
+                'name'     => 'OB',
+            ],
+            [
+                'rate'     => 0,
+                'compound' => false,
+                'type'     => 'zero',
+            ],
+        ],
+    ],
+    "TC" => [
+        "group" => "NA",
+        "tax"   => [
+            [
+                'rate'     => 0,
+                'compound' => false,
+                'type'     => 'zero',
+            ],
+        ],
+    ],
+    "TT" => [
+        "group" => "NA",
+        "tax"   => [
+            [
+                'rate'     => 12.5,
+                'compound' => false,
+                'type'     => 'standard',
+                'name'     => 'VAT',
+            ],
+            [
+                'rate'     => 0,
+                'compound' => false,
+                'type'     => 'zero',
+            ],
+        ],
+    ],
+    "UM" => [
+        "group" => "NA",
+        "tax"   => [
+            [
+                'rate'     => 0,
+                'compound' => false,
+                'type'     => 'zero',
+            ],
+        ],
+    ],
+    "VC" => [
+        "group" => "NA",
+        "tax"   => [
+            [
+                'rate'     => 16,
+                'compound' => false,
+                'type'     => 'standard',
+                'name'     => 'VAT',
+            ],
+            [
+                'rate'     => 0,
+                'compound' => false,
+                'type'     => 'zero',
+            ],
+        ],
+    ],
+    "VG" => [
+        "group" => "NA",
+        "tax"   => [
+            [
+                'rate'     => 0,
+                'compound' => false,
+                'type'     => 'zero',
+            ],
+        ],
+    ],
+    "VI" => [
+        "group" => "NA",
+        "tax"   => [
+            [
+                'rate'     => 0,
+                'compound' => false,
+                'type'     => 'zero',
+            ],
+        ],
+    ],
 ];

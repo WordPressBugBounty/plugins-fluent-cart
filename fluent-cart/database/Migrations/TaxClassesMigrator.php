@@ -151,9 +151,25 @@ class TaxClassesMigrator extends Migrator
 
     public static function seedDefaultTaxClass()
     {
-        TaxClass::query()->firstOrCreate(
-            ['slug' => 'standard'],
-            ['title' => 'Standard']
-        );
+        global $wpdb;
+
+        if (TaxClass::query()->where('slug', 'standard')->exists()) {
+            return;
+        }
+
+        $table = static::getTableName();
+
+        // INSERT IGNORE so a concurrent migration run that inserted the row
+        // between our exists() check and this insert can't raise a
+        // duplicate-entry error on the unique slug index.
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+        $wpdb->query($wpdb->prepare(
+            "INSERT IGNORE INTO %i (`slug`, `title`, `created_at`, `updated_at`) VALUES (%s, %s, %s, %s)",
+            $table,
+            'standard',
+            'Standard',
+            current_time('mysql', true),
+            current_time('mysql', true)
+        ));
     }
 }

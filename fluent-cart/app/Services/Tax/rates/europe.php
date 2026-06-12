@@ -1174,4 +1174,24 @@ return [
             ],
         ],
     ],
+    "AX" => [
+        "group" => "REST",
+        "tax"   => [
+            [
+                'rate'     => 0,
+                'compound' => false,
+                'type'     => 'zero',
+            ],
+        ],
+    ],
+    "BV" => [
+        "group" => "REST",
+        "tax"   => [
+            [
+                'rate'     => 0,
+                'compound' => false,
+                'type'     => 'zero',
+            ],
+        ],
+    ],
 ];

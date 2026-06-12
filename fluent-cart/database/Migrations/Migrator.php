@@ -118,7 +118,8 @@ abstract class Migrator
         $wpdb = Schema::db();
         $tableName = static::getTableName();
 
-        // SHOW INDEX is translated by the WP SQLite integration plugin
+        // SHOW INDEX works on both MySQL and SQLite (the WP SQLite integration
+        // plugin translates it).
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
         $results = $wpdb->get_results($wpdb->prepare(
             "SHOW INDEX FROM %i WHERE Key_name = %s",

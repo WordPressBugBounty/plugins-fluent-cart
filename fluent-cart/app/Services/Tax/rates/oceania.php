@@ -313,4 +313,82 @@ return [
             ],
         ],
     ],
+    "AQ" => [
+        "group" => "OC",
+        "tax"   => [
+            [
+                'rate'     => 0,
+                'compound' => false,
+                'type'     => 'zero',
+            ],
+        ],
+    ],
+    "CC" => [
+        "group" => "OC",
+        "tax"   => [
+            [
+                'rate'     => 10,
+                'compound' => false,
+                'type'     => 'standard',
+                'name'     => 'GST',
+            ],
+            [
+                'rate'     => 0,
+                'compound' => false,
+                'type'     => 'zero',
+            ],
+        ],
+    ],
+    "CX" => [
+        "group" => "OC",
+        "tax"   => [
+            [
+                'rate'     => 10,
+                'compound' => false,
+                'type'     => 'standard',
+                'name'     => 'GST',
+            ],
+            [
+                'rate'     => 0,
+                'compound' => false,
+                'type'     => 'zero',
+            ],
+        ],
+    ],
+    "HM" => [
+        "group" => "OC",
+        "tax"   => [
+            [
+                'rate'     => 0,
+                'compound' => false,
+                'type'     => 'zero',
+            ],
+        ],
+    ],
+    "NF" => [
+        "group" => "OC",
+        "tax"   => [
+            [
+                'rate'     => 10,
+                'compound' => false,
+                'type'     => 'standard',
+                'name'     => 'GST',
+            ],
+            [
+                'rate'     => 0,
+                'compound' => false,
+                'type'     => 'zero',
+            ],
+        ],
+    ],
+    "TF" => [
+        "group" => "OC",
+        "tax"   => [
+            [
+                'rate'     => 0,
+                'compound' => false,
+                'type'     => 'zero',
+            ],
+        ],
+    ],
 ];

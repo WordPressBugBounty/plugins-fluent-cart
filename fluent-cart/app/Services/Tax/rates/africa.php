@@ -873,4 +873,24 @@ return [
             ],
         ],
     ],
+    "EH" => [
+        "group" => "AF",
+        "tax"   => [
+            [
+                'rate'     => 0,
+                'compound' => false,
+                'type'     => 'zero',
+            ],
+        ],
+    ],
+    "SH" => [
+        "group" => "AF",
+        "tax"   => [
+            [
+                'rate'     => 0,
+                'compound' => false,
+                'type'     => 'zero',
+            ],
+        ],
+    ],
 ];

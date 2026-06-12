@@ -48,9 +48,9 @@ class TaxManager
 
     /** ISO country codes whose rates are stored under a parent country with state=<code>. */
     private array $parentCountryMap = [
-        'GP' => 'FR', // Guadeloupe
-        'MQ' => 'FR', // Martinique
-        'RE' => 'FR', // Réunion
+        //'GP' => 'FR', // Guadeloupe
+        //'MQ' => 'FR', // Martinique
+        //'RE' => 'FR', // Réunion
     ];
 
     /**

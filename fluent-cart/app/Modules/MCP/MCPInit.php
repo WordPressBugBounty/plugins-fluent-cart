@@ -209,12 +209,12 @@ class MCPInit
             if (!is_array($fields)) {
                 $fields = [];
             }
-//            $fields['mcp'] = [
-//                'title'       => __('MCP for AI Agents', 'fluent-cart'),
-//                'description' => __('Let AI assistants (Claude, Cursor, and other MCP clients) securely read your store and run operator tasks via the Model Context Protocol. Ships off; enable it and connect with an application password.', 'fluent-cart'),
-//                'type'        => 'component',
-//                'component'   => 'McpSettings',
-//            ];
+            $fields['mcp'] = [
+                'title'       => __('MCP for AI Agents', 'fluent-cart'),
+                'description' => __('Let AI assistants (Claude, Cursor, and other MCP clients) securely read your store and run operator tasks via the Model Context Protocol. Ships off; enable it and connect with an application password.', 'fluent-cart'),
+                'type'        => 'component',
+                'component'   => 'McpSettings',
+            ];
             return $fields;
         }, 100);
 

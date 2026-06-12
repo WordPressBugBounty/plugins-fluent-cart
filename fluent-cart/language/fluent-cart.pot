@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: FluentCart\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-06-11 10:01+0000\n"
+"POT-Creation-Date: 2026-06-12 11:50+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: \n"
@@ -16690,6 +16690,13 @@ msgstr ""
 msgid "Less Than or Equal"
 msgstr ""
 
+#: app/Modules/MCP/MCPInit.php:214
+msgid ""
+"Let AI assistants (Claude, Cursor, and other MCP clients) securely read your "
+"store and run operator tasks via the Model Context Protocol. Ships off; "
+"enable it and connect with an application password."
+msgstr ""
+
 #: app/Services/Translations/admin-translation.php:1231
 msgid "Let's go"
 msgstr ""
@@ -18120,6 +18127,10 @@ msgstr ""
 msgid ""
 "MCP enabled. AI agents with a valid app password can now reach the "
 "FluentCart tools."
+msgstr ""
+
+#: app/Modules/MCP/MCPInit.php:213
+msgid "MCP for AI Agents"
 msgstr ""
 
 #: app/Services/Localization/i18n/states.php:829
