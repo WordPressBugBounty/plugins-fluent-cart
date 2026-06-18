@@ -366,8 +366,6 @@ class CustomerProfileHandler extends ShortCode
                     'email'      => $currentCustomer ? $currentCustomer->email : '',
                     'first_name' =>  $currentCustomer ? $currentCustomer->first_name : '',
                     'last_name'  =>  $currentCustomer ? $currentCustomer->last_name : '',
-                    'photo'        =>  $currentCustomer ? $currentCustomer->photo : ''
-
                 ],
                 'logout_url'        => wp_logout_url(home_url()),
                 'datei18'           => TransStrings::dateTimeStrings(),

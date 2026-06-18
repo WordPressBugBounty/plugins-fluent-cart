@@ -290,6 +290,16 @@ class ModuleSettingsController extends Controller
                 'upcoming'    => false,
                 'repo_link'   => 'https://fluentcart.com/fluentcart-addons/?3181_search=Migrator'
             ],
+            'fluent-cart-customer-rights' => [
+                'title'       => __('FluentCart Customer Rights', 'fluent-cart'),
+                'description' => __('Manage customer withdrawal, refund, return, and cancellation requests with dedicated forms, workflows, notifications, and admin tools. Includes support for the German Withdrawal Button requirement under § 356a BGB.', 'fluent-cart'),
+                'logo'        => Vite::getAssetUrl('images/fluent-cart-resolution/logo.svg'),
+                'plugin_slug' => 'fluent-cart-customer-rights',
+                'plugin_file' => 'fluent-cart-customer-rights/fluent-cart-customer-rights.php',
+                'source_type' => 'cdn',
+                'upcoming'    => false,
+                'repo_link' => 'https://fluentcart.com/fluentcart-addons/'
+            ],
         ];
 
         // Allow other modules/plugins to register their addons

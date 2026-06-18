@@ -1,1 +1,1 @@
-import{e,o}from"./vue.esm-bundler.js?ver=1.4.1";import{_ as t}from"./_plugin-vue_export-helper.js?ver=1.4.1";const r={};function c(n,s){return o(),e("p",null,"My custom Component prefix")}const f=t(r,[["render",c]]);export{f as default};
+import{e,o}from"./vue.esm-bundler.js?ver=1.4.2";import{_ as t}from"./_plugin-vue_export-helper.js?ver=1.4.2";const r={};function c(n,s){return o(),e("p",null,"My custom Component prefix")}const f=t(r,[["render",c]]);export{f as default};

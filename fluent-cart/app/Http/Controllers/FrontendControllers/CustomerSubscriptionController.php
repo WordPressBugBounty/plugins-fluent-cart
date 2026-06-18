@@ -159,9 +159,19 @@ class CustomerSubscriptionController extends BaseFrontendController
             'customer'     => $customer
         ]);
 
+        $sectionParts = apply_filters('fluent_cart/customer/subscription_details_section_parts', [
+            'end_of_subscription' => ''
+        ], [
+            'subscription'  => $subscription,
+            'formattedData' => $formattedData
+        ]);
+
+        $sectionParts = array_map('wp_kses_post', $sectionParts);
+
         return $this->sendSuccess([
-            'message'      => __('Success', 'fluent-cart'),
-            'subscription' => $formattedData
+            'message'       => __('Success', 'fluent-cart'),
+            'subscription'  => $formattedData,
+            'section_parts' => $sectionParts
         ]);
     }
 

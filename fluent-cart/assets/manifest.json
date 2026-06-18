@@ -71,11 +71,11 @@
     "file": "chunks/Badge.js",
     "name": "Badge",
     "imports": [
-      "_vue.esm-bundler.js",
-      "__plugin-vue_export-helper.js",
       "_DynamicIcon.js",
       "_Str.js",
-      "_Translator.js"
+      "_Translator.js",
+      "_vue.esm-bundler.js",
+      "__plugin-vue_export-helper.js"
     ]
   },
   "_BlockEditorTranslator.js": {
@@ -105,7 +105,7 @@
       "_DynamicIcon.js",
       "_RouteCell.js",
       "_ConvertedTime.js",
-      "_productService.js",
+      "_CurrencyFormatter.js",
       "_OrderCustomerInformation.js",
       "_Rest.js",
       "_Notify.js",
@@ -115,6 +115,15 @@
       "_common.js",
       "_BundleProducts.js",
       "__plugin-vue_export-helper.js"
+    ]
+  },
+  "_CardBody.js": {
+    "file": "chunks/CardBody.js",
+    "name": "CardBody",
+    "imports": [
+      "_vue.esm-bundler.js",
+      "__plugin-vue_export-helper.js",
+      "_DynamicIcon.js"
     ]
   },
   "_ColorPickerField.js": {
@@ -132,6 +141,15 @@
       "_vue.esm-bundler.js",
       "_common.js",
       "_Utils.js"
+    ]
+  },
+  "_CurrencyFormatter.js": {
+    "file": "chunks/CurrencyFormatter.js",
+    "name": "CurrencyFormatter",
+    "imports": [
+      "_Arr.js",
+      "_dayjs.min.js",
+      "_Translator.js"
     ]
   },
   "_CustomSelect.js": {
@@ -457,8 +475,10 @@
       "_DynamicIcon.js",
       "_Translator.js",
       "_RouteCell.js",
+      "_UserCan.js",
       "_Arr.js",
       "_Asset.js",
+      "_CardBody.js",
       "_Notify.js",
       "_Rest.js",
       "_index.js",
@@ -511,23 +531,8 @@
     "file": "chunks/RouteCell.js",
     "name": "RouteCell",
     "imports": [
-      "_Model.js",
       "_vue.esm-bundler.js",
-      "_IconButton.js",
-      "_Rest.js",
-      "_vue-router.js",
-      "_Url.js",
-      "_Arr.js",
-      "_Translator.js",
-      "_dayjs.min.js",
-      "_timezone.js",
-      "_Notify.js",
-      "_DynamicIcon.js",
-      "__plugin-vue_export-helper.js",
-      "_index3.js",
-      "_index.js",
-      "_Utils.js",
-      "_TransitionAccordion.js"
+      "_vue-router.js"
     ]
   },
   "_SelectProductModal.js": {
@@ -579,6 +584,29 @@
     "file": "chunks/Str.js",
     "name": "Str"
   },
+  "_TableWrapper.js": {
+    "file": "chunks/TableWrapper.js",
+    "name": "TableWrapper",
+    "imports": [
+      "_Model.js",
+      "_vue.esm-bundler.js",
+      "_IconButton.js",
+      "_Rest.js",
+      "_vue-router.js",
+      "_Url.js",
+      "_Arr.js",
+      "_Translator.js",
+      "_dayjs.min.js",
+      "_timezone.js",
+      "_Notify.js",
+      "_DynamicIcon.js",
+      "__plugin-vue_export-helper.js",
+      "_index3.js",
+      "_index.js",
+      "_Utils.js",
+      "_TransitionAccordion.js"
+    ]
+  },
   "_TransitionAccordion.css": {
     "file": "assets/TransitionAccordion.css",
     "src": "_TransitionAccordion.css"
@@ -609,6 +637,14 @@
       "_Str.js",
       "_Arr.js",
       "_vue-router.js"
+    ]
+  },
+  "_UserCan.js": {
+    "file": "chunks/UserCan.js",
+    "name": "UserCan",
+    "imports": [
+      "_vue.esm-bundler.js",
+      "_Arr.js"
     ]
   },
   "_Utils.js": {
@@ -649,7 +685,7 @@
       "_vue.esm-bundler.js",
       "__plugin-vue_export-helper.js",
       "_vue-router.js",
-      "_RouteCell.js",
+      "_TableWrapper.js",
       "_TransitionAccordion.js",
       "_Rest.js",
       "_Notify.js",
@@ -668,7 +704,7 @@
       "_index.js",
       "_Rest.js",
       "_Arr.js",
-      "_RouteCell.js",
+      "_TableWrapper.js",
       "_dayjs.min.js"
     ]
   },
@@ -741,8 +777,7 @@
     "name": "productService",
     "imports": [
       "_Translator.js",
-      "_Arr.js",
-      "_dayjs.min.js"
+      "_CurrencyFormatter.js"
     ]
   },
   "_timezone.js": {
@@ -887,25 +922,29 @@
       "_Rest.js",
       "_Notify.js",
       "_OrderCustomerInformation.js",
-      "_RouteCell.js",
+      "_TableWrapper.js",
       "_Arr.js",
-      "__plugin-vue_export-helper.js",
       "_DynamicIcon.js",
       "_Str.js",
+      "__plugin-vue_export-helper.js",
       "_index.js",
       "_Empty.js",
       "_common.js",
       "_dayjs.min.js",
       "_timezone.js",
       "_IconButton.js",
+      "_RouteCell.js",
+      "_vue-router.js",
+      "_UserCan.js",
       "_Asset.js",
       "_Url.js",
-      "_vue-router.js",
+      "_CardBody.js",
       "_AddressComponent2.js",
       "_Animation.js",
       "_TransitionAccordion.js",
       "_NotFound.js",
       "_productService.js",
+      "_CurrencyFormatter.js",
       "_Model.js",
       "_index3.js",
       "_Utils.js"
@@ -922,9 +961,9 @@
       "_Badge.js",
       "_Animation.js",
       "_Arr.js",
-      "__plugin-vue_export-helper.js",
       "_DynamicIcon.js",
       "_Str.js",
+      "__plugin-vue_export-helper.js",
       "_TransitionAccordion.js"
     ]
   },
@@ -1004,9 +1043,9 @@
       "_Badge.js",
       "_Rest.js",
       "_Arr.js",
-      "__plugin-vue_export-helper.js",
       "_DynamicIcon.js",
-      "_Str.js"
+      "_Str.js",
+      "__plugin-vue_export-helper.js"
     ]
   },
   "resources/admin/Bits/Components/Icons/Access.vue": {
@@ -3748,34 +3787,38 @@
     "isDynamicEntry": true,
     "imports": [
       "_vue.esm-bundler.js",
-      "_OrderCustomerInformation.js",
+      "_UserCan.js",
       "_DynamicIcon.js",
-      "_Badge.js",
+      "_CardBody.js",
       "__plugin-vue_export-helper.js",
       "_Empty.js",
       "_Translator.js",
       "_Rest.js",
-      "_productService.js",
+      "_CurrencyFormatter.js",
       "resources/admin/bootstrap/app.js",
       "_common.js",
+      "_Arr.js",
+      "_dayjs.min.js",
+      "_vue-router.js",
+      "_TableWrapper.js",
+      "_Model.js",
       "_IconButton.js",
       "_Str.js",
-      "_Arr.js",
-      "_RouteCell.js",
-      "_Model.js",
-      "_vue-router.js",
       "_Url.js",
-      "_dayjs.min.js",
       "_timezone.js",
       "_Notify.js",
       "_index.js",
       "_index3.js",
       "_Utils.js",
       "_TransitionAccordion.js",
+      "_OrderCustomerInformation.js",
+      "_Badge.js",
+      "_RouteCell.js",
       "_Asset.js",
       "_AddressComponent2.js",
       "_Animation.js",
       "_NotFound.js",
+      "_productService.js",
       "_ConvertedTime.js",
       "_CancelSubscription.js",
       "_BundleProducts.js",
@@ -3800,9 +3843,10 @@
     "isEntry": true,
     "imports": [
       "_vue.esm-bundler.js",
-      "_RouteCell.js",
+      "_TableWrapper.js",
       "_Translator.js",
       "_Arr.js",
+      "_RouteCell.js",
       "_Rest.js",
       "_IconButton.js",
       "_DynamicIcon.js",
@@ -3810,9 +3854,10 @@
       "__plugin-vue_export-helper.js",
       "_vue-router.js",
       "_countries.js",
-      "_Badge.js",
+      "_CardBody.js",
       "_index.js",
       "_NotFound.js",
+      "_Badge.js",
       "_Animation.js",
       "_Model.js",
       "_Url.js",
@@ -3835,19 +3880,20 @@
     "isEntry": true,
     "imports": [
       "_vue.esm-bundler.js",
-      "_RouteCell.js",
+      "_TableWrapper.js",
       "_Empty.js",
       "_Translator.js",
       "_CancelSubscription.js",
       "__plugin-vue_export-helper.js",
       "_index.js",
-      "_Badge.js",
+      "_CardBody.js",
       "_OrderCustomerInformation.js",
       "_Str.js",
       "_DynamicIcon.js",
       "_ConvertedTime.js",
       "_NotFound.js",
       "_Arr.js",
+      "_Badge.js",
       "_common.js",
       "_Notify.js",
       "_Model.js",
@@ -3860,11 +3906,14 @@
       "_index3.js",
       "_Utils.js",
       "_TransitionAccordion.js",
-      "_productService.js",
+      "_RouteCell.js",
+      "_CurrencyFormatter.js",
       "_BundleProducts.js",
+      "_UserCan.js",
       "_Asset.js",
       "_AddressComponent2.js",
-      "_Animation.js"
+      "_Animation.js",
+      "_productService.js"
     ]
   },
   "resources/admin/admin_hooks.js": {
@@ -3882,16 +3931,18 @@
       "_vue.esm-bundler.js",
       "_vue-router.js",
       "_DynamicIcon.js",
-      "_RouteCell.js",
+      "_TableWrapper.js",
       "_Translator.js",
       "_Empty.js",
       "_OrderCustomerInformation.js",
-      "_productService.js",
+      "_UserCan.js",
+      "_CurrencyFormatter.js",
       "_ConvertedTime.js",
+      "_RouteCell.js",
       "__plugin-vue_export-helper.js",
       "_IconButton.js",
       "_common.js",
-      "_Badge.js",
+      "_CardBody.js",
       "_Model.js",
       "_Rest.js",
       "_dayjs.min.js",
@@ -3909,7 +3960,9 @@
       "_Url.js",
       "_timezone.js",
       "_Utils.js",
+      "_Badge.js",
       "_ProductVariationSelector.js",
+      "_productService.js",
       "_BundleProducts.js",
       "_index3.js",
       "_FileUploaderDialog.js",
@@ -3969,6 +4022,7 @@
       "resources/admin/Bits/Components/Icons/CaretRight.vue",
       "_Str.js",
       "_productService.js",
+      "_CurrencyFormatter.js",
       "_Model.js",
       "_Rest.js",
       "_Asset.js",
@@ -4024,6 +4078,7 @@
       "resources/admin/Bits/Components/Icons/CaretRight.vue",
       "_Str.js",
       "_productService.js",
+      "_CurrencyFormatter.js",
       "_Arr.js",
       "_Model.js",
       "_Rest.js",
@@ -4061,6 +4116,7 @@
       "_DynamicIcon.js",
       "_Str.js",
       "_productService.js",
+      "_CurrencyFormatter.js",
       "_Model.js",
       "_Asset.js",
       "_Url.js",
@@ -4140,8 +4196,9 @@
       "_vue.esm-bundler.js",
       "__plugin-vue_export-helper.js",
       "_Translator.js",
-      "_RouteCell.js",
+      "_TableWrapper.js",
       "_Empty.js",
+      "_RouteCell.js",
       "_DynamicIcon.js",
       "_ConvertedTime.js",
       "_common.js",
@@ -4174,13 +4231,13 @@
     "isEntry": true,
     "imports": [
       "_vue.esm-bundler.js",
-      "_Badge.js",
+      "_CardBody.js",
       "_NotFound.js",
       "_dateShortCuts.js",
       "_Empty.js",
       "_DynamicIcon.js",
       "_Translator.js",
-      "_RouteCell.js",
+      "_TableWrapper.js",
       "_IconButton.js",
       "_index.js",
       "_OrderCustomerInformation.js",
@@ -4188,7 +4245,10 @@
       "_dayjs.min.js",
       "_Model.js",
       "_Rest.js",
+      "_UserCan.js",
+      "_Badge.js",
       "_common.js",
+      "_RouteCell.js",
       "_Str.js",
       "_Arr.js",
       "_Asset.js",
@@ -4202,7 +4262,8 @@
       "_TransitionAccordion.js",
       "_AddressComponent2.js",
       "_Animation.js",
-      "_productService.js"
+      "_productService.js",
+      "_CurrencyFormatter.js"
     ],
     "css": [
       "assets/license.css"
@@ -4216,8 +4277,9 @@
     "imports": [
       "_vue.esm-bundler.js",
       "_Translator.js",
-      "_RouteCell.js",
+      "_TableWrapper.js",
       "_Empty.js",
+      "_RouteCell.js",
       "_Badge.js",
       "_DynamicIcon.js",
       "_common.js",
@@ -4225,6 +4287,7 @@
       "_Rest.js",
       "_ProductVariationSelector.js",
       "_vue-router.js",
+      "_CardBody.js",
       "_index.js",
       "_IconButton.js",
       "__plugin-vue_export-helper.js",
@@ -4609,6 +4672,40 @@
     "src": "resources/styles/tailwind/taxonomy.scss",
     "isEntry": true
   },
+  "resources/withdrawal/withdrawal.js": {
+    "file": "withdrawal.js",
+    "name": "withdrawal",
+    "src": "resources/withdrawal/withdrawal.js",
+    "isEntry": true,
+    "imports": [
+      "_vue.esm-bundler.js",
+      "_TableWrapper.js",
+      "_Translator.js",
+      "_Empty.js",
+      "_UserCan.js",
+      "_Badge.js",
+      "_Rest.js",
+      "_Notify.js",
+      "_CurrencyFormatter.js",
+      "__plugin-vue_export-helper.js",
+      "_Model.js",
+      "_IconButton.js",
+      "_Str.js",
+      "_Arr.js",
+      "_vue-router.js",
+      "_Url.js",
+      "_dayjs.min.js",
+      "_timezone.js",
+      "_DynamicIcon.js",
+      "_index3.js",
+      "_index.js",
+      "_Utils.js",
+      "_TransitionAccordion.js"
+    ],
+    "css": [
+      "assets/withdrawal.css"
+    ]
+  },
   "resources/images/404.svg": {
     "file": "images/404.svg",
     "name": "404",
@@ -4739,6 +4836,12 @@
     "file": "images/empty.png",
     "name": "empty",
     "src": "resources/images/empty.png",
+    "isEntry": true
+  },
+  "resources/images/fluent-cart-resolution/logo.svg": {
+    "file": "images/fluent-cart-resolution/logo.svg",
+    "name": "logo",
+    "src": "resources/images/fluent-cart-resolution/logo.svg",
     "isEntry": true
   },
   "resources/images/fluent-pdf/black.svg": {

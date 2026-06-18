@@ -14,7 +14,7 @@ class Pages
 
     public function pages(): array
     {
-        return [
+        $pages = [
             'checkout'         => [
                 'title'   => 'Checkout',
                 'content' => '[fluent_cart_checkout]'
@@ -36,6 +36,10 @@ class Pages
                 'content' => '<!-- wp:fluent-cart/customer-profile /-->'
             ]
         ];
+
+        // Lets addons register their own generatable pages ('key' => title + content),
+        // so the Pages Setup "+" create button and onboarding can build them.
+        return apply_filters('fluent_cart/generatable_pages', $pages);
     }
 
 

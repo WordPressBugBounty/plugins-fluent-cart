@@ -4,7 +4,7 @@ Tags: ecommerce, cart, checkout, subscriptions, payments
 Requires at least: 6.7
 Tested up to: 6.9
 Requires PHP: 7.4
-Stable tag: 1.4.1
+Stable tag: 1.4.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -312,6 +312,16 @@ This service is provided by PayPal: [Terms of Service](https://www.paypal.com/le
 
 
 == Changelog ==
+
+= 1.4.2 (Jun 18, 2026) =
+- Adds EU/German withdrawal (Widerrufsbutton) compliance with public withdrawal page and two-step confirmation flow
+- Adds Full order details, invoice numbers, and line items support for Authorize.net transactions
+- Adds Paddle cross-currency handling support
+- Fixes Customer profile page issues when avatar requests are blocked by cookie banners
+- Fixes Paddle currency detection during cross-currency validation
+- Fixes Paddle and Authorize.net setup instructions and documentation
+- Fixes Currency formatting consistency in the withdrawal admin table
+- Fixes Security issues with ongoing audits and platform hardening
 
 = 1.4.1 (Jun 12, 2026) =
 - Adds MCP support for AI agents.
