@@ -63,7 +63,11 @@ class CartHelper
                     'selected' => $variation->id
                 ]
             ),
-            'variation_type'       => $variation['product_detail']['variation_type'],
+            // Property access lazy-loads when callers didn't eager-load
+            // product_detail (instant-checkout, cart update endpoint) so
+            // CartRenderer can read variation_type to toggle the
+            // variant-title-hidden class on simple products.
+            'variation_type'       => $variation->product_detail ? $variation->product_detail->variation_type : '',
             'is_custom'            => false,
         ], $variation->toArray());
 

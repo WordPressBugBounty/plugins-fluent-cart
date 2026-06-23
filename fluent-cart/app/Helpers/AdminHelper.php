@@ -80,16 +80,26 @@ class AdminHelper
             'permission' => ['products/view']
         ];
 
+        $children = [];
+
+        // Attributes power the advanced-variations feature.
+        $children['product_attributes'] = [
+            'label'      => __('Attributes', 'fluent-cart'),
+            'link'       => $baseUrl . 'products/attributes',
+            'permission' => ['products/view']
+        ];
+
+        // Inventory only when the advanced-inventory toggle is on.
         if (ModuleSettings::isActive('stock_management') &&
             ModuleSettings::getSettings('stock_management.enable_advanced_inventory') === 'yes') {
-            $menu['children'] = [
-                'product_inventory' => [
-                    'label'      => __('Inventory', 'fluent-cart'),
-                    'link'       => $baseUrl . 'products/inventory',
-                    'permission' => ['products/view']
-                ]
+            $children['product_inventory'] = [
+                'label'      => __('Inventory', 'fluent-cart'),
+                'link'       => $baseUrl . 'products/inventory',
+                'permission' => ['products/view']
             ];
         }
+
+        $menu['children'] = $children;
 
         return $menu;
     }

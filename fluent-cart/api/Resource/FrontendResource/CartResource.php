@@ -36,9 +36,13 @@ class CartResource extends BaseResourceApi
             $variation = CartHelper::normalizeCustomFields($variation);
         }
         else {
+            // product_detail must be eager-loaded — generateCartItemFromVariation
+            // reads $variation['product_detail']['variation_type'] to stamp
+            // the cart item's variation_type. Without it the field is null on
+            // instant-checkout carts and CartRenderer can't tell whether to
+            // hide the variant-title line for simple products.
             $variation = ProductVariation::query()
-                ->with(['product'])
-                ->with(['media', 'shippingClass'])
+                ->with(['product', 'product_detail', 'media', 'shippingClass'])
                 ->where('id', $variationId)->first();
 
             $variation = apply_filters('fluent_cart/cart/item_modify', $variation, [
@@ -87,8 +91,25 @@ class CartResource extends BaseResourceApi
                 $cart = CartHelper::generateCartFromVariation($variation, $quantity);
             }
             else {
-                // TODO: Legacy object-to-array conversion. Kept for backward compatibility.
+                // Legacy object-to-array conversion. Kept for backward compatibility.
                 $cart = CartHelper::generateCartFromCustomVariation(json_decode(json_encode($variation), true), $quantity);
+            }
+        } else {
+            // Refresh cart_data from the current variation on every instant hit.
+            // The inputs (variationId + quantity) are deterministic URL params,
+            // so regenerating is idempotent — and it picks up any fields that
+            // were missing on a previously-created draft (variation_type for
+            // advanced-variation rows, refreshed pricing, updated featured
+            // media). Without this, a stale draft from before a code change
+            // keeps rendering with its old shape.
+            if (!$isCustom) {
+                $cart->cart_data = [
+                    CartHelper::generateCartItemFromVariation($variation, $quantity)
+                ];
+            } else {
+                $cart->cart_data = [
+                    CartHelper::generateCartItemCustomItem(json_decode(json_encode($variation), true), $quantity)
+                ];
             }
         }
 

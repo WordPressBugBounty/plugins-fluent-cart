@@ -105,6 +105,10 @@ class SingleProductShortCode extends ShortCode
             return;
         }
 
+        // Single-product shortcode renders the full purchase UI, incl. Pro's
+        // advanced-variation selector — fire the hook so Pro enqueues its assets.
+        do_action('fluent_cart/advanced_variation/enqueue_assets');
+
         wp_reset_postdata();
 
         $storeSettings = new StoreSettings();

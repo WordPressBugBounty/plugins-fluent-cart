@@ -653,6 +653,15 @@ class Cart extends Model
 
         $coupons = Coupon::whereIn('code', $this->coupons)->get();
 
+        /*
+         * Let addons resolve virtual (un-persisted) coupon codes into in-memory Coupon
+         * models so they appear in the summary discount line like any coupon. See
+         * DiscountService::applyCouponCodes() for the same filter.
+         */
+        $coupons = apply_filters('fluent_cart/coupon/resolve_coupons', $coupons, $this->coupons, [
+            'cart' => $this,
+        ]);
+
         if ($coupons->isEmpty()) {
             return [];
         }

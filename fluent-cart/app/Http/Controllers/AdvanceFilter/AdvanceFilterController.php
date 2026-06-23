@@ -31,6 +31,7 @@ class AdvanceFilterController extends Controller
             'search'          => sanitize_text_field($request->get('search')),
             'include_ids'     => $includeIds,
             'limit'           => intval($request->get('limit')),
+            'parent_id'       => intval($request->get('parent_id')),
         ];
 
 

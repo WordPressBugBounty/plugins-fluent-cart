@@ -72,7 +72,7 @@ class CustomerProfileController extends BaseFrontendController
 
         $orders = Order::query()
             ->with(['order_items' => function ($query) {
-                $query->select('id', 'order_id', 'post_title', 'title', 'quantity', 'payment_type', 'line_meta');
+                $query->select('id', 'order_id', 'object_id', 'post_title', 'title', 'quantity', 'payment_type', 'line_meta');
             }])
             ->where('customer_id', $customer->id)
             ->where(function ($query) {
@@ -98,12 +98,12 @@ class CustomerProfileController extends BaseFrontendController
                 'renewals_count' => $order->renewals_count,
                 'order_items'    => $order->order_items->map(function ($item) {
                     return [
-                        'id'           => $item->id,
-                        'post_title'   => $item->post_title,
-                        'title'        => $item->title,
-                        'quantity'     => $item->quantity,
-                        'payment_type' => $item->payment_type,
-                        'line_meta'    => [
+                        'id'                 => $item->id,
+                        'post_title'         => $item->post_title,
+                        'title'              => $item->title,
+                        'quantity'           => $item->quantity,
+                        'payment_type'       => $item->payment_type,
+                        'line_meta'          => [
                             'bundle_parent_item_id' => Arr::get($item, 'line_meta.bundle_parent_item_id', null),
                         ]
                     ];

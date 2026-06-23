@@ -5,6 +5,7 @@ namespace FluentCart\App\Http\Controllers;
 use FluentCart\Api\Resource\ProductDetailResource;
 use FluentCart\Api\Resource\ProductResource;
 use FluentCart\Api\Resource\ProductVariationResource;
+use FluentCart\App\Events\StockChanged;
 use FluentCart\Api\Resource\ShopResource;
 use FluentCart\Api\Taxonomy;
 use FluentCart\App\CPT\FluentProducts;
@@ -140,32 +141,41 @@ class ProductController extends Controller
         $isDigital = Arr::get($detail, 'fulfillment_type') === 'digital';
 
         $createdProductDetail = ProductDetail::query()->create($detail);
-        $variation = ProductVariation::query()->create([
-            'post_id'          => $createdPostId,
-            'serial_index'     => 1,
-            'variation_title'  => $postData['post_title'],
-            //'stock_status'     => $isDigital ? 'in-stock' : 'out-of-stock',
-            'stock_status'     => 'in-stock',
-            'payment_type'     => 'onetime',
-            'total_stock'      => 1,
-            'available'        => 1,
-            'fulfillment_type' => $detail['fulfillment_type'],
-            'other_info'       => [
-                'description'        => '',
-                'payment_type'       => 'onetime',
-                'tax_class'          => 'standard',
-                'tax_exempt'         => 'no',
-                'times'              => '',
-                'repeat_interval'    => '',
-                'trial_days'         => '',
-                'billing_summary'    => '',
-                'manage_setup_fee'   => 'no',
-                'signup_fee_name'    => '',
-                'signup_fee'         => '',
-                'setup_fee_per_item' => 'no',
-                'is_bundle_product'  => Arr::get($detail, 'other_info.is_bundle_product', 'no'),
-            ]
-        ]);
+
+        // Only Simple products get a default starter variant. Simple Variations
+        // and Advanced Variations are created with no variant and build their own
+        // on the edit page — Simple Variations via the pricing table's "Add
+        // Pricing" empty state, Advanced Variations via attribute combinations
+        // (a starter variant there would be an orphan the attribute UI never expects).
+        $variation = null;
+        if (Arr::get($detail, 'variation_type') === Helper::PRODUCT_TYPE_SIMPLE) {
+            $variation = ProductVariation::query()->create([
+                'post_id'          => $createdPostId,
+                'serial_index'     => 1,
+                'variation_title'  => $postData['post_title'],
+                //'stock_status'     => $isDigital ? 'in-stock' : 'out-of-stock',
+                'stock_status'     => 'in-stock',
+                'payment_type'     => 'onetime',
+                'total_stock'      => 1,
+                'available'        => 1,
+                'fulfillment_type' => $detail['fulfillment_type'],
+                'other_info'       => [
+                    'description'        => '',
+                    'payment_type'       => 'onetime',
+                    'tax_class'          => 'standard',
+                    'tax_exempt'         => 'no',
+                    'times'              => '',
+                    'repeat_interval'    => '',
+                    'trial_days'         => '',
+                    'billing_summary'    => '',
+                    'manage_setup_fee'   => 'no',
+                    'signup_fee_name'    => '',
+                    'signup_fee'         => '',
+                    'setup_fee_per_item' => 'no',
+                    'is_bundle_product'  => Arr::get($detail, 'other_info.is_bundle_product', 'no'),
+                ]
+            ]);
+        }
 
         if ($createdProductDetail) {
             return $this->sendSuccess([
@@ -533,10 +543,13 @@ class ProductController extends Controller
      */
     public function get(Request $request, $productId)
     {
+        // attrMap joins fct_atts_relations, populated by the Advanced Variation feature.
+        $variantRelations = ['media', 'attrMap'];
+
         $product = Product::with([
             'detail',
-            'variants' => function ($query) {
-                $query->with(['media'])
+            'variants' => function ($query) use ($variantRelations) {
+                $query->with($variantRelations)
                     ->orderBy('serial_index', 'ASC');
             }
         ])->with('downloadable_files')->find($productId);
@@ -587,9 +600,15 @@ class ProductController extends Controller
             $featuredImageId = get_post_thumbnail_id($product->ID);
             $productData = $product->toArray();
             $productData['featured_image_id'] = $featuredImageId;
-            //get featured image id
+
+            $payload = apply_filters('fluent_cart/product/get_response_data', [
+                'product'    => $productData,
+                'product_id' => (int) $productId,
+                'request'    => $request,
+            ]);
+
             return $this->sendSuccess([
-                'product'      => $productData,
+                'product'      => Arr::get($payload, 'product', $productData),
                 'product_menu' => $productMenu ?? "",
                 'taxonomies'   => $taxonomies,
             ]);
@@ -786,15 +805,16 @@ class ProductController extends Controller
 
     public function updateVariantOption(Request $request, $postId)
     {
-
-
         $data = $request->all();
-        //        ProductValidator::validate($data, [
-//            'variation_type' => 'required',
-//            'product_id' => 'required',
-//            'options.*.id' => 'required',
-//            'options.*.variants' => 'required',
-//        ]);
+
+        // Cap user-supplied option groups before they reach the sync pipeline. The
+        // client UI enforces a 200-combination ceiling, but a forged POST can carry
+        // arbitrarily many entries. Trim at the controller so the filter chain and
+        // downstream Pro listeners never see unbounded input.
+        if (isset($data['options']) && is_array($data['options'])) {
+            $data['options'] = array_slice($data['options'], 0, 200);
+        }
+
         $isSynced = ProductResource::syncVariantOption($postId, $data);
 
         if (is_wp_error($isSynced)) {
@@ -1320,6 +1340,10 @@ class ProductController extends Controller
             ]);
         }
 
+        // Capture old stock state before update
+        $oldAvailable = intval($variant->available);
+        $oldStockStatus = $variant->stock_status;
+
         $detail = ProductDetail::query()->where('post_id', $postId)->first();
 
         // get variations by post_id
@@ -1334,12 +1358,15 @@ class ProductController extends Controller
                 'stock_status' => $variation->stock_status
             ];
         }
+        $newAvailable = intval($request->get('available'));
+        $newStockStatus = $newAvailable > 0 ? 'in-stock' : 'out-of-stock';
+
         $updateData[] = [
             'id'          => $variantId,
             'total_stock' => sanitize_text_field($request->get('total_stock')),
-            'available'   => sanitize_text_field($request->get('available')),
+            'available'   => $newAvailable,
             'manage_stock' => 1,
-            'stock_status' => $request->get('available') > 0 ? 'in-stock' : 'out-of-stock'
+            'stock_status' => $newStockStatus
         ];
         // update variations
         $isUpdated = ProductVariation::query()->batchUpdate($updateData);
@@ -1351,12 +1378,15 @@ class ProductController extends Controller
             $detail->manage_stock = 1;
             $detail->save();
         }
-
-
         if (is_wp_error($isUpdated)) {
             return $this->response->sendError([
                 'message' => __('Inventory update failed', 'fluent-cart')
             ]);
+        }
+
+        // Stock persisted — fire StockChanged only if it actually changed.
+        if ($oldAvailable !== $newAvailable || $oldStockStatus !== $newStockStatus) {
+            (new StockChanged([$postId]))->dispatch();
         }
 
         return $this->response->sendSuccess([

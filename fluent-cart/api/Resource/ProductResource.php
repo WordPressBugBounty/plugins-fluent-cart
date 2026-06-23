@@ -3,14 +3,15 @@
 namespace FluentCart\Api\Resource;
 
 use FluentCart\Api\Taxonomy;
+use FluentCart\App\App;
 use FluentCart\App\CPT\FluentProducts;
 use FluentCart\App\Events\StockChanged;
 use FluentCart\App\Helpers\Helper;
-use FluentCart\App\Helpers\ProductAdminHelper;
 use FluentCart\App\Helpers\Status;
 use FluentCart\App\Models\Product;
 use FluentCart\App\Models\ProductDetail;
 use FluentCart\App\Models\ProductMeta;
+use FluentCart\App\Models\AttributeRelation;
 use FluentCart\App\Models\ProductVariation;
 use FluentCart\App\Services\DateTime\DateTime;
 use FluentCart\Framework\Database\Orm\Builder;
@@ -176,6 +177,7 @@ class ProductResource extends BaseResourceApi
         if (count($variants) > 0) {
 
             $variationType = Arr::get($detail, 'variation_type', 'simple');
+
             if ($variationType === 'simple') {
                 $variant = $variants[0];
                 $otherInfo = Arr::get($variant, 'other_info', []);
@@ -276,19 +278,32 @@ class ProductResource extends BaseResourceApi
                         }
                         $variant['other_info'] = $otherInfo;
                     }
-                    $variantData[] = $variant;
-
+                    $variantData[] = apply_filters('fluent_cart/product/variant_save_data', $variant, $postId);
                 }
 
-                // Only batch update if there's data
+                // Only batch update if there's data. Wrap the write in a transaction so
+                // a mid-batch failure (UNIQUE constraint, deadlock, etc.) rolls back the
+                // entire variant update instead of leaving the product in a partially-saved
+                // state. The variants_updated action fires only after a successful commit
+                // so listeners never observe a rolled-back state.
                 if (!empty($variantData)) {
-                    ProductVariation::query()->batchUpdate($variantData);
+                    $db = App::db();
+                    $db->beginTransaction();
+                    try {
+                        ProductVariation::query()->batchUpdate($variantData);
+                        $db->commit();
+                    } catch (\Exception $e) {
+                        $db->rollBack();
+                        throw $e;
+                    }
+                    do_action('fluent_cart/product/variants_updated', [
+                        'post_id'  => $postId,
+                        'variants' => $variantData,
+                    ]);
                 }
             }
 
 
-//            $variationDetails = $detail;
-//            $variants = ProductAdminHelper::syncProduct($variationDetails, $variants);
         }
 
         $defaultVariationId = Arr::get($detail, 'default_variation_id');
@@ -423,8 +438,12 @@ class ProductResource extends BaseResourceApi
                     ['code' => 400, 'message' => __('This product cannot be deleted at the moment. There are pending orders associated with it. Deleting the product will disrupt the order processing and might cause inconvenience to our customers.', 'fluent-cart')]
                 ]);
             }
+            $variantIds = $product->variants->pluck('id')->toArray();
             foreach ($product->variants as $variant) {
                 $variant->media()->delete();
+            }
+            if ($variantIds) {
+                AttributeRelation::query()->whereIn('object_id', $variantIds)->delete();
             }
             $product->detail()->delete();
             $product->variants()->delete();
@@ -483,23 +502,24 @@ class ProductResource extends BaseResourceApi
      */
     public static function syncVariantOption($productId, $data = [])
     {
-        $srcPricing = ProductDetail::where('post_id', $productId)->first();
-        $settings = Arr::get($data, 'options');
-        $variationType = Arr::get($data, 'variation_type');
+        $preprocessed = apply_filters('fluent_cart/product/variant_option_payload', [
+            'product_id' => (int) $productId,
+            'data'       => $data,
+        ]);
+        if (!is_array($preprocessed) || !isset($preprocessed['data'])) {
+            $preprocessed = ['product_id' => (int) $productId, 'data' => $data];
+        }
+        $data = $preprocessed['data'];
 
-        if (!empty($variationType) && $variationType === Helper::PRODUCT_TYPE_ADVANCE_VARIATION) {
+        $result = apply_filters('fluent_cart/product/variant_option_sync', [
+            'product_id' => (int) $productId,
+            'data'       => $data,
+            'handled'    => false,
+            'response'   => null,
+        ]);
 
-            $variants = ProductAdminHelper::syncProduct($srcPricing, $settings);
-
-            $srcPricing->fill([
-                'other_info'     => $settings,
-                'variation_type' => Helper::PRODUCT_TYPE_ADVANCE_VARIATION,
-            ])->save();
-
-            return static::makeSuccessResponse(
-                $variants,
-                __('Variation combination updated!', 'fluent-cart')
-            );
+        if (!empty($result['handled'])) {
+            return $result['response'];
         }
 
         return static::makeErrorResponse([

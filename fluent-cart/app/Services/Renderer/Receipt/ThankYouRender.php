@@ -286,7 +286,6 @@ class ThankYouRender
             $orderItems = $this->buildBundleItemsTree($orderItems);
 
             foreach ($orderItems as $item) :
-
                 ?>
                 <div class="fct-thank-you-page-order-items-list">
                     <div class="fct-thank-you-page-order-items-list-title">
@@ -296,9 +295,11 @@ class ThankYouRender
                                 <span>x <?php echo esc_html(Helper::translateNumber($item['quantity'])); ?></span>
                             <?php endif; ?>
                         </p>
-                        <p class="fct-thank-you-page-order-items-list-variant-title">
-                            - <?php echo esc_html($item['title']); ?>
-                        </p>
+                        <?php if (!empty($item['title']) && $item['title'] !== $item['post_title']): ?>
+                            <p class="fct-thank-you-page-order-items-list-variant-title">
+                                - <?php echo esc_html($item['title']); ?>
+                            </p>
+                        <?php endif; ?>
                         <?php if ($item['payment_type'] === 'subscription' && !empty($item['payment_info'])): ?>
                             <p class="fct-thank-you-page-order-items-list-payment-info">
                                 <?php echo wp_kses_post($item['payment_info']) ?>

@@ -184,7 +184,7 @@ class OrderTransaction extends Model
                 'transaction' => $this,
                 'order'       => $this->order,
             ];
-            $url = apply_filters_deprecated('fluentcart/transaction/receipt_page_url', [$url, $context], '1.3.16', 'fluent_cart/transaction/receipt_page_url', 'Use fluent_cart/transaction/receipt_page_url instead of fluentcart/transaction/receipt_page_url.');
+            $url = apply_filters_deprecated('fluentcart/transaction/receipt_page_url', [$url, $context], '1.3.16', 'fluent_cart/transaction/receipt_page_url', 'Use fluent_cart/transaction/receipt_page_url instead of fluentcart/transaction/receipt_page_url. It will be removed in v1.4.3.');
             $url = apply_filters('fluent_cart/transaction/receipt_page_url', $url, $context);
         }
 

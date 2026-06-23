@@ -35,41 +35,53 @@ class Webhook
         ];
     }
 
-    public static function webhookInstruction(): string
+    public static function webhookInstruction(): array
     {
-        $webhook_url = static::getURL();
-        return sprintf(
-            '<div>
-                <p><b>%1$s</b><code class="copyable-content">%2$s</code></p>
-                <p>%3$s</p>
-                <br>
-                <h4>%4$s</h4>
-                <br>
-                <p>%5$s</p>
-                <p class="fct_hide_on_test">%6$s <a href="https://dashboard.stripe.com/webhooks/create?events=checkout.session.completed%%2Ccharge.refunded%%2Ccharge.refund.updated%%2Ccharge.succeeded%%2Cinvoice.paid%%2Ccustomer.subscription.deleted%%2Ccustomer.subscription.updated%%2Cinvoice.payment_failed%%2Ccharge.captured%%2Ccharge.dispute.closed%%2Ccharge.dispute.created%%2Cinvoice_payment.paid%%2Cpayment_intent.succeeded" target="_blank">%7$s</a></p>
-                <p class="fct_hide_on_live">%6$s <a href="https://dashboard.stripe.com/test/webhooks/create?events=checkout.session.completed%%2Ccharge.refunded%%2Ccharge.refund.updated%%2Ccharge.succeeded%%2Cinvoice.paid%%2Ccustomer.subscription.deleted%%2Ccustomer.subscription.updated%%2Cinvoice.payment_failed%%2Ccharge.captured%%2Ccharge.dispute.closed%%2Ccharge.dispute.created%%2Cinvoice_payment.paid%%2Cpayment_intent.succeeded" target="_blank">%7$s</a></p>
-                <p>%8$s <code class="copyable-content">%2$s</code></p>
-                <b>%9$s</b>
-                checkout.session.completed, <br/>
-                charge.refunded, <br/>
-                charge.refund.updated, <br/>
-                charge.succeeded, <br/>
-                invoice.paid, <br/>
-                invoice.payment_failed, <br/>
-                customer.subscription.deleted, <br/>
-                customer.subscription.updated, <br/>
-                <br/>
-            </div>',
-            __('Webhook URL: ', 'fluent-cart'),                    // %1$s
-            $webhook_url,                                          // %2$s (reused)
-            __('You should configure your Stripe webhooks to get all updates of your payments remotely.', 'fluent-cart'), // %3$s
-            __('How to configure?', 'fluent-cart'),                // %4$s
-            __('In your Stripe account:', 'fluent-cart'),          // %5$s
-            __('Go to Developers > Webhooks >', 'fluent-cart'),    // %6$s
-            __('Add endpoint', 'fluent-cart'),                     // %7$s
-            __('Enter The Webhook URL:', 'fluent-cart'),           // %8$s
-            __('Select these events:', 'fluent-cart')              // %9$s
+        $events = 'checkout.session.completed%2Ccharge.refunded%2Ccharge.refund.updated%2Ccharge.succeeded%2Cinvoice.paid%2Ccustomer.subscription.deleted%2Ccustomer.subscription.updated%2Cinvoice.payment_failed%2Ccharge.captured%2Ccharge.dispute.closed%2Ccharge.dispute.created%2Cinvoice_payment.paid%2Cpayment_intent.succeeded';
+        
+        $svg    = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M10 6V8H5V19H16V14H18V20C18 20.5523 17.5523 21 17 21H4C3.44772 21 3 20.5523 3 20V7C3 6.44772 3.44772 6 4 6H10ZM21 3V11H19L18.9999 6.413L11.2071 14.2071L9.79289 12.7929L17.5849 5H13V3H21Z"></path></svg>';
+
+        /* translators: %1$s: "Add endpoint" link with icon */
+        $step = fn($class, $url) => \sprintf(
+            '<p class="%s">%s</p>',
+            $class,
+            \sprintf(
+                __('Click %1$s and paste the webhook URL above', 'fluent-cart'),
+                \sprintf('<a href="%s" target="_blank">%s %s</a>', $url, __('Add endpoint', 'fluent-cart'), $svg)
+            )
         );
+
+        return [
+            'title'       => __('Webhook URL', 'fluent-cart'),
+            'webhook_url' => static::getURL(),
+            'description' => __('You should configure your Stripe webhooks to get all updates of your payments remotely.', 'fluent-cart'),
+            'steps'       => [
+                'title' => __('How to configure?', 'fluent-cart'),
+                'list'  => [
+                    'live' => [
+                        __('In your Stripe Dashboard, go to Developers → Webhooks', 'fluent-cart'),
+                        $step('fct_hide_on_test', \sprintf('https://dashboard.stripe.com/webhooks/create?events=%s', $events)),
+                    ],
+                    'test' => [
+                        __('In your Stripe Dashboard, go to Developers → Webhooks', 'fluent-cart'),
+                        $step('fct_hide_on_live', \sprintf('https://dashboard.stripe.com/test/webhooks/create?events=%s', $events)),
+                    ],
+                ],
+            ],
+            'events' => [
+                'title' => __('Select these events', 'fluent-cart'),
+                'list'  => [
+                    'checkout.session.completed',
+                    'charge.refunded',
+                    'charge.refund.updated',
+                    'charge.succeeded',
+                    'invoice.paid',
+                    'invoice.payment_failed',
+                    'customer.subscription.deleted',
+                    'customer.subscription.updated',
+                ],
+            ],
+        ];
     }
 
     public function processAndInsertOrderByEvent($event)

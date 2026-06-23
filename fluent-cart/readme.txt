@@ -2,9 +2,9 @@
 Contributors: wpmanageninja, techjewel
 Tags: ecommerce, cart, checkout, subscriptions, payments
 Requires at least: 6.7
-Tested up to: 6.9
+Tested up to: 7.0
 Requires PHP: 7.4
-Stable tag: 1.4.2
+Stable tag: 1.5.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -313,15 +313,28 @@ This service is provided by PayPal: [Terms of Service](https://www.paypal.com/le
 
 == Changelog ==
 
+= 1.5.0 (Jun 23, 2026) =
+
+* Adds Advanced Variations with automatic combination generation, reusable attributes, swatches, smart variation selection, and bulk editing tools.
+* Adds Attribute Manager with reusable option sets, inline term creation, drag-and-drop sorting, and cross-tab synchronization.
+* Adds 8 built-in attribute sets including Color, Size, Material, Storage, Memory, Weight, Style, and Pattern.
+* Adds staged-save workflow with persistent save bar, discard support, and improved editing experience for complex products.
+* Adds guest-accessible payment links via the new {{order.payment_link}} smart code.
+* Adds fluent_cart/product_card/enqueue_assets hook for extending storefront product components.
+* Improves variation management performance, navigation, pricing tables, mobile responsiveness, admin layouts, and internationalization support.
+* Improves inventory integrations with enhanced stock change event handling.
+* Fixes variation editing, bulk update workflows, bundle synchronization, subscription stock switching, product search links, and PDF receipt tax display.
+* Includes ongoing security hardening and stability improvements across FluentCart Core and Pro.
+
 = 1.4.2 (Jun 18, 2026) =
-- Adds EU/German withdrawal (Widerrufsbutton) compliance with public withdrawal page and two-step confirmation flow
-- Adds Full order details, invoice numbers, and line items support for Authorize.net transactions
-- Adds Paddle cross-currency handling support
-- Fixes Customer profile page issues when avatar requests are blocked by cookie banners
-- Fixes Paddle currency detection during cross-currency validation
-- Fixes Paddle and Authorize.net setup instructions and documentation
-- Fixes Currency formatting consistency in the withdrawal admin table
-- Fixes Security issues with ongoing audits and platform hardening
+Adds EU/German withdrawal (Widerrufsbutton) compliance with public withdrawal page and two-step confirmation flow
+Adds Full order details, invoice numbers, and line items support for Authorize.net transactions
+Adds Paddle cross-currency handling support
+Fixes Customer profile page issues when avatar requests are blocked by cookie banners
+Fixes Paddle currency detection during cross-currency validation
+Fixes Paddle and Authorize.net setup instructions and documentation
+Fixes Currency formatting consistency in the withdrawal admin table
+Fixes Security issues with ongoing audits and platform hardening
 
 = 1.4.1 (Jun 12, 2026) =
 - Adds MCP support for AI agents.

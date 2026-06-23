@@ -123,7 +123,7 @@ class ConnectConfig
                     'mode'        => 'test',
                     '_wpnonce'    => $testNonce
                 ], home_url()),
-                'image_url'     => Vite::getAssetUrl('images/payment-methods/stripe-icon.png'),
+                'image_url'     => Vite::getAssetUrl('images/payment-methods/stripe-icon.svg')
             ],
             'test_account'   => self::getAccountInfo($settings, 'test'),
             'live_account'   => self::getAccountInfo($settings, 'live'),

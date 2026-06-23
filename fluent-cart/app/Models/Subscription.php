@@ -428,7 +428,7 @@ class Subscription extends Model
     public function canUpdatePaymentMethod()
     {
         $gateway = App::gateway($this->current_payment_method);
-        if ($gateway && !in_array('card_update', $gateway->supportedFeatures)) {
+        if (!$gateway || !in_array('card_update', $gateway->supportedFeatures)) {
             return false;
         }
 
@@ -449,7 +449,7 @@ class Subscription extends Model
     public function switchablePaymentMethods()
     {
         $gateway = App::gateway($this->current_payment_method);
-        if ($gateway && empty($gateway->supportedFeatures['switch_payment_method'])) {
+        if (!$gateway || empty($gateway->supportedFeatures['switch_payment_method'])) {
             return [];
         }
 
@@ -825,6 +825,8 @@ class Subscription extends Model
                     Status::SUBSCRIPTION_ACTIVE,
                     Status::SUBSCRIPTION_TRIALING,
                     Status::SUBSCRIPTION_CANCELED,
+                    Status::SUBSCRIPTION_EXPIRING
+
                 ])
                 ->whereNotNull('next_billing_date')
                 ->where('next_billing_date', '>', '0000-00-00 00:00:00')
@@ -834,6 +836,7 @@ class Subscription extends Model
                         $subQuery->whereIn('status', [
                             Status::SUBSCRIPTION_ACTIVE,
                             Status::SUBSCRIPTION_TRIALING,
+                            Status::SUBSCRIPTION_EXPIRING,
                         ])->where(function ($dateQuery) use ($cutoffDates, $knownIntervals, $defaultCutoff) {
                             $index = 0;
 

@@ -7,8 +7,8 @@
 
 use FluentCart\App\Http\Controllers\AddonsController;
 use FluentCart\App\Http\Controllers\AddressInfoController;
-use FluentCart\App\Http\Controllers\AppControllers\AppController;
 use FluentCart\App\Http\Controllers\AttributesController;
+use FluentCart\App\Http\Controllers\AppControllers\AppController;
 use FluentCart\App\Http\Controllers\CheckoutFieldsController;
 use FluentCart\App\Http\Controllers\CustomerController;
 use FluentCart\App\Http\Controllers\DashboardController;
@@ -236,6 +236,19 @@ $router->prefix('products')->withPolicy('ProductPolicy')->group(function (Router
         'permissions' => 'products/create'
     ]);
 
+    // Advanced Variation — bulk price/stock/status edit for variant combinations.
+    // Registered BEFORE the /variants/{variantId} routes so the first-match
+    // router doesn't capture 'bulk-update' as a {variantId}.
+    $router->post('/variants/bulk-update', [ProductVariationController::class, 'bulkUpdate'])->meta([
+        'permissions' => 'products/edit'
+    ]);
+
+    // Group bulk update — PATCH semantics: only non-null fields are written.
+    // Registered BEFORE /variants/{variantId} to avoid the param capturing 'group-bulk-update'.
+    $router->post('/variants/group-bulk-update', [ProductVariationController::class, 'groupBulkUpdate'])->meta([
+        'permissions' => 'products/edit'
+    ]);
+
     $router->post('/variants/{variantId}', [ProductVariationController::class, 'update'])->meta([
         'permissions' => 'products/edit'
     ]);
@@ -262,6 +275,52 @@ $router->prefix('variants')->withPolicy('ProductPolicy')->group(function (Router
         'permissions' => 'products/view'
     ]);
 });
+
+// Advanced Variation — attribute library (groups + terms)
+$router->prefix('options')->withPolicy('ProductPolicy')->group(function (Router $router) {
+    // Library endpoint — single payload powering the Advanced Variation library
+    // picker (full group list with terms + the frequently-used IDs for chips).
+    // Registered BEFORE 'attr/groups' to ensure the more-specific path wins.
+    $router->get('attr/groups/library', [AttributesController::class, 'getLibrary'])->meta([
+        'permissions' => 'products/view'
+    ]);
+    $router->get('attr/groups', [AttributesController::class, 'getGroups'])->meta([
+        'permissions' => 'products/view'
+    ]);
+    // Plural 'attr/groups/reorder' doesn't collide with the singular
+    // 'attr/group/{group_id}' routes below; kept here next to its list sibling.
+    $router->post('attr/groups/reorder', [AttributesController::class, 'reorderGroups'])->meta([
+        'permissions' => 'products/edit'
+    ]);
+    $router->post('attr/group/', [AttributesController::class, 'createGroup'])->meta([
+        'permissions' => 'products/create'
+    ]);
+    $router->get('attr/group/{group_id}', [AttributesController::class, 'getGroup'])->meta([
+        'permissions' => 'products/view'
+    ]);
+    $router->put('attr/group/{group_id}', [AttributesController::class, 'updateGroup'])->meta([
+        'permissions' => 'products/edit'
+    ]);
+    $router->delete('attr/group/{group_id}', [AttributesController::class, 'deleteGroup'])->meta([
+        'permissions' => 'products/delete'
+    ]);
+    $router->get('attr/group/{group_id}/terms', [AttributesController::class, 'getTerms'])->meta([
+        'permissions' => 'products/view'
+    ]);
+    $router->post('attr/group/{group_id}/terms', [AttributesController::class, 'createTerms'])->meta([
+        'permissions' => 'products/create'
+    ]);
+    $router->post('attr/group/{group_id}/term/{term_id}', [AttributesController::class, 'updateTerm'])->meta([
+        'permissions' => 'products/edit'
+    ]);
+    $router->delete('attr/group/{group_id}/term/{term_id}', [AttributesController::class, 'deleteTerm'])->meta([
+        'permissions' => 'products/delete'
+    ]);
+    $router->post('attr/group/{group_id}/terms/reorder', [AttributesController::class, 'reorderTerms'])->meta([
+        'permissions' => 'products/edit'
+    ]);
+});
+
 //Integration route declaration
 $router->prefix('integration')->withPolicy('IntegrationPolicy')->group(function (Router $router) {
 
@@ -661,48 +720,6 @@ $router->prefix('customers')->withPolicy('CustomerPolicy')->group(function (Rout
 });
 
 
-$router->prefix('options')->withPolicy('ProductPolicy')->group(function (Router $router) {
-    $router->get('attr/groups', [AttributesController::class, 'getGroups'])->meta([
-        'permissions' => 'products/view'
-    ]);
-
-    $router->post('attr/group/', [AttributesController::class, 'createGroup'])->meta([
-        'permissions' => 'products/create'
-    ]);
-
-    $router->get('attr/group/{group_id}', [AttributesController::class, 'getGroup'])->meta([
-        'permissions' => 'products/view'
-    ]);
-
-    $router->put('attr/group/{group_id}', [AttributesController::class, 'updateGroup'])->meta([
-        'permissions' => 'products/edit'
-    ]);
-
-    $router->delete('attr/group/{group_id}', [AttributesController::class, 'deleteGroup'])->meta([
-        'permissions' => 'products/delete'
-    ]);
-
-    $router->get('attr/group/{group_id}/terms', [AttributesController::class, 'getTerms'])->meta([
-        'permissions' => 'products/view'
-    ]);
-
-    $router->post('attr/group/{group_id}/term', [AttributesController::class, 'createTerm'])->meta([
-        'permissions' => 'products/create'
-    ]);
-
-    $router->post('attr/group/{group_id}/term/{term_id}', [AttributesController::class, 'updateTerm'])->meta([
-        'permissions' => 'products/edit'
-    ]);
-
-    $router->delete('attr/group/{group_id}/term/{term_id}', [AttributesController::class, 'deleteTerm'])->meta([
-        'permissions' => 'products/delete'
-    ]);
-
-    $router->post('attr/group/{group_id}/term/{term_id}/serial', [AttributesController::class, 'changeTermSerial'])->meta([
-        'permissions' => 'products/edit'
-    ]);
-});
-
 
 $router->prefix('onboarding')->withPolicy('AdminPolicy')->group(function (Router $router) {
     $router->get('/', [OnboardingController::class, 'index']);
@@ -873,6 +890,9 @@ $router->prefix('tax')->withPolicy('StoreSettingsPolicy')->group(function (Route
         'permissions' => 'store/sensitive'
     ]);
     $router->delete('country/rate/{id}', [TaxRateController::class, 'delete'])->int('id')->meta([
+        'permissions' => 'store/sensitive'
+    ]);
+    $router->delete('country/{country_code}', [TaxRateController::class, 'deleteCountry'])->meta([
         'permissions' => 'store/sensitive'
     ]);
     $router->post('country-status/{country_code}', [TaxRateController::class, 'updateCountryStatus'])->meta([

@@ -95,7 +95,6 @@ class DummyProductService
             'post_parent'           => 0,
             'menu_order'            => 0,
             'post_mime_type'        => '',
-            'guid'                  => get_site_url() . '/?items=' . $productName . '-' . $productNameSuffix
         ];
         $product = array_merge($product, $data);
         $detail = $product['detail'];
@@ -112,6 +111,8 @@ class DummyProductService
         $product = Product::query()->create(
             Arr::except($product, ['detail', 'variants', 'gallery'])
         );
+
+        $product->update(['guid' => get_permalink($product->ID)]);
 
         $this->attachTerms($categories, $product->ID);
 

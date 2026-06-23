@@ -317,7 +317,7 @@ class CheckoutApi
             }
         }
 
-        if (Arr::get($data, 'is_business', 'no') !== 'yes') {
+        if (Arr::get($data, 'is_business', 'no') !== 'yes' && !CheckoutFieldsSchema::isB2BOnlyMode()) {
             $data['billing_company_name'] = '';
             $data['billing_legal_registration_id'] = '';
         }
@@ -868,7 +868,7 @@ class CheckoutApi
             }
         }
 
-        $isB2B = Arr::get($data, 'is_business', 'no') === 'yes';
+        $isB2B = Arr::get($data, 'is_business', 'no') === 'yes' || CheckoutFieldsSchema::isB2BOnlyMode();
 
         if ($isB2B && CheckoutFieldsSchema::isVatNumberRequired()) {
             $vatNumber = Arr::get($data, 'fct_billing_tax_id', '');

@@ -23,6 +23,7 @@ class ComposerStaticInitb2eff533900bbaf3c7b668b284ce4755
             'FluentCart\\Dev\\' => 15,
             'FluentCart\\App\\' => 15,
             'FluentCart\\Api\\' => 15,
+            'Faker\\' => 6,
         ),
     );
 
@@ -50,6 +51,10 @@ class ComposerStaticInitb2eff533900bbaf3c7b668b284ce4755
         'FluentCart\\Api\\' =>
         array (
             0 => __DIR__ . '/../..' . '/api',
+        ),
+        'Faker\\' =>
+        array (
+            0 => __DIR__ . '/..' . '/fakerphp/faker/src/Faker',
         ),
     );
 
@@ -133,6 +138,7 @@ class ComposerStaticInitb2eff533900bbaf3c7b668b284ce4755
         'FluentCart\\App\\Events\\Order\\OrderUpdated' => __DIR__ . '/../..' . '/app/Events/Order/OrderUpdated.php',
         'FluentCart\\App\\Events\\Order\\RenewalOrderDeleted' => __DIR__ . '/../..' . '/app/Events/Order/RenewalOrderDeleted.php',
         'FluentCart\\App\\Events\\PlanChanged' => __DIR__ . '/../..' . '/app/Events/PlanChanged.php',
+        'FluentCart\\App\\Events\\ProductVariationsChanged' => __DIR__ . '/../..' . '/app/Events/ProductVariationsChanged.php',
         'FluentCart\\App\\Events\\StockChanged' => __DIR__ . '/../..' . '/app/Events/StockChanged.php',
         'FluentCart\\App\\Events\\Subscription\\SubscriptionActivated' => __DIR__ . '/../..' . '/app/Events/Subscription/SubscriptionActivated.php',
         'FluentCart\\App\\Events\\Subscription\\SubscriptionCanceled' => __DIR__ . '/../..' . '/app/Events/Subscription/SubscriptionCanceled.php',
@@ -168,6 +174,8 @@ class ComposerStaticInitb2eff533900bbaf3c7b668b284ce4755
         'FluentCart\\App\\Hooks\\Handlers\\ActivationHandler' => __DIR__ . '/../..' . '/app/Hooks/Handlers/ActivationHandler.php',
         'FluentCart\\App\\Hooks\\Handlers\\AddonGatewaysHandler' => __DIR__ . '/../..' . '/app/Hooks/Handlers/AddonGatewaysHandler.php',
         'FluentCart\\App\\Hooks\\Handlers\\AdminMenuBarHandler' => __DIR__ . '/../..' . '/app/Hooks/Handlers/AdminMenuBarHandler.php',
+        'FluentCart\\App\\Hooks\\Handlers\\AdvancedVariationHandler' => __DIR__ . '/../..' . '/app/Hooks/Handlers/AdvancedVariationHandler.php',
+        'FluentCart\\App\\Hooks\\Handlers\\AttributesHandler' => __DIR__ . '/../..' . '/app/Hooks/Handlers/AttributesHandler.php',
         'FluentCart\\App\\Hooks\\Handlers\\BlockEditors\\BlockEditor' => __DIR__ . '/../..' . '/app/Hooks/Handlers/BlockEditors/BlockEditor.php',
         'FluentCart\\App\\Hooks\\Handlers\\BlockEditors\\Buttons\\AddToCartButtonBlockEditor' => __DIR__ . '/../..' . '/app/Hooks/Handlers/BlockEditors/Buttons/AddToCartButtonBlockEditor.php',
         'FluentCart\\App\\Hooks\\Handlers\\BlockEditors\\Buttons\\BuyNowButtonBlockEditor' => __DIR__ . '/../..' . '/app/Hooks/Handlers/BlockEditors/Buttons/BuyNowButtonBlockEditor.php',
@@ -318,6 +326,8 @@ class ComposerStaticInitb2eff533900bbaf3c7b668b284ce4755
         'FluentCart\\App\\Http\\Requests\\AttachUserRequest' => __DIR__ . '/../..' . '/app/Http/Requests/AttachUserRequest.php',
         'FluentCart\\App\\Http\\Requests\\AttrGroupRequest' => __DIR__ . '/../..' . '/app/Http/Requests/AttrGroupRequest.php',
         'FluentCart\\App\\Http\\Requests\\AttrTermRequest' => __DIR__ . '/../..' . '/app/Http/Requests/AttrTermRequest.php',
+        'FluentCart\\App\\Http\\Requests\\AttrTermUpdateRequest' => __DIR__ . '/../..' . '/app/Http/Requests/AttrTermUpdateRequest.php',
+        'FluentCart\\App\\Http\\Requests\\BulkUpdateVariantRequest' => __DIR__ . '/../..' . '/app/Http/Requests/BulkUpdateVariantRequest.php',
         'FluentCart\\App\\Http\\Requests\\CartRequest' => __DIR__ . '/../..' . '/app/Http/Requests/CartRequest.php',
         'FluentCart\\App\\Http\\Requests\\CouponRequest' => __DIR__ . '/../..' . '/app/Http/Requests/CouponRequest.php',
         'FluentCart\\App\\Http\\Requests\\CreatePageRequest' => __DIR__ . '/../..' . '/app/Http/Requests/CreatePageRequest.php',
@@ -331,6 +341,7 @@ class ComposerStaticInitb2eff533900bbaf3c7b668b284ce4755
         'FluentCart\\App\\Http\\Requests\\FrontendRequests\\CustomerAddressRequest' => __DIR__ . '/../..' . '/app/Http/Requests/FrontendRequests/CustomerAddressRequest.php',
         'FluentCart\\App\\Http\\Requests\\FrontendRequests\\CustomerRequests\\CustomerProfileAccountDetailsRequest' => __DIR__ . '/../..' . '/app/Http/Requests/FrontendRequests/CustomerRequests/CustomerProfileAccountDetailsRequest.php',
         'FluentCart\\App\\Http\\Requests\\FrontendRequests\\CustomerRequests\\CustomerProfileRequest' => __DIR__ . '/../..' . '/app/Http/Requests/FrontendRequests/CustomerRequests/CustomerProfileRequest.php',
+        'FluentCart\\App\\Http\\Requests\\GroupBulkUpdateVariantRequest' => __DIR__ . '/../..' . '/app/Http/Requests/GroupBulkUpdateVariantRequest.php',
         'FluentCart\\App\\Http\\Requests\\LabelRequest' => __DIR__ . '/../..' . '/app/Http/Requests/LabelRequest.php',
         'FluentCart\\App\\Http\\Requests\\OrderRequest' => __DIR__ . '/../..' . '/app/Http/Requests/OrderRequest.php',
         'FluentCart\\App\\Http\\Requests\\ProductCreateRequest' => __DIR__ . '/../..' . '/app/Http/Requests/ProductCreateRequest.php',
@@ -553,13 +564,13 @@ class ComposerStaticInitb2eff533900bbaf3c7b668b284ce4755
         'FluentCart\\App\\Modules\\Turnstile\\TurnstileBoot' => __DIR__ . '/../..' . '/app/Modules/Turnstile/TurnstileBoot.php',
         'FluentCart\\App\\Modules\\Turnstile\\TurnstileInit' => __DIR__ . '/../..' . '/app/Modules/Turnstile/TurnstileInit.php',
         'FluentCart\\App\\Modules\\Turnstile\\TurnstileValidator' => __DIR__ . '/../..' . '/app/Modules/Turnstile/TurnstileValidator.php',
-        'FluentCart\\App\\Modules\\Wishlist\\WishlistModule' => __DIR__ . '/../..' . '/app/Modules/Wishlist/WishlistModule.php',
         'FluentCart\\App\\Modules\\WooCommerceMigrator\\Contracts\\MigrationServiceInterface' => __DIR__ . '/../..' . '/app/Modules/WooCommerceMigrator/Contracts/MigrationServiceInterface.php',
         'FluentCart\\App\\Modules\\WooCommerceMigrator\\Services\\BaseMigrationService' => __DIR__ . '/../..' . '/app/Modules/WooCommerceMigrator/Services/BaseMigrationService.php',
         'FluentCart\\App\\Modules\\WooCommerceMigrator\\Services\\CustomerMigrationService' => __DIR__ . '/../..' . '/app/Modules/WooCommerceMigrator/Services/CustomerMigrationService.php',
         'FluentCart\\App\\Modules\\WooCommerceMigrator\\Services\\OrderMigrationService' => __DIR__ . '/../..' . '/app/Modules/WooCommerceMigrator/Services/OrderMigrationService.php',
         'FluentCart\\App\\Modules\\WooCommerceMigrator\\WooCommerceMigratorCli' => __DIR__ . '/../..' . '/app/Modules/WooCommerceMigrator/WooCommerceMigratorCli.php',
         'FluentCart\\App\\Modules\\WooCommerceMigrator\\WooCommerceMigratorHelper' => __DIR__ . '/../..' . '/app/Modules/WooCommerceMigrator/WooCommerceMigratorHelper.php',
+        'FluentCart\\App\\Services\\AdvancedVariationService' => __DIR__ . '/../..' . '/app/Services/AdvancedVariationService.php',
         'FluentCart\\App\\Services\\Async\\DummyProductService' => __DIR__ . '/../..' . '/app/Services/Async/DummyProductService.php',
         'FluentCart\\App\\Services\\Async\\ImageAttachService' => __DIR__ . '/../..' . '/app/Services/Async/ImageAttachService.php',
         'FluentCart\\App\\Services\\AuthService' => __DIR__ . '/../..' . '/app/Services/AuthService.php',
@@ -595,9 +606,12 @@ class ComposerStaticInitb2eff533900bbaf3c7b668b284ce4755
         'FluentCart\\App\\Services\\FileSystem\\Drivers\\S3\\S3FileUploader' => __DIR__ . '/../..' . '/app/Services/FileSystem/Drivers/S3/S3FileUploader.php',
         'FluentCart\\App\\Services\\FileSystem\\Drivers\\S3\\S3InputValidator' => __DIR__ . '/../..' . '/app/Services/FileSystem/Drivers/S3/S3InputValidator.php',
         'FluentCart\\App\\Services\\FileSystem\\FileManager' => __DIR__ . '/../..' . '/app/Services/FileSystem/FileManager.php',
+        'FluentCart\\App\\Services\\Filter\\AttrGroupFilter' => __DIR__ . '/../..' . '/app/Services/Filter/AttrGroupFilter.php',
+        'FluentCart\\App\\Services\\Filter\\AttrTermFilter' => __DIR__ . '/../..' . '/app/Services/Filter/AttrTermFilter.php',
         'FluentCart\\App\\Services\\Filter\\BaseFilter' => __DIR__ . '/../..' . '/app/Services/Filter/BaseFilter.php',
         'FluentCart\\App\\Services\\Filter\\Concerns\\HandleDateFilter' => __DIR__ . '/../..' . '/app/Services/Filter/Concerns/HandleDateFilter.php',
         'FluentCart\\App\\Services\\Filter\\Concerns\\HandleRelationalFilter' => __DIR__ . '/../..' . '/app/Services/Filter/Concerns/HandleRelationalFilter.php',
+        'FluentCart\\App\\Services\\Filter\\Concerns\\HasIdTitleSlugSearch' => __DIR__ . '/../..' . '/app/Services/Filter/Concerns/HasIdTitleSlugSearch.php',
         'FluentCart\\App\\Services\\Filter\\CouponFilter' => __DIR__ . '/../..' . '/app/Services/Filter/CouponFilter.php',
         'FluentCart\\App\\Services\\Filter\\CustomerFilter' => __DIR__ . '/../..' . '/app/Services/Filter/CustomerFilter.php',
         'FluentCart\\App\\Services\\Filter\\LabelFilter' => __DIR__ . '/../..' . '/app/Services/Filter/LabelFilter.php',
@@ -636,6 +650,7 @@ class ComposerStaticInitb2eff533900bbaf3c7b668b284ce4755
         'FluentCart\\App\\Services\\Reminders\\ReminderService' => __DIR__ . '/../..' . '/app/Services/Reminders/ReminderService.php',
         'FluentCart\\App\\Services\\Reminders\\SubscriptionReminderService' => __DIR__ . '/../..' . '/app/Services/Reminders/SubscriptionReminderService.php',
         'FluentCart\\App\\Services\\Renderer\\AddressSelectRenderer' => __DIR__ . '/../..' . '/app/Services/Renderer/AddressSelectRenderer.php',
+        'FluentCart\\App\\Services\\Renderer\\AdvancedVariationRenderer' => __DIR__ . '/../..' . '/app/Services/Renderer/AdvancedVariationRenderer.php',
         'FluentCart\\App\\Services\\Renderer\\CartDrawerRenderer' => __DIR__ . '/../..' . '/app/Services/Renderer/CartDrawerRenderer.php',
         'FluentCart\\App\\Services\\Renderer\\CartItemRenderer' => __DIR__ . '/../..' . '/app/Services/Renderer/CartItemRenderer.php',
         'FluentCart\\App\\Services\\Renderer\\CartRenderer' => __DIR__ . '/../..' . '/app/Services/Renderer/CartRenderer.php',

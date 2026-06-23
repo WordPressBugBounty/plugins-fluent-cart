@@ -224,7 +224,7 @@ class Helper
                 //'archived' => __('Archived', 'fluent-cart'),
                 'cancelled'  => __('Cancelled', 'fluent-cart'),
             ], []
-        ], '1.3.16', 'fluent_cart/order_statuses', 'Use fluent_cart/order_statuses instead of fluent-cart/order_statuses.');
+        ], '1.3.16', 'fluent_cart/order_statuses', 'Use fluent_cart/order_statuses instead of fluent-cart/order_statuses. It will be removed in v1.4.3.');
 
         return apply_filters('fluent_cart/order_statuses', $statuses, []);
     }
@@ -239,7 +239,7 @@ class Helper
                 //  'archived' => __('Archived', 'fluent-cart'),
                 'cancelled'  => __('Cancelled', 'fluent-cart')
             ], []
-        ], '1.3.16', 'fluent_cart/editable_order_statuses', 'Use fluent_cart/editable_order_statuses instead of fluent-cart/editable_order_statuses.');
+        ], '1.3.16', 'fluent_cart/editable_order_statuses', 'Use fluent_cart/editable_order_statuses instead of fluent-cart/editable_order_statuses. It will be removed in v1.4.3.');
 
         return apply_filters('fluent_cart/editable_order_statuses', $statuses, []);
     }
@@ -251,7 +251,7 @@ class Helper
                 'active'   => __('Active', 'fluent-cart'),
                 'inactive' => __('Inactive', 'fluent-cart'),
             ], []
-        ], '1.3.16', 'fluent_cart/editable_customer_statuses', 'Use fluent_cart/editable_customer_statuses instead of fluent-cart/editable_customer_statuses.');
+        ], '1.3.16', 'fluent_cart/editable_customer_statuses', 'Use fluent_cart/editable_customer_statuses instead of fluent-cart/editable_customer_statuses. It will be removed in v1.4.3.');
 
         return apply_filters('fluent_cart/editable_customer_statuses', $statuses, []);
     }
@@ -265,7 +265,7 @@ class Helper
                 'delivered'   => __('Delivered', 'fluent-cart'),
                 'unshippable' => __('Unshippable', 'fluent-cart'),
             ], []
-        ], '1.3.16', 'fluent_cart/shipping_statuses', 'Use fluent_cart/shipping_statuses instead of fluent-cart/shipping_statuses.');
+        ], '1.3.16', 'fluent_cart/shipping_statuses', 'Use fluent_cart/shipping_statuses instead of fluent-cart/shipping_statuses. It will be removed in v1.4.3.');
 
         return apply_filters('fluent_cart/shipping_statuses', $statuses, []);
     }
@@ -279,7 +279,7 @@ class Helper
                 'delivered'   => __('Delivered', 'fluent-cart'),
                 'unshippable' => __('Unshippable', 'fluent-cart'),
             ], []
-        ], '1.3.16', 'fluent_cart/editable_shipping_statuses', 'Use fluent_cart/editable_shipping_statuses instead of fluent-cart/editable_order_statuses.');
+        ], '1.3.16', 'fluent_cart/editable_shipping_statuses', 'Use fluent_cart/editable_shipping_statuses instead of fluent-cart/editable_order_statuses. It will be removed in v1.4.3.');
 
         return apply_filters('fluent_cart/editable_shipping_statuses', $statuses, []);
     }
@@ -320,7 +320,7 @@ class Helper
                 'refunded'        => __('Refunded', 'fluent-cart'),
                 'active'          => __('Active', 'fluent-cart'),
             ], []
-        ], '1.3.16', 'fluent_cart/transaction_statuses', 'Use fluent_cart/transaction_statuses instead of fluent-cart/transaction_statuses.');
+        ], '1.3.16', 'fluent_cart/transaction_statuses', 'Use fluent_cart/transaction_statuses instead of fluent-cart/transaction_statuses. It will be removed in v1.4.3.');
 
         $statuses = apply_filters('fluent_cart/transaction_statuses', $statuses, []);
 
@@ -340,7 +340,7 @@ class Helper
                 'failed'   => __('Failed', 'fluent-cart'),
                 'refunded' => __('Refunded', 'fluent-cart'),
             ], []
-        ], '1.3.16', 'fluent_cart/editable_transaction_statuses', 'Use fluent_cart/editable_transaction_statuses instead of fluent-cart/editable_transaction_statuses.');
+        ], '1.3.16', 'fluent_cart/editable_transaction_statuses', 'Use fluent_cart/editable_transaction_statuses instead of fluent-cart/editable_transaction_statuses. It will be removed in v1.4.3.');
 
         $statuses = apply_filters('fluent_cart/editable_transaction_statuses', $statuses, []);
 
@@ -589,7 +589,7 @@ class Helper
                     "symbol" => '£',
                 ],
             ], []
-        ], '1.3.16', 'fluent_cart/available_currencies', 'Use fluent_cart/available_currencies instead of fluent-cart/available_currencies.');
+        ], '1.3.16', 'fluent_cart/available_currencies', 'Use fluent_cart/available_currencies instead of fluent-cart/available_currencies. It will be removed in v1.4.3.');
 
         return apply_filters('fluent_cart/available_currencies', $currencies, []);
     }
@@ -708,16 +708,23 @@ class Helper
 
     public static function getVariationTypes($withLabel = true)
     {
-        $statues = [
-            'simple'            => __('Simple', 'fluent-cart'),
-            'simple_variations' => __('Simple Variation', 'fluent-cart'),
+        // advanced_variations is advertised in free too so the variation-type
+        // dropdown can offer it (shown Pro-locked with a crown and an upgrade
+        // modal while Pro is inactive). Pro re-registers the same key via the
+        // filter below when active.
+        $types = [
+            'simple'              => __('Simple', 'fluent-cart'),
+            'simple_variations'   => __('Simple Variations', 'fluent-cart'),
+            'advanced_variations' => __('Advanced Variations', 'fluent-cart'),
         ];
 
+        $types = apply_filters('fluent_cart/variation_types', $types);
+
         if ($withLabel) {
-            return $statues;
+            return $types;
         }
 
-        return array_keys($statues);
+        return array_keys($types);
     }
 
     public static function isValueEncrypted($raw_value)
@@ -937,7 +944,7 @@ class Helper
                 'expired'  => __('Expired', 'fluent-cart'),
                 'disabled' => __('Disabled', 'fluent-cart'),
             ], []
-        ], '1.3.16', 'fluent_cart/coupon_statuses', 'Use fluent_cart/coupon_statuses instead of fluent-cart/coupon_statuses.');
+        ], '1.3.16', 'fluent_cart/coupon_statuses', 'Use fluent_cart/coupon_statuses instead of fluent-cart/coupon_statuses. It will be removed in v1.4.3.');
 
         return apply_filters('fluent_cart/coupon_statuses', $statuses, []);
     }
@@ -1271,7 +1278,7 @@ class Helper
     public static function getCountryList(): array
     {
         $options = App::getInstance('localization')->countriesOptions();
-        $options = apply_filters_deprecated('fluent-cart/util/countries', [$options, []], '1.3.16', 'fluent_cart/util/countries', 'Use fluent_cart/util/countries instead of fluent-cart/util/countries.');
+        $options = apply_filters_deprecated('fluent-cart/util/countries', [$options, []], '1.3.16', 'fluent_cart/util/countries', 'Use fluent_cart/util/countries instead of fluent-cart/util/countries. It will be removed in v1.4.3.');
 
         return apply_filters('fluent_cart/util/countries', $options, []);
     }

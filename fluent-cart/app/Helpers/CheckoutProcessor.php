@@ -528,9 +528,19 @@ class CheckoutProcessor
         }
 
         if (!empty($couponCodes)) {
-            $coupons = Coupon::query()->whereIn('code', $couponCodes)->get()
-                ->keyBy('code')
-                ->toArray();
+            $coupons = Coupon::query()->whereIn('code', $couponCodes)->get();
+
+            /*
+             * Resolve virtual (un-persisted) coupons so an AppliedCoupon row is written for
+             * them too — the row stores coupon_id = null (the column is nullable) with the
+             * code and computed discount, so it shows in the order's Coupons section like any
+             * coupon. See DiscountService::applyCouponCodes() for the same filter.
+             */
+            $coupons = apply_filters('fluent_cart/coupon/resolve_coupons', $coupons, $couponCodes, [
+                'order' => $this->orderModel,
+            ]);
+
+            $coupons = $coupons->keyBy('code')->toArray();
 
             foreach ($coupons as $code => &$coupon) {
                 $coupon['coupon_id'] = $appliedCoupons[$code]['id'];

@@ -23,7 +23,7 @@ class PaymentHelper
         $listener = '/?fct_payment_listener=1&method=' . $this->slug;
         $data = apply_filters_deprecated('fluent_cart_ipn_url_' . $this->slug, [
             ['listener_url' => site_url($listener)]
-        ], '1.3.16', 'fluent_cart/ipn_url_' . $this->slug, 'Use fluent_cart/ipn_url_' . $this->slug . ' instead of fluent_cart_ipn_url_' . $this->slug . '.');
+        ], '1.3.16', 'fluent_cart/ipn_url_' . $this->slug, 'Use fluent_cart/ipn_url_' . $this->slug . ' instead of fluent_cart_ipn_url_' . $this->slug . '. It will be removed in v1.4.3.');
 
         return apply_filters('fluent_cart/ipn_url_' . $this->slug, $data);
     }
@@ -50,7 +50,7 @@ class PaymentHelper
             'args' => $args,
             'payment_method' => $this->slug ?? ''
         ];
-        $url = apply_filters_deprecated('fluentcart/payment/success_url', [add_query_arg($queryArgs, $receiptUrl), $context], '1.3.16', 'fluent_cart/payment/success_url', 'Use fluent_cart/payment/success_url instead of fluentcart/payment/success_url.');
+        $url = apply_filters_deprecated('fluentcart/payment/success_url', [add_query_arg($queryArgs, $receiptUrl), $context], '1.3.16', 'fluent_cart/payment/success_url', 'Use fluent_cart/payment/success_url instead of fluentcart/payment/success_url. It will be removed in v1.4.3.');
 
         return apply_filters('fluent_cart/payment/success_url', $url, $context);
     }

@@ -2117,20 +2117,13 @@ class TaxModule
             $result = $client->checkVat($params);
 
             if (empty($result->valid)) {
-                // VIES signals member-state service unavailable with name "---"
-                if (isset($result->name) && $result->name === '---') {
-                    return new \WP_Error(
-                        'service_unavailable',
-                        __('The VAT validation service is temporarily unavailable. Please try again later.', 'fluent-cart')
-                    );
-                }
-                // Definitive answer from VIES: the number is not registered.
+                $countryName = LocalizationManager::getInstance()->getCountryNameByCode($countryCode);
                 return new \WP_Error(
                     'invalid',
                     sprintf(
-                    /* translators: %1$s is the country code */
-                        __('Invalid VAT number for country %1$s!', 'fluent-cart'),
-                        $countryCode
+                    /* translators: %1$s: country name */
+                        __('Invalid VAT number for %1$s!', 'fluent-cart'),
+                        $countryName
                     )
                 );
             }
@@ -2146,7 +2139,28 @@ class TaxModule
             return $taxData;
 
         } catch (\SoapFault $e) {
-            return new \WP_Error('soap_fault', __('The VAT validation service is temporarily unavailable. Please try again later.', 'fluent-cart'));
+            $faultString = strtoupper($e->getMessage());
+
+            if (strpos($faultString, 'MAX_CONCURRENT_REQ') !== false) {
+                return new \WP_Error(
+                    'rate_limit',
+                    __('VAT validation rate limit reached. Please try again in a few moments.', 'fluent-cart')
+                );
+            }
+
+            if (strpos($faultString, 'INVALID_INPUT') !== false || strpos($faultString, 'INVALID_REQUESTER_INFO') !== false) {
+                $countryName = LocalizationManager::getInstance()->getCountryNameByCode($countryCode);
+                return new \WP_Error(
+                    'invalid',
+                    sprintf(
+                        /* translators: %1$s: country name */
+                        __('Invalid VAT number for country %1$s!', 'fluent-cart'),
+                        $countryName
+                    )
+                );
+            }
+
+            return new \WP_Error('service_unavailable', __('The VAT validation service is temporarily unavailable. Please try again later.', 'fluent-cart'));
         } catch (\Exception $e) {
             return new \WP_Error('invalid', $e->getMessage());
         }

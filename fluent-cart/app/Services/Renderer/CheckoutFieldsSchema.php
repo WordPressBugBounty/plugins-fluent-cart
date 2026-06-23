@@ -493,6 +493,12 @@ class CheckoutFieldsSchema
                     'type'      => 'text',
                     'can_alter' => 'yes',
                 ],
+                'b2b_only_mode'             => [
+                    'label'     => __('B2B Only Mode', 'fluent-cart'),
+                    'help_text' => __('When enabled, the B2B purchase toggle is hidden and business fields are always shown to all customers.', 'fluent-cart'),
+                    'type'      => 'checkbox',
+                    'can_alter' => 'yes',
+                ],
             ],
             'billing_address'  => [
                 'country'   => [
@@ -619,6 +625,9 @@ class CheckoutFieldsSchema
                 'legal_registration_id' => [
                     'required' => 'no',
                     'enabled'  => 'no'
+                ],
+                'b2b_only_mode'             => [
+                    'enabled' => 'no',
                 ],
             ],
             'billing_address'  => [
@@ -818,6 +827,12 @@ class CheckoutFieldsSchema
         $fieldSettings = self::getFieldsSettings();
         return Arr::get($fieldSettings, 'business_details.legal_registration_id.enabled') === 'yes'
             && Arr::get($fieldSettings, 'business_details.legal_registration_id.required') === 'yes';
+    }
+
+    public static function isB2BOnlyMode(): bool
+    {
+        $fieldSettings = self::getFieldsSettings();
+        return Arr::get($fieldSettings, 'business_details.b2b_only_mode.enabled') === 'yes';
     }
 
     public static function hasAnyBusinessFields(): bool

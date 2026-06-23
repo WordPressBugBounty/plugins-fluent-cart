@@ -98,6 +98,7 @@ class DirectCheckoutShortcode extends ShortCode
             'is_shortcode'         => true,
             'enable_modal_checkout'=> $instantCheckout,
             'variant_ids'          => [$variationId],
+            'class'                => $buttonClass ?: 'fluent-cart-direct-checkout-button',
         ];
 
         if ($buttonClass) {
@@ -108,7 +109,7 @@ class DirectCheckoutShortcode extends ShortCode
             $atts['target'] = $target;
         }
 
-        return (new ProductRenderer($product, $rendererConfig))->renderBuyNowButton($atts);
+        return (new ProductRenderer($product, $rendererConfig))->renderBuyNowButtonBlock($atts);
     }
 
     protected function renderAttributes($atts = [])

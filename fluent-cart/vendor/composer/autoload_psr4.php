@@ -12,4 +12,5 @@ return array(
     'FluentCart\\Dev\\' => array($baseDir . '/dev'),
     'FluentCart\\App\\' => array($baseDir . '/app'),
     'FluentCart\\Api\\' => array($baseDir . '/api'),
+    'Faker\\' => array($vendorDir . '/fakerphp/faker/src/Faker'),
 );

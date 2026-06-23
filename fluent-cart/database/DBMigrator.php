@@ -7,9 +7,6 @@ use FluentCart\App\Models\Product;
 
 require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
 
-use FluentCart\Database\Migrations\AttributeGroupsMigrator;
-use FluentCart\Database\Migrations\AttributeObjectRelationsMigrator;
-use FluentCart\Database\Migrations\AttributeTermsMigrator;
 use FluentCart\Database\Migrations\CartMigrator;
 use FluentCart\Database\Migrations\CustomersMigrator;
 use FluentCart\Database\Migrations\MetaMigrator;
@@ -48,14 +45,15 @@ use FluentCartPro\App\Modules\Licensing\Models\LicenseSite;
 use FluentCart\Database\Migrations\ShippingZonesMigrator;
 use FluentCart\Database\Migrations\ShippingMethodsMigrator;
 use FluentCart\Database\Migrations\RetentionSnapshotsMigrator;
+use FluentCart\Database\Migrations\AttributeGroupsMigrator;
+use FluentCart\Database\Migrations\AttributeObjectRelationsMigrator;
+use FluentCart\Database\Migrations\AttributeTermsMigrator;
+use FluentCart\Database\Seeder\AttributeSeeder;
 
 class DBMigrator
 {
     private static array $migrators = [
         MetaMigrator::class,
-        AttributeGroupsMigrator::class,
-        AttributeObjectRelationsMigrator::class,
-        AttributeTermsMigrator::class,
         CartMigrator::class,
         CouponsMigrator::class,
         CustomerAddressesMigrator::class,
@@ -86,7 +84,13 @@ class DBMigrator
         ShippingMethodsMigrator::class,
         ShippingClassesMigrator::class,
         ScheduledActionsMigrator::class,
-        RetentionSnapshotsMigrator::class
+        RetentionSnapshotsMigrator::class,
+        // Order matters: AttributeTermsMigrator::migrated() INNER JOINs
+        // fct_atts_relations to repoint orphaned term references, so the
+        // relations table must exist before terms runs its post-migration hook.
+        AttributeGroupsMigrator::class,
+        AttributeObjectRelationsMigrator::class,
+        AttributeTermsMigrator::class
     ];
 
     public static function migrateUp($network_wide = false)
@@ -126,6 +130,8 @@ class DBMigrator
         foreach (self::$migrators as $migrator) {
             $migrator::migrate();
         }
+
+        do_action('fluent_cart/after_migrate');
     }
 
     public static function maybeMigrateDBChanges()
@@ -155,9 +161,6 @@ class DBMigrator
             // 2026-05-27
             TaxRatesMigrator::fixPostcodeRangeSeparator();
             OrdersMigrator::addFeeTotalColumn();
-
-            // 2026-05-10
-            AttributeGroupsMigrator::dropLegacyTitleUniqueIndexes();
 
             // let's check the orders table sequence number
             global $wpdb;
@@ -540,6 +543,20 @@ class DBMigrator
                     $table_name
                 ));
             }
+
+            // 2026-06-17
+            // Advanced Variation - Create the attribute
+            // schema (and seed the system-template groups) on in-place plugin
+            // updates too — migrate() only runs on activation, but existing
+            // installs reach this version-gated path without reactivating. Each
+            // migrator is idempotent (dbDelta) and the seeder early-returns when
+            // any group already exists, so re-runs never duplicate data. Order
+            // matters: relations table must exist before AttributeTermsMigrator's
+            // post-migration JOIN cleanup.
+            AttributeGroupsMigrator::migrate();
+            AttributeObjectRelationsMigrator::migrate();
+            AttributeTermsMigrator::migrate();
+            AttributeSeeder::seed();
 
             self::releaseMigrationLock();
         }

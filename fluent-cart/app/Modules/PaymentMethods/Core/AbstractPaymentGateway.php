@@ -439,7 +439,7 @@ abstract class AbstractPaymentGateway implements PaymentGatewayInterface
         $this->beforeRenderPaymentMethod($hasSubscription);
         $this->render($mode);
         $route = $this->getMeta('route');
-        do_action_deprecated('fluent-cart/after_render_payment_method_' . $route, [], '1.3.16', 'fluent_cart/after_render_payment_method_' . $route, 'Use fluent_cart/after_render_payment_method_' . $route . ' instead of fluent-cart/after_render_payment_method_' . $route . '.');
+        do_action_deprecated('fluent-cart/after_render_payment_method_' . $route, [], '1.3.16', 'fluent_cart/after_render_payment_method_' . $route, 'Use fluent_cart/after_render_payment_method_' . $route . ' instead of fluent-cart/after_render_payment_method_' . $route . '. It will be removed in v1.4.3.');
         do_action('fluent_cart/after_render_payment_method_' . $route);
     }
 

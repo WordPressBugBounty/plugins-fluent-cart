@@ -100,6 +100,25 @@ class ProductDetailResource extends BaseResourceApi
 
         $triggeredAction = Arr::get($params, 'action');
 
+        // Advanced Variations is terminal: once a product uses it, variation_type
+        // can never be changed to Simple / Simple Variations — the attribute
+        // config and generated combinations are the product's source of truth and
+        // a downgrade would orphan them. Guarded on ANY update path that writes
+        // variation_type (not just the change_variation_type action) — the full
+        // product save also sends variation_type and would otherwise bypass this —
+        // and for any API client, not just the disabled admin dropdown. Only an
+        // actual downgrade is blocked: re-saving the same advanced type, or an
+        // update that omits variation_type, passes through untouched.
+        if (
+            Arr::has($data, 'variation_type')
+            && $detail->variation_type === Helper::PRODUCT_TYPE_ADVANCE_VARIATION
+            && Arr::get($data, 'variation_type') !== Helper::PRODUCT_TYPE_ADVANCE_VARIATION
+        ) {
+            return static::makeErrorResponse([
+                ['code' => 422, 'message' => __('A product using Advanced Variations cannot be switched back to Simple or Simple Variations.', 'fluent-cart')]
+            ]);
+        }
+
         // Stock & Price Range Handling
         if ($triggeredAction === 'variant_modified') {
             $manageStock = Arr::has($data, 'manage_stock') ? Arr::get($data, 'manage_stock') : $detail->manage_stock;
@@ -118,9 +137,40 @@ class ProductDetailResource extends BaseResourceApi
         if ($triggeredAction === 'change_variation_type' && Arr::get($data, 'variation_type') === 'simple') {
             $variationIds = Arr::get($data, 'variation_ids', []);
             if (!empty($detail->post_id) && count($variationIds) > 0) {
-                ProductAdminHelper::deleteOrphanVariant($detail->post_id, $variationIds);
-                
+                ProductAdminHelper::deleteOrphanVariant(
+                    $detail->post_id,
+                    $variationIds,
+                    __("the product variation type was changed to 'Simple'", 'fluent-cart')
+                );
             }
+        }
+
+        // Switching INTO Advanced Variations (from Simple or Simple Variations)
+        // deletes the existing variants now. They have no place in an
+        // attribute-based product (the merchant builds fresh combinations from
+        // attribute options), and Advanced Variations is terminal so there is
+        // nothing to preserve them for — matching the destructive admin confirm
+        // ("delete all current variations ... cannot be undone") and the editor
+        // clearing them client-side. An empty keep-list deletes every variant for
+        // the product; an unconfigured advanced product is hidden on the
+        // storefront until the merchant generates combinations, so the empty
+        // variant set never leaks. Keyed on the non-advanced -> advanced
+        // transition itself, NOT the change_variation_type action, so the side
+        // effect is identical on every write path that sets variation_type — the
+        // dedicated detail endpoint AND the full pricing save (which calls update()
+        // with action=variant_modified). Otherwise a full save or API client could
+        // land a product on Advanced Variations without the deletion, leaving
+        // inconsistent variant state. Mirrors the downgrade guard above.
+        if (
+            Arr::get($data, 'variation_type') === Helper::PRODUCT_TYPE_ADVANCE_VARIATION
+            && $detail->variation_type !== Helper::PRODUCT_TYPE_ADVANCE_VARIATION
+            && !empty($detail->post_id)
+        ) {
+            ProductAdminHelper::deleteOrphanVariant(
+                $detail->post_id,
+                [],
+                __("the product variation type was changed to 'Advanced Variations'", 'fluent-cart')
+            );
         }
 
         $data['min_price'] = Arr::get($data, 'min_price') ?: ($detail->min_price ?? 0);

@@ -27,7 +27,7 @@ class ConnectConfig
             'connect_config' => [
                 'test_redirect'   => $testConnectRedirect,
                 'live_redirect'   => $liveConnectRedirect,
-                'image_url'       => Vite::getAssetUrl('images/payment-methods/paypal-icon.png'),
+                'image_url'       => Vite::getAssetUrl('images/payment-methods/paypal-icon.svg'),
                 'disconnect_note' => __('Disconnecting your PayPal account will prevent you from offering PayPal services and products on your website. Do you wish to continue?', 'fluent-cart')
             ],
             'test_account'   => $testAccountInfo,

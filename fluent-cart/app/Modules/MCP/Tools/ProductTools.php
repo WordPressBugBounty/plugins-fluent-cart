@@ -38,7 +38,7 @@ class ProductTools
                         'search'           => ['type' => 'string', 'description' => 'Matches product title.'],
                         'status'           => ['type' => 'string', 'enum' => ['publish', 'draft', 'private', 'pending'], 'description' => 'WordPress post status.'],
                         'fulfillment_type' => ['type' => 'string', 'enum' => ['physical', 'digital']],
-                        'variation_type'   => ['type' => 'string', 'enum' => ['simple', 'simple_variations', 'advance_variations']],
+                        'variation_type'   => ['type' => 'string', 'enum' => ['simple', 'simple_variations', 'advanced_variations']],
                         'stock_status'     => ['type' => 'string', 'enum' => ['in-stock', 'out-of-stock']],
                         'category'         => ['type' => 'string', 'description' => 'Category term slug.'],
                         'min_price'        => ['type' => 'number', 'description' => 'Minimum price in store currency.'],

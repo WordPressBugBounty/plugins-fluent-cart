@@ -1933,6 +1933,9 @@ class OrderResource extends BaseResourceApi
      *        ]
      *
      */
+    /**
+     * @deprecated since v1.4. Use OverviewReportController::getOverview() via GET reports/overview instead.
+     */
     public static function reportOverview($params = [])
     {
         return static::getQuery()->when(
@@ -1943,7 +1946,7 @@ class OrderResource extends BaseResourceApi
         )
             ->selectRaw('sum(total_amount) as total_sales')
             ->selectRaw('sum(total_amount - manual_discount_total - shipping_total - tax_total) as net_sales')
-            ->selectRaw('sum(discount_total) as total_discounts')
+            ->selectRaw('sum(manual_discount_total + coupon_discount_total) as total_discounts')
             ->selectRaw('sum(shipping_total) as total_shipping_tax')
             ->selectRaw('avg(total_amount) as average_order_value')
             ->selectRaw('count(*) as customer_order_count')

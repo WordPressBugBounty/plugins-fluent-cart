@@ -153,7 +153,11 @@ class PlanUpgradeService
                 }
 
                 $signupFee = Arr::get($variant->other_info, 'signup_fee', 0);
-                $cost = floatval($variant->item_price + Arr::get($variant->other_info, 'signup_fee', 0) - $prorateCredit - $discountAmount);
+                if (empty($signupFee)) {
+                    $signupFee = 0;
+                }
+                
+                $cost = floatval($variant->item_price + $signupFee - $prorateCredit - $discountAmount);
 
                 if ($cost < 0) {
                     $cost = 0;

@@ -38,6 +38,19 @@ class ProductCardRender
     public function render()
     {
         AssetLoader::loadSingleProductAssets();
+        // Lets extensions (e.g. Pro's advanced-variation selector) enqueue the
+        // CSS/JS a product purchase UI needs. Backs the card surfaces that go
+        // through this renderer's render() — Shop, Product List, the product
+        // shortcode, and the quick-view modal. Surfaces that render card parts
+        // via the individual render* methods instead of render() (Product
+        // Carousel, Related Products) fire this same hook from their own block
+        // render. Guarded with a static flag so a grid of N cards fires it once
+        // per request, not once per card. No payload — assets are uniform.
+        static $assetsHookFired = false;
+        if (!$assetsHookFired) {
+            $assetsHookFired = true;
+            do_action('fluent_cart/advanced_variation/enqueue_assets');
+        }
         $cursor = '';
         if (!empty($this->config['cursor'])) {
             $cursor = 'data-fluent-cart-cursor="' . esc_attr($this->config['cursor']) . '"';

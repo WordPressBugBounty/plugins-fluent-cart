@@ -155,6 +155,11 @@ class ProductVariation extends Model
 
     }
 
+    public function attrRelations(): \FluentCart\Framework\Database\Orm\Relations\HasMany
+    {
+        return $this->hasMany(AttributeRelation::class, 'object_id', 'id');
+    }
+
     public function order_items()
     {
         return $this->hasMany(OrderItem::class, 'object_id', 'id');

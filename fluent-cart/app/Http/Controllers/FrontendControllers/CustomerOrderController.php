@@ -65,7 +65,7 @@ class CustomerOrderController extends BaseFrontendController
         $orders = Order::query()
             ->select(['invoice_no', 'id', 'parent_id', 'total_amount', 'fee_total', 'uuid', 'type', 'status', 'created_at'])
             ->with(['order_items' => function ($query) {
-                $query->select('id', 'order_id', 'post_title', 'title', 'quantity', 'payment_type', 'line_meta');
+                $query->select('id', 'order_id', 'object_id', 'post_title', 'title', 'quantity', 'payment_type', 'line_meta');
             }])
             ->where('customer_id', $customer->id)
             ->where(function ($query) {
@@ -91,12 +91,12 @@ class CustomerOrderController extends BaseFrontendController
                 'renewals_count' => $order->renewals_count,
                 'order_items'    => $order->order_items->map(function ($item) {
                     return [
-                        'id'           => $item->id,
-                        'post_title'   => $item->post_title,
-                        'title'        => $item->title,
-                        'quantity'     => $item->quantity,
-                        'payment_type' => $item->payment_type,
-                        'line_meta'    => [
+                        'id'                => $item->id,
+                        'post_title'        => $item->post_title,
+                        'title'             => $item->title,
+                        'quantity'          => $item->quantity,
+                        'payment_type'      => $item->payment_type,
+                        'line_meta'         => [
                             'bundle_parent_item_id' => Arr::get($item, 'line_meta.bundle_parent_item_id', null),
                         ]
                     ];
@@ -167,6 +167,7 @@ class CustomerOrderController extends BaseFrontendController
         $orderItems = [];
         $variationIds = [];
         $productIds = [];
+
         foreach ($order->order_items as $item) {
             if ($item->payment_type === 'signup_fee') {
                 $orderItems[] = [
@@ -224,8 +225,8 @@ class CustomerOrderController extends BaseFrontendController
                 'variant_image' => Arr::get($item, 'variantImages.meta_value.0.url', ''),
                 'url'           => $item->is_custom 
                                     ? ($item->view_url ?? '') : ($item->product->view_url ?? ''),
-                'line_meta'      => $item->line_meta,
-                'id'             => $item->id,
+                'line_meta'     => $item->line_meta,
+                'id'            => $item->id,
                 'coupon_discount' => (int) $item->coupon_discount,
                 'discount_total'  => (int) $item->discount_total,
                 'line_total'      => (int) $item->line_total,

@@ -285,8 +285,9 @@ class ProductFilter extends BaseFilter
                         'column'      => 'variation_type',
                         'type'        => 'selections',
                         'options'     => [
-                            Helper::PRODUCT_TYPE_SIMPLE           => __('Simple', 'fluent-cart'),
-                            Helper::PRODUCT_TYPE_SIMPLE_VARIATION => __('Simple Variations', 'fluent-cart'),
+                            Helper::PRODUCT_TYPE_SIMPLE            => __('Simple', 'fluent-cart'),
+                            Helper::PRODUCT_TYPE_SIMPLE_VARIATION  => __('Simple Variations', 'fluent-cart'),
+                            Helper::PRODUCT_TYPE_ADVANCE_VARIATION => __('Advanced Variations', 'fluent-cart'),
                         ],
                         'is_multiple' => false,
                         //'is_only_in'  => true

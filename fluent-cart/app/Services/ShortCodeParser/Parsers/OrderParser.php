@@ -10,6 +10,7 @@ use FluentCart\App\Models\Order;
 use FluentCart\App\Models\Subscription;
 use FluentCart\App\Modules\PaymentMethods\Core\GatewayManager;
 use FluentCart\App\Services\DateTime\DateTime;
+use FluentCart\App\Services\Payments\PaymentHelper;
 use FluentCart\App\Services\Payments\PaymentReceipt;
 use FluentCart\App\Services\TemplateService;
 use FluentCart\App\Services\Renderer\Receipt\TaxSummaryHelper;
@@ -359,6 +360,15 @@ class OrderParser extends BaseParser
         $orderLink = TemplateService::getCustomerProfileUrl('order/' . Arr::get($this->order, 'uuid'));
 
         return is_user_logged_in() ? $orderLink : wp_login_url($orderLink);
+    }
+
+    public function getPaymentLink($accessor = null, $code = null)
+    {
+        if (empty($this->order)) {
+            return $code;
+        }
+
+        return PaymentHelper::getCustomPaymentLink(Arr::get($this->order, 'uuid'));
     }
 
     public function getAdminOrderLink($accessor, $code = null)

@@ -87,6 +87,16 @@ class DiscountService
 
         $coupons = Coupon::query()->whereIn('code', $codes)->get();
 
+        /*
+         * Allow addons to resolve codes that do not exist in fct_coupons into in-memory
+         * (virtual) Coupon models — e.g. a wallet / store-credit integration that applies a
+         * discount without persisting a coupon. The filter receives the DB-found coupons,
+         * the requested codes, and the cart; it may append unsaved Coupon instances.
+         */
+        $coupons = apply_filters('fluent_cart/coupon/resolve_coupons', $coupons, $codes, [
+            'cart' => $this->cart,
+        ]);
+
         if ($coupons->isEmpty()) {
             return new \WP_Error('no_valid_coupons', __('No matching coupon found for this code.', 'fluent-cart'), []);
         }

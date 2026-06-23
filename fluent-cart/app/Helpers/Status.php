@@ -175,7 +175,7 @@ class Status
                 //  'archived' => __('Archived', 'fluent-cart'),
                 self::ORDER_CANCELED   => __('Canceled', 'fluent-cart')
             ], []
-        ], '1.3.16', 'fluent_cart/editable_order_statuses', 'Use fluent_cart/editable_order_statuses instead of fluent-cart/editable_order_statuses.');
+        ], '1.3.16', 'fluent_cart/editable_order_statuses', 'Use fluent_cart/editable_order_statuses instead of fluent-cart/editable_order_statuses. It will be removed in v1.4.3.');
 
         return apply_filters('fluent_cart/editable_order_statuses', $statuses, []);
     }
@@ -223,7 +223,7 @@ class Status
                 self::TRANSACTION_FAILED    => __('Failed', 'fluent-cart'),
                 self::TRANSACTION_REFUNDED  => __('Refunded', 'fluent-cart'),
             ], []
-        ], '1.3.16', 'fluent_cart/editable_transaction_statuses', 'Use fluent_cart/editable_transaction_statuses instead of fluent-cart/editable_transaction_statuses.');
+        ], '1.3.16', 'fluent_cart/editable_transaction_statuses', 'Use fluent_cart/editable_transaction_statuses instead of fluent-cart/editable_transaction_statuses. It will be removed in v1.4.3.');
 
         $statuses = apply_filters('fluent_cart/editable_transaction_statuses', $statuses, []);
 
@@ -254,7 +254,7 @@ class Status
                 self::SHIPPING_DELIVERED   => __('Delivered', 'fluent-cart'),
                 self::SHIPPING_UNSHIPPABLE => __('Unshippable', 'fluent-cart'),
             ], []
-        ], '1.3.16', 'fluent_cart/editable_shipping_statuses', 'Use fluent_cart/editable_shipping_statuses instead of fluent-cart/editable_order_statuses.');
+        ], '1.3.16', 'fluent_cart/editable_shipping_statuses', 'Use fluent_cart/editable_shipping_statuses instead of fluent-cart/editable_order_statuses. It will be removed in v1.4.3.');
 
         return apply_filters('fluent_cart/editable_shipping_statuses', $statuses, []);
     }
@@ -372,7 +372,7 @@ class Status
                 self::CUSTOMER_ACTIVE   => __('Active', 'fluent-cart'),
                 self::CUSTOMER_INACTIVE => __('Inactive', 'fluent-cart'),
             ], []
-        ], '1.3.16', 'fluent_cart/editable_customer_statuses', 'Use fluent_cart/editable_customer_statuses instead of fluent-cart/editable_customer_statuses.');
+        ], '1.3.16', 'fluent_cart/editable_customer_statuses', 'Use fluent_cart/editable_customer_statuses instead of fluent-cart/editable_customer_statuses. It will be removed in v1.4.3.');
 
         return apply_filters('fluent_cart/editable_customer_statuses', $statuses, []);
     }

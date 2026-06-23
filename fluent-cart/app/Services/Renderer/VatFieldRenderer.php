@@ -38,7 +38,8 @@ class VatFieldRenderer
         $vatNumber   = Arr::get($checkoutData, 'tax_data.vat_number', '');
         $isValid     = Arr::get($checkoutData, 'tax_data.valid', false);
         $isRequired  = CheckoutFieldsSchema::isVatNumberRequired();
-        $isB2BActive = Arr::get($checkoutData, 'form_data.is_business', 'no') === 'yes';
+        $isB2BActive = Arr::get($checkoutData, 'form_data.is_business', 'no') === 'yes'
+            || CheckoutFieldsSchema::isB2BOnlyMode();
         $isEuCountry = TaxModule::isTaxEnabled()
             && $this->taxApplicableCountry
             && LocalizationManager::getInstance()->isEuTaxCountry($this->taxApplicableCountry);

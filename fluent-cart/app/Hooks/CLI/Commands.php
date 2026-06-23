@@ -456,7 +456,7 @@ class Commands
             'billing_address_1'  => $faker->streetName(),
             'billing_address_2'  => '',
             'billing_city'       => $faker->city(),
-            'billing_state'      => $faker->state,
+            'billing_state'      => $faker->state(),
             'billing_zip'        => $faker->postcode,
             'billing_country'    => $faker->countryCode(),
             'ip_address'         => $faker->ipv4,
@@ -1442,7 +1442,7 @@ class Commands
         $customer->email = $faker->safeEmail;
         $customer->phone = $faker->phoneNumber;
         $customer->city = $faker->city;
-        $customer->state = $faker->state;
+        $customer->state = $faker->state();
         $customer->postcode = $faker->postcode;
         $customer->country = $faker->countryCode;
 

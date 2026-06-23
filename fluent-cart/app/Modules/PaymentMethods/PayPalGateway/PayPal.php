@@ -52,7 +52,7 @@ class PayPal extends AbstractPaymentGateway
             'description' => __('PayPal is the faster, safer way to send and receive money or make an online payment. Get started or create a merchant account to accept payments.', 'fluent-cart'),
             'logo'        => Vite::getAssetUrl("images/payment-methods/paypal-icon.svg"),
             'icon'        => Vite::getAssetUrl("images/payment-methods/paypal-icon.svg"),
-            'brand_color' => '#4f94d4',
+            'brand_color' => '#60cdff',
             'status'      => $this->settings->get('is_active') === 'yes',
             'upcoming'    => false,
             'supported_features' => $this->supportedFeatures

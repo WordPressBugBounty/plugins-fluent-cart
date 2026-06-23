@@ -179,6 +179,8 @@ if (defined('WP_CLI') && WP_CLI) {
 
 \FluentCart\App\Modules\Subscriptions\SubscriptionModule::register();
 \FluentCart\App\Modules\Shipping\ShippingModule::register();
+(new \FluentCart\App\Hooks\Handlers\AttributesHandler())->register();
+(new \FluentCart\App\Hooks\Handlers\AdvancedVariationHandler())->register();
 
 // MCP (Model Context Protocol) — operator AI tools. Ships OFF; enabled in
 // Settings → Features & addon → MCP. See MCPInit::boot() for the bootstrap.

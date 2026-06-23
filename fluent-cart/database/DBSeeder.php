@@ -3,7 +3,6 @@
 namespace FluentCart\Database;
 
 use FluentCart\App\App;
-use FluentCart\Database\Seeder\AttributeSeeder;
 use FluentCart\Database\Seeder\CouponSeeder;
 use FluentCart\Database\Seeder\CustomerAddressSeeder;
 use FluentCart\Database\Seeder\OrderAddressSeeder;

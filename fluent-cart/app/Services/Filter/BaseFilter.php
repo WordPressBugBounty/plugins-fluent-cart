@@ -642,17 +642,18 @@ abstract class BaseFilter
 
 
         $filterName = static::getFilterName();
+        $allFilterOptions = apply_filters("fluent_cart/{$filterName}_filter_options", static::advanceFilterOptions());
         foreach ($filtersGroups as $groupIndex => $group) {
 
 
             $method = $groupIndex == 0 ? 'where' : 'orWhere';
 
-            $this->query->{$method}(function ($query) use ($group, $filterName) {
+            $this->query->{$method}(function ($query) use ($group, $filterName, $allFilterOptions) {
                 foreach ($group as $providerName => $items) {
                     $items = $this->mergeRelationFilters($items);
                     foreach ($items as $item) {
                         if ($item['filter_type'] === 'custom') {
-                            $filters = static::advanceFilterOptions();
+                            $filters = $allFilterOptions;
                             $filter = Arr::get($filters, $providerName . '.children', null);
                             $property = Arr::get($item, 'property');
                             $isCallbackFound = false;
@@ -661,7 +662,7 @@ abstract class BaseFilter
                                     if ($filterItem['value'] === $item['property']) {
                                         $callback = Arr::get($filterItem, 'callback', null);
                                         if ($callback) {
-                                            $callback($this->query, $item);
+                                            $callback($query, $item);
                                             $isCallbackFound = true;
                                         }
                                         break;
@@ -670,9 +671,9 @@ abstract class BaseFilter
                             }
 
                             if ($isCallbackFound) {
-                                return;
+                                continue;
                             }
-                            do_action_ref_array("fluent_cart/{$filterName}_filter/{$providerName}/{$item['property']}", [&$this->query, $item]);
+                            do_action_ref_array("fluent_cart/{$filterName}_filter/{$providerName}/{$item['property']}", [&$query, $item]);
                         } else {
                             $this->handleAdvanceFilter($query, $item);
                         }

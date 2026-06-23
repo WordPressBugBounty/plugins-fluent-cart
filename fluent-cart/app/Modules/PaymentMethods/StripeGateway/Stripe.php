@@ -65,7 +65,7 @@ class Stripe extends AbstractPaymentGateway
             'logo'               => Vite::getAssetUrl('images/payment-methods/card.svg'),
             'icon'               => Vite::getAssetUrl('images/payment-methods/stripe-icon.svg'),
             'status'             => $this->settings->get('is_active') === 'yes',
-            'brand_color'        => '#136196',
+            'brand_color'        => '#635bff',
             'upcoming'           => false,
             'supported_features' => $this->supportedFeatures
         ];
@@ -284,7 +284,7 @@ class Stripe extends AbstractPaymentGateway
 
     public function fields(): array
     {
-        $disabled = apply_filters_deprecated('fluent_cart_form_disable_stripe_connect', [false, []], '1.3.16', 'fluent_cart/form_disable_stripe_connect', 'Use fluent_cart/form_disable_stripe_connect instead of fluent_cart_form_disable_stripe_connect.');
+        $disabled = apply_filters_deprecated('fluent_cart_form_disable_stripe_connect', [false, []], '1.3.16', 'fluent_cart/form_disable_stripe_connect', 'Use fluent_cart/form_disable_stripe_connect instead of fluent_cart_form_disable_stripe_connect. It will be removed in v1.4.3.');
         $providerValue = apply_filters('fluent_cart/form_disable_stripe_connect', $disabled, []) ? 'api_keys' : 'connect';
 
         return array(
@@ -326,8 +326,16 @@ class Stripe extends AbstractPaymentGateway
                 'label'   => __('Checkout Mode', 'fluent-cart'),
                 'type'    => 'radio',
                 'options' => [
-                    'onsite' => __('Embedded checkout (Recommended)', 'fluent-cart'),
-                    'hosted' => __('Stripe Hosted checkout', 'fluent-cart')
+                    'onsite' => [
+                        'label' => __('Embedded checkout (Recommended)', 'fluent-cart'),
+                        'text'  => __('Renders inside your checkout page. Supports all standard card payments with a seamless branded experience.', 'fluent-cart'),
+                        'icon'  => Vite::getAssetUrl('images/bill-line.svg')
+                    ],
+                    'hosted' => [
+                        'label' => __('Stripe Hosted Checkout', 'fluent-cart'),
+                        'text'  => __("Redirects to Stripe's hosted page. Required for Bank Transfers and methods not supported in embedded mode.", 'fluent-cart'),
+                        'icon'  => Vite::getAssetUrl('images/external-link-line.svg')
+                    ]
                 ],
                 'tooltip' => __('Choose between Embedded and Hosted checkout modes. Embedded mode is recommended for most use cases. For Bank transfers, use Hosted mode. (checkout.session.completed webhook event will be triggered only for hosted mode)', 'fluent-cart'),
                 'description' => __("Embedded checkout is recommended for most use cases. For Bank transfers , or if any payment methods are not showing up on embedded checkout, try Hosted checkout. ('checkout.session.completed' webhook event will be triggered only for hosted checkout)", 'fluent-cart')
@@ -468,7 +476,7 @@ class Stripe extends AbstractPaymentGateway
         // Allow filtering the appearance configuration for Stripe Elements
         $appearance = apply_filters_deprecated('fluent_cart_stripe_appearance', [
             ['theme' => 'stripe']
-        ], '1.3.16', 'fluent_cart/stripe_appearance', 'Use fluent_cart/stripe_appearance instead of fluent_cart_stripe_appearance.');
+        ], '1.3.16', 'fluent_cart/stripe_appearance', 'Use fluent_cart/stripe_appearance instead of fluent_cart_stripe_appearance. It will be removed in v1.4.3.');
         $appearance = apply_filters('fluent_cart/stripe_appearance', $appearance);
 
         $storeCurrency = CurrencySettings::get('currency');
