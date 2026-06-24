@@ -430,9 +430,10 @@ class ProductVariationController extends Controller
         }
 
         // SKU uniqueness — only apply to a single variant to avoid duplicates.
-        $sku = Arr::get($raw, 'sku');
-        if ($sku !== null && $sku !== '' && count($variantIds) === 1) {
-            $topLevelDelta['sku'] = sanitize_text_field($sku);
+        // An empty string means "clear the SKU" (stored as NULL; MySQL NULL is unique-safe).
+        // Read from $data (post-validation, post-sanitization) not $raw.
+        if (count($variantIds) === 1 && array_key_exists('sku', $data)) {
+            $topLevelDelta['sku'] = Arr::get($data, 'sku');
         }
 
         $manageStock = Arr::get($raw, 'manage_stock');

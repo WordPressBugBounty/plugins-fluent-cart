@@ -5,6 +5,7 @@ namespace FluentCart\App\Models;
 use FluentCart\Api\Cookie\Cookie;
 use FluentCart\Api\CurrencySettings;
 use FluentCart\Api\Hasher\Hash;
+use FluentCart\App\Helpers\AttributeHelper;
 use FluentCart\App\Helpers\CartHelper;
 use FluentCart\App\Helpers\Helper;
 use FluentCart\App\Models\Concerns\CanSearch;
@@ -134,9 +135,20 @@ class Cart extends Model
 
     public function setCartDataAttribute($settings)
     {
-        $this->attributes['cart_data'] = json_encode(
-            Arr::wrap($settings)
-        );
+        $items = Arr::wrap($settings);
+
+        // variation_display_title is a presentation-only value derived on read
+        // (getCartDataAttribute). Strip it before persisting so mutation paths
+        // that round-trip cart_data never bake stale denormalized text into the
+        // stored JSON.
+        foreach ($items as &$item) {
+            if (is_array($item)) {
+                unset($item['variation_display_title']);
+            }
+        }
+        unset($item);
+
+        $this->attributes['cart_data'] = json_encode($items);
 
         $key = $this->getKey();
         if ($key) {
@@ -158,11 +170,12 @@ class Cart extends Model
         }
 
         $decoded = json_decode($data, true);
-        
+
         if (!$decoded || !is_array($decoded)) {
             $result = [];
         } else {
             $result = Helper::loadBundleChild($decoded, ['*']);
+            $result = static::appendVariationDisplayTitle($result);
         }
 
         if ($key) {
@@ -170,6 +183,37 @@ class Cart extends Model
         }
 
         return $result;
+    }
+
+    /**
+     * Attach a resolved `variation_display_title` to each cart item — the cart-side
+     * mirror of OrderItem's appended accessor. Holds the labeled attribute
+     * combination ("Color: Red | Size: XS") resolved from the item's frozen
+     * other_info['item_attributes'] snapshot, falling back to the variation
+     * title when no attributes resolve.
+     *
+     * @param array $items
+     * @return array
+     */
+    protected static function appendVariationDisplayTitle(array $items): array
+    {
+        return array_map(function ($item) {
+            if (!is_array($item)) {
+                return $item;
+            }
+
+            $itemAttributes = Arr::get($item, 'other_info.item_attributes', []);
+
+            $variationDisplayTitle = (is_array($itemAttributes) && $itemAttributes)
+                ? AttributeHelper::getDisplayAttributesString($itemAttributes, $item, 'cart')
+                : '';
+
+            $item['variation_display_title'] = $variationDisplayTitle !== ''
+                ? $variationDisplayTitle
+                : (string) Arr::get($item, 'title', '');
+
+            return $item;
+        }, $items);
     }
 
     public function setUtmDataAttribute($utmData)

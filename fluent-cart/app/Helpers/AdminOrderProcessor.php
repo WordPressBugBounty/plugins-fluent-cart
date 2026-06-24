@@ -107,6 +107,15 @@ class AdminOrderProcessor
                 $fulfillmentType = 'digital';
             }
 
+            // Snapshot the variant's attribute set so admin-created orders carry
+            // the same pa_* attribute map as storefront orders.
+            if (!isset($args['item_attributes'])) {
+                $args['item_attributes'] = AttributeHelper::getProductItemAttributes(
+                    Arr::get($checkoutItem, 'object_id', 0),
+                    Arr::get($checkoutItem, 'post_id', 0)
+                );
+            }
+
             $item = [
                 'payment_type'     => $paymentType,
                 'post_id'          => Arr::get($checkoutItem, 'post_id'),

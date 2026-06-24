@@ -297,7 +297,7 @@ class ThankYouRender
                         </p>
                         <?php if (!empty($item['title']) && $item['title'] !== $item['post_title']): ?>
                             <p class="fct-thank-you-page-order-items-list-variant-title">
-                                - <?php echo esc_html($item['title']); ?>
+                                - <?php echo esc_html(!empty($item['variation_display_title']) ? $item['variation_display_title'] : $item['title']); ?>
                             </p>
                         <?php endif; ?>
                         <?php if ($item['payment_type'] === 'subscription' && !empty($item['payment_info'])): ?>

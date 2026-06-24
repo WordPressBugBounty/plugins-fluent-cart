@@ -152,7 +152,7 @@ if ($order->payment_status !== 'paid') {
                                                         <?php endif; ?>
                                                     </p>
                                                     <p style="margin: 0; font-size: 14px; color: #758195; font-weight: 400; line-height: 15px;">
-                                                        - <?php echo esc_html($item['title']); ?>
+                                                        - <?php echo esc_html(!empty($item['variation_display_title']) ? $item['variation_display_title'] : $item['title']); ?>
                                                     </p>
                                                     <?php if ($item['payment_type'] === 'subscription' && !empty($item['payment_info'])): ?>
                                                         <p style="font-size:12px;color:rgb(75,85,99);line-height:20px;margin: 3px 0 0 0;">

@@ -182,6 +182,7 @@ class AttributesHandler
                 return [];
             }
 
+            /** @var AttributeGroup $group */
             $group = AttributeGroup::query()->find($groupId);
             if (!$group) {
                 return [];

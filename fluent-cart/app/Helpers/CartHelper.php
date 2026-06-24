@@ -96,6 +96,19 @@ class CartHelper
 
         //  $cartItem['shipping_charge'] = $shippingCharge;
 
+        // Snapshot the variant's attribute set (pa_* + third-party) into
+        // other_info so cart, checkout and the resulting order item all carry a
+        // frozen attribute map that survives later attribute-library renames.
+        $otherInfo = Arr::get($cartItem, 'other_info', []);
+        if (!is_array($otherInfo)) {
+            $otherInfo = [];
+        }
+        $otherInfo['item_attributes'] = AttributeHelper::getProductItemAttributes(
+            $variation->id,
+            $variation->post_id
+        );
+        $cartItem['other_info'] = $otherInfo;
+
         return $cartItem;
     }
 

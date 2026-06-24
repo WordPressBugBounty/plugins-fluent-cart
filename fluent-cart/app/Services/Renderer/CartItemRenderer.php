@@ -2,6 +2,7 @@
 
 namespace FluentCart\App\Services\Renderer;
 
+use FluentCart\App\Helpers\AttributeHelper;
 use FluentCart\App\Helpers\Helper;
 use FluentCart\App\Models\Cart;
 use FluentCart\Framework\Support\Arr;
@@ -107,7 +108,15 @@ class CartItemRenderer
         $href = Arr::get($this->item, 'view_url', '');
 
         $mainTitle = (string) Arr::get($this->item, 'post_title', '');
-        $subtitle = (string) Arr::get($this->item, 'title', '');
+
+        // Prefer the labeled attribute combination ("Color: Red | Size: XS")
+        // when the item carries an attribute snapshot; fall back to the raw
+        // variation title for custom/simple items.
+        $itemAttributes = (array) Arr::get($this->item, 'other_info.item_attributes', []);
+        $attributesText = $itemAttributes
+            ? AttributeHelper::getDisplayAttributesString($itemAttributes, $this->item, 'cart')
+            : '';
+        $subtitle = $attributesText !== '' ? $attributesText : (string) Arr::get($this->item, 'title', '');
 
         $quantity = Arr::get($this->item, 'quantity', 1);
 

@@ -629,6 +629,17 @@ class CheckoutProcessor
                 }
             }
 
+            // Carry the attribute snapshot onto the order item. It normally
+            // arrives via the cart item's other_info; rebuild it here as a
+            // fallback for items that reach checkout without one (instant
+            // checkout, legacy carts).
+            if (!isset($args['item_attributes'])) {
+                $args['item_attributes'] = AttributeHelper::getProductItemAttributes(
+                    Arr::get($cartItem, 'object_id', 0),
+                    Arr::get($cartItem, 'post_id', 0)
+                );
+            }
+
             $item = [
                 'payment_type'     => $paymentType,
                 'post_id'          => Arr::get($cartItem, 'post_id'),

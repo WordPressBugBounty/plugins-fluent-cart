@@ -46,11 +46,13 @@ class SearchBarBlockEditor extends BlockEditor
         $urlMode = Arr::get($shortCodeAttribute, 'url_mode');
         $categoryMode = Arr::get($shortCodeAttribute, 'category_mode');
         $linkWithShopApp = Arr::get($shortCodeAttribute, 'link_with_shop_app');
+        $showThumbnail = Arr::get($shortCodeAttribute, 'show_thumbnail', true);
 
         return SearchBarShortCode::make([
             'url_mode'           => !empty($urlMode) ? $urlMode : 'new-tab',
             'category_mode'      => !empty($categoryMode) ? $categoryMode : '',
             'link_with_shop_app' => !empty($linkWithShopApp) ? $linkWithShopApp : '',
+            'show_thumbnail'     => $showThumbnail,
         ])->renderShortcode($block);
     }
 

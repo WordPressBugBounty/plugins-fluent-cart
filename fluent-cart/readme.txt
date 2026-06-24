@@ -1,10 +1,10 @@
 === FluentCart A New Era of eCommerce - Faster, Lighter, and Simpler ===
 Contributors: wpmanageninja, techjewel
 Tags: ecommerce, cart, checkout, subscriptions, payments
-Requires at least: 6.7
+Requires at least: 7.0
 Tested up to: 7.0
 Requires PHP: 7.4
-Stable tag: 1.5.0
+Stable tag: 1.5.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -313,18 +313,22 @@ This service is provided by PayPal: [Terms of Service](https://www.paypal.com/le
 
 == Changelog ==
 
-= 1.5.0 (Jun 23, 2026) =
+= 1.5.1 (Jun 24, 2026) =
+- Improves Advanced variations UI/UX
+- Improves Inventory managements UI/UX
+- Fixes Schedule plugin audit issues recommended by WP Plugin Team
 
-* Adds Advanced Variations with automatic combination generation, reusable attributes, swatches, smart variation selection, and bulk editing tools.
-* Adds Attribute Manager with reusable option sets, inline term creation, drag-and-drop sorting, and cross-tab synchronization.
-* Adds 8 built-in attribute sets including Color, Size, Material, Storage, Memory, Weight, Style, and Pattern.
-* Adds staged-save workflow with persistent save bar, discard support, and improved editing experience for complex products.
-* Adds guest-accessible payment links via the new {{order.payment_link}} smart code.
-* Adds fluent_cart/product_card/enqueue_assets hook for extending storefront product components.
-* Improves variation management performance, navigation, pricing tables, mobile responsiveness, admin layouts, and internationalization support.
-* Improves inventory integrations with enhanced stock change event handling.
-* Fixes variation editing, bulk update workflows, bundle synchronization, subscription stock switching, product search links, and PDF receipt tax display.
-* Includes ongoing security hardening and stability improvements across FluentCart Core and Pro.
+= 1.5.0 (Jun 23, 2026) =
+- Adds Advanced Variations with automatic combination generation, reusable attributes, swatches, smart variation selection, and bulk editing tools.
+- Adds Attribute Manager with reusable option sets, inline term creation, drag-and-drop sorting, and cross-tab synchronization.
+- Adds 8 built-in attribute sets including Color, Size, Material, Storage, Memory, Weight, Style, and Pattern.
+- Adds staged-save workflow with persistent save bar, discard support, and improved editing experience for complex products.
+- Adds guest-accessible payment links via the new {{order.payment_link}} smart code.
+- Adds fluent_cart/product_card/enqueue_assets hook for extending storefront product components.
+- Improves variation management performance, navigation, pricing tables, mobile responsiveness, admin layouts, and internationalization support.
+- Improves inventory integrations with enhanced stock change event handling.
+- Fixes variation editing, bulk update workflows, bundle synchronization, subscription stock switching, product search links, and PDF receipt tax display.
+- Includes ongoing security hardening and stability improvements across FluentCart Core and Pro.
 
 = 1.4.2 (Jun 18, 2026) =
 Adds EU/German withdrawal (Widerrufsbutton) compliance with public withdrawal page and two-step confirmation flow

@@ -287,6 +287,7 @@ class ShopController extends Controller
         $searchValue = $request->getSafe('post_title', 'sanitize_text_field');
         $urlMode = $request->getSafe('url_mode', 'sanitize_text_field');
         $termId = $request->getSafe('termId', 'intval');
+        $showThumbnail = filter_var($request->get('show_thumbnail', true), FILTER_VALIDATE_BOOLEAN);
 
         $defaultFilters =
             [
@@ -296,8 +297,8 @@ class ShopController extends Controller
         $status = ["post_status" => ["column" => "post_status", "operator" => "in", "value" => ["publish"]]];
 
         $params = [
-            "select"          => ['guid', 'post_title'],
-            "with"            => ['wpTerms'],
+            "select"          => ['ID', 'guid', 'post_title'],
+            "with"            => ['wpTerms', 'detail.galleryImage'],
             "selected_status" => true,
             "status"          => $status,
             "default_filters" => $defaultFilters,
@@ -314,7 +315,8 @@ class ShopController extends Controller
         ob_start();
 
         (new SearchBarRenderer([
-            'url_mode' => $urlMode
+            'url_mode'       => $urlMode,
+            'show_thumbnail' => $showThumbnail,
         ]))->renderResultItems($products);
 
         $view = ob_get_clean();

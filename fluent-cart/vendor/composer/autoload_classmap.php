@@ -97,6 +97,7 @@ return array(
     'FluentCart\\App\\Helpers\\AddressHelper' => $baseDir . '/app/Helpers/AddressHelper.php',
     'FluentCart\\App\\Helpers\\AdminHelper' => $baseDir . '/app/Helpers/AdminHelper.php',
     'FluentCart\\App\\Helpers\\AdminOrderProcessor' => $baseDir . '/app/Helpers/AdminOrderProcessor.php',
+    'FluentCart\\App\\Helpers\\AttributeHelper' => $baseDir . '/app/Helpers/AttributeHelper.php',
     'FluentCart\\App\\Helpers\\CartCheckoutHelper' => $baseDir . '/app/Helpers/CartCheckoutHelper.php',
     'FluentCart\\App\\Helpers\\CartHelper' => $baseDir . '/app/Helpers/CartHelper.php',
     'FluentCart\\App\\Helpers\\CheckoutProcessor' => $baseDir . '/app/Helpers/CheckoutProcessor.php',

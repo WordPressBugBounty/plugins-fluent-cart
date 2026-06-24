@@ -8,6 +8,7 @@ use FluentCart\App\Models\Concerns\CanSearch;
 use FluentCart\App\Models\Concerns\CanUpdateBatch;
 use FluentCart\App\Models\WpModels\PostMeta;
 use FluentCart\Framework\Database\Orm\Relations\HasOne;
+use FluentCart\Framework\Support\Arr;
 
 /**
  *  OrderItem Model - DB Model for Order Items
@@ -55,17 +56,17 @@ class OrderItem extends Model
         'created_at',
 //        'shipping_charge'
     ];
-    protected $appends = ['payment_info', 'setup_info', 'is_custom'];
+    protected $appends = ['payment_info', 'setup_info', 'is_custom', 'variation_display_title'];
 
     protected $casts = [
-        'unit_price'         => 'double',
-        'cost'               => 'double',
-        'subtotal'           => 'double',
-        'tax_amount'         => 'double',
-        'shipping_charge'    => 'double',
-        'discount_total'     => 'double',
-        'line_total'         => 'double',
-        'refund_total'       => 'double',
+        'unit_price'      => 'double',
+        'cost'            => 'double',
+        'subtotal'        => 'double',
+        'tax_amount'      => 'double',
+        'shipping_charge' => 'double',
+        'discount_total'  => 'double',
+        'line_total'      => 'double',
+        'refund_total'    => 'double',
     ];
 
     protected static function booted()
@@ -85,7 +86,7 @@ class OrderItem extends Model
 
     public function getCouponDiscountAttribute()
     {
-        return (int) ($this->line_meta['coupon_discount'] ?? 0);
+        return (int)($this->line_meta['coupon_discount'] ?? 0);
     }
 
     public function setOtherInfoAttribute($value)
@@ -239,11 +240,34 @@ class OrderItem extends Model
 
     public function getDisplayTitle()
     {
-        if($this->post_title == $this->title) {
+        if ($this->post_title == $this->title) {
             return $this->title;
         }
 
         return $this->post_title . ' - ' . $this->title;
 
+    }
+
+    /**
+     * Labeled attribute combination resolved from the frozen
+     * other_info['item_attributes'] snapshot, e.g. "Color: Red | Size: XS".
+     * Falls back to the stored variation title when no attribute snapshot
+     * resolves (custom/simple items, or attrs whose groups were removed).
+     *
+     * @return string
+     */
+    public function getVariationDisplayTitleAttribute()
+    {
+        $itemAttributes = Arr::get($this->other_info, 'item_attributes', []);
+        $attributesTitle = \FluentCart\App\Helpers\AttributeHelper::getDisplayAttributesString($itemAttributes, $this, 'order_item');
+
+        if (!$attributesTitle) {
+            if ($this->post_title === $this->title) {
+                return '';
+            }
+            return (string)$this->title;
+        }
+
+        return $attributesTitle;
     }
 }

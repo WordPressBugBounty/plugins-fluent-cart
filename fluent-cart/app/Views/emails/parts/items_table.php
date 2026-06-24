@@ -60,7 +60,7 @@ use FluentCart\App\Services\Renderer\Receipt\TaxSummaryHelper;
                     <?php endif; ?>
 
                 <p style="margin: 0; font-size: 14px; color: #758195; font-weight: 400; line-height: 15px;">
-                    - <?php echo esc_html($item['title']); ?>
+                    - <?php echo esc_html(!empty($item['variation_display_title']) ? $item['variation_display_title'] : $item['title']); ?>
                 </p>
 
                 <?php if ($item['payment_type'] === 'subscription' && !empty($item['payment_info'])): ?>

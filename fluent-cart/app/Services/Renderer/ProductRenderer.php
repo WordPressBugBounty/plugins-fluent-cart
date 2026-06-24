@@ -746,14 +746,6 @@ class ProductRenderer
 
     public function renderSku($wrapper_attributes = '', $showLabel = true, $label = '', $variant = null)
     {
-        if (!$variant) {
-            $variant = $this->defaultVariant ?: $this->product->variants->first();
-        }
-
-        if (!$variant || empty($variant->sku)) {
-            return;
-        }
-
         if (!$label) {
             $label = __('SKU:', 'fluent-cart');
         }
@@ -763,7 +755,11 @@ class ProductRenderer
             $labelHtml = sprintf('<span class="fct-product-sku__label">%s</span> ', esc_html($label));
         }
 
-        echo sprintf(
+        if ($variant) {
+            if (empty($variant->sku)) {
+                return;
+            }
+            echo sprintf(
                 '<div class="fct-product-sku">
                     <div %s>
                         %s<span class="fct-product-sku__value" data-fluent-cart-product-sku>%s</span>
@@ -772,7 +768,28 @@ class ProductRenderer
                 $wrapper_attributes, // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
                 $labelHtml,
                 esc_html($variant->sku)
-        );
+            );
+            return;
+        }
+
+        foreach ($this->product->variants as $v) {
+            if (empty($v->sku)) {
+                continue;
+            }
+            $isHidden = ($this->defaultVariant && $this->defaultVariant->id != $v->id) ? ' is-hidden' : '';
+            echo sprintf(
+                '<div class="fct-product-sku fluent-cart-product-variation-content%s" data-variation-id="%s">
+                    <div %s>
+                        %s<span class="fct-product-sku__value" data-fluent-cart-product-sku>%s</span>
+                    </div>
+                </div>',
+                $isHidden,
+                esc_attr($v->id),
+                $wrapper_attributes, // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+                $labelHtml,
+                esc_html($v->sku)
+            );
+        }
     }
 
     public function renderPackageDescription($wrapper_attributes = '', $showName = true, $showDimensions = true, $showProductWeight = true, $showTotalWeight = true, $variant = null)

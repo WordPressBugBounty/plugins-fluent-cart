@@ -48,6 +48,7 @@ class SubscriptionsMigrator extends Migrator
                 `updated_at` DATETIME NULL,
 
                  INDEX `{$indexPrefix}_order_subscription_idx` (`parent_order_id` ASC),
+                 INDEX `{$indexPrefix}vendor_subscription_id_idx` (`vendor_subscription_id` ASC),
                  INDEX `{$indexPrefix}_expiry_scan_idx` (`status`, `next_billing_date`, `id`)";
     }
 
@@ -56,7 +57,16 @@ class SubscriptionsMigrator extends Migrator
         static::addUuidColumn();
         static::renameInitialAmountToSignupFee();
         static::backfillEmptyUuids();
+        static::addVendorSubscriptionIdIndex();
         static::addExpiryScanIndex();
+    }
+
+    public static function addVendorSubscriptionIdIndex()
+    {
+        static::addIndexIfNotExists(
+            static::getDbPrefix() . 'fct_index_vendor_subscription_id_idx',
+            'vendor_subscription_id'
+        );
     }
 
     public static function addExpiryScanIndex()

@@ -72,7 +72,7 @@ class CustomerProfileController extends BaseFrontendController
 
         $orders = Order::query()
             ->with(['order_items' => function ($query) {
-                $query->select('id', 'order_id', 'object_id', 'post_title', 'title', 'quantity', 'payment_type', 'line_meta');
+                $query->select('id', 'order_id', 'object_id', 'post_title', 'title', 'quantity', 'payment_type', 'line_meta', 'other_info');
             }])
             ->where('customer_id', $customer->id)
             ->where(function ($query) {
@@ -101,6 +101,7 @@ class CustomerProfileController extends BaseFrontendController
                         'id'                 => $item->id,
                         'post_title'         => $item->post_title,
                         'title'              => $item->title,
+                        'variation_display_title'    => $item->variation_display_title,
                         'quantity'           => $item->quantity,
                         'payment_type'       => $item->payment_type,
                         'line_meta'          => [

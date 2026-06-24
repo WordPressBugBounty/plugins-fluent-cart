@@ -284,6 +284,7 @@
       "resources/admin/Bits/Components/Icons/FullScreen.vue",
       "resources/admin/Bits/Components/Icons/GalleryAdd.vue",
       "resources/admin/Bits/Components/Icons/GearIcon.vue",
+      "resources/admin/Bits/Components/Icons/Generate.vue",
       "resources/admin/Bits/Components/Icons/Gift.vue",
       "resources/admin/Bits/Components/Icons/Globe.vue",
       "resources/admin/Bits/Components/Icons/GradientCheckCircle.vue",
@@ -2032,6 +2033,16 @@
     "file": "chunks/GearIcon.js",
     "name": "GearIcon",
     "src": "resources/admin/Bits/Components/Icons/GearIcon.vue",
+    "isDynamicEntry": true,
+    "imports": [
+      "_vue.esm-bundler.js",
+      "__plugin-vue_export-helper.js"
+    ]
+  },
+  "resources/admin/Bits/Components/Icons/Generate.vue": {
+    "file": "chunks/Generate.js",
+    "name": "Generate",
+    "src": "resources/admin/Bits/Components/Icons/Generate.vue",
     "isDynamicEntry": true,
     "imports": [
       "_vue.esm-bundler.js",

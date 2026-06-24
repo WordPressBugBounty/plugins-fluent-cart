@@ -6,6 +6,7 @@ use FluentCart\Api\StoreSettings;
 use FluentCart\Framework\Support\Arr;
 use FluentCart\App\Vite;
 use FluentCart\App\Helpers\Helper;
+use FluentCart\App\Helpers\AttributeHelper;
 use FluentCart\App\Helpers\CartCheckoutHelper;
 use FluentCart\App\Models\Product;
 
@@ -199,6 +200,15 @@ class CartRenderer
         $postTitle = Arr::get($this->currentCartItem, 'post_title', '');
         $variationTitle = Arr::get($this->currentCartItem, 'title', '');
         $variationType = Arr::get($this->currentCartItem, 'variation_type', 'simple');
+
+        // Prefer the labeled attribute combination when the item has a snapshot.
+        $itemAttributes = (array) Arr::get($this->currentCartItem, 'other_info.item_attributes', []);
+        if ($itemAttributes) {
+            $attributesText = AttributeHelper::getDisplayAttributesString($itemAttributes, $this->currentCartItem, 'cart');
+            if ($attributesText !== '') {
+                $variationTitle = $attributesText;
+            }
+        }
 
         $aria_label = sprintf(
         /* translators: 1: Post or product title */

@@ -105,7 +105,7 @@ class PayPal extends AbstractPaymentGateway
         $payPalReferenceId = sanitize_text_field(App::request()->get('payId'));
         $transactionHash = sanitize_text_field(App::request()->get('ref_id'));
 
-        $payment_intent = API::verifyPayment($payPalReferenceId);
+        $payment_intent = $this->verifyPayPalPayment($payPalReferenceId);
 
         if (is_wp_error($payment_intent)) {
             wp_send_json([
@@ -136,6 +136,23 @@ class PayPal extends AbstractPaymentGateway
                 'status'  => 'failed',
                 'message' => __('Transaction not found!', 'fluent-cart')
             ], 423);
+        }
+
+        // Bind the PayPal payment to THIS transaction. FluentCart sets the
+        // transaction uuid as the PayPal order reference_id/custom_id at creation,
+        // so a legitimate confirmation always references it. Requiring the match
+        // prevents a real payment for one order from being applied to an unrelated
+        // order via a forged ref_id in the fallback above.
+        $referencedHashes = [];
+        foreach (Arr::get($payment_intent, 'purchase_units', []) as $unit) {
+            $referencedHashes[] = Arr::get($unit, 'reference_id', '');
+            $referencedHashes[] = Arr::get($unit, 'custom_id', '');
+        }
+        if (!in_array($transaction->uuid, array_filter($referencedHashes), true)) {
+            wp_send_json([
+                'status'  => 'failed',
+                'message' => __('Payment does not match this transaction!', 'fluent-cart')
+            ], 422);
         }
 
         $isPaid = Arr::get($payment_intent, 'status') === 'COMPLETED' || Arr::get($payment_intent, 'status') === 'APPROVED';
@@ -200,18 +217,51 @@ class PayPal extends AbstractPaymentGateway
 
         $chargeId = Arr::get($payment_intent, 'purchase_units.0.payments.captures.0.id', '');
 
-        // All Verified! Let's update the transaction and order
-        (new Processor())->confirmPaymentSuccessByCharge($transaction, [
-            'vendor_charge_id'    => $chargeId,
-            'status'              => Status::TRANSACTION_SUCCEEDED,
-            'total'               => $paidAmount,
-            'payment_method_type' => 'PayPal',
-            'meta'                => [
-                'payer' => Arr::get($payment_intent, 'payer', [])
-            ],
-            'payment_source'      => Arr::get($payment_intent, 'payment_source', []),
-        ]);
+        $payPalCaptureLockAcquired = false;
+        $duplicateCapture = false;
 
+        if ($chargeId) {
+            $payPalCaptureLockAcquired = $this->acquirePayPalCaptureLock($chargeId);
+            if (!$payPalCaptureLockAcquired) {
+                wp_send_json([
+                    'status'  => 'failed',
+                    'message' => __('Payment confirmation is already processing. Please try again.', 'fluent-cart')
+                ], 409);
+            }
+        }
+
+        // Prevent a single PayPal capture from being applied to more than one
+        // transaction (replay/duplicate-capture protection).
+        try {
+            if ($chargeId) {
+                $duplicateCapture = $this->hasExistingPayPalCapture($transaction, $chargeId);
+            }
+
+            if (!$duplicateCapture) {
+                // All Verified! Let's update the transaction and order
+                (new Processor())->confirmPaymentSuccessByCharge($transaction, [
+                    'vendor_charge_id'    => $chargeId,
+                    'status'              => Status::TRANSACTION_SUCCEEDED,
+                    'total'               => $paidAmount,
+                    'payment_method_type' => 'PayPal',
+                    'meta'                => [
+                        'payer' => Arr::get($payment_intent, 'payer', [])
+                    ],
+                    'payment_source'      => Arr::get($payment_intent, 'payment_source', []),
+                ]);
+            }
+        } finally {
+            if ($payPalCaptureLockAcquired) {
+                $this->releasePayPalCaptureLock($chargeId);
+            }
+        }
+
+        if ($duplicateCapture) {
+            wp_send_json([
+                'status'  => 'failed',
+                'message' => __('This PayPal payment has already been processed!', 'fluent-cart')
+            ], 422);
+        }
 
         wp_send_json([
             'status'       => 'success',
@@ -234,7 +284,7 @@ class PayPal extends AbstractPaymentGateway
 
         $subscriptionId = sanitize_text_field(App::request()->get('subscription_id'));
 
-        $paypalSubscription = API::getResource('billing/subscriptions/' . $subscriptionId);
+        $paypalSubscription = $this->getPayPalSubscription($subscriptionId);
 
         if (is_wp_error($paypalSubscription)) {
             wp_send_json([
@@ -262,9 +312,42 @@ class PayPal extends AbstractPaymentGateway
             ], 404);
         }
 
-        // Verify the PayPal subscription's plan matches the expected plan
         $localSubscription = Subscription::query()->where('id', $transaction->subscription_id)->first();
 
+        if (!$localSubscription) {
+            wp_send_json([
+                'status'  => 'failed',
+                'message' => __('Subscription not found!', 'fluent-cart')
+            ], 404);
+        }
+
+        // Bind the PayPal subscription to THIS local subscription. FluentCart sets
+        // the local subscription uuid as the PayPal subscription custom_id at
+        // creation (the same field the IPN webhook resolves by), so a forged ref_id
+        // cannot point an unrelated active PayPal subscription at another customer's
+        // transaction.
+        $paypalCustomId = Arr::get($paypalSubscription, 'custom_id', '');
+        if ($paypalCustomId !== $localSubscription->uuid) {
+            wp_send_json([
+                'status'  => 'failed',
+                'message' => __('PayPal subscription does not match this transaction!', 'fluent-cart')
+            ], 422);
+        }
+
+        // Prevent the same PayPal subscription from being bound to more than one
+        // local subscription (reuse protection).
+        $alreadyUsed = Subscription::query()
+            ->where('vendor_subscription_id', $subscriptionId)
+            ->where('id', '!=', $localSubscription->id)
+            ->first();
+        if ($alreadyUsed) {
+            wp_send_json([
+                'status'  => 'failed',
+                'message' => __('This PayPal subscription has already been used!', 'fluent-cart')
+            ], 422);
+        }
+
+        // Verify the PayPal subscription's plan matches the expected plan
         if ($localSubscription && $localSubscription->vendor_plan_id) {
             $paypalPlanId = Arr::get($paypalSubscription, 'plan_id', '');
             if ($paypalPlanId && $paypalPlanId !== $localSubscription->vendor_plan_id) {
@@ -302,6 +385,52 @@ class PayPal extends AbstractPaymentGateway
                 'uuid' => $transaction->order->uuid
             ],
         ], 200);
+    }
+
+    protected function getPayPalSubscription($subscriptionId)
+    {
+        return API::getResource('billing/subscriptions/' . $subscriptionId);
+    }
+
+    protected function verifyPayPalPayment($payPalReferenceId)
+    {
+        return API::verifyPayment($payPalReferenceId);
+    }
+
+    protected function hasExistingPayPalCapture(OrderTransaction $transaction, $chargeId)
+    {
+        return (bool) OrderTransaction::query()
+            ->where('vendor_charge_id', $chargeId)
+            ->where('id', '!=', $transaction->id)
+            ->first();
+    }
+
+    protected function acquirePayPalCaptureLock($chargeId)
+    {
+        global $wpdb;
+
+        $result = $wpdb->get_var($wpdb->prepare(
+            'SELECT GET_LOCK(%s, %d)',
+            $this->getPayPalCaptureLockName($chargeId),
+            10
+        ));
+
+        return (string) $result === '1';
+    }
+
+    protected function releasePayPalCaptureLock($chargeId)
+    {
+        global $wpdb;
+
+        $wpdb->get_var($wpdb->prepare(
+            'SELECT RELEASE_LOCK(%s)',
+            $this->getPayPalCaptureLockName($chargeId)
+        ));
+    }
+
+    protected function getPayPalCaptureLockName($chargeId)
+    {
+        return 'fluent_cart_paypal_capture_' . md5($chargeId);
     }
 
     public function getClientId($value, $args)
