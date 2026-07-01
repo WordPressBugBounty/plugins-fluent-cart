@@ -40,6 +40,7 @@ class Cod extends AbstractPaymentGateway
             'slug'        => 'offline_payment',
             'description' => esc_html__('Pay with cash upon delivery', 'fluent-cart'),
             'logo'        => Vite::getAssetUrl("images/payment-methods/offline-payment.svg"),
+            'logo_light'  => Vite::getAssetUrl("images/payment-methods/offline-payment-light.svg"),
             'icon'        => Vite::getAssetUrl("images/payment-methods/cod-icon.svg"),
             'brand_color' => '#136196',
             'upcoming'    => false,

@@ -246,6 +246,8 @@ class EditorShortCodeHelper
                 '{{order.shipping_total_formatted}}'         => __('Order Shipping Total (Formatted)', 'fluent-cart'),
                 '{{order.tax_total}}'                        => __('Order Tax Total', 'fluent-cart'),
                 '{{order.tax_total_formatted}}'              => __('Order Tax Total (Formatted)', 'fluent-cart'),
+                '{{order.tax_breakdown}}'                    => __('Order Tax Breakdown', 'fluent-cart'),
+                '{{order.fee_lines}}'                        => __('Order Fee Lines', 'fluent-cart'),
                 '{{order.total_amount}}'                     => __('Order Total Amount', 'fluent-cart'),
                 '{{order.total_amount_formatted}}'           => __('Order Total Amount (Formatted)', 'fluent-cart'),
                 '{{order.total_paid}}'                       => __('Order Total Paid', 'fluent-cart'),

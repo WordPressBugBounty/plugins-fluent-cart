@@ -1115,7 +1115,20 @@ class ProductRenderer
 
     public function shouldRenderPriceInPriceSection(): bool
     {
-        return !($this->viewType === 'text' && $this->columnType === 'one');
+        // simple_variations keeps the legacy inline price flow for the
+        // one-column layouts that render the variant title (text-only and
+        // image+text), where the price sits on each variant row.
+        // Every other variation type always renders the price in the dedicated
+        // below-block so the data-fluent-cart-product-item-price element keeps
+        // a consistent position across every view/column combination.
+        if ($this->product->detail->variation_type === Helper::PRODUCT_TYPE_SIMPLE_VARIATION) {
+            $isInlineRowLayout = in_array($this->viewType, ['text', 'both'], true)
+                && $this->columnType === 'one';
+
+            return !$isInlineRowLayout;
+        }
+
+        return true;
     }
 
     public function applyVariationPriceFilter($variant, $paymentType = 'onetime')
@@ -1687,7 +1700,7 @@ class ProductRenderer
                 <?php echo esc_html__('No Product Found!', 'fluent-cart'); ?>
             </p>
 
-            <p class="has-text-align-center">
+            <p class="has-text-align-center m-0">
                 <?php echo esc_html__('You can try clearing any filters.', 'fluent-cart'); ?>
             </p>
         </div>
@@ -1789,19 +1802,17 @@ class ProductRenderer
                     $this->renderVariantImage($variant);
                 }
                 ?>
-                <?php
-                if ($this->viewType === 'both' || $this->viewType === 'text') {
-                    echo '<div class="fct-product-variant-title" aria-label="' . esc_attr(__('Variant title', 'fluent-cart')) . '">' . esc_html($variant->variation_title) . '</div>';
-                }
-                ?>
+                <?php if ($this->viewType === 'both' || $this->viewType === 'text'): ?>
+                    <div class="fct-product-variant-text">
+                        <div class="fct-product-variant-title" aria-label="<?php echo esc_attr(__('Variant title', 'fluent-cart')); ?>"><?php echo esc_html($variant->variation_title); ?></div>
+                        <?php if (!$this->shouldRenderPriceInPriceSection() && $paymentType === 'subscription'): ?>
+                            <?php $this->renderSubscriptionInfo($variant); ?>
+                        <?php endif; ?>
+                    </div>
+                <?php endif; ?>
             </div>
 
-            <?php if ($this->viewType === 'text' && $paymentType === 'subscription' && $this->columnType === 'one'): ?>
-
-                <?php $this->renderSubscriptionInfo($variant); ?>
-            <?php endif; ?>
-
-            <?php if ($this->viewType === 'text' && $this->columnType === 'one'): ?>
+            <?php if (!$this->shouldRenderPriceInPriceSection()): ?>
                 <div class="fct-product-variant-price">
                     <?php if ($comparePrice): ?>
                         <div class="fct-product-variant-compare-price">

@@ -6,6 +6,7 @@ use FluentCart\Api\CurrencySettings;
 use FluentCart\Api\StoreSettings;
 use FluentCart\App\App;
 use FluentCart\App\Events\Subscription\SubscriptionCanceled;
+use FluentCart\App\Helpers\AttributeHelper;
 use FluentCart\App\Helpers\Helper;
 use FluentCart\App\Helpers\Status;
 use FluentCart\App\Models\Concerns\CanUpdateBatch;
@@ -37,7 +38,7 @@ class Subscription extends Model
 
     protected $primaryKey = 'id';
 
-    protected $appends = ['url', 'payment_info', 'billingInfo', 'overridden_status', 'currency', 'reactivate_url'];
+    protected $appends = ['url', 'payment_info', 'billingInfo', 'overridden_status', 'currency', 'reactivate_url', 'display_item_name'];
 
     protected $guarded = ['id'];
 
@@ -175,6 +176,42 @@ class Subscription extends Model
         }
 
         $this->attributes['config'] = $value;
+    }
+
+    /**
+     * Customer-facing display name. When the config['item_attributes'] snapshot
+     * resolves it returns the product name with the labeled combination
+     * ("Cake - Flavor: Vanilla | Weight: 500 g"); otherwise the raw item_name
+     * (simple / pre-snapshot subscriptions).
+     *
+     * Presentation-only — it does NOT override the item_name column, so internal
+     * and payment-gateway reads of $subscription->item_name keep the raw stored
+     * value. Use this only at customer-facing display sites.
+     *
+     * The model is passed to the resolver so attribute-display filters (e.g. for
+     * simple-variation / third-party attributes) get the item context they need.
+     *
+     * @return string
+     */
+    public function getDisplayItemNameAttribute()
+    {
+        $itemAttributes = Arr::get($this->config, 'item_attributes', []);
+
+        if (!$itemAttributes) {
+            return $this->item_name;
+        }
+
+        $attributeDisplayTitleString = AttributeHelper::getDisplayAttributesString($itemAttributes, $this, 'subscription');
+
+        if ($attributeDisplayTitleString === '') {
+            return $this->item_name;
+        }
+
+        // Standalone label has no separate product line, so prefix the product
+        // name: "<product> - <attributes>".
+        $postTitle = $this->product ? $this->product->post_title : '';
+
+        return $postTitle !== '' ? $postTitle . ' - ' . $attributeDisplayTitleString : $attributeDisplayTitleString;
     }
 
     public function getUrlAttribute($value)

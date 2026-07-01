@@ -929,10 +929,13 @@ class ReceiptRenderer
         }
         ?>
         <tr>
-            <td colspan="2" style="padding: 0 8px;">
+            <td colspan="2" style="padding: 6px 8px;">
+                <table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #e2e8f0; border-radius:6px; border-collapse:separate; background:#ffffff; -webkit-print-color-adjust:exact; print-color-adjust:exact;">
+                <tr>
+                <td style="padding:6px 8px 6px 0;">
                 <table width="100%" cellpadding="0" cellspacing="0" style="border:none;border-collapse:collapse;">
                     <tr>
-                        <td colspan="2" style="padding:6px 0 3px 0; font-size:10px; font-weight:600;
+                        <td colspan="2" style="padding:0 0 3px 0; font-size:10px; font-weight:600;
                                                text-transform:uppercase; letter-spacing:0.06em; color:#64748b;">
                             <?php echo esc_html__('TAX SUMMARY', 'fluent-cart'); ?>
                         </td>
@@ -965,92 +968,184 @@ class ReceiptRenderer
                         </tr>
                     <?php else: ?>
                         <?php
-                            $rcFeeRows  = Arr::get($summary, 'feeTaxLineRows', []);
-                            $rowCount   = (int) ($summary['inclusiveTax'] > 0) + (int) ($summary['exclusiveTax'] > 0) + count($rcFeeRows) + (int) ($summary['shippingTax'] > 0);
-                            $shouldShowBreakdown = $rowCount >= 2 || ($rowCount === 1 && !($summary['payableTax'] > 0 || $summary['inclusiveTax'] > 0 || (int) Arr::get($summary, 'inclusiveFeeTax', 0) > 0));
+                            $foldedRateLines  = Arr::get($summary, 'foldedRateLines', []);
+                            $includedInPrices = (int) Arr::get($summary, 'includedInPrices', 0);
+                            $rcFeeRows        = Arr::get($summary, 'feeTaxLineRows', []);
+                            $taxRateLines     = Arr::get($summary, 'taxRateLines', []);
+                            $productTaxRowCount = !empty($taxRateLines)
+                                ? count($taxRateLines)
+                                : (int) ($summary['inclusiveTax'] > 0) + (int) ($summary['exclusiveTax'] > 0);
+                            $rowCount   = $productTaxRowCount + count($rcFeeRows) + (int) ($summary['shippingTax'] > 0);
+                            $shippingTaxLines = Arr::get($summary, 'shippingTaxLines', []);
+                            $shouldShowBreakdown = !empty($taxRateLines)
+                                || !empty($shippingTaxLines)
+                                || $rowCount >= 2
+                                || ($rowCount === 1 && !($summary['payableTax'] > 0 || $summary['inclusiveTax'] > 0 || (int) Arr::get($summary, 'inclusiveFeeTax', 0) > 0));
                         ?>
-                        <?php if ($summary['inclusiveTax'] > 0 && $shouldShowBreakdown): ?>
+                        <?php if (!empty($foldedRateLines)): ?>
                             <tr>
-                                <td style="padding:3px 0 3px 8px; font-size:11px; color:#94a3b8;">
-                                    <?php echo esc_html__('Included in item prices', 'fluent-cart'); ?>
-                                </td>
-                                <td style="padding:3px 0 3px; font-size:11px; text-align:right; color:#94a3b8;">
-                                    <?php echo esc_html(Helper::toDecimal($summary['inclusiveTax'])); ?>
+                                <td colspan="2" style="padding:5px 0 2px 8px; font-size:10px; font-weight:600; text-transform:uppercase; letter-spacing:0.06em; color:#64748b;">
+                                    <?php echo esc_html__('Tax breakdown by rate', 'fluent-cart'); ?>
                                 </td>
                             </tr>
-                        <?php endif; ?>
-                        <?php if ($summary['exclusiveTax'] > 0 && $shouldShowBreakdown): ?>
                             <tr>
-                                <td style="padding:3px 0 3px 8px; font-size:11px; color:#334155; text-align: left;">
-                                    <?php echo esc_html__('Added on products', 'fluent-cart'); ?>
-                                </td>
-                                <td style="padding:3px 0 3px; font-size:11px; text-align:right; color:#334155;">
-                                    <?php echo esc_html(Helper::toDecimal($summary['exclusiveTax'])); ?>
+                                <td colspan="2" style="padding:2px 0 0 0;">
+                                    <table width="100%" cellpadding="0" cellspacing="0" style="border:none;border-collapse:collapse;table-layout:fixed;">
+                                        <tr>
+                                            <td style="width:58%;padding:3px 8px 3px 8px; font-size:10px; font-weight:600; text-transform:uppercase; letter-spacing:0.06em; color:#64748b; vertical-align:top;">
+                                                <?php echo esc_html__('Rate', 'fluent-cart'); ?>
+                                            </td>
+                                            <td style="width:24%;padding:3px 8px 3px 0; font-size:10px; font-weight:600; text-transform:uppercase; letter-spacing:0.06em; color:#64748b; text-align:right; white-space:nowrap; vertical-align:top;">
+                                                <?php echo esc_html__('Taxable base', 'fluent-cart'); ?>
+                                            </td>
+                                            <td style="width:18%;padding:3px 0 3px; font-size:10px; font-weight:600; text-transform:uppercase; letter-spacing:0.06em; color:#64748b; text-align:right; white-space:nowrap; vertical-align:top;">
+                                                <?php echo esc_html__('Tax', 'fluent-cart'); ?>
+                                            </td>
+                                        </tr>
+                                        <?php foreach ($foldedRateLines as $foldedRow):
+                                            $foldedColor = !empty($foldedRow['inclusive']) ? '#94a3b8' : '#334155'; ?>
+                                            <tr>
+                                                <td style="width:58%;padding:3px 8px 3px 8px; font-size:11px; color:<?php echo esc_attr($foldedColor); ?>; text-align:left; white-space:normal; word-break:break-word; overflow-wrap:break-word; vertical-align:top;">
+                                                    <?php echo esc_html($foldedRow['label']); ?>
+                                                </td>
+                                                <td style="width:24%;padding:3px 8px 3px 0; font-size:11px; color:<?php echo esc_attr($foldedColor); ?>; text-align:right; white-space:nowrap; vertical-align:top;">
+                                                    <?php echo esc_html(Helper::toDecimal((int) $foldedRow['base'])); ?>
+                                                </td>
+                                                <td style="width:18%;padding:3px 0 3px; font-size:11px; color:<?php echo esc_attr($foldedColor); ?>; text-align:right; white-space:nowrap; vertical-align:top;">
+                                                    <?php echo esc_html(Helper::toDecimal((int) $foldedRow['tax'])); ?>
+                                                </td>
+                                            </tr>
+                                        <?php endforeach; ?>
+                                    </table>
                                 </td>
                             </tr>
-                        <?php endif; ?>
-                        <?php if ($shouldShowBreakdown) : ?>
-                        <?php foreach ($rcFeeRows as $feeRow) :
-                            $feeRowColor = $feeRow['inclusive'] ? '#94a3b8' : '#334155'; ?>
                             <tr>
-                                <td style="padding:3px 0 3px 8px; font-size:11px; color:<?php echo esc_attr($feeRowColor); ?>; text-align: left;">
-                                    <?php echo esc_html($feeRow['display_label']); ?>
+                                <td style="padding:4px 0 3px 8px; font-size:11px; font-weight:600; color:#1e293b; border-top:1px solid #e2e8f0; text-align:left;">
+                                    <?php echo esc_html__('Total tax', 'fluent-cart'); ?>
                                 </td>
-                                <td style="padding:3px 0 3px; font-size:11px; text-align:right; color:<?php echo esc_attr($feeRowColor); ?>;">
-                                    <?php echo esc_html(Helper::toDecimal($feeRow['tax_amount'])); ?>
+                                <td style="padding:4px 0 3px; font-size:11px; font-weight:600; color:#1e293b; border-top:1px solid #e2e8f0; text-align:right;">
+                                    <?php echo esc_html(Helper::toDecimal((int) $summary['totalOrderTax'])); ?>
                                 </td>
                             </tr>
-                        <?php endforeach; ?>
-                        <?php endif; ?>
-                        <?php if ($summary['shippingTax'] > 0 && $shouldShowBreakdown):
-                            $isShippingInclusive = (bool) Arr::get($summary, 'isShippingInclusive', false);
-                            $shippingRowColor    = $isShippingInclusive ? '#94a3b8' : '#334155';
-                            $shippingTaxLines    = Arr::get($summary, 'shippingTaxLines', []);
-                            if (!empty($shippingTaxLines)):
-                                foreach ($shippingTaxLines as $shLine): ?>
+                            <?php if ($includedInPrices > 0): ?>
+                            <tr>
+                                <td style="padding:3px 0 3px 8px; font-size:11px; color:#94a3b8; text-align:left;">
+                                    <?php echo esc_html__('of which included in prices', 'fluent-cart'); ?>
+                                </td>
+                                <td style="padding:3px 0 3px; font-size:11px; color:#94a3b8; text-align:right;">
+                                    <?php echo esc_html(Helper::toDecimal($includedInPrices)); ?>
+                                </td>
+                            </tr>
+                            <?php endif; ?>
+                            <?php if ($summary['payableTax'] > 0 && $includedInPrices > 0): ?>
+                            <tr>
+                                <td style="padding:3px 0 4px 8px; font-size:11px; color:#334155; text-align:left; border-top:1px solid #e2e8f0; padding-top:6px;">
+                                    <?php echo esc_html__('Payable now (added)', 'fluent-cart'); ?>
+                                </td>
+                                <td style="padding:3px 0 4px; font-size:11px; color:#334155; text-align:right; border-top:1px solid #e2e8f0; padding-top:6px;">
+                                    <?php echo esc_html(Helper::toDecimal((int) $summary['payableTax'])); ?>
+                                </td>
+                            </tr>
+                            <?php endif; ?>
+                        <?php else: ?>
+                            <?php if (!empty($taxRateLines) && $shouldShowBreakdown): ?>
+                                <?php foreach ($taxRateLines as $taxLine):
+                                    $taxLineColor = !empty($taxLine['inclusive']) ? '#94a3b8' : '#334155'; ?>
                                     <tr>
-                                        <td style="padding:3px 0 3px 8px; font-size:11px; color:<?php echo esc_attr($shippingRowColor); ?>;">
-                                            <?php echo esc_html($shLine['label']); ?>
+                                        <td style="padding:3px 0 3px 8px; font-size:11px; color:<?php echo esc_attr($taxLineColor); ?>; text-align: left;">
+                                            <?php echo esc_html($taxLine['label']); ?>
                                         </td>
-                                        <td style="padding:3px 0 3px; font-size:11px; text-align:right; color:<?php echo esc_attr($shippingRowColor); ?>;">
-                                            <?php echo esc_html(Helper::toDecimal($shLine['shipping_tax'])); ?>
+                                        <td style="padding:3px 0 3px; font-size:11px; text-align:right; color:<?php echo esc_attr($taxLineColor); ?>;">
+                                            <?php echo esc_html(Helper::toDecimal($taxLine['order_tax'])); ?>
                                         </td>
                                     </tr>
-                                <?php endforeach;
-                            else: ?>
+                                <?php endforeach; ?>
+                            <?php endif; ?>
+                            <?php if (empty($taxRateLines) && $summary['inclusiveTax'] > 0 && $shouldShowBreakdown): ?>
                                 <tr>
-                                    <td style="padding:3px 0 3px 8px; font-size:11px; color:<?php echo esc_attr($shippingRowColor); ?>;">
-                                        <?php echo esc_html($isShippingInclusive ? __('Included in shipping prices', 'fluent-cart') : __('Added on shipping', 'fluent-cart')); ?>
+                                    <td style="padding:3px 0 3px 8px; font-size:11px; color:#94a3b8;">
+                                        <?php echo esc_html__('Included in item prices', 'fluent-cart'); ?>
                                     </td>
-                                    <td style="padding:3px 0 3px; font-size:11px; text-align:right; color:<?php echo esc_attr($shippingRowColor); ?>;">
-                                        <?php echo esc_html(Helper::toDecimal($summary['shippingTax'])); ?>
+                                    <td style="padding:3px 0 3px; font-size:11px; text-align:right; color:#94a3b8;">
+                                        <?php echo esc_html(Helper::toDecimal($summary['inclusiveTax'])); ?>
+                                    </td>
+                                </tr>
+                            <?php endif; ?>
+                            <?php if (empty($taxRateLines) && $summary['exclusiveTax'] > 0 && $shouldShowBreakdown): ?>
+                                <tr>
+                                    <td style="padding:3px 0 3px 8px; font-size:11px; color:#334155; text-align: left;">
+                                        <?php echo esc_html__('Added on products', 'fluent-cart'); ?>
+                                    </td>
+                                    <td style="padding:3px 0 3px; font-size:11px; text-align:right; color:#334155;">
+                                        <?php echo esc_html(Helper::toDecimal($summary['exclusiveTax'])); ?>
+                                    </td>
+                                </tr>
+                            <?php endif; ?>
+                            <?php if ($shouldShowBreakdown) : ?>
+                            <?php foreach ($rcFeeRows as $feeRow) :
+                                $feeRowColor = $feeRow['inclusive'] ? '#94a3b8' : '#334155'; ?>
+                                <tr>
+                                    <td style="padding:3px 0 3px 8px; font-size:11px; color:<?php echo esc_attr($feeRowColor); ?>; text-align: left;">
+                                        <?php echo esc_html($feeRow['display_label']); ?>
+                                    </td>
+                                    <td style="padding:3px 0 3px; font-size:11px; text-align:right; color:<?php echo esc_attr($feeRowColor); ?>;">
+                                        <?php echo esc_html(Helper::toDecimal($feeRow['tax_amount'])); ?>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
+                            <?php endif; ?>
+                            <?php if ($summary['shippingTax'] > 0 && $shouldShowBreakdown):
+                                $isShippingInclusive = (bool) Arr::get($summary, 'isShippingInclusive', false);
+                                $shippingRowColor    = $isShippingInclusive ? '#94a3b8' : '#334155';
+                                if (!empty($shippingTaxLines)):
+                                    foreach ($shippingTaxLines as $shLine): ?>
+                                        <tr>
+                                            <td style="padding:3px 0 3px 8px; font-size:11px; color:<?php echo esc_attr($shippingRowColor); ?>;">
+                                                <?php echo esc_html($shLine['label']); ?>
+                                            </td>
+                                            <td style="padding:3px 0 3px; font-size:11px; text-align:right; color:<?php echo esc_attr($shippingRowColor); ?>;">
+                                                <?php echo esc_html(Helper::toDecimal($shLine['shipping_tax'])); ?>
+                                            </td>
+                                        </tr>
+                                    <?php endforeach;
+                                else: ?>
+                                    <tr>
+                                        <td style="padding:3px 0 3px 8px; font-size:11px; color:<?php echo esc_attr($shippingRowColor); ?>;">
+                                            <?php echo esc_html($isShippingInclusive ? __('Included in shipping prices', 'fluent-cart') : __('Added on shipping', 'fluent-cart')); ?>
+                                        </td>
+                                        <td style="padding:3px 0 3px; font-size:11px; text-align:right; color:<?php echo esc_attr($shippingRowColor); ?>;">
+                                            <?php echo esc_html(Helper::toDecimal($summary['shippingTax'])); ?>
+                                        </td>
+                                    </tr>
+                                <?php endif; ?>
+                            <?php endif; ?>
+                            <?php if ($summary['payableTax'] > 0): ?>
+                            <tr>
+                                <td style="padding:4px 0 4px 8px; font-size:11px; font-weight:600; color:#1e293b;
+                                           border-top:1px solid #e2e8f0; text-align: left;">
+                                    <?php echo esc_html__('Total payable tax', 'fluent-cart'); ?>
+                                </td>
+                                <td style="padding:4px 0 4px; font-size:11px; text-align:right; font-weight:600; color:#1e293b;
+                                           border-top:1px solid #e2e8f0;">
+                                    <?php echo esc_html(Helper::toDecimal($summary['payableTax'])); ?>
+                                </td>
+                            </tr>
+                            <?php endif; ?>
+                            <?php if ($summary['inclusiveTax'] > 0 || $summary['inclusiveFeeTax'] > 0): ?>
+                                <tr>
+                                    <td style="padding:3px 0 4px 8px; font-size:11px; color:#94a3b8;">
+                                        <?php echo esc_html__('Total tax in this order', 'fluent-cart'); ?>
+                                    </td>
+                                    <td style="padding:3px 0 4px; font-size:11px; text-align:right; color:#94a3b8;">
+                                        <?php echo esc_html(Helper::toDecimal($summary['totalOrderTax'])); ?>
                                     </td>
                                 </tr>
                             <?php endif; ?>
                         <?php endif; ?>
-                        <?php if ($summary['payableTax'] > 0): ?>
-                        <tr>
-                            <td style="padding:4px 0 4px 8px; font-size:11px; font-weight:600; color:#1e293b;
-                                       border-top:1px solid #e2e8f0; text-align: left;">
-                                <?php echo esc_html__('Total payable tax', 'fluent-cart'); ?>
-                            </td>
-                            <td style="padding:4px 0 4px; font-size:11px; text-align:right; font-weight:600; color:#1e293b;
-                                       border-top:1px solid #e2e8f0;">
-                                <?php echo esc_html(Helper::toDecimal($summary['payableTax'])); ?>
-                            </td>
-                        </tr>
-                        <?php endif; ?>
-                        <?php if ($summary['inclusiveTax'] > 0 || $summary['inclusiveFeeTax'] > 0): ?>
-                            <tr>
-                                <td style="padding:3px 0 4px 8px; font-size:11px; color:#94a3b8;">
-                                    <?php echo esc_html__('Total tax in this order', 'fluent-cart'); ?>
-                                </td>
-                                <td style="padding:3px 0 4px; font-size:11px; text-align:right; color:#94a3b8;">
-                                    <?php echo esc_html(Helper::toDecimal($summary['totalOrderTax'])); ?>
-                                </td>
-                            </tr>
-                        <?php endif; ?>
                     <?php endif; ?>
+                </table>
+                </td>
+                </tr>
                 </table>
             </td>
         </tr>

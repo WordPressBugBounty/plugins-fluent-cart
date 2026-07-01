@@ -2,7 +2,6 @@
 
 namespace FluentCart\App\Services\Renderer;
 
-use FluentCart\App\Helpers\AttributeHelper;
 use FluentCart\App\Helpers\Helper;
 use FluentCart\App\Models\Cart;
 use FluentCart\Framework\Support\Arr;
@@ -109,14 +108,10 @@ class CartItemRenderer
 
         $mainTitle = (string) Arr::get($this->item, 'post_title', '');
 
-        // Prefer the labeled attribute combination ("Color: Red | Size: XS")
-        // when the item carries an attribute snapshot; fall back to the raw
-        // variation title for custom/simple items.
-        $itemAttributes = (array) Arr::get($this->item, 'other_info.item_attributes', []);
-        $attributesText = $itemAttributes
-            ? AttributeHelper::getDisplayAttributesString($itemAttributes, $this->item, 'cart')
-            : '';
-        $subtitle = $attributesText !== '' ? $attributesText : (string) Arr::get($this->item, 'title', '');
+        // The Cart model already resolves & appends variation_display_title on
+        // every cart item (Cart::getCartDataAttribute); fall back to the raw
+        // variation title for items it didn't decorate.
+        $subtitle = (string) Arr::get($this->item, 'variation_display_title', (string) Arr::get($this->item, 'title', ''));
 
         $quantity = Arr::get($this->item, 'quantity', 1);
 

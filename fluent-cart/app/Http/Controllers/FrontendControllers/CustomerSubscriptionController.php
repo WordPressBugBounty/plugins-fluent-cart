@@ -54,6 +54,7 @@ class CustomerSubscriptionController extends BaseFrontendController
         // Sort the results by 'id' in descending order and fetch the data
         $subscriptions = Subscription::query()
             ->where('customer_id', $customer->id)
+            ->with(['product'])
             ->whereNotIn('status', [Status::SUBSCRIPTION_PENDING, Status::SUBSCRIPTION_INTENDED])
             ->orderBy('id', 'desc')
             ->paginate($perPage, ['*'], 'page', $page);
@@ -120,8 +121,10 @@ class CustomerSubscriptionController extends BaseFrontendController
             'product_id'                => $subscription->product_id,
             'config'                    => $subscription->config,
             'reactivate_url'            => $subscription->getReactivateUrl(),
-            'title'                     => $subscription->product ? $subscription->product->post_title : $subscription->item_name,
-            'subtitle'                  => $subscription->variation && $subscription->product ? $subscription->variation->variation_title : '',
+            // item_name resolves to "<product> - <attributes>" (or the raw name),
+            // so it carries the labeled combination on a single line.
+            'title'                     => $subscription->display_item_name,
+            'subtitle'                  => '',
             'can_upgrade'               => $subscription->canUpgrade(),
             'can_switch_payment_method' => $subscription->canSwitchPaymentMethod(),
             'switchable_payment_methods' => $subscription->switchablePaymentMethods(),
@@ -133,6 +136,7 @@ class CustomerSubscriptionController extends BaseFrontendController
             'recurring_amount'          => $subscription->recurring_amount,
             'can_early_pay'             => EarlyPaymentFeature::canPay($subscription),
             'remaining_installments'    => max(0, $subscription->bill_times - $subscription->bill_count),
+            'card_update_url'           => $subscription->url,
         ];
 
 

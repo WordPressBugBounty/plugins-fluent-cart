@@ -56,6 +56,7 @@ use FluentCart\Framework\Support\Arr;
 use FluentCart\App\Helpers\AddressHelper;
 use FluentCart\App\Modules\Tax\TaxModule;
 use FluentCart\App\Services\DateTime\DateTime;
+use FluentCart\App\Services\Renderer\Receipt\TaxSummaryHelper;
 
 $settings = new StoreSettings();
 
@@ -407,26 +408,138 @@ $orderTaxRates = $order->getPrimaryOrderTaxRate();
                                         </td>
                                     </tr>
                                 <?php elseif ($order->tax_total > 0): ?>
+                                    <?php
+                                        $invoiceTaxSummary      = TaxSummaryHelper::computeTaxSummary($order);
+                                        $invFoldedRateLines     = Arr::get($invoiceTaxSummary, 'foldedRateLines', []);
+                                        $invIncludedInPrices    = (int) Arr::get($invoiceTaxSummary, 'includedInPrices', 0);
+                                        $invPayableTax          = (int) Arr::get($invoiceTaxSummary, 'payableTax', 0);
+                                        $invTotalOrderTax       = (int) Arr::get($invoiceTaxSummary, 'totalOrderTax', 0);
+                                        $invoiceTaxLines        = Arr::get($invoiceTaxSummary, 'taxRateLines', []);
+                                    ?>
                                     <tr>
-                                        <td style="padding: 8px 20px 8px 0;text-align: right;border: none;">
-                                            <?php echo esc_html__('Tax', 'fluent-cart');
-                                            echo esc_html(\FluentCart\App\Helpers\Helper::getOrderTaxLabel($order));
+                                        <td colspan="2" style="padding: 4px 0;border: none;">
+                                            <table style="width:100%;border-collapse:collapse;background:#ffffff;border:1px solid #e2e8f0;border-radius:6px;print-color-adjust:exact;">
+                                                <tbody>
+                                    <?php if (!empty($invFoldedRateLines)): ?>
+                                        <tr>
+                                            <td colspan="2" style="padding: 8px 8px 4px 8px;border: none;">
+                                                <div style="font-size:11px;text-transform:uppercase;letter-spacing:0.04em;color:#94a3b8;font-weight:600;text-align:right;margin-bottom:4px;">
+                                                    <?php esc_html_e('Tax breakdown by rate', 'fluent-cart'); ?>
+                                                </div>
+                                                <table style="width:100%;border-collapse:collapse;table-layout:fixed;">
+                                                    <tbody>
+                                                    <tr>
+                                                        <td style="width:58%;font-size:11px;text-transform:uppercase;color:rgb(107,114,128);font-weight:600;padding:2px 8px 2px 0;border:none;vertical-align:top;">
+                                                            <?php echo esc_html__('Rate', 'fluent-cart'); ?>
+                                                        </td>
+                                                        <td style="width:24%;font-size:11px;text-transform:uppercase;color:rgb(107,114,128);font-weight:600;padding:2px 8px 2px 0;text-align:right;border:none;white-space:nowrap;vertical-align:top;">
+                                                            <?php echo esc_html__('Taxable base', 'fluent-cart'); ?>
+                                                        </td>
+                                                        <td style="width:18%;font-size:11px;text-transform:uppercase;color:rgb(107,114,128);font-weight:600;padding:2px 0;text-align:right;border:none;white-space:nowrap;vertical-align:top;">
+                                                            <?php echo esc_html__('Tax', 'fluent-cart'); ?>
+                                                        </td>
+                                                    </tr>
+                                                    <?php foreach ($invFoldedRateLines as $invFoldedLine): ?>
+                                                        <?php $invMutedStyle = !empty($invFoldedLine['inclusive']) ? 'opacity:0.7;' : ''; ?>
+                                                        <tr style="<?php echo esc_attr($invMutedStyle); ?>">
+                                                            <td style="width:58%;padding:4px 8px 4px 0;border:none;white-space:normal;word-break:break-word;overflow-wrap:break-word;vertical-align:top;">
+                                                                <?php echo esc_html($invFoldedLine['label']); ?>
+                                                            </td>
+                                                            <td style="width:24%;padding:4px 8px 4px 0;text-align:right;border:none;color:rgb(107,114,128);white-space:nowrap;vertical-align:top;">
+                                                                <?php echo esc_html(\FluentCart\App\Helpers\Helper::toDecimal($invFoldedLine['base'])); ?>
+                                                            </td>
+                                                            <td style="width:18%;padding:4px 0;text-align:right;border:none;white-space:nowrap;vertical-align:top;">
+                                                                <?php echo esc_html(\FluentCart\App\Helpers\Helper::toDecimal($invFoldedLine['tax'])); ?>
+                                                            </td>
+                                                        </tr>
+                                                    <?php endforeach; ?>
+                                                    </tbody>
+                                                </table>
+                                            </td>
+                                        </tr>
+                                        <tr style="font-weight:700;">
+                                            <td style="padding: 8px 20px 8px 0;text-align: right;border: none;border-top:1px solid #e2e8f0;padding-top:6px;margin-top:6px;">
+                                                <?php echo esc_html__('Total tax', 'fluent-cart'); ?>
+                                            </td>
+                                            <td style="padding: 8px 8px 8px 0;width: 100px;text-align: right;border: none;border-top:1px solid #e2e8f0;padding-top:6px;margin-top:6px;">
+                                                <?php echo esc_html(\FluentCart\App\Helpers\Helper::toDecimal($invTotalOrderTax)); ?>
+                                            </td>
+                                        </tr>
+                                        <?php if ($invIncludedInPrices > 0): ?>
+                                            <tr style="color:rgb(107,114,128);">
+                                                <td style="padding: 4px 20px 4px 0;text-align: right;border: none;font-size:12px;">
+                                                    <?php echo esc_html__('of which included in prices', 'fluent-cart'); ?>
+                                                </td>
+                                                <td style="padding: 4px 8px 4px 0;width: 100px;text-align: right;border: none;font-size:12px;">
+                                                    <?php echo esc_html(\FluentCart\App\Helpers\Helper::toDecimal($invIncludedInPrices)); ?>
+                                                </td>
+                                            </tr>
+                                        <?php endif; ?>
+                                        <?php if ($invPayableTax > 0 && $invIncludedInPrices > 0): ?>
+                                            <tr style="font-weight:700;">
+                                                <td style="padding: 8px 20px 8px 0;text-align: right;border: none;border-top:1px solid #e2e8f0;padding-top:6px;margin-top:6px;">
+                                                    <?php echo esc_html__('Payable now (added)', 'fluent-cart'); ?>
+                                                </td>
+                                                <td style="padding: 8px 8px 8px 0;width: 100px;text-align: right;border: none;border-top:1px solid #e2e8f0;padding-top:6px;margin-top:6px;">
+                                                    <?php echo esc_html(\FluentCart\App\Helpers\Helper::toDecimal($invPayableTax)); ?>
+                                                </td>
+                                            </tr>
+                                        <?php endif; ?>
+                                    <?php else: ?>
+                                        <?php if (!empty($invoiceTaxLines)): ?>
+                                            <?php foreach ($invoiceTaxLines as $invoiceTaxLine): ?>
+                                                <tr>
+                                                    <td style="padding: 8px 20px 8px 0;text-align: right;border: none;">
+                                                        <?php echo esc_html($invoiceTaxLine['label']); ?>
+                                                    </td>
+                                                    <td style="padding: 8px 8px 8px 0;width: 100px;text-align: right;border: none;">
+                                                        <?php echo esc_html(\FluentCart\App\Helpers\Helper::toDecimal($invoiceTaxLine['order_tax'])); ?>
+                                                    </td>
+                                                </tr>
+                                            <?php endforeach; ?>
+                                        <?php else: ?>
+                                            <tr>
+                                                <td style="padding: 8px 20px 8px 0;text-align: right;border: none;">
+                                                    <?php echo esc_html__('Tax', 'fluent-cart');
+                                                    echo esc_html(\FluentCart\App\Helpers\Helper::getOrderTaxLabel($order));
+                                                    ?>
+                                                </td>
+                                                <td style="padding: 8px 8px 8px 0;width: 100px;text-align: right;border: none;">
+                                                    <?php echo esc_html(\FluentCart\App\Helpers\Helper::toDecimal($order->tax_total)); ?>
+                                                </td>
+                                            </tr>
+                                        <?php endif; ?>
+                                        <?php if ($order->shipping_tax > 0): ?>
+                                            <?php
+                                                $invoiceShippingTaxLines = Arr::get($invoiceTaxSummary, 'shippingTaxLines', []);
                                             ?>
-                                        </td>
-                                        <td style="padding: 8px 8px 8px 0;width: 100px;text-align: right;border: none;">
-                                            <?php echo esc_html(\FluentCart\App\Helpers\Helper::toDecimal($order->tax_total)); ?>
-                                        </td>
-                                    </tr>
-                                <?php endif; ?>
-                                <?php if ($order->shipping_tax > 0): ?>
-                                    <tr>
-                                        <td style="padding: 8px 20px 8px 0;text-align: right;border: none;">
-                                            <?php echo esc_html__('Shipping Tax', 'fluent-cart');
-                                            echo esc_html(\FluentCart\App\Helpers\Helper::getOrderTaxLabel($order));
-                                            ?>
-                                        </td>
-                                        <td style="padding: 8px 8px 8px 0;width: 100px;text-align: right;border: none;">
-                                            <?php echo esc_html(\FluentCart\App\Helpers\Helper::toDecimal($order->shipping_tax)); ?>
+                                            <?php if (!empty($invoiceShippingTaxLines)): ?>
+                                                <?php foreach ($invoiceShippingTaxLines as $invoiceShippingTaxLine): ?>
+                                                    <tr>
+                                                        <td style="padding: 8px 20px 8px 0;text-align: right;border: none;">
+                                                            <?php echo esc_html($invoiceShippingTaxLine['label']); ?>
+                                                        </td>
+                                                        <td style="padding: 8px 8px 8px 0;width: 100px;text-align: right;border: none;">
+                                                            <?php echo esc_html(\FluentCart\App\Helpers\Helper::toDecimal($invoiceShippingTaxLine['shipping_tax'])); ?>
+                                                        </td>
+                                                    </tr>
+                                                <?php endforeach; ?>
+                                            <?php else: ?>
+                                                <tr>
+                                                    <td style="padding: 8px 20px 8px 0;text-align: right;border: none;">
+                                                        <?php echo esc_html__('Shipping Tax', 'fluent-cart');
+                                                        echo esc_html(\FluentCart\App\Helpers\Helper::getOrderTaxLabel($order));
+                                                        ?>
+                                                    </td>
+                                                    <td style="padding: 8px 8px 8px 0;width: 100px;text-align: right;border: none;">
+                                                        <?php echo esc_html(\FluentCart\App\Helpers\Helper::toDecimal($order->shipping_tax)); ?>
+                                                    </td>
+                                                </tr>
+                                            <?php endif; ?>
+                                        <?php endif; ?>
+                                    <?php endif; ?>
+                                                </tbody>
+                                            </table>
                                         </td>
                                     </tr>
                                 <?php endif; ?>

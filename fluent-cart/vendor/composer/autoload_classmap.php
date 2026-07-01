@@ -437,6 +437,7 @@ return array(
     'FluentCart\\App\\Modules\\PaymentMethods\\PromoGateways\\Addons\\PaystackAddon' => $baseDir . '/app/Modules/PaymentMethods/PromoGateways/Addons/PaystackAddon.php',
     'FluentCart\\App\\Modules\\PaymentMethods\\PromoGateways\\Addons\\RazorpayAddon' => $baseDir . '/app/Modules/PaymentMethods/PromoGateways/Addons/RazorpayAddon.php',
     'FluentCart\\App\\Modules\\PaymentMethods\\PromoGateways\\Addons\\SquareAddon' => $baseDir . '/app/Modules/PaymentMethods/PromoGateways/Addons/SquareAddon.php',
+    'FluentCart\\App\\Modules\\PaymentMethods\\PromoGateways\\Addons\\SslcommerzAddon' => $baseDir . '/app/Modules/PaymentMethods/PromoGateways/Addons/SslcommerzAddon.php',
     'FluentCart\\App\\Modules\\PaymentMethods\\PromoGateways\\Pro\\AuthorizeNetPromo' => $baseDir . '/app/Modules/PaymentMethods/PromoGateways/Pro/AuthorizeNetPromo.php',
     'FluentCart\\App\\Modules\\PaymentMethods\\PromoGateways\\Pro\\MolliePromo' => $baseDir . '/app/Modules/PaymentMethods/PromoGateways/Pro/MolliePromo.php',
     'FluentCart\\App\\Modules\\PaymentMethods\\PromoGateways\\Pro\\PaddlePromo' => $baseDir . '/app/Modules/PaymentMethods/PromoGateways/Pro/PaddlePromo.php',

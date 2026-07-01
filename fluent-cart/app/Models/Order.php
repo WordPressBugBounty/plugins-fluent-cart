@@ -564,6 +564,9 @@ class Order extends Model
                 $displayLabel .= ' (' . __('Compound', 'fluent-cart') . ')';
             }
 
+            // Capture clean label (name + percent, no base suffix) for the shared folded-row builder.
+            $rateLabelClean = $displayLabel;
+
             if ($taxableAmount > 0 && !$isMixedInclusive) {
                 if ($lineInclusive === null) {
                     $displayBase = $this->tax_behavior == 2
@@ -582,11 +585,16 @@ class Order extends Model
             }
 
             $displayTaxLines[] = [
-                'label'     => $displayLabel,
-                'order_tax' => $rateTaxAmount,
-                'total_tax' => (int) $orderTaxRate->total_tax,
-                'rate_id'   => (int) $orderTaxRate->tax_rate_id,
+                'label'          => $displayLabel,
+                'rate_label'     => $rateLabelClean,
+                'order_tax'      => $rateTaxAmount,
+                'total_tax'      => (int) $orderTaxRate->total_tax,
+                'rate_id'        => (int) $orderTaxRate->tax_rate_id,
+                'rate_percent'   => $ratePercent,
+                'taxable_amount' => isset($displayBase) ? (int) $displayBase : $taxableAmount,
+                'inclusive'      => $lineInclusive === null ? ((int) $this->tax_behavior === 2) : (bool) $lineInclusive,
             ];
+            unset($displayBase);
         }
 
         return $displayTaxLines;
@@ -620,6 +628,8 @@ class Order extends Model
             $displayLines[] = [
                 'label'        => $displayLabel,
                 'shipping_tax' => $shippingTax,
+                'rate_id'      => (int) $orderTaxRate->tax_rate_id,
+                'rate_percent' => $ratePercent,
             ];
         }
         return $displayLines;
@@ -683,6 +693,11 @@ class Order extends Model
         $legacyTaxNumber = (string) $this->getMeta('vat_tax_id', '');
         if (!empty($legacyTaxNumber)) {
             return $legacyTaxNumber;
+        }
+
+        $topLevelLegacyTaxId = (string) $this->getMeta('tax_id', '');
+        if (!empty($topLevelLegacyTaxId)) {
+            return $topLevelLegacyTaxId;
         }
 
         $orderTaxRate = $this->getPrimaryOrderTaxRate();

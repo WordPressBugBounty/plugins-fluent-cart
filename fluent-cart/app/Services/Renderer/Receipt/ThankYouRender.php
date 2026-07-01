@@ -638,7 +638,7 @@ class ThankYouRender
                     <tr>
                         <td class="fct-thank-you-page-order-items-subscriptions-table-file">
                             <p>
-                                <?php echo esc_html($subs->item_name); ?>
+                                <?php echo esc_html($subs->display_item_name); ?>
                             </p>
                         </td>
 
@@ -1120,7 +1120,11 @@ class ThankYouRender
         <div class="fct-thank-you-tax-summary">
             <div class="fct-thank-you-tax-summary-header">
                 <span class="fct-thank-you-tax-summary-title">
-                    <?php echo esc_html__('TAX SUMMARY', 'fluent-cart'); ?>
+                    <?php if (!$summary['isReverseCharge'] && !empty(Arr::get($summary, 'foldedRateLines', []))): ?>
+                        <?php echo esc_html__('Tax breakdown by rate', 'fluent-cart'); ?>
+                    <?php else: ?>
+                        <?php echo esc_html__('TAX SUMMARY', 'fluent-cart'); ?>
+                    <?php endif; ?>
                 </span>
                 <span class="fct-item-tax-hint" tabindex="0"
                       aria-label="<?php echo esc_attr__('Tax breakdown explanation', 'fluent-cart'); ?>">
@@ -1151,65 +1155,117 @@ class ThankYouRender
                 </div>
             <?php else: ?>
                 <?php
-                    $tyFeeRows  = Arr::get($summary, 'feeTaxLineRows', []);
-                    $rowCount   = (int) ($summary['inclusiveTax'] > 0) + (int) ($summary['exclusiveTax'] > 0) + count($tyFeeRows) + (int) ($summary['shippingTax'] > 0);
-                    $shouldShowBreakdown = $rowCount >= 2 || ($rowCount === 1 && !($summary['payableTax'] > 0 || $summary['inclusiveTax'] > 0 || (int) Arr::get($summary, 'inclusiveFeeTax', 0) > 0));
+                    $tyFoldedRateLines  = Arr::get($summary, 'foldedRateLines', []);
+                    $tyIncludedInPrices = (int) Arr::get($summary, 'includedInPrices', 0);
+                    $tyPayableTax       = (int) Arr::get($summary, 'payableTax', 0);
+                    $tyTotalOrderTax    = (int) Arr::get($summary, 'totalOrderTax', 0);
+                    $tyFeeRows          = Arr::get($summary, 'feeTaxLineRows', []);
+                    $taxRateLines       = Arr::get($summary, 'taxRateLines', []);
+                    $shippingTaxLines   = Arr::get($summary, 'shippingTaxLines', []);
                 ?>
-                <?php if ($summary['inclusiveTax'] > 0 && $shouldShowBreakdown): ?>
-                    <div class="fct-thank-you-tax-summary-row fct-thank-you-tax-summary-row--muted">
-                        <span><?php echo esc_html__('Included in item prices', 'fluent-cart'); ?></span>
-                        <span><?php echo esc_html(Helper::toDecimal($summary['inclusiveTax'])); ?></span>
+                <?php if (!empty($tyFoldedRateLines)): ?>
+                    <div style="display:grid;grid-template-columns:minmax(0,1fr) 92px 64px;column-gap:12px;align-items:start;">
+                        <span style="min-width:0;font-size:11px;text-transform:uppercase;letter-spacing:0.04em;color:#94a3b8;"><?php echo esc_html__('Rate', 'fluent-cart'); ?></span>
+                        <span style="text-align:right;font-size:11px;text-transform:uppercase;letter-spacing:0.04em;color:#94a3b8;white-space:nowrap;"><?php echo esc_html__('Taxable base', 'fluent-cart'); ?></span>
+                        <span style="text-align:right;font-size:11px;text-transform:uppercase;letter-spacing:0.04em;color:#94a3b8;white-space:nowrap;"><?php echo esc_html__('Tax', 'fluent-cart'); ?></span>
                     </div>
-                <?php endif; ?>
-                <?php if ($summary['exclusiveTax'] > 0 && $shouldShowBreakdown): ?>
-                    <div class="fct-thank-you-tax-summary-row">
-                        <span><?php echo esc_html__('Added on products', 'fluent-cart'); ?></span>
-                        <span><?php echo esc_html(Helper::toDecimal($summary['exclusiveTax'])); ?></span>
+                    <?php foreach ($tyFoldedRateLines as $tyFoldedLine): ?>
+                        <div class="fct-thank-you-tax-summary-row<?php echo !empty($tyFoldedLine['inclusive']) ? ' fct-thank-you-tax-summary-row--muted' : ''; ?>" style="display:grid;grid-template-columns:minmax(0,1fr) 92px 64px;column-gap:12px;align-items:start;">
+                            <span style="min-width:0;white-space:normal;overflow-wrap:anywhere;word-break:break-word;"><?php echo esc_html($tyFoldedLine['label']); ?></span>
+                            <span style="text-align:right;color:#94a3b8;white-space:nowrap;"><?php echo esc_html(Helper::toDecimal($tyFoldedLine['base'])); ?></span>
+                            <span style="text-align:right;white-space:nowrap;"><?php echo esc_html(Helper::toDecimal($tyFoldedLine['tax'])); ?></span>
+                        </div>
+                    <?php endforeach; ?>
+                    <div class="fct-thank-you-tax-summary-row fct-thank-you-tax-summary-row--total">
+                        <span><?php echo esc_html__('Total tax', 'fluent-cart'); ?></span>
+                        <span><?php echo esc_html(Helper::toDecimal($tyTotalOrderTax)); ?></span>
                     </div>
-                <?php endif; ?>
-                <?php if ($shouldShowBreakdown) : ?>
-                <?php foreach ($tyFeeRows as $feeRow) : ?>
-                <div class="fct-thank-you-tax-summary-row<?php echo $feeRow['inclusive'] ? ' fct-thank-you-tax-summary-row--muted' : ''; ?>">
-                    <span><?php echo esc_html($feeRow['display_label']); ?></span>
-                    <span><?php echo esc_html(Helper::toDecimal($feeRow['tax_amount'])); ?></span>
-                </div>
-                <?php endforeach; ?>
-                <?php endif; ?>
-                <?php if ($summary['shippingTax'] > 0 && $shouldShowBreakdown):
-                    $isShippingInclusive    = (bool) Arr::get($summary, 'isShippingInclusive', false);
-                    $shippingTaxLines       = Arr::get($summary, 'shippingTaxLines', []);
-                    $shippingRowClass       = 'fct-thank-you-tax-summary-row' . ($isShippingInclusive ? ' fct-thank-you-tax-summary-row--muted' : '');
-                    if (!empty($shippingTaxLines)):
-                        foreach ($shippingTaxLines as $shLine): ?>
-                            <div class="<?php echo esc_attr($shippingRowClass); ?>">
-                                <span><?php echo esc_html($shLine['label']); ?></span>
-                                <span><?php echo esc_html(Helper::toDecimal($shLine['shipping_tax'])); ?></span>
-                            </div>
-                        <?php endforeach;
-                    else: ?>
-                        <div class="<?php echo esc_attr($shippingRowClass); ?>">
-                            <span>
-                                <?php if ($isShippingInclusive): ?>
-                                    <?php echo esc_html__('Included in shipping prices', 'fluent-cart'); ?>
-                                <?php else: ?>
-                                    <?php echo esc_html__('Added on shipping', 'fluent-cart'); ?>
-                                <?php endif; ?>
-                            </span>
-                            <span><?php echo esc_html(Helper::toDecimal($summary['shippingTax'])); ?></span>
+                    <?php if ($tyIncludedInPrices > 0): ?>
+                        <div class="fct-thank-you-tax-summary-row fct-thank-you-tax-summary-row--muted">
+                            <span><?php echo esc_html__('of which included in prices', 'fluent-cart'); ?></span>
+                            <span><?php echo esc_html(Helper::toDecimal($tyIncludedInPrices)); ?></span>
                         </div>
                     <?php endif; ?>
-                <?php endif; ?>
-                <?php if ($summary['payableTax'] > 0): ?>
-                    <div class="fct-thank-you-tax-summary-row fct-thank-you-tax-summary-row--total">
-                        <span><?php echo esc_html__('Total payable tax', 'fluent-cart'); ?></span>
-                        <span><?php echo esc_html(Helper::toDecimal($summary['payableTax'])); ?></span>
+                    <?php if ($tyPayableTax > 0 && $tyIncludedInPrices > 0): ?>
+                        <div class="fct-thank-you-tax-summary-row fct-thank-you-tax-summary-row--total">
+                            <span><?php echo esc_html__('Payable now (added)', 'fluent-cart'); ?></span>
+                            <span><?php echo esc_html(Helper::toDecimal($tyPayableTax)); ?></span>
+                        </div>
+                    <?php endif; ?>
+                <?php else: ?>
+                    <?php
+                        $productTaxRowCount = !empty($taxRateLines)
+                            ? count($taxRateLines)
+                            : (int) ($summary['inclusiveTax'] > 0) + (int) ($summary['exclusiveTax'] > 0);
+                        $rowCount           = $productTaxRowCount + count($tyFeeRows) + (int) ($summary['shippingTax'] > 0);
+                        $shouldShowBreakdown = !empty($taxRateLines)
+                            || !empty($shippingTaxLines)
+                            || $rowCount >= 2
+                            || ($rowCount === 1 && !($summary['payableTax'] > 0 || $summary['inclusiveTax'] > 0 || (int) Arr::get($summary, 'inclusiveFeeTax', 0) > 0));
+                    ?>
+                    <?php if (!empty($taxRateLines) && $shouldShowBreakdown): ?>
+                        <?php foreach ($taxRateLines as $taxLine) : ?>
+                        <div class="fct-thank-you-tax-summary-row<?php echo !empty($taxLine['inclusive']) ? ' fct-thank-you-tax-summary-row--muted' : ''; ?>">
+                            <span><?php echo esc_html($taxLine['label']); ?></span>
+                            <span><?php echo esc_html(Helper::toDecimal($taxLine['order_tax'])); ?></span>
+                        </div>
+                        <?php endforeach; ?>
+                    <?php endif; ?>
+                    <?php if (empty($taxRateLines) && $summary['inclusiveTax'] > 0 && $shouldShowBreakdown): ?>
+                        <div class="fct-thank-you-tax-summary-row fct-thank-you-tax-summary-row--muted">
+                            <span><?php echo esc_html__('Included in item prices', 'fluent-cart'); ?></span>
+                            <span><?php echo esc_html(Helper::toDecimal($summary['inclusiveTax'])); ?></span>
+                        </div>
+                    <?php endif; ?>
+                    <?php if (empty($taxRateLines) && $summary['exclusiveTax'] > 0 && $shouldShowBreakdown): ?>
+                        <div class="fct-thank-you-tax-summary-row">
+                            <span><?php echo esc_html__('Added on products', 'fluent-cart'); ?></span>
+                            <span><?php echo esc_html(Helper::toDecimal($summary['exclusiveTax'])); ?></span>
+                        </div>
+                    <?php endif; ?>
+                    <?php if ($shouldShowBreakdown) : ?>
+                    <?php foreach ($tyFeeRows as $feeRow) : ?>
+                    <div class="fct-thank-you-tax-summary-row<?php echo $feeRow['inclusive'] ? ' fct-thank-you-tax-summary-row--muted' : ''; ?>">
+                        <span><?php echo esc_html($feeRow['display_label']); ?></span>
+                        <span><?php echo esc_html(Helper::toDecimal($feeRow['tax_amount'])); ?></span>
                     </div>
-                <?php endif; ?>
-                <?php if ($summary['inclusiveTax'] > 0 || $summary['inclusiveFeeTax'] > 0): ?>
-                    <div class="fct-thank-you-tax-summary-row fct-thank-you-tax-summary-row--muted">
-                        <span><?php echo esc_html__('Total tax in this order', 'fluent-cart'); ?></span>
-                        <span><?php echo esc_html(Helper::toDecimal($summary['totalOrderTax'])); ?></span>
-                    </div>
+                    <?php endforeach; ?>
+                    <?php endif; ?>
+                    <?php if ($summary['shippingTax'] > 0 && $shouldShowBreakdown):
+                        $isShippingInclusive    = (bool) Arr::get($summary, 'isShippingInclusive', false);
+                        $shippingRowClass       = 'fct-thank-you-tax-summary-row' . ($isShippingInclusive ? ' fct-thank-you-tax-summary-row--muted' : '');
+                        if (!empty($shippingTaxLines)):
+                            foreach ($shippingTaxLines as $shLine): ?>
+                                <div class="<?php echo esc_attr($shippingRowClass); ?>">
+                                    <span><?php echo esc_html($shLine['label']); ?></span>
+                                    <span><?php echo esc_html(Helper::toDecimal($shLine['shipping_tax'])); ?></span>
+                                </div>
+                            <?php endforeach;
+                        else: ?>
+                            <div class="<?php echo esc_attr($shippingRowClass); ?>">
+                                <span>
+                                    <?php if ($isShippingInclusive): ?>
+                                        <?php echo esc_html__('Included in shipping prices', 'fluent-cart'); ?>
+                                    <?php else: ?>
+                                        <?php echo esc_html__('Added on shipping', 'fluent-cart'); ?>
+                                    <?php endif; ?>
+                                </span>
+                                <span><?php echo esc_html(Helper::toDecimal($summary['shippingTax'])); ?></span>
+                            </div>
+                        <?php endif; ?>
+                    <?php endif; ?>
+                    <?php if ($summary['payableTax'] > 0): ?>
+                        <div class="fct-thank-you-tax-summary-row fct-thank-you-tax-summary-row--total">
+                            <span><?php echo esc_html__('Total payable tax', 'fluent-cart'); ?></span>
+                            <span><?php echo esc_html(Helper::toDecimal($summary['payableTax'])); ?></span>
+                        </div>
+                    <?php endif; ?>
+                    <?php if ($summary['inclusiveTax'] > 0 || $summary['inclusiveFeeTax'] > 0): ?>
+                        <div class="fct-thank-you-tax-summary-row fct-thank-you-tax-summary-row--muted">
+                            <span><?php echo esc_html__('Total tax in this order', 'fluent-cart'); ?></span>
+                            <span><?php echo esc_html(Helper::toDecimal($summary['totalOrderTax'])); ?></span>
+                        </div>
+                    <?php endif; ?>
                 <?php endif; ?>
             <?php endif; ?>
         </div>

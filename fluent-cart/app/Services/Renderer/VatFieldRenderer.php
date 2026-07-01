@@ -63,10 +63,10 @@ class VatFieldRenderer
                 <?php if ($isRequired): ?> data-b2b-required="yes"<?php endif; ?>
                 aria-required="<?php echo ($isRequired && $isB2BActive) ? 'true' : 'false'; ?>"
                 <?php if ($isRequired && $isB2BActive): ?> required<?php endif; ?>
-                <?php echo ($isValid && TaxModule::canApplyReverseCharge($this->taxApplicableCountry)) ? 'readonly' : ''; ?>
+                <?php echo ($isValid && $isEuCountry) ? 'readonly' : ''; ?>
             />
 
-            <?php if ($isEuCountry && TaxModule::canApplyReverseCharge($this->taxApplicableCountry)): ?>
+            <?php if ($isEuCountry): ?>
                 <?php if ($isValid): ?>
                 <button
                     type="button"
@@ -113,6 +113,7 @@ class VatFieldRenderer
         $name            = Arr::get($checkoutData, 'tax_data.name', '');
         $taxTotal        = Arr::get($checkoutData, 'tax_data.tax_total', 0);
         $declarationNote = sanitize_text_field(Arr::get($checkoutData, 'tax_data.declaration_note', ''));
+        $isReverseCharge = $isValid && (int) Arr::get($checkoutData, 'tax_data.tax_behavior', 2) === 0;
         ?>
         <div
             class="fct_vat_valid_note <?php echo !$isValid ? 'is-hidden' : ''; ?>"
@@ -128,18 +129,20 @@ class VatFieldRenderer
                 </span>
             <?php endif; ?>
 
-            <div class="fct_vat_declaration_note_wrapper">
-                <textarea
-                    id="fct_vat_declaration_note"
-                    name="fct_vat_declaration_note"
-                    data-fluent-cart-vat-declaration-note
-                    maxlength="255"
-                    rows="2"
-                    placeholder="<?php echo esc_attr__('e.g. I confirm reverse charge applies — VAT will be self-accounted in my country. Saved with your order. Max 255 characters. ', 'fluent-cart'); ?>"
-                    aria-label="<?php echo esc_attr__('Reverse Charge Declaration', 'fluent-cart'); ?>"
-                    aria-describedby="fct_vat_declaration_note_hint"
-                ><?php echo esc_textarea($declarationNote); ?></textarea>
-            </div>
+            <?php if ($isReverseCharge): ?>
+                <div class="fct_vat_declaration_note_wrapper">
+                    <textarea
+                        id="fct_vat_declaration_note"
+                        name="fct_vat_declaration_note"
+                        data-fluent-cart-vat-declaration-note
+                        maxlength="255"
+                        rows="2"
+                        placeholder="<?php echo esc_attr__('e.g. I confirm reverse charge applies — VAT will be self-accounted in my country. Saved with your order. Max 255 characters. ', 'fluent-cart'); ?>"
+                        aria-label="<?php echo esc_attr__('Reverse Charge Declaration', 'fluent-cart'); ?>"
+                        aria-describedby="fct_vat_declaration_note_hint"
+                    ><?php echo esc_textarea($declarationNote); ?></textarea>
+                </div>
+            <?php endif; ?>
         </div>
         <?php
     }

@@ -15,7 +15,7 @@
             <tr>
                 <td style="width: 50%;border:none;padding: 1px 0;vertical-align: middle;">
                     <p style="margin: 0;">
-                        <?php echo esc_html($subs->item_name); ?>
+                        <?php echo esc_html($subs->display_item_name); ?>
                     </p>
 
 

@@ -509,7 +509,7 @@ class EmailNotifications
             'subject',
             'email_body',
             'is_default_body',
-            'attach_pdf_template'
+            'attach_pdf_template',
         ];
         $allConfig = static::getSettings();
         $config = static::getNotificationConfig($name);

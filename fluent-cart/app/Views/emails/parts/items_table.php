@@ -270,13 +270,17 @@ use FluentCart\App\Services\Renderer\Receipt\TaxSummaryHelper;
     <?php endforeach; ?>
     </tbody>
 </table>
-<table style="border-spacing:0;padding: 0; width: 100%;border: none;">
+<table style="border-spacing:0;padding: 0; width: 100%;border: none;margin-top:8px;">
+    <tr>
+        <td colspan="2" style="border-top:1px solid #e5e7eb;padding-top:12px;font-size:0;line-height:0;">&nbsp;</td>
+    </tr>
     <tr>
         <td style="width: 50%;"></td>
         <td style="width: 100%;">
-            <table role="presentation"
-                   style="background-color:rgb(249,250,251);padding:16px;border-radius:8px;margin: 0; width: 100%;border: none;">
+            <table role="presentation" width="400"
+                   style="margin: 0 0 0 auto; width: 400px; max-width: 100%; border: none;">
                 <tbody>
+                <!-- Zone A: plain subtotal / shipping / fees / discount -->
                 <?php if ($order->subtotal != $order->total_amount): ?>
                     <tr style="width:100%">
                         <td style="width:70%">
@@ -384,12 +388,31 @@ use FluentCart\App\Services\Renderer\Receipt\TaxSummaryHelper;
                         ? TaxSummaryHelper::computeTaxSummary($order)
                         : ['shouldRender' => false]);
                     if ($emailTaxSummary['shouldRender']):
+                        $emailFoldedRateLines  = Arr::get($emailTaxSummary, 'foldedRateLines', []);
+                        $emailIncludedInPrices = (int) Arr::get($emailTaxSummary, 'includedInPrices', 0);
+                        $emailPayableTax       = (int) Arr::get($emailTaxSummary, 'payableTax', 0);
+                        $emailTotalOrderTax    = (int) Arr::get($emailTaxSummary, 'totalOrderTax', 0);
                 ?>
+                </tbody>
+            </table><!-- /Zone A -->
+            <!-- Zone B: tax breakdown inside its own grey box -->
+            <table role="presentation" align="right" width="400"
+                   style="border-spacing:0;border-collapse:collapse;margin:12px 0 0 auto;width:400px;max-width:100%;border:none;">
+                <tbody>
+                <tr>
+                    <td style="background-color:rgb(249,250,251);padding:16px;border-radius:8px;">
+            <table role="presentation" width="100%"
+                   style="width:100%;border-spacing:0;border-collapse:collapse;border:none;">
+                <tbody>
                 <tr style="width:100%">
-                    <td colspan="2" style="padding:12px 0 4px;">
+                    <td colspan="2" style="padding:0 0 4px;">
                         <p style="font-size:10px; font-weight:600; text-transform:uppercase;
                                   letter-spacing:0.06em; color:#94a3b8; margin:0;">
-                            <?php echo esc_html__('TAX', 'fluent-cart'); ?>
+                            <?php if (!empty($emailFoldedRateLines)): ?>
+                                <?php echo esc_html__('Tax breakdown by rate', 'fluent-cart'); ?>
+                            <?php else: ?>
+                                <?php echo esc_html__('TAX', 'fluent-cart'); ?>
+                            <?php endif; ?>
                         </p>
                     </td>
                 </tr>
@@ -427,13 +450,114 @@ use FluentCart\App\Services\Renderer\Receipt\TaxSummaryHelper;
                             </p>
                         </td>
                     </tr>
+                <?php elseif (!empty($emailFoldedRateLines)): ?>
+                    <tr style="width:100%">
+                        <td colspan="2" style="padding:0 0 4px;">
+                            <table style="width:100%;border-collapse:collapse;border-spacing:0;table-layout:fixed;">
+                                <tbody>
+                                <tr>
+                                    <td style="width:58%;font-size:11px;text-transform:uppercase;color:rgb(107,114,128);font-weight:600;padding:2px 12px 2px 0;border:none;white-space:nowrap;">
+                                        <?php echo esc_html__('Rate', 'fluent-cart'); ?>
+                                    </td>
+                                    <td style="width:24%;font-size:11px;text-transform:uppercase;color:rgb(107,114,128);font-weight:600;padding:2px 12px 2px 0;text-align:right;border:none;white-space:nowrap;">
+                                        <?php echo esc_html__('Taxable base', 'fluent-cart'); ?>
+                                    </td>
+                                    <td style="width:18%;font-size:11px;text-transform:uppercase;color:rgb(107,114,128);font-weight:600;padding:2px 0 2px 0;text-align:right;border:none;white-space:nowrap;">
+                                        <?php echo esc_html__('Tax', 'fluent-cart'); ?>
+                                    </td>
+                                </tr>
+                                <?php foreach ($emailFoldedRateLines as $emailFoldedLine):
+                                    $emailFoldedColor = !empty($emailFoldedLine['inclusive']) ? '#94a3b8' : '#1e293b';
+                                ?>
+                                <tr>
+                                    <td style="width:58%;font-size:14px;line-height:20px;padding:3px 12px 3px 0;border:none;color:<?php echo esc_attr($emailFoldedColor); ?>;white-space:normal;word-break:break-word;overflow-wrap:break-word;vertical-align:top;">
+                                        <?php echo esc_html($emailFoldedLine['label']); ?>
+                                    </td>
+                                    <td style="width:24%;font-size:13px;line-height:20px;padding:3px 12px 3px 0;text-align:right;border:none;color:#94a3b8;white-space:nowrap;vertical-align:top;">
+                                        <?php echo esc_html(\FluentCart\App\Helpers\Helper::toDecimal($emailFoldedLine['base'])); ?>
+                                    </td>
+                                    <td style="width:18%;font-size:13px;line-height:20px;padding:3px 0 3px 0;text-align:right;border:none;color:<?php echo esc_attr($emailFoldedColor); ?>;white-space:nowrap;vertical-align:top;">
+                                        <?php echo esc_html(\FluentCart\App\Helpers\Helper::toDecimal($emailFoldedLine['tax'])); ?>
+                                    </td>
+                                </tr>
+                                <?php endforeach; ?>
+                                </tbody>
+                            </table>
+                        </td>
+                    </tr>
+                    <tr style="width:100%">
+                        <td style="width:70%">
+                            <p style="font-size:14px; font-weight:700; color:#1e293b; line-height:24px; margin:0; border-top:1px solid #e2e8f0; padding-top:4px;">
+                                <?php echo esc_html__('Total tax', 'fluent-cart'); ?>
+                            </p>
+                        </td>
+                        <td style="width:30%; text-align:right">
+                            <p style="font-size:14px; font-weight:700; color:#1e293b; margin:0; line-height:24px; border-top:1px solid #e2e8f0; padding-top:4px;">
+                                <?php echo esc_html(\FluentCart\App\Helpers\Helper::toDecimal($emailTotalOrderTax)); ?>
+                            </p>
+                        </td>
+                    </tr>
+                    <?php if ($emailIncludedInPrices > 0): ?>
+                    <tr style="width:100%">
+                        <td style="width:70%">
+                            <p style="font-size:13px; color:#94a3b8; line-height:22px; margin:0;">
+                                <?php echo esc_html__('of which included in prices', 'fluent-cart'); ?>
+                            </p>
+                        </td>
+                        <td style="width:30%; text-align:right">
+                            <p style="font-size:13px; color:#94a3b8; margin:0; line-height:22px;">
+                                <?php echo esc_html(\FluentCart\App\Helpers\Helper::toDecimal($emailIncludedInPrices)); ?>
+                            </p>
+                        </td>
+                    </tr>
+                    <?php endif; ?>
+                    <?php if ($emailPayableTax > 0 && $emailIncludedInPrices > 0): ?>
+                    <tr style="width:100%">
+                        <td style="width:70%;border-top:1px solid #e2e8f0;padding-top:6px;margin-top:6px;">
+                            <p style="font-size:14px; font-weight:700; color:#1e293b; line-height:24px; margin:0;">
+                                <?php echo esc_html__('Payable now (added)', 'fluent-cart'); ?>
+                            </p>
+                        </td>
+                        <td style="width:30%; text-align:right;border-top:1px solid #e2e8f0;padding-top:6px;margin-top:6px;">
+                            <p style="font-size:14px; font-weight:700; color:#1e293b; margin:0; line-height:24px;">
+                                <?php echo esc_html(\FluentCart\App\Helpers\Helper::toDecimal($emailPayableTax)); ?>
+                            </p>
+                        </td>
+                    </tr>
+                    <?php endif; ?>
                 <?php else: ?>
                     <?php
                         $emailFeeRowsList    = Arr::get($emailTaxSummary, 'feeTaxLineRows', []);
-                        $rowCount            = (int) ($emailTaxSummary['inclusiveTax'] > 0) + (int) ($emailTaxSummary['exclusiveTax'] > 0) + count($emailFeeRowsList) + (int) ($emailTaxSummary['shippingTax'] > 0);
-                        $shouldShowBreakdown = $rowCount >= 2 || ($rowCount === 1 && !($emailTaxSummary['payableTax'] > 0 || $emailTaxSummary['inclusiveTax'] > 0 || (int) Arr::get($emailTaxSummary, 'inclusiveFeeTax', 0) > 0));
+                        $emailTaxRateLines   = Arr::get($emailTaxSummary, 'taxRateLines', []);
+                        $emailShippingLines  = Arr::get($emailTaxSummary, 'shippingTaxLines', []);
+                        $productTaxRowCount  = !empty($emailTaxRateLines)
+                            ? count($emailTaxRateLines)
+                            : (int) ($emailTaxSummary['inclusiveTax'] > 0) + (int) ($emailTaxSummary['exclusiveTax'] > 0);
+                        $rowCount            = $productTaxRowCount + count($emailFeeRowsList) + (int) ($emailTaxSummary['shippingTax'] > 0);
+                        $shouldShowBreakdown = !empty($emailTaxRateLines)
+                            || !empty($emailShippingLines)
+                            || $rowCount >= 2
+                            || ($rowCount === 1 && !($emailTaxSummary['payableTax'] > 0 || $emailTaxSummary['inclusiveTax'] > 0 || (int) Arr::get($emailTaxSummary, 'inclusiveFeeTax', 0) > 0));
                     ?>
-                    <?php if ($emailTaxSummary['inclusiveTax'] > 0 && $shouldShowBreakdown): ?>
+                    <?php if (!empty($emailTaxRateLines) && $shouldShowBreakdown): ?>
+                        <?php foreach ($emailTaxRateLines as $emailTaxRateLine):
+                            $emailTaxRateColor  = !empty($emailTaxRateLine['inclusive']) ? '#94a3b8' : '#1e293b';
+                            $emailTaxRateWeight = !empty($emailTaxRateLine['inclusive']) ? 'normal' : '600'; ?>
+                            <tr style="width:100%">
+                                <td style="width:70%">
+                                    <p style="font-size:14px; font-weight:<?php echo esc_attr($emailTaxRateWeight); ?>; color:<?php echo esc_attr($emailTaxRateColor); ?>; line-height:24px; margin:0;">
+                                        <?php echo esc_html($emailTaxRateLine['label']); ?>
+                                    </p>
+                                </td>
+                                <td style="width:30%; text-align:right">
+                                    <p style="font-size:14px; font-weight:<?php echo esc_attr($emailTaxRateWeight); ?>; color:<?php echo esc_attr($emailTaxRateColor); ?>; margin:0; line-height:24px;">
+                                        <?php echo esc_html(\FluentCart\App\Helpers\Helper::toDecimal($emailTaxRateLine['order_tax'])); ?>
+                                    </p>
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
+                    <?php endif; ?>
+                    <?php if (empty($emailTaxRateLines) && $emailTaxSummary['inclusiveTax'] > 0 && $shouldShowBreakdown): ?>
                         <tr style="width:100%">
                             <td style="width:70%">
                                 <p style="font-size:14px; color:#94a3b8; line-height:24px; margin:0;">
@@ -447,7 +571,7 @@ use FluentCart\App\Services\Renderer\Receipt\TaxSummaryHelper;
                             </td>
                         </tr>
                     <?php endif; ?>
-                    <?php if ($emailTaxSummary['exclusiveTax'] > 0 && $shouldShowBreakdown): ?>
+                    <?php if (empty($emailTaxRateLines) && $emailTaxSummary['exclusiveTax'] > 0 && $shouldShowBreakdown): ?>
                         <tr style="width:100%">
                             <td style="width:70%">
                                 <p style="font-size:14px; font-weight:600; color:#1e293b; line-height:24px; margin:0;">
@@ -481,7 +605,6 @@ use FluentCart\App\Services\Renderer\Receipt\TaxSummaryHelper;
                     <?php endif; ?>
                     <?php if ($emailTaxSummary['shippingTax'] > 0 && $shouldShowBreakdown):
                         $isShippingInclusive  = (bool) Arr::get($emailTaxSummary, 'isShippingInclusive', false);
-                        $emailShippingLines   = Arr::get($emailTaxSummary, 'shippingTaxLines', []);
                         $emailShippingColor   = $isShippingInclusive ? '#94a3b8' : '#1e293b';
                         $emailShippingWeight  = $isShippingInclusive ? 'normal' : '600';
                         if (!empty($emailShippingLines)):
@@ -543,6 +666,16 @@ use FluentCart\App\Services\Renderer\Receipt\TaxSummaryHelper;
                         </tr>
                     <?php endif; ?>
                 <?php endif; ?>
+                </tbody>
+            </table>
+                    </td>
+                </tr>
+                </tbody>
+            </table><!-- /Zone B: grey tax box -->
+            <table role="presentation" width="400"
+                   style="margin:12px 0 0 auto; width: 400px; max-width: 100%; border: none;">
+                <tbody>
+                <!-- Zone C: plain refund / total / payment -->
                 <?php endif; ?>
 
                 <?php if ($order->total_refund > 0 && $isRefund): ?>
@@ -616,4 +749,3 @@ use FluentCart\App\Services\Renderer\Receipt\TaxSummaryHelper;
         </td>
     </tr>
 </table>
-

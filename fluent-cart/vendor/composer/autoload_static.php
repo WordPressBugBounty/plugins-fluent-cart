@@ -23,6 +23,7 @@ class ComposerStaticInitb2eff533900bbaf3c7b668b284ce4755
             'FluentCart\\Dev\\' => 15,
             'FluentCart\\App\\' => 15,
             'FluentCart\\Api\\' => 15,
+            'Faker\\' => 6,
         ),
     );
 
@@ -50,6 +51,10 @@ class ComposerStaticInitb2eff533900bbaf3c7b668b284ce4755
         'FluentCart\\Api\\' =>
         array (
             0 => __DIR__ . '/../..' . '/api',
+        ),
+        'Faker\\' =>
+        array (
+            0 => __DIR__ . '/..' . '/fakerphp/faker/src/Faker',
         ),
     );
 
@@ -485,6 +490,7 @@ class ComposerStaticInitb2eff533900bbaf3c7b668b284ce4755
         'FluentCart\\App\\Modules\\PaymentMethods\\PromoGateways\\Addons\\PaystackAddon' => __DIR__ . '/../..' . '/app/Modules/PaymentMethods/PromoGateways/Addons/PaystackAddon.php',
         'FluentCart\\App\\Modules\\PaymentMethods\\PromoGateways\\Addons\\RazorpayAddon' => __DIR__ . '/../..' . '/app/Modules/PaymentMethods/PromoGateways/Addons/RazorpayAddon.php',
         'FluentCart\\App\\Modules\\PaymentMethods\\PromoGateways\\Addons\\SquareAddon' => __DIR__ . '/../..' . '/app/Modules/PaymentMethods/PromoGateways/Addons/SquareAddon.php',
+        'FluentCart\\App\\Modules\\PaymentMethods\\PromoGateways\\Addons\\SslcommerzAddon' => __DIR__ . '/../..' . '/app/Modules/PaymentMethods/PromoGateways/Addons/SslcommerzAddon.php',
         'FluentCart\\App\\Modules\\PaymentMethods\\PromoGateways\\Pro\\AuthorizeNetPromo' => __DIR__ . '/../..' . '/app/Modules/PaymentMethods/PromoGateways/Pro/AuthorizeNetPromo.php',
         'FluentCart\\App\\Modules\\PaymentMethods\\PromoGateways\\Pro\\MolliePromo' => __DIR__ . '/../..' . '/app/Modules/PaymentMethods/PromoGateways/Pro/MolliePromo.php',
         'FluentCart\\App\\Modules\\PaymentMethods\\PromoGateways\\Pro\\PaddlePromo' => __DIR__ . '/../..' . '/app/Modules/PaymentMethods/PromoGateways/Pro/PaddlePromo.php',

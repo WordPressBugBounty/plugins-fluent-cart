@@ -24,7 +24,7 @@ class OrderTransaction extends Model
 
     protected $table = 'fct_order_transactions';
 
-    protected $appends = ['url'];
+    protected $appends = ['url', 'refundable'];
     /**
      * The attributes that are mass assignable.
      *
@@ -155,13 +155,20 @@ class OrderTransaction extends Model
         return $this->hasOne(Order::class, 'id', 'order_id');
     }
 
+    public function getRefundableAttribute(): int
+    {
+        return $this->getMaxRefundableAmount();
+    }
+
     public function getMaxRefundableAmount()
     {
         if ($this->status !== Status::TRANSACTION_SUCCEEDED) {
             return 0;
         }
         $refundAmount = (int)(Arr::get($this->meta, 'refunded_total', 0));
-        return $this->total - $refundAmount;
+        $baseAmount   = $this->total - $refundAmount;
+        $filtered     = apply_filters('fluent_cart/transaction/max_refundable_amount', $baseAmount, $this);
+        return max(0, min((int) $filtered, $baseAmount));
     }
 
     public function getPaymentMethodText()

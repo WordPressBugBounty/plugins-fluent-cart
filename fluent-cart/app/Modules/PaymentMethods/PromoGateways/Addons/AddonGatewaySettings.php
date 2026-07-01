@@ -161,6 +161,7 @@ class AddonGatewaySettings extends BaseGatewaySettings
     {
         $styles = $this->getAddonNoticeStyles()[$mode];
         $downloadIcon = 'M13 10H18L12 16L6 10H11V3H13V10M4 19H20V12H22V20C22 20.5304 21.7893 21.0391 21.4142 21.4142C21.0391 21.7893 20.5304 22 20 22H4C3.46957 22 2.96086 21.7893 2.58579 21.4142C2.21071 21.0391 2 20.5304 2 20V12H4V19Z';
+        $buttonLabel = defined('FLUENTCART_PRO_PLUGIN_VERSION') ? __('Install & Activate', 'fluent-cart') : __('Download', 'fluent-cart');
         
         return '<button type="button" class="fct-btn fct-btn-primary fct-install-addon-btn" 
             style="display: inline-flex; align-items: center; background: ' . $styles['button_primary_bg'] . '; color: ' . $styles['button_primary_text'] . '; padding: 10px 24px; border-radius: 6px; border: none; font-weight: 500; font-size: 14px; cursor: pointer; transition: all 0.2s; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);"
@@ -170,7 +171,7 @@ class AddonGatewaySettings extends BaseGatewaySettings
             data-source-type="' . esc_attr(Arr::get($addonSource, 'type', 'github')) . '" 
             data-source-link="' . esc_attr($addonSource['link'] ?? '') . '">'
             . $this->renderIcon($downloadIcon, 'width: 16px; height: 16px; margin-right: 6px; fill: ' . $styles['button_primary_text'] . ';')
-            . __('Install & Activate', 'fluent-cart')
+            . $buttonLabel
             . '</button>';
     }
 

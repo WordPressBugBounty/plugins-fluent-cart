@@ -548,34 +548,111 @@ class OrderParser extends BaseParser
         $totalStyle    = 'padding:6px 0 3px;font-size:11px;font-weight:700;color:#0E121B;border-top:1px solid #e2e8f0;';
         $valueStyle    = 'text-align:right;';
 
-        $rows = '<tr><td colspan="2" style="' . $headingStyle . '">'
-              . esc_html__('TAX SUMMARY', 'fluent-cart')
-              . '</td></tr>';
+        $rows = '';
 
         if ($summary['isReverseCharge']) {
             $rcReversedTotal = isset($summary['reversedTaxTotal']) ? (int) $summary['reversedTaxTotal'] : 0;
             $rcReversedValue = $rcReversedTotal > 0
                 ? esc_html(Helper::toDecimal($rcReversedTotal))
                 : esc_html__('Charge reversed', 'fluent-cart');
+            $rows .= '<tr><td colspan="2" style="' . $headingStyle . '">'
+                   . esc_html__('TAX SUMMARY', 'fluent-cart')
+                   . '</td></tr>';
             $rows .= '<tr>'
                    . '<td style="' . $totalStyle . '">' . esc_html__('Tax reversed', 'fluent-cart') . '</td>'
                    . '<td style="' . $totalStyle . $valueStyle . '">' . $rcReversedValue . '</td>'
                    . '</tr>';
-            return $rows;
+            return $this->wrapTaxBreakdownBox($rows);
         }
 
-        $opFeeRows  = Arr::get($summary, 'feeTaxLineRows', []);
-        $rowCount   = (int) ($summary['inclusiveTax'] > 0) + (int) ($summary['exclusiveTax'] > 0) + count($opFeeRows) + (int) ($summary['shippingTax'] > 0);
-        $shouldShowBreakdown = $rowCount >= 2 || ($rowCount === 1 && !($summary['payableTax'] > 0 || $summary['inclusiveTax'] > 0 || (int) Arr::get($summary, 'inclusiveFeeTax', 0) > 0));
+        $foldedRateLines  = Arr::get($summary, 'foldedRateLines', []);
+        $includedInPrices = (int) Arr::get($summary, 'includedInPrices', 0);
+        $opFeeRows        = Arr::get($summary, 'feeTaxLineRows', []);
+        $taxRateLines     = Arr::get($summary, 'taxRateLines', []);
+        $productTaxRowCount = !empty($taxRateLines)
+            ? count($taxRateLines)
+            : (int) ($summary['inclusiveTax'] > 0) + (int) ($summary['exclusiveTax'] > 0);
+        $rowCount = $productTaxRowCount + count($opFeeRows) + (int) ($summary['shippingTax'] > 0);
+        $shippingTaxLines = Arr::get($summary, 'shippingTaxLines', []);
+        $shouldShowBreakdown = !empty($taxRateLines)
+            || !empty($shippingTaxLines)
+            || $rowCount >= 2
+            || ($rowCount === 1 && !($summary['payableTax'] > 0 || $summary['inclusiveTax'] > 0 || (int) Arr::get($summary, 'inclusiveFeeTax', 0) > 0));
 
-        if ($summary['inclusiveTax'] > 0 && $shouldShowBreakdown) {
+        if (!empty($foldedRateLines)) {
+            $colHeadStyle     = 'width:58%;padding:3px 8px 3px 0;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;color:#64748b;vertical-align:top;';
+            $colHeadBaseStyle = 'width:24%;padding:3px 8px 3px 0;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;color:#64748b;text-align:right;white-space:nowrap;vertical-align:top;';
+            $colHeadTaxStyle  = 'width:18%;padding:3px 0;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;color:#64748b;text-align:right;white-space:nowrap;vertical-align:top;';
+
+            $rows .= '<tr><td colspan="2" style="padding:5px 0 2px;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;color:#64748b;">'
+                   . esc_html__('Tax breakdown by rate', 'fluent-cart')
+                   . '</td></tr>';
+
+            $nestedTable  = '<table width="100%" cellpadding="0" cellspacing="0" style="border:none;border-collapse:collapse;table-layout:fixed;">';
+            $nestedTable .= '<tr>'
+                          . '<td style="' . $colHeadStyle . '">' . esc_html__('Rate', 'fluent-cart') . '</td>'
+                          . '<td style="' . $colHeadBaseStyle . '">' . esc_html__('Taxable base', 'fluent-cart') . '</td>'
+                          . '<td style="' . $colHeadTaxStyle . '">' . esc_html__('Tax', 'fluent-cart') . '</td>'
+                          . '</tr>';
+
+            foreach ($foldedRateLines as $foldedRow) {
+                $foldedStyle  = !empty($foldedRow['inclusive']) ? $mutedStyle : $normalStyle;
+                $foldedStyleR = $foldedStyle . $valueStyle;
+                $nestedTable .= '<tr>'
+                              . '<td style="width:58%;' . $foldedStyle . 'padding-right:8px;white-space:normal;word-break:break-word;overflow-wrap:break-word;vertical-align:top;">' . esc_html((string) $foldedRow['label']) . '</td>'
+                              . '<td style="width:24%;' . $foldedStyleR . 'padding-right:8px;white-space:nowrap;vertical-align:top;">' . CurrencySettings::getPriceHtml((int) $foldedRow['base'], $currency) . '</td>'
+                              . '<td style="width:18%;' . $foldedStyleR . 'white-space:nowrap;vertical-align:top;">' . CurrencySettings::getPriceHtml((int) $foldedRow['tax'], $currency) . '</td>'
+                              . '</tr>';
+            }
+            $nestedTable .= '</table>';
+
+            $rows .= '<tr><td colspan="2" style="padding:2px 0 0 0;">' . $nestedTable . '</td></tr>';
+
+            $rows .= '<tr>'
+                   . '<td style="' . $totalStyle . '">' . esc_html__('Total tax', 'fluent-cart') . '</td>'
+                   . '<td style="' . $totalStyle . $valueStyle . '">' . CurrencySettings::getPriceHtml((int) $summary['totalOrderTax'], $currency) . '</td>'
+                   . '</tr>';
+
+            if ($includedInPrices > 0) {
+                $rows .= '<tr>'
+                       . '<td style="' . $mutedStyle . '">' . esc_html__('of which included in prices', 'fluent-cart') . '</td>'
+                       . '<td style="' . $mutedStyle . $valueStyle . '">' . CurrencySettings::getPriceHtml($includedInPrices, $currency) . '</td>'
+                       . '</tr>';
+            }
+
+            if ($summary['payableTax'] > 0 && $includedInPrices > 0) {
+                $payableStyle = $totalStyle;
+                $rows .= '<tr>'
+                       . '<td style="' . $payableStyle . '">' . esc_html__('Payable now (added)', 'fluent-cart') . '</td>'
+                       . '<td style="' . $payableStyle . $valueStyle . '">' . CurrencySettings::getPriceHtml((int) $summary['payableTax'], $currency) . '</td>'
+                       . '</tr>';
+            }
+
+            return $this->wrapTaxBreakdownBox($rows);
+        }
+
+        $rows .= '<tr><td colspan="2" style="' . $headingStyle . '">'
+              . esc_html__('TAX SUMMARY', 'fluent-cart')
+              . '</td></tr>';
+
+        if (!empty($taxRateLines) && $shouldShowBreakdown) {
+            foreach ($taxRateLines as $taxLine) {
+                $taxLineStyle = !empty($taxLine['inclusive']) ? $mutedStyle : $normalStyle;
+                $rows .= '<tr>'
+                       . '<td style="' . $taxLineStyle . '">' . esc_html($taxLine['label']) . '</td>'
+                       . '<td style="' . $taxLineStyle . $valueStyle . '">' . CurrencySettings::getPriceHtml($taxLine['order_tax'], $currency) . '</td>'
+                       . '</tr>';
+            }
+        }
+
+        if (empty($taxRateLines) && $summary['inclusiveTax'] > 0 && $shouldShowBreakdown) {
             $rows .= '<tr>'
                    . '<td style="' . $mutedStyle . '">' . esc_html__('Included in item prices', 'fluent-cart') . '</td>'
                    . '<td style="' . $mutedStyle . $valueStyle . '">' . CurrencySettings::getPriceHtml($summary['inclusiveTax'], $currency) . '</td>'
                    . '</tr>';
         }
 
-        if ($summary['exclusiveTax'] > 0 && $shouldShowBreakdown) {
+        if (empty($taxRateLines) && $summary['exclusiveTax'] > 0 && $shouldShowBreakdown) {
             $rows .= '<tr>'
                    . '<td style="' . $normalStyle . '">' . esc_html__('Added on products', 'fluent-cart') . '</td>'
                    . '<td style="' . $normalStyle . $valueStyle . '">' . CurrencySettings::getPriceHtml($summary['exclusiveTax'], $currency) . '</td>'
@@ -595,13 +672,22 @@ class OrderParser extends BaseParser
         if ($summary['shippingTax'] > 0 && $shouldShowBreakdown) {
             $isShippingInclusive = TaxSummaryHelper::isShippingTaxInclusive($this->order);
             $shippingRowStyle    = $isShippingInclusive ? $mutedStyle : $normalStyle;
-            $shippingRowLabel    = $isShippingInclusive
-                ? esc_html__('Included in shipping prices', 'fluent-cart')
-                : esc_html__('Added on shipping', 'fluent-cart');
-            $rows .= '<tr>'
-                   . '<td style="' . $shippingRowStyle . '">' . $shippingRowLabel . '</td>'
-                   . '<td style="' . $shippingRowStyle . $valueStyle . '">' . CurrencySettings::getPriceHtml($summary['shippingTax'], $currency) . '</td>'
-                   . '</tr>';
+            if (!empty($shippingTaxLines)) {
+                foreach ($shippingTaxLines as $shippingTaxLine) {
+                    $rows .= '<tr>'
+                           . '<td style="' . $shippingRowStyle . '">' . esc_html($shippingTaxLine['label']) . '</td>'
+                           . '<td style="' . $shippingRowStyle . $valueStyle . '">' . CurrencySettings::getPriceHtml($shippingTaxLine['shipping_tax'], $currency) . '</td>'
+                           . '</tr>';
+                }
+            } else {
+                $shippingRowLabel = $isShippingInclusive
+                    ? esc_html__('Included in shipping prices', 'fluent-cart')
+                    : esc_html__('Added on shipping', 'fluent-cart');
+                $rows .= '<tr>'
+                       . '<td style="' . $shippingRowStyle . '">' . $shippingRowLabel . '</td>'
+                       . '<td style="' . $shippingRowStyle . $valueStyle . '">' . CurrencySettings::getPriceHtml($summary['shippingTax'], $currency) . '</td>'
+                       . '</tr>';
+            }
         }
 
         if ($summary['payableTax'] > 0) {
@@ -618,7 +704,41 @@ class OrderParser extends BaseParser
                    . '</tr>';
         }
 
-        return $rows;
+        return $this->wrapTaxBreakdownBox($rows);
+    }
+
+    /**
+     * Wrap the accumulated tax-breakdown rows in their own grey rounded box,
+     * right-aligned to a fixed 400px column.
+     *
+     * The tax breakdown is the only thing that lives inside the grey box; the
+     * surrounding Subtotal/Discount/Shipping/Fees rows (above) and Refund/Total/
+     * Payment rows (below) are rendered as plain rows by the summary table and
+     * stay outside this wrapper. A table-based 400px right-aligned wrapper is used
+     * (not a div) so PDF renderers (mPDF/Dompdf) and email clients honour the
+     * width/alignment, matching the boxed treatment on the thank-you/customer
+     * surfaces. Consumed by the PDF receipt templates via {{order.tax_breakdown}}.
+     *
+     * @param string $rows Inner <tr> rows for the tax breakdown.
+     * @return string A single <tr><td colspan="2"> cell carrying the grey box.
+     */
+    private function wrapTaxBreakdownBox(string $rows): string
+    {
+        if ($rows === '') {
+            return '';
+        }
+
+        $boxStyle = 'background-color:rgb(249,250,251);padding:16px;border-radius:8px;';
+
+        $nestedTable = '<table width="100%" cellpadding="0" cellspacing="0" style="width:100%;border:none;border-collapse:collapse;">'
+                     . $rows
+                     . '</table>';
+
+        return '<tr><td colspan="2" style="padding:8px 0 0 0;">'
+             . '<table align="right" width="400" cellpadding="0" cellspacing="0" style="width:400px;max-width:100%;border:none;border-collapse:collapse;margin:0 0 0 auto;">'
+             . '<tr><td style="' . $boxStyle . '">' . $nestedTable . '</td></tr>'
+             . '</table>'
+             . '</td></tr>';
     }
 
     private function resolveTaxRateLabel($orderTaxRate): string

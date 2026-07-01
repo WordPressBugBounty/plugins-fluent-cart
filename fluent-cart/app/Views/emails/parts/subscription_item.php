@@ -33,7 +33,7 @@
                 <tr style="width:100%">
                     <td style="width:80%">
                         <p style="font-size:14px;font-weight:600;color:rgb(17,24,39);margin-bottom:2px;line-height:24px;margin-top:16px">
-                            <?php echo esc_html($subscription->item_name); ?>
+                            <?php echo esc_html($subscription->display_item_name); ?>
                         </p>
                     </td>
                     <td style="width:20%;text-align:right">

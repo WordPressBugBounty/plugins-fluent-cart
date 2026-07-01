@@ -5051,6 +5051,12 @@
         'src' => 'resources/images/payment-methods/airwallex-icon.svg',
         'isEntry' => true
     ],
+    'resources/images/payment-methods/airwallex-logo-light.svg' => [
+        'file' => 'images/payment-methods/airwallex-logo-light.svg',
+        'name' => 'airwallex-logo-light',
+        'src' => 'resources/images/payment-methods/airwallex-logo-light.svg',
+        'isEntry' => true
+    ],
     'resources/images/payment-methods/airwallex-logo.svg' => [
         'file' => 'images/payment-methods/airwallex-logo.svg',
         'name' => 'airwallex-logo',
@@ -5109,6 +5115,12 @@
         'file' => 'images/payment-methods/offline-payment-icon.svg',
         'name' => 'offline-payment-icon',
         'src' => 'resources/images/payment-methods/offline-payment-icon.svg',
+        'isEntry' => true
+    ],
+    'resources/images/payment-methods/offline-payment-light.svg' => [
+        'file' => 'images/payment-methods/offline-payment-light.svg',
+        'name' => 'offline-payment-light',
+        'src' => 'resources/images/payment-methods/offline-payment-light.svg',
         'isEntry' => true
     ],
     'resources/images/payment-methods/offline-payment.svg' => [
@@ -5175,6 +5187,12 @@
         'file' => 'images/payment-methods/square-logo.svg',
         'name' => 'square-logo',
         'src' => 'resources/images/payment-methods/square-logo.svg',
+        'isEntry' => true
+    ],
+    'resources/images/payment-methods/sslcommerz-logo.svg' => [
+        'file' => 'images/payment-methods/sslcommerz-logo.svg',
+        'name' => 'sslcommerz-logo',
+        'src' => 'resources/images/payment-methods/sslcommerz-logo.svg',
         'isEntry' => true
     ],
     'resources/images/payment-methods/stripe-connect.png' => [

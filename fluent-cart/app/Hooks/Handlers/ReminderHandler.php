@@ -125,7 +125,7 @@ class ReminderHandler
                 'email_notice' => [
                     'conditions' => $enabledCondition,
                     'type'       => 'html',
-                    'value'      => '<div class="fc_reminder_email_notice" style="background: #f0f6ff; border: 1px solid #d0e2ff; border-radius: 6px; padding: 10px 14px; font-size: 13px; color: #1e3a5f;">'
+                    'value'      => '<div class="fct-alert">'
                         . sprintf(
                             /* translators: %s is the opening and closing anchor tag */
                             __('Reminder emails must also be enabled in %1$sEmail Notification Settings%2$s under "Scheduler / Reminder Actions" to be delivered.', 'fluent-cart'),

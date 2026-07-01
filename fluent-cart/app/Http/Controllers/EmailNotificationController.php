@@ -56,6 +56,10 @@ class EmailNotificationController extends Controller
 
             $pdfTemplates = $hasFluentPdf ? (new ReceiptPdfTemplateService())->getTemplateList() : [];
 
+            // Let add-ons inject their custom field data (settings.extra / extra_fields)
+            // into the editor payload from their own storage.
+            $notification = apply_filters('fluent_cart/email_notification_data', $notification, $name);
+
             return $this->sendSuccess([
                 'data'           => $notification,
                 'shortcodes'     => EditorShortCodeHelper::getEmailNotificationShortcodes(),
@@ -86,6 +90,10 @@ class EmailNotificationController extends Controller
 
         $updated = EmailNotifications::updateNotification($notification, $settings);
         if ($updated) {
+            // Core does not persist custom fields (settings.extra). It fires this after a
+            // successful update so add-ons can store their own data in their own storage.
+            do_action('fluent_cart/email_notification_updated', $notification, $settings);
+
             return $this->sendSuccess([
                 'message' => __('Notification updated successfully', 'fluent-cart')
             ]);

@@ -3,7 +3,9 @@
 namespace FluentCart\Api\Resource;
 
 use FluentCart\App\App;
+use FluentCart\App\Helpers\AttributeHelper;
 use FluentCart\App\Models\OrderItem;
+use FluentCart\App\Models\ProductVariation;
 use FluentCart\Framework\Database\Orm\Builder;
 use FluentCart\Framework\Support\Arr;
 use FluentCart\Framework\Support\Collection;
@@ -233,11 +235,30 @@ class OrderItemResource extends BaseResourceApi
 
                 if (empty($isExist)) {
                     unset($itemData['id']);
+
+                    // Snapshot the variant's attribute map + variation type into
+                    // other_info so items added on order-edit carry the same data as
+                    // the create path (AdminOrderProcessor), not just what the picker sent.
+                    $otherInfo = Arr::get($item, 'other_info', []);
+                    if (!is_array($otherInfo)) {
+                        $otherInfo = [];
+                    }
+                    if (!array_key_exists('item_attributes', $otherInfo)) {
+                        $otherInfo['item_attributes'] = AttributeHelper::getProductItemAttributes($variationId, $productId);
+                    }
+                    if (empty($otherInfo['variation_type'])) {
+                        // Resolve server-side from the variation (same as the create
+                        // path) — admin orders don't go through the cart, so the snapshot
+                        // is the server's responsibility, not the request's.
+                        $variation = ProductVariation::query()->with('product_detail')->find($variationId);
+                        $otherInfo['variation_type'] = ($variation && $variation->product_detail) ? (string) $variation->product_detail->variation_type : '';
+                    }
+
                     $item = wp_parse_args([
                         'order_id' => $id,
                         'cart_index' => $idx + 1,
                         'fulfillment_type' => $fulfillment_type,
-                        'other_info' => json_encode(Arr::get($item, 'other_info', [])),
+                        'other_info' => json_encode($otherInfo),
                         'payment_type' => Arr::get($item, 'payment_type', Arr::get($item, 'other_info.payment_type', '')),
                         'shipping_charge' => Arr::get($item, 'shipping_charge', 0),
                         'created_at' => DateTime::now(),

@@ -28,6 +28,7 @@ class Airwallex extends AbstractPaymentGateway
             'route' => 'airwallex',
             'description' => __('Pay securely with Airwallex - Global payment processing', 'fluent-cart'),
             'logo' => Vite::getAssetUrl("images/payment-methods/airwallex-logo.svg"),
+            'logo_light' => Vite::getAssetUrl("images/payment-methods/airwallex-logo-light.svg"),
             'icon' => Vite::getAssetUrl("images/payment-methods/airwallex-logo.svg"),
             'brand_color' => '#6c5ce7',
             'status' => $this->settings->get('is_active') === 'yes',

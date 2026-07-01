@@ -640,6 +640,10 @@ class CheckoutProcessor
                 );
             }
 
+            if (!isset($args['variation_type'])) {
+                $args['variation_type'] = (string) Arr::get($cartItem, 'variation_type', '');
+            }
+
             $item = [
                 'payment_type'     => $paymentType,
                 'post_id'          => Arr::get($cartItem, 'post_id'),
@@ -894,7 +898,11 @@ class CheckoutProcessor
             'status'                 => Status::SUBSCRIPTION_PENDING,
             'config'                 => [
                 'is_trial_days_simulated' => Arr::get($subscriptionPricing, 'is_trial_days_simulated', 'no'),
-                'currency'                => $this->orderData['currency']
+                'currency'                => $this->orderData['currency'],
+                // Snapshot the variant attribute map + variation type from the order
+                // item so the subscription carries the same pa_* set behind its item_name.
+                'item_attributes'         => Arr::get($item, 'other_info.item_attributes', []),
+                'variation_type'          => Arr::get($item, 'other_info.variation_type', '')
             ]
         ];
 

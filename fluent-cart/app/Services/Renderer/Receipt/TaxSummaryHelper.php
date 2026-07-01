@@ -153,9 +153,17 @@ class TaxSummaryHelper
         $isShippingInclusive = self::isShippingTaxInclusive($order);
         $payableTax          = $exclusiveTax + $exclusiveFeeTax + ($isShippingInclusive ? 0 : $shippingTax);
         $totalOrderTax       = $inclusiveTax + $inclusiveFeeTax + ($isShippingInclusive ? $shippingTax : 0) + $payableTax;
+        $taxRateLines        = $order->getDisplayTaxLines();
+        $shippingTaxLines    = $order->getDisplayShippingTaxLines();
 
-        if ($inclusiveTax === 0 && $inclusiveFeeTax === 0 && $payableTax === 0 && !$isReverseCharge) {
-            return ['shouldRender' => false];
+        if ($inclusiveTax === 0 && $inclusiveFeeTax === 0 && $payableTax === 0 && $shippingTax === 0 && empty($taxRateLines) && !$isReverseCharge) {
+            return [
+                'shouldRender'     => false,
+                'taxRateLines'     => $taxRateLines,
+                'shippingTaxLines' => $shippingTaxLines,
+                'foldedRateLines'  => [],
+                'includedInPrices' => 0,
+            ];
         }
 
         $shouldRender = apply_filters('fluent_cart/tax_summary_should_render', true, $order);
@@ -190,11 +198,12 @@ class TaxSummaryHelper
             'isReverseCharge'     => $isReverseCharge,
             'inclusiveTax'        => $inclusiveTax,
             'exclusiveTax'        => $exclusiveTax,
+            'taxRateLines'        => $taxRateLines,
             'feeTaxLines'         => $feeTaxLines,
             'feeTaxLineRows'      => self::buildFeeTaxLineRows($feeTaxLines),
             'inclusiveFeeTax'     => $inclusiveFeeTax,
             'shippingTax'         => $shippingTax,
-            'shippingTaxLines'    => $order->getDisplayShippingTaxLines(),
+            'shippingTaxLines'    => $shippingTaxLines,
             'payableTax'          => $payableTax,
             'totalOrderTax'       => $totalOrderTax,
             'isShippingInclusive' => $isShippingInclusive,
@@ -204,6 +213,12 @@ class TaxSummaryHelper
             'rcShippingAdjustment' => $rcShippingAdjustment,
             'rcTotalAdjustment'    => $rcShippingAdjustment,
             'showRcShippingRow'    => $showRcShippingRow,
+            'foldedRateLines'     => self::buildFoldedRateRows($taxRateLines, $shippingTaxLines, 'order_tax', $isShippingInclusive),
+            // Inclusive shipping tax follows the store global tax mode: when shipping is
+            // priced inclusive its tax is already baked into the shipping price, so it
+            // belongs in "of which included in prices". This keeps
+            // includedInPrices + payableTax === totalOrderTax on every surface.
+            'includedInPrices'    => $inclusiveTax + $inclusiveFeeTax + ($isShippingInclusive ? $shippingTax : 0),
         ];
     }
 
@@ -377,6 +392,70 @@ class TaxSummaryHelper
                 'tax_amount'    => $taxAmount,
                 'inclusive'     => $inclusive,
                 'display_label' => $displayLabel,
+            ];
+        }
+        return $rows;
+    }
+
+    /**
+     * Build a folded per-rate row array for the 3-column tax breakdown table.
+     *
+     * Merges order-tax rate lines with shipping-tax lines by rate_id so each rate
+     * appears once with its combined tax and computed taxable base.
+     *
+     * @param array  $rateLines          Output of Order::getDisplayTaxLines().
+     * @param array  $shippingLines      Output of Order::getDisplayShippingTaxLines().
+     * @param string $taxAmountKey       Key holding the order tax amount in each $rateLine ('order_tax').
+     * @param bool   $isShippingInclusive Whether shipping tax is inclusive.
+     * @return array Each row: ['label'=>string,'base'=>int,'tax'=>int,'inclusive'=>bool]
+     */
+    public static function buildFoldedRateRows($rateLines, $shippingLines, $taxAmountKey, $isShippingInclusive)
+    {
+        $rateLines     = is_array($rateLines) ? $rateLines : [];
+        $shippingLines = is_array($shippingLines) ? $shippingLines : [];
+        if (empty($rateLines) && empty($shippingLines)) {
+            return [];
+        }
+        $shippingByRate = [];
+        foreach ($shippingLines as $shLine) {
+            $shippingByRate[(int) Arr::get($shLine, 'rate_id', 0)] = (int) Arr::get($shLine, 'shipping_tax', 0);
+        }
+        $rows = [];
+        foreach ($rateLines as $rateKey => $rateLine) {
+            $rid         = (int) Arr::get($rateLine, 'rate_id', $rateKey);
+            $ratePercent = (float) Arr::get($rateLine, 'rate_percent', 0);
+            $shipForRate = isset($shippingByRate[$rid]) ? (int) $shippingByRate[$rid] : 0;
+            unset($shippingByRate[$rid]);
+            $combinedTax = (int) Arr::get($rateLine, $taxAmountKey, 0) + $shipForRate;
+            $base        = $ratePercent > 0
+                ? (int) round($combinedTax * 100 / $ratePercent)
+                : (int) Arr::get($rateLine, 'taxable_amount', 0);
+            $label = (string) Arr::get($rateLine, 'rate_label', Arr::get($rateLine, 'label', ''));
+            $rows[] = [
+                'label'     => $label,
+                'base'      => $base,
+                'tax'       => $combinedTax,
+                'inclusive' => !empty($rateLine['inclusive']),
+            ];
+        }
+        foreach ($shippingByRate as $sid => $shAmount) {       // shipping-only rates
+            if ($shAmount <= 0) {
+                continue;
+            }
+            $shLine = null;
+            foreach ($shippingLines as $cand) {
+                if ((int) Arr::get($cand, 'rate_id', 0) === (int) $sid) {
+                    $shLine = $cand;
+                    break;
+                }
+            }
+            $ratePercent = (float) Arr::get($shLine, 'rate_percent', 0);
+            $base        = $ratePercent > 0 ? (int) round($shAmount * 100 / $ratePercent) : 0;
+            $rows[] = [
+                'label'     => (string) Arr::get($shLine, 'rate_label', Arr::get($shLine, 'label', '')),
+                'base'      => $base,
+                'tax'       => $shAmount,
+                'inclusive' => (bool) $isShippingInclusive,
             ];
         }
         return $rows;

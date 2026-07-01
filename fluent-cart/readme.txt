@@ -1,10 +1,10 @@
 === FluentCart A New Era of eCommerce - Faster, Lighter, and Simpler ===
 Contributors: wpmanageninja, techjewel
 Tags: ecommerce, cart, checkout, subscriptions, payments
-Requires at least: 7.0
+Requires at least: 6.7
 Tested up to: 7.0
 Requires PHP: 7.4
-Stable tag: 1.5.1
+Stable tag: 1.5.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -312,6 +312,26 @@ This service is provided by PayPal: [Terms of Service](https://www.paypal.com/le
 
 
 == Changelog ==
+
+= 1.5.2 (Jun 30, 2026) =
+- Adds SSLCommerz payment gateway support
+- Adds Product template type support for Bricks Builder
+- Adds Inline variant selector in Advanced Variations group-edit summary bar
+- Adds Per-variant checkboxes to scope bulk updates to selected variants only
+- Adds Card update redirect flow for customer portal (Paddle and redirect-only gateways)
+- Adds Dynamic extra settings fields extension point for Email Notifications
+- Adds Filter fluent_cart/transaction/max_refundable_amount for gateway-level refund cap
+- Fixes Variation attribute label leaking into Authorize.Net and Mollie gateway names
+- Fixes Duplicated variation titles in cart and checkout display
+- Fixes Dark mode colors for alerts, inputs, icon buttons, and popover links
+- Fixes Aategory block select border issue
+- Fixes Stripe duplicate charges issue
+- Improves Admin order builder to show labeled variation attributes
+- Improves Tax breakdown with per-rate VAT lines across checkout, emails, PDF, and order views
+- Improves EU VAT validation to work independently of reverse charge for domestic B2B
+- Improves Subscription and order item names to show resolved variation attribute labels
+- Improves Paddle multi currency handle
+- Improves Labeled variation attributes consistently across Cart, Checkout, Customer dashboard, Emails, Invoices, PDF receipt, and admin order
 
 = 1.5.1 (Jun 24, 2026) =
 - Improves Advanced variations UI/UX

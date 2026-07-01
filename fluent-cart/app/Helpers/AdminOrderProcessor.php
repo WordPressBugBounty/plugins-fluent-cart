@@ -116,6 +116,10 @@ class AdminOrderProcessor
                 );
             }
 
+            if (!isset($args['variation_type'])) {
+                $args['variation_type'] = ($variation && $variation->product_detail) ? $variation->product_detail->variation_type : '';
+            }
+
             $item = [
                 'payment_type'     => $paymentType,
                 'post_id'          => Arr::get($checkoutItem, 'post_id'),
@@ -533,6 +537,10 @@ class AdminOrderProcessor
             'config'                 => [
                 'currency' => $this->orderData['currency'],
                 'is_trial_days_simulated' => Arr::get($subscriptionPricing, 'is_trial_days_simulated', 'no'),
+                // Snapshot the variant attribute map + variation type from the order
+                // item so the subscription carries the same pa_* set behind its item_name.
+                'item_attributes' => Arr::get($item, 'other_info.item_attributes', []),
+                'variation_type'  => Arr::get($item, 'other_info.variation_type', ''),
             ]
         ];
 

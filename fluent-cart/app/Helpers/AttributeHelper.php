@@ -142,6 +142,117 @@ class AttributeHelper
     }
 
     /**
+     * Batched variant of getProductItemAttributes — resolves the item_attributes
+     * snapshot for many variations with a SINGLE whereIn query, so cart writes
+     * carrying several unsnapshotted items don't run one query per item. The
+     * per-item `fluent_cart/item_attributes` filter still fires for each variation.
+     *
+     * @param array $variationIds Variation (object) ids.
+     * @param array $productIds   Optional variationId => productId map for filter context.
+     * @return array variationId => item_attributes
+     */
+    public static function getProductItemsAttributes($variationIds, $productIds = [])
+    {
+        $variationIds = array_values(array_unique(array_filter(array_map('intval', (array) $variationIds))));
+
+        if (!$variationIds) {
+            return [];
+        }
+
+        $productIdMap = (array) $productIds;
+
+        $relationsByVariation = AttributeRelation::query()
+            ->whereIn('object_id', $variationIds)
+            ->with(['group', 'term'])
+            ->get()
+            ->groupBy('object_id');
+
+        $attributesByVariation = [];
+        foreach ($variationIds as $variationId) {
+            $atts = [];
+
+            foreach ($relationsByVariation->get($variationId, []) as $relation) {
+                $group = $relation->group;
+                $term  = $relation->term;
+
+                if (!$group || !$term) {
+                    continue;
+                }
+
+                // Our own attributes carry the `pa_` prefix on the group slug.
+                $atts['pa_' . $group->slug] = [
+                    'value' => $term->title,
+                    'slug'  => $term->slug,
+                ];
+            }
+
+            // Third-party attributes are appended without the `pa_` prefix —
+            // providers key by their own group slug and supply value/slug.
+            $attributesByVariation[$variationId] = apply_filters('fluent_cart/item_attributes', $atts, [
+                'variation_id' => $variationId,
+                'product_id'   => (int) Arr::get($productIdMap, $variationId, 0),
+            ]);
+        }
+
+        return $attributesByVariation;
+    }
+
+    /**
+     * Attach a resolved `variation_display_title` ("Color: Red | Size: S") to every
+     * variation of the given products — the picker/list-side mirror of the order
+     * item display.
+     *
+     * Resolves the attribute snapshot for ALL variations in ONE batched query (no
+     * per-variant N+1), and only touches products whose `detail.variants` relation
+     * is eager-loaded — so callers that don't load variants pay nothing. Variations
+     * are mutated in place; the value falls back to the raw variation_title for
+     * simple products. Reusable across any product-list endpoint.
+     *
+     * @param iterable $products Product models with `detail.variants` loaded.
+     * @return void
+     */
+    public static function attachVariationDisplayTitles($products)
+    {
+        // Single pass over the product tree: collect variation ids for the batched
+        // lookup and keep a flat list of variants (with their type) to fill afterwards.
+        $productIdByVariation = [];
+        $pendingVariants      = [];
+        foreach ($products as $product) {
+            $variants = ($product->detail && $product->detail->relationLoaded('variants')) ? $product->detail->variants : null;
+            if (!$variants) {
+                continue;
+            }
+            $variationType = $product->detail->variation_type;
+            foreach ($variants as $variant) {
+                $productIdByVariation[$variant->id] = (int) $product->ID;
+                $pendingVariants[] = ['variant' => $variant, 'variation_type' => $variationType];
+            }
+        }
+
+        if (!$pendingVariants) {
+            return;
+        }
+
+        // ONE batched query resolves the attribute snapshot for every variation.
+        $attributesByVariation = self::getProductItemsAttributes(array_keys($productIdByVariation), $productIdByVariation);
+
+        foreach ($pendingVariants as $pendingVariant) {
+            $variant       = $pendingVariant['variant'];
+            $variationType = $pendingVariant['variation_type'];
+            $displayTitle  = self::getDisplayAttributesString(
+                Arr::get($attributesByVariation, $variant->id, []),
+                [
+                    'title'          => $variant->variation_title,
+                    'variation_type' => $variationType,
+                    'other_info'     => ['variation_type' => $variationType],
+                ],
+                'order_item'
+            );
+            $variant->variation_display_title = $displayTitle !== '' ? $displayTitle : $variant->variation_title;
+        }
+    }
+
+    /**
      * The store's attribute groups as a lightweight slug => label/type map.
      *
      * Sourced from the request-cached `getStoreProductAttributeSet()` registry,
@@ -244,39 +355,90 @@ class AttributeHelper
     }
 
     /**
-     * Render a line item's attributes as a single inline string.
+     * Render a line item's variation display string.
+     *
+     * Returns the labeled attribute combination ("Color: Red | Size: XS") when
+     * the item carries an attribute snapshot. When no attributes resolve it
+     * falls back to the item's variation title — staying empty for simple
+     * products whose title equals their post_title (no real variation). So
+     * callers can use the return value directly without their own fallback.
      *
      * @param array  $itemAttributes other_info['item_attributes'] snapshot.
-     * @param mixed  $item           Owning cart/order item (passed to filters).
+     * @param mixed  $item           Owning cart/order item (model or array).
      * @param string $scope          'cart' | 'order_item'.
      * @param string $separator      Glue between pairs (default ' | ').
-     * @return string e.g. "Color: Red | Size: XS"
+     * @return string e.g. "Color: Red | Size: XS", the variation title, or ''
      */
     public static function getDisplayAttributesString(array $itemAttributes, $item = null, $scope = 'cart', $separator = ' | ')
     {
         $displayAtts = self::getDisplayAttributes($itemAttributes, $item, $scope);
-        if(!$displayAtts || !is_array($displayAtts)) {
-            return '';
-        }
 
         $parts = [];
-        foreach ($displayAtts as $attr) {
-            $title = Arr::get($attr, 'display_title', '');
-            $value = Arr::get($attr, 'display_value', '');
-            // Skip the "Label: " prefix when the title is missing, otherwise we
-            // would render a stray leading colon (": Red").
-            $parts[] = $title !== '' ? $title . ': ' . $value : $value;
+        if (is_array($displayAtts)) {
+            foreach ($displayAtts as $attr) {
+                $title = Arr::get($attr, 'display_title', '');
+                $value = Arr::get($attr, 'display_value', '');
+                // Skip the "Label: " prefix when the title is missing, otherwise
+                // we would render a stray leading colon (": Red").
+                $parts[] = $title !== '' ? $title . ': ' . $value : $value;
+            }
         }
 
-        $string = implode($separator, $parts);
+        $displayTitleString = implode($separator, $parts);
+
+        // variation_type lives in other_info on order items, but cart items carry
+        // it at the root level too — accept either so the advanced-variation check
+        // works the same in cart, checkout and order contexts.
+        $variationType = Arr::get($item, 'other_info.variation_type', '');
+        if ($variationType === '') {
+            $variationType = is_object($item)
+                ? (string) ($item->variation_type ?? '')
+                : (string) Arr::get($item, 'variation_type', '');
+        }
+
+        // Non-advanced items prefix the variation title ("<title> | <attributes>")
+        // since their attributes (third-party injected) don't name the product;
+        // advanced variations skip it as their combination is self-describing.
+        if ($displayTitleString !== '' && $itemAttributes &&
+            $variationType !== Helper::PRODUCT_TYPE_ADVANCE_VARIATION
+        ) {
+            $title = is_object($item) ? (string) ($item->title ?? '') : (string) Arr::get($item, 'title', '');
+
+            if ($title !== '' && strpos($displayTitleString, $title) !== 0) {
+                $displayTitleString = $title . ' | ' . $displayTitleString;
+            }
+        }
+
+        if ($displayTitleString === '') {
+            $displayTitleString = self::variationTitleFallback($item);
+        }
 
         // Let integrators render the combination in their own format — they get
         // the default string plus the resolved rows to rebuild from scratch.
-        return apply_filters('fluent_cart/item_display_attr_string', $string, [
+        return apply_filters('fluent_cart/item_display_attr_string', $displayTitleString, [
             'display_atts' => $displayAtts,
             'item'         => $item,
             'scope'        => $scope,
             'separator'    => $separator,
         ]);
+    }
+
+    /**
+     * Variation title used when no attributes resolve — empty for simple
+     * products (title === post_title), otherwise the variation title.
+     *
+     * @param mixed $item Cart/order item model or array.
+     * @return string
+     */
+    protected static function variationTitleFallback($item)
+    {
+        if ($item === null) {
+            return '';
+        }
+
+        $postTitle = is_object($item) ? (string) ($item->post_title ?? '') : (string) Arr::get($item, 'post_title', '');
+        $title     = is_object($item) ? (string) ($item->title ?? '') : (string) Arr::get($item, 'title', '');
+
+        return $postTitle === $title ? '' : $title;
     }
 }

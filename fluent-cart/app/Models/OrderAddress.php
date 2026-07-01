@@ -90,7 +90,7 @@ class OrderAddress extends Model
         return end($nameParts);
     }
 
-    public function order(): \FluentCart\Framework\Database\Orm\Relations\belongsTo
+    public function order(): \FluentCart\Framework\Database\Orm\Relations\BelongsTo
     {
         return $this->belongsTo(Order::class, 'order_id', 'id');
     }

@@ -25,6 +25,7 @@ use FluentCart\App\Models\ShippingClass;
 use FluentCart\App\Models\TaxClass;
 use FluentCart\App\Modules\ReportingModule\ProductReport;
 use FluentCart\App\Services\Async\DummyProductService;
+use FluentCart\App\Helpers\AttributeHelper;
 use FluentCart\App\Services\BulkProductInsertService;
 use FluentCart\App\Services\BulkProductUpdateService;
 use FluentCart\App\Services\Filter\ProductFilter;
@@ -43,6 +44,10 @@ class ProductController extends Controller
     {
         //$request->set('with', ['detail', 'variants:post_id,available,manage_stock,stock_status,variation_title,other_info']);
         $products = ProductFilter::fromRequest($request)->paginate();
+
+        // Attach the resolved variation_display_title to each variation (batched,
+        // no N+1) so the admin order product picker matches the order item display.
+        AttributeHelper::attachVariationDisplayTitles($products->getCollection());
 
         $products->setCollection(
             $products->getCollection()->transform(function ($product) {

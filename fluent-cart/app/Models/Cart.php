@@ -137,13 +137,58 @@ class Cart extends Model
     {
         $items = Arr::wrap($settings);
 
-        // variation_display_title is a presentation-only value derived on read
-        // (getCartDataAttribute). Strip it before persisting so mutation paths
-        // that round-trip cart_data never bake stale denormalized text into the
-        // stored JSON.
+        // Collect object_ids of items still missing the snapshot so the relations
+        // are fetched in ONE batched query instead of one per item — cart writes
+        // are user-facing and can carry several unsnapshotted items (legacy/admin
+        // carts). generateCartItemFromVariation already sets it for storefront
+        // adds, and simple products get an empty snapshot stored once.
+        $productIdByVariation = [];
+        foreach ($items as $item) {
+            if (!is_array($item) || Arr::get($item, 'is_custom')) {
+                // Custom/manual items aren't product variations — their object_id
+                // is not a variation id, so never resolve attribute relations for
+                // them (a coincidental id match would corrupt their snapshot).
+                continue;
+            }
+            $objectId  = (int) Arr::get($item, 'object_id', 0);
+            $otherInfo = Arr::get($item, 'other_info', []);
+            if ($objectId && (!is_array($otherInfo) || !array_key_exists('item_attributes', $otherInfo))) {
+                $productIdByVariation[$objectId] = (int) Arr::get($item, 'post_id', 0);
+            }
+        }
+
+        $snapshotByVariation = $productIdByVariation
+            ? AttributeHelper::getProductItemsAttributes(array_keys($productIdByVariation), $productIdByVariation)
+            : [];
+
         foreach ($items as &$item) {
-            if (is_array($item)) {
-                unset($item['variation_display_title']);
+            if (!is_array($item)) {
+                continue;
+            }
+
+            // variation_display_title is a presentation-only value derived on
+            // read (getCartDataAttribute). Strip it so mutation paths that
+            // round-trip cart_data never bake stale denormalized text into JSON.
+            unset($item['variation_display_title']);
+
+            // Custom/manual items are not product variations — skip the backfill
+            // so a coincidental object_id match can't bleed a variation snapshot.
+            if (Arr::get($item, 'is_custom')) {
+                continue;
+            }
+
+            // Persist the item_attributes snapshot from the batched lookup so
+            // every cart (frontend, admin, pay-now) resolves the labeled
+            // combination from the DB. Only items that were missing it appear
+            // in the map; simple products store an empty snapshot once.
+            $objectId  = (int) Arr::get($item, 'object_id', 0);
+            $otherInfo = Arr::get($item, 'other_info', []);
+            if (!is_array($otherInfo)) {
+                $otherInfo = [];
+            }
+            if ($objectId && array_key_exists($objectId, $snapshotByVariation) && !array_key_exists('item_attributes', $otherInfo)) {
+                $otherInfo['item_attributes'] = $snapshotByVariation[$objectId];
+                $item['other_info'] = $otherInfo;
             }
         }
         unset($item);
@@ -164,7 +209,7 @@ class Cart extends Model
         }
 
         $key = $this->getKey();
-        
+
         if ($key && isset(static::$cache[$key])) {
             return static::$cache[$key];
         }
@@ -198,19 +243,14 @@ class Cart extends Model
     protected static function appendVariationDisplayTitle(array $items): array
     {
         return array_map(function ($item) {
-            if (!is_array($item)) {
-                return $item;
+            // Single resolver: snapshot -> live-resolve when missing -> title.
+            if (is_array($item)) {
+                $item['variation_display_title'] = AttributeHelper::getDisplayAttributesString(
+                    Arr::get($item, 'other_info.item_attributes', []),
+                    $item,
+                    'cart'
+                );
             }
-
-            $itemAttributes = Arr::get($item, 'other_info.item_attributes', []);
-
-            $variationDisplayTitle = (is_array($itemAttributes) && $itemAttributes)
-                ? AttributeHelper::getDisplayAttributesString($itemAttributes, $item, 'cart')
-                : '';
-
-            $item['variation_display_title'] = $variationDisplayTitle !== ''
-                ? $variationDisplayTitle
-                : (string) Arr::get($item, 'title', '');
 
             return $item;
         }, $items);
@@ -468,15 +508,15 @@ class Cart extends Model
             }
         }
 
-        // Subscription items may exist in cart, 
-        // but checkout must be initiated via direct checkout flow to ensure proper handling.           
+        // Subscription items may exist in cart,
+        // but checkout must be initiated via direct checkout flow to ensure proper handling.
         if (Arr::get($variation, 'payment_type', null) === 'subscription') {
             return new \WP_Error('invalid_item', __('Subscription items must be purchased via direct checkout.', 'fluent-cart'));
 
         }
 
         // Find existing item in cart
-        $replacingIndex = null; 
+        $replacingIndex = null;
         $existingItem = $this->findExistingItemAndIndex(
             $variationId,
             Arr::get($config, 'matched_args', [])

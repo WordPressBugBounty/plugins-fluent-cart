@@ -6,6 +6,7 @@ use FluentCart\Api\StoreSettings;
 use FluentCart\App\Helpers\Helper;
 use FluentCart\Framework\Support\Arr;
 use FluentCart\App\Modules\Tax\TaxModule;
+use FluentCart\App\Services\Renderer\Receipt\TaxSummaryHelper;
 
 $settings = new StoreSettings();
 $profilePage = $settings->getCustomerProfilePage();
@@ -170,7 +171,7 @@ if ($order->payment_status !== 'paid') {
                                         <?php endforeach; ?>
 
                                         <div
-                                            style="background-color:rgb(249,250,251);padding:16px;border-radius:8px;margin: 0; width: 100%;max-width: 290px;margin-left: auto;">
+                                            style="margin: 16px 0 0; width: 100%; border-top: 1px solid #e5e7eb; padding-top: 12px;">
                                             <?php if ($order->subtotal != $order->total_amount || $order->tax_total > 0): ?>
                                                 <div
                                                     style="display: flex;align-items: center; justify-content: space-between;">
@@ -246,6 +247,10 @@ if ($order->payment_status !== 'paid') {
                                                         style="text-transform:uppercase;font-size:13px;color:rgb(55,65,81);margin:0;line-height:24px;text-align: right"><?php echo esc_html(Helper::toDecimal($feeItem->subtotal)); ?></div>
                                                 </div>
                                             <?php endforeach; ?>
+                                        </div><!-- /Zone A: full-width subtotal/shipping/fees -->
+                                        <?php if ($order->isReverseChargeTaxOrder() || $order->tax_total > 0): ?>
+                                        <div
+                                            style="background-color:rgb(249,250,251);padding:16px;border-radius:8px;margin: 12px 0 0 auto; width: 100%;max-width: 400px;">
                                             <?php if ($order->isReverseChargeTaxOrder()): ?>
                                                 <?php
                                                     $rcReversedTotal = $order->getReversedTaxTotal();
@@ -269,33 +274,138 @@ if ($order->payment_status !== 'paid') {
                                                     </div>
                                                 </div>
                                             <?php elseif ($order->tax_total > 0): ?>
-                                                <div
-                                                    style="display: flex;align-items: center; justify-content: space-between;">
-                                                    <div
-                                                        style="font-size:14px;color:rgb(55,65,81);line-height:24px;margin: 0;">
-                                                        <?php echo esc_html__('Total Tax', 'fluent-cart'); ?>
-                                                        <?php echo \FluentCart\App\Helpers\Helper::getOrderTaxLabel($order); ?>
+                                                <?php
+                                                    $thankYouTaxSummary     = TaxSummaryHelper::computeTaxSummary($order);
+                                                    $tyFoldedRateLines      = Arr::get($thankYouTaxSummary, 'foldedRateLines', []);
+                                                    $tyIncludedInPrices     = (int) Arr::get($thankYouTaxSummary, 'includedInPrices', 0);
+                                                    $tyPayableTax           = (int) Arr::get($thankYouTaxSummary, 'payableTax', 0);
+                                                    $tyTotalOrderTax        = (int) Arr::get($thankYouTaxSummary, 'totalOrderTax', 0);
+                                                ?>
+                                                <?php if (!empty($tyFoldedRateLines)): ?>
+                                                    <div style="font-size:11px;text-transform:uppercase;letter-spacing:0.04em;color:#94a3b8;font-weight:600;margin-bottom:4px;">
+                                                        <?php esc_html_e('Tax breakdown by rate', 'fluent-cart'); ?>
                                                     </div>
-                                                    <div
-                                                        style="text-transform:uppercase;font-size:13px;color:rgb(55,65,81);margin:0;line-height:24px;text-align: right">
-                                                        <?php echo esc_html(Helper::toDecimal($order->tax_total)); ?>
+                                                    <div style="display:grid;grid-template-columns:minmax(0,1fr) 92px 64px;column-gap:12px;align-items:start;margin-bottom:4px;">
+                                                        <div style="font-size:11px;text-transform:uppercase;color:rgb(107,114,128);line-height:20px;margin:0;font-weight:600;min-width:0;">
+                                                            <?php echo esc_html__('Rate', 'fluent-cart'); ?>
+                                                        </div>
+                                                        <div style="font-size:11px;text-transform:uppercase;color:rgb(107,114,128);line-height:20px;margin:0;font-weight:600;text-align:right;white-space:nowrap;">
+                                                            <?php echo esc_html__('Taxable base', 'fluent-cart'); ?>
+                                                        </div>
+                                                        <div style="font-size:11px;text-transform:uppercase;color:rgb(107,114,128);line-height:20px;margin:0;font-weight:600;text-align:right;white-space:nowrap;">
+                                                            <?php echo esc_html__('Tax', 'fluent-cart'); ?>
+                                                        </div>
                                                     </div>
-                                                </div>
+                                                    <?php foreach ($tyFoldedRateLines as $tyFoldedLine): ?>
+                                                        <?php $tyMutedStyle = !empty($tyFoldedLine['inclusive']) ? 'opacity:0.7;' : ''; ?>
+                                                        <div style="display:grid;grid-template-columns:minmax(0,1fr) 92px 64px;column-gap:12px;align-items:start;<?php echo esc_attr($tyMutedStyle); ?>">
+                                                            <div style="font-size:14px;color:rgb(55,65,81);line-height:20px;margin:0;min-width:0;white-space:normal;overflow-wrap:anywhere;word-break:break-word;">
+                                                                <?php echo esc_html($tyFoldedLine['label']); ?>
+                                                            </div>
+                                                            <div style="font-size:13px;color:rgb(107,114,128);line-height:20px;margin:0;text-align:right;white-space:nowrap;">
+                                                                <?php echo esc_html(Helper::toDecimal($tyFoldedLine['base'])); ?>
+                                                            </div>
+                                                            <div style="text-transform:uppercase;font-size:13px;color:rgb(55,65,81);margin:0;line-height:20px;text-align:right;white-space:nowrap;">
+                                                                <?php echo esc_html(Helper::toDecimal($tyFoldedLine['tax'])); ?>
+                                                            </div>
+                                                        </div>
+                                                    <?php endforeach; ?>
+                                                    <div style="display:flex;align-items:center;justify-content:space-between;margin-top:6px;border-top:1px solid #e2e8f0;padding-top:6px;">
+                                                        <div style="font-size:14px;font-weight:700;color:rgb(55,65,81);line-height:24px;margin:0;">
+                                                            <?php echo esc_html__('Total tax', 'fluent-cart'); ?>
+                                                        </div>
+                                                        <div style="text-transform:uppercase;font-size:13px;font-weight:700;color:rgb(55,65,81);margin:0;line-height:24px;text-align:right;">
+                                                            <?php echo esc_html(Helper::toDecimal($tyTotalOrderTax)); ?>
+                                                        </div>
+                                                    </div>
+                                                    <?php if ($tyIncludedInPrices > 0): ?>
+                                                        <div style="display:flex;align-items:center;justify-content:space-between;">
+                                                            <div style="font-size:13px;color:rgb(107,114,128);line-height:24px;margin:0;">
+                                                                <?php echo esc_html__('of which included in prices', 'fluent-cart'); ?>
+                                                            </div>
+                                                            <div style="text-transform:uppercase;font-size:13px;color:rgb(107,114,128);margin:0;line-height:24px;text-align:right;">
+                                                                <?php echo esc_html(Helper::toDecimal($tyIncludedInPrices)); ?>
+                                                            </div>
+                                                        </div>
+                                                    <?php endif; ?>
+                                                    <?php if ($tyPayableTax > 0 && $tyIncludedInPrices > 0): ?>
+                                                        <div style="display:flex;align-items:center;justify-content:space-between;border-top:1px solid #e2e8f0;padding-top:6px;margin-top:6px;">
+                                                            <div style="font-size:14px;font-weight:700;color:rgb(55,65,81);line-height:24px;margin:0;">
+                                                                <?php echo esc_html__('Payable now (added)', 'fluent-cart'); ?>
+                                                            </div>
+                                                            <div style="text-transform:uppercase;font-size:13px;font-weight:700;color:rgb(55,65,81);margin:0;line-height:24px;text-align:right;">
+                                                                <?php echo esc_html(Helper::toDecimal($tyPayableTax)); ?>
+                                                            </div>
+                                                        </div>
+                                                    <?php endif; ?>
+                                                <?php else: ?>
+                                                    <?php $thankYouTaxLines = Arr::get($thankYouTaxSummary, 'taxRateLines', []); ?>
+                                                    <?php if (!empty($thankYouTaxLines)): ?>
+                                                        <?php foreach ($thankYouTaxLines as $thankYouTaxLine): ?>
+                                                            <div
+                                                                style="display: flex;align-items: center; justify-content: space-between;">
+                                                                <div
+                                                                    style="font-size:14px;color:rgb(55,65,81);line-height:24px;margin: 0;">
+                                                                    <?php echo esc_html($thankYouTaxLine['label']); ?>
+                                                                </div>
+                                                                <div
+                                                                    style="text-transform:uppercase;font-size:13px;color:rgb(55,65,81);margin:0;line-height:24px;text-align: right">
+                                                                    <?php echo esc_html(Helper::toDecimal($thankYouTaxLine['order_tax'])); ?>
+                                                                </div>
+                                                            </div>
+                                                        <?php endforeach; ?>
+                                                    <?php else: ?>
+                                                        <div
+                                                            style="display: flex;align-items: center; justify-content: space-between;">
+                                                            <div
+                                                                style="font-size:14px;color:rgb(55,65,81);line-height:24px;margin: 0;">
+                                                                <?php echo esc_html__('Total Tax', 'fluent-cart'); ?>
+                                                                <?php echo \FluentCart\App\Helpers\Helper::getOrderTaxLabel($order); ?>
+                                                            </div>
+                                                            <div
+                                                                style="text-transform:uppercase;font-size:13px;color:rgb(55,65,81);margin:0;line-height:24px;text-align: right">
+                                                                <?php echo esc_html(Helper::toDecimal($order->tax_total)); ?>
+                                                            </div>
+                                                        </div>
+                                                    <?php endif; ?>
+                                                    <?php if ($order->shipping_tax > 0): ?>
+                                                        <?php
+                                                            $thankYouShippingTaxLines = Arr::get($thankYouTaxSummary, 'shippingTaxLines', []);
+                                                        ?>
+                                                        <?php if (!empty($thankYouShippingTaxLines)): ?>
+                                                            <?php foreach ($thankYouShippingTaxLines as $thankYouShippingTaxLine): ?>
+                                                                <div
+                                                                    style="display: flex;align-items: center; justify-content: space-between;">
+                                                                    <div
+                                                                        style="font-size:14px;color:rgb(55,65,81);line-height:24px;margin: 0;">
+                                                                        <?php echo esc_html($thankYouShippingTaxLine['label']); ?>
+                                                                    </div>
+                                                                    <div
+                                                                        style="text-transform:uppercase;font-size:13px;color:rgb(55,65,81);margin:0;line-height:24px;text-align: right">
+                                                                        <?php echo esc_html(Helper::toDecimal($thankYouShippingTaxLine['shipping_tax'])); ?>
+                                                                    </div>
+                                                                </div>
+                                                            <?php endforeach; ?>
+                                                        <?php else: ?>
+                                                            <div
+                                                                style="display: flex;align-items: center; justify-content: space-between;">
+                                                                <div
+                                                                    style="font-size:14px;color:rgb(55,65,81);line-height:24px;margin: 0;">
+                                                                    <?php echo esc_html__('Shipping Tax', 'fluent-cart'); ?>
+                                                                    <?php echo \FluentCart\App\Helpers\Helper::getOrderTaxLabel($order); ?>
+                                                                </div>
+                                                                <div
+                                                                    style="text-transform:uppercase;font-size:13px;color:rgb(55,65,81);margin:0;line-height:24px;text-align: right">
+                                                                    <?php echo esc_html(Helper::toDecimal($order->shipping_tax)); ?>
+                                                                </div>
+                                                            </div>
+                                                        <?php endif; ?>
+                                                    <?php endif; ?>
+                                                <?php endif; ?>
                                             <?php endif; ?>
-                                            <?php if ($order->shipping_tax > 0): ?>
-                                                <div
-                                                    style="display: flex;align-items: center; justify-content: space-between;">
-                                                    <div
-                                                        style="font-size:14px;color:rgb(55,65,81);line-height:24px;margin: 0;">
-                                                        <?php echo esc_html__('Shipping Tax', 'fluent-cart'); ?>
-                                                        <?php echo \FluentCart\App\Helpers\Helper::getOrderTaxLabel($order); ?>
-                                                    </div>
-                                                    <div
-                                                        style="text-transform:uppercase;font-size:13px;color:rgb(55,65,81);margin:0;line-height:24px;text-align: right">
-                                                        <?php echo esc_html(Helper::toDecimal($order->shipping_tax)); ?>
-                                                    </div>
-                                                </div>
-                                            <?php endif; ?>
+                                        </div><!-- /tax breakdown box -->
+                                        <?php endif; ?>
+                                        <div style="width: 100%; margin-top: 12px; border-top: 1px solid #e5e7eb; padding-top: 12px;"><!-- Zone C: full-width total/payment -->
 
                                             <?php if ($order->total_refund > 0): ?>
                                                 <div
@@ -502,36 +612,37 @@ if ($order->payment_status !== 'paid') {
     </div>
 </div>
 
-<div style="text-align: center;margin-top: 10px;display: flex;align-items: center;justify-content: center;gap: 10px;">
-    <a href="<?php echo esc_url($profilePage . 'order/' . $order->uuid); ?>"
-       style="background: var(--fluent-cart-primary-color, #253241); color: #fff; padding: 7px 20px; border-radius: 8px; border: none; font-size: 16px; font-weight: 500; text-decoration:none;display:inline-block;">
-        <?php echo esc_html__('View Order', 'fluent-cart'); ?>
-    </a>
-    <a href="<?php echo esc_url(\FluentCart\App\Services\URL::appendQueryParams(
-        home_url(),
-        [
-            'fluent-cart' => 'receipt',
-            'order_hash'  => esc_attr($order->uuid),
-            'download'    => 1
-        ]
-    )) ?>"
-       style="background: var(--fluent-cart-primary-color, #253241);font-size:14px;color:#000;background: none;font-weight: 600;display:inline-block;">
-        <?php echo esc_html__('Download Receipt', 'fluent-cart'); ?>
-    </a>
-</div>
+<?php if (!empty($order)): ?>
+    <div style="text-align: center;margin-top: 10px;display: flex;align-items: center;justify-content: center;gap: 10px;">
+        <a href="<?php echo esc_url($profilePage . 'order/' . $order->uuid); ?>"
+           style="background: var(--fluent-cart-primary-color, #253241); color: #fff; padding: 7px 20px; border-radius: 8px; border: none; font-size: 16px; font-weight: 500; text-decoration:none;display:inline-block;">
+            <?php echo esc_html__('View Order', 'fluent-cart'); ?>
+        </a>
+        <a href="<?php echo esc_url(\FluentCart\App\Services\URL::appendQueryParams(
+            home_url(),
+            [
+                'fluent-cart' => 'receipt',
+                'order_hash'  => esc_attr($order->uuid),
+                'download'    => 1
+            ]
+        )) ?>"
+           style="background: var(--fluent-cart-primary-color, #253241);font-size:14px;color:#000;background: none;font-weight: 600;display:inline-block;">
+            <?php echo esc_html__('Download Receipt', 'fluent-cart'); ?>
+        </a>
+    </div>
 
-<?php do_action('fluent_cart/after_receipt', [
-    'order'           => $order,
-    'is_first_time'   => $is_first_time ?? false,
-    'order_operation' => $order_operation ?? null
-]);
-?>
-
-<?php
-if (!empty($is_first_time)) {
-    do_action('fluent_cart/after_receipt_first_time', [
+    <?php do_action('fluent_cart/after_receipt', [
         'order'           => $order,
+        'is_first_time'   => $is_first_time ?? false,
         'order_operation' => $order_operation ?? null
-    ]);
-}
-?>
+    ]); ?>
+
+    <?php
+    if (!empty($is_first_time)) {
+        do_action('fluent_cart/after_receipt_first_time', [
+            'order'           => $order,
+            'order_operation' => $order_operation ?? null
+        ]);
+    }
+    ?>
+<?php endif; ?>

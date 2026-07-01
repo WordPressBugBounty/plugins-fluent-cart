@@ -8,6 +8,8 @@ use FluentCart\App\Models\Product;
 
 class BricksLoader
 {
+    const TEMPLATE_TYPE_PRODUCT = 'fct_product';
+
     public function register()
     {
         if (!defined('BRICKS_VERSION')) {
@@ -17,6 +19,10 @@ class BricksLoader
         add_action('init', [$this, 'loadElements'], 20);
 
         (new DynamicData())->register();
+
+        add_filter('bricks/setup/control_options', [$this, 'addTemplateTypes']);
+        add_filter('bricks/database/content_type', [$this, 'setContentType'], 10, 2);
+        add_filter('bricks/active_templates', [$this, 'setActiveTemplates'], 10, 3);
 
         add_action('wp_footer', [$this, 'addDynamicFieldClassesScript']);
 
@@ -53,6 +59,119 @@ class BricksLoader
             Elements::register_element($elementFile, $elementName, $className);
         }
 
+    }
+
+    /**
+     * Add FluentCart template types to the Bricks template type dropdown.
+     */
+    public function addTemplateTypes($controlOptions)
+    {
+        if (!isset($controlOptions['templateTypes']) || !is_array($controlOptions['templateTypes'])) {
+            return $controlOptions;
+        }
+
+        $templateTypes = $controlOptions['templateTypes'];
+
+        if (isset($templateTypes[self::TEMPLATE_TYPE_PRODUCT])) {
+            return $controlOptions;
+        }
+
+        $fluentCartType = [
+            self::TEMPLATE_TYPE_PRODUCT => __('FluentCart - Product', 'fluent-cart'),
+        ];
+
+        if (array_key_exists('content', $templateTypes)) {
+            $keys = array_keys($templateTypes);
+            $offset = array_search('content', $keys, true) + 1;
+
+            $templateTypes = array_slice($templateTypes, 0, $offset, true)
+                + $fluentCartType
+                + array_slice($templateTypes, $offset, null, true);
+        } else {
+            $templateTypes = array_merge($templateTypes, $fluentCartType);
+        }
+
+        $controlOptions['templateTypes'] = $templateTypes;
+
+        return $controlOptions;
+    }
+
+    /**
+     * Let Bricks resolve FluentCart single product templates as product templates.
+     */
+    public function setContentType($contentType, $postId)
+    {
+        if (is_search()) {
+            return $contentType;
+        }
+
+        if (is_singular('fluent-products')) {
+            return self::TEMPLATE_TYPE_PRODUCT;
+        }
+
+        return $contentType;
+    }
+
+    /**
+     * Make the FluentCart product template type render on single product pages.
+     */
+    public function setActiveTemplates($activeTemplates, $postId, $contentType)
+    {
+        if ($contentType !== self::TEMPLATE_TYPE_PRODUCT || !is_singular('fluent-products')) {
+            return $activeTemplates;
+        }
+
+        if (!empty($activeTemplates[self::TEMPLATE_TYPE_PRODUCT])) {
+            $activeTemplates['content'] = $activeTemplates[self::TEMPLATE_TYPE_PRODUCT];
+            return $activeTemplates;
+        }
+
+        $templateId = $this->getProductTemplateId($postId);
+
+        if (!$templateId) {
+            return $activeTemplates;
+        }
+
+        $activeTemplates['content'] = $templateId;
+        $activeTemplates[self::TEMPLATE_TYPE_PRODUCT] = $templateId;
+
+        return $activeTemplates;
+    }
+
+    protected function getProductTemplateId($postId)
+    {
+        if (!class_exists('\Bricks\Templates')) {
+            return 0;
+        }
+
+        $templateIds = \Bricks\Templates::get_templates_by_type(self::TEMPLATE_TYPE_PRODUCT);
+
+        if (empty($templateIds) || !is_array($templateIds)) {
+            return 0;
+        }
+
+        $foundTemplates = [];
+        $defaultTemplateId = 0;
+
+        foreach ($templateIds as $templateId) {
+            $conditions = \Bricks\Helpers::get_template_setting('templateConditions', $templateId);
+
+            if (!$conditions) {
+                if (!$defaultTemplateId) {
+                    $defaultTemplateId = absint($templateId);
+                }
+                continue;
+            }
+
+            $foundTemplates = \Bricks\Database::screen_conditions($foundTemplates, $templateId, $conditions, $postId, '');
+        }
+
+        if (!empty($foundTemplates)) {
+            $scores = array_keys($foundTemplates);
+            return $foundTemplates[max($scores)];
+        }
+
+        return $defaultTemplateId;
     }
 
     public function preloadProductCollectionsAjax($view, $args)

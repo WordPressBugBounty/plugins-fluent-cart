@@ -258,16 +258,13 @@ class OrderItem extends Model
      */
     public function getVariationDisplayTitleAttribute()
     {
-        $itemAttributes = Arr::get($this->other_info, 'item_attributes', []);
-        $attributesTitle = \FluentCart\App\Helpers\AttributeHelper::getDisplayAttributesString($itemAttributes, $this, 'order_item');
-
-        if (!$attributesTitle) {
-            if ($this->post_title === $this->title) {
-                return '';
-            }
-            return (string)$this->title;
-        }
-
-        return $attributesTitle;
+        // Order items carry the item_attributes snapshot (written at order
+        // creation), so resolve directly — getDisplayAttributesString renders
+        // the labeled combination and falls back to the variation title.
+        return \FluentCart\App\Helpers\AttributeHelper::getDisplayAttributesString(
+            Arr::get($this->other_info, 'item_attributes', []),
+            $this,
+            'order_item'
+        );
     }
 }

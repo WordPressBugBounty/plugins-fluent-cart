@@ -113,6 +113,7 @@ class CustomCheckout
                 Arr::set($item, 'coupon_discount', (string)($orderItem->discount_total)); // item discount total is always coupon discount + manual discount
                 Arr::set($item, 'tax_amount', $orderItem->tax_amount);
                 Arr::set($item, 'post_title', $orderItem->post_title);
+                Arr::set($item, 'variation_type', $itemData->variation->product_detail->variation_type);
 
                 if ($itemManualDiscountTotal) {
                     $subtotal = Arr::get($orderItem, 'subtotal');

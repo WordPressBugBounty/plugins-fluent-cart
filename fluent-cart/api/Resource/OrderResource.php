@@ -1811,9 +1811,9 @@ class OrderResource extends BaseResourceApi
                         [
                             'parentOrder'    => function ($query) {
                                 return $query->select('id')
-                                    ->with('subscriptions');
+                                    ->with('subscriptions.product');
                             },
-                            'subscriptions',
+                            'subscriptions.product',
                             'activities.user',
                             'labels',
                             'customer',

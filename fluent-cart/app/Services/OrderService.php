@@ -619,7 +619,7 @@ class OrderService
             'can_upgrade'            => $subscription->canUpgrade(),
             'can_switch_payment_method' => $subscription->canSwitchPaymentMethod(),
             'can_update_payment_method' => $subscription->canUpdatePaymentMethod(),
-            'item_name'              => $subscription->item_name
+            'item_name'              => $subscription->display_item_name
         ];
     }
 
