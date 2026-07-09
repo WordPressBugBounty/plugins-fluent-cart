@@ -7,6 +7,7 @@ use FluentCart\App\App;
 use FluentCart\App\Models\Order;
 use FluentCart\App\Models\OrderItem;
 use FluentCart\App\Models\Customer;
+use FluentCart\App\Models\Subscription;
 use FluentCart\App\Modules\MCP\Support\MCPHelper;
 use FluentCart\App\Modules\MCP\Support\PermissionGate;
 
@@ -31,9 +32,21 @@ use FluentCart\App\Modules\MCP\Support\PermissionGate;
  */
 class ReportTools
 {
-    const PAID = ['paid', 'partially_paid', 'partially_refunded'];
+    // Payment statuses for orders that CAPTURED PAYMENT at some point — including
+    // one later fully refunded (payment_status 'refunded', order status 'canceled').
+    // A fully refunded order captured payment then returned it, so it belongs in the
+    // refund metrics (it is the whole point of a refund report) and in the paid
+    // denominator of the refund rate, and it nets to zero in net_revenue
+    // (total_paid - total_refund). Gating refund aggregation on the narrower paid set
+    // silently undercounted every fully-refunded order. Including 'refunded' here
+    // matches FluentCart's own admin reports, which compute refunds from
+    // total_refund > 0 with no current-status gate (see RevenueReportService /
+    // RefundReportService::applyFilters — the default has no payment_status filter).
+    const PAID = ['paid', 'partially_paid', 'partially_refunded', 'refunded'];
 
-    const RANGES = ['today', 'yesterday', 'last_7_days', 'last_30_days', 'this_month', 'last_month', 'mtd', 'qtd', 'ytd', 'last_quarter', 'last_year'];
+    // all_time is a documented alias of since_launch (see resolveRange) so the
+    // range vocabulary matches get-product-financials, which uses all_time.
+    const RANGES = ['today', 'yesterday', 'last_7_days', 'last_30_days', 'this_month', 'last_month', 'mtd', 'qtd', 'ytd', 'last_quarter', 'last_year', 'since_launch', 'all_time'];
 
     const MAX_BUCKETS = 180;
 
@@ -41,22 +54,82 @@ class ReportTools
 
     public static function definitions()
     {
-        $rangeProp = ['type' => 'string', 'enum' => self::RANGES, 'description' => 'Relative window, resolved in UTC to match the store reports. Or pass start_date + end_date.'];
+        $rangeProp = ['type' => 'string', 'enum' => self::RANGES, 'description' => 'Relative window, resolved in UTC to match the store reports. today = midnight UTC to now; since_launch (alias: all_time) = the store\'s first paid order to now. Or pass start_date + end_date (dates), date_from + date_to (ISO 8601 datetimes), or since (delta).'];
 
-        return [
+        // Shared custom-window params. All UTC — reports stay reconcilable with the
+        // admin dashboard, which buckets on the GMT-stored created_at.
+        $dateFrom = ['type' => 'string', 'description' => 'ISO 8601 datetime or YYYY-MM-DD, UTC. Time-precise custom window start; overrides range. A time of day is honored (e.g. launch hour).'];
+        $dateTo   = ['type' => 'string', 'description' => 'ISO 8601 datetime or YYYY-MM-DD, UTC. Time-precise custom window end; overrides range.'];
+        $since    = ['type' => 'string', 'description' => 'ISO 8601 datetime, UTC. Delta mode: only records after this instant, up to now — answers "what changed since my last check". Overrides range/date_from/date_to.'];
+
+        // Live/test order scoping. Reports historically counted BOTH, so 'all' is
+        // the non-breaking default; pass 'live' to exclude test-mode orders from
+        // revenue. The effective mode is always echoed as meta.mode so a number
+        // is never silently polluted by test orders.
+        $modeProp = ['type' => 'string', 'enum' => ['live', 'test', 'all'], 'default' => 'all', 'description' => 'Order mode. all (default) counts both live and test orders; pass live to exclude test-mode orders. Echoed as meta.mode.'];
+
+        // Pagination for the flexible query-* aggregates: when a grouping produces
+        // more than per_page groups the response sets meta.page.has_more; raise
+        // page to walk the rest instead of only being able to narrow the window.
+        $pageProp    = ['type' => 'integer', 'default' => 1, 'description' => '1-based page over the grouped rows. Use with meta.page.has_more to page past the per_page cap.'];
+        $perPageProp = ['type' => 'integer', 'default' => 200, 'description' => 'Grouped rows per page. Max 200.'];
+
+        // The query-* aggregates share one response shape: metrics/dimensions echo
+        // + a rows array whose keys are dynamic (one per requested dimension and
+        // metric). Declared for the model up front so it needn't probe a call to
+        // learn the envelope. Money in rows is a compact decimal in meta.currency.
+        $queryOutputSchema = MCPHelper::envelopeSchema([
+            'type'       => 'object',
+            'properties' => [
+                'metrics'    => ['type' => 'array', 'items' => ['type' => 'string'], 'description' => 'The metrics that were computed.'],
+                'dimensions' => ['type' => 'array', 'items' => ['type' => 'string'], 'description' => 'The group-by dimensions.'],
+                'range'      => ['type' => 'object', 'description' => 'Resolved UTC window (absent on query-customers, which is not date-scoped).'],
+                'rows'       => [
+                    'type'        => 'array',
+                    'description' => 'One object per group. Keys are the requested dimensions plus one key per metric; money metrics are compact decimals in meta.currency, counts are integers.',
+                    'items'       => ['type' => 'object'],
+                ],
+            ],
+        ], ['date_basis' => ['type' => 'string'], 'mode' => ['type' => 'string'], 'page' => ['type' => 'object'], 'truncated' => ['type' => 'boolean']]);
+
+        $subStatuses = ContextTools::ENUMS['subscription_statuses'];
+
+        $defs = [
             'fluent-cart/get-sales-report' => [
                 'label'       => __('Get Sales Report', 'fluent-cart'),
-                'description' => __('Revenue overview for a period with comparison to the prior equal period: gross, net, paid, refunded, tax, shipping, fees, order count, AOV, unique customers, and percent change. Scoped to one currency, the store default unless a currency is given.', 'fluent-cart'),
+                'description' => __('Revenue overview for a period with comparison to the prior equal period: gross, net, paid, refunded, tax, shipping, fees, order count, AOV, unique customers, and percent change. The refunded metric covers all refunds in the window including fully refunded orders (which net to zero in net_revenue). Scoped to one currency, the store default unless a currency is given.', 'fluent-cart'),
                 'input_schema' => [
                     'type'       => 'object',
                     'properties' => [
                         'range'      => $rangeProp,
                         'start_date' => ['type' => 'string', 'description' => 'YYYY-MM-DD, UTC. Overrides range.'],
                         'end_date'   => ['type' => 'string', 'description' => 'YYYY-MM-DD, UTC. Overrides range.'],
+                        'date_from'  => $dateFrom,
+                        'date_to'    => $dateTo,
+                        'since'      => $since,
                         'currency'   => ['type' => 'string', 'description' => 'ISO currency. Defaults to the store currency.'],
                         'compare'    => ['type' => 'boolean', 'default' => true, 'description' => 'Include prior-period comparison.'],
                     ],
                 ],
+                'output_schema' => MCPHelper::envelopeSchema([
+                    'type'       => 'object',
+                    'properties' => [
+                        'range'   => ['type' => 'object', 'description' => 'Resolved UTC window: start, end, label, currency.'],
+                        'metrics' => [
+                            'type'        => 'object',
+                            'description' => 'order_count and unique_customers are integers; every other key (gross_revenue, net_revenue, paid, refunded, tax, shipping, fees, aov) is a money object.',
+                            'properties'  => [
+                                'order_count'      => ['type' => 'integer'],
+                                'unique_customers' => ['type' => 'integer'],
+                            ],
+                            // Declare the money shape ONCE for all the money metrics
+                            // rather than inlining it per key (10x is real tokens).
+                            'additionalProperties' => MCPHelper::moneyDef(),
+                        ],
+                        'definitions' => ['type' => 'object', 'description' => 'Human-readable metric definitions.'],
+                        'comparison'  => ['type' => 'object', 'description' => 'Prior-period metrics and percent change (present when compare=true).'],
+                    ],
+                ], ['date_basis' => ['type' => 'string'], 'mode' => ['type' => 'string']]),
                 'execute_callback'    => [self::class, 'getSalesReport'],
                 'permission_callback' => function () {
                     return PermissionGate::can('reports/view');
@@ -73,7 +146,11 @@ class ReportTools
                         'range'      => $rangeProp,
                         'start_date' => ['type' => 'string', 'description' => 'YYYY-MM-DD, UTC.'],
                         'end_date'   => ['type' => 'string', 'description' => 'YYYY-MM-DD, UTC.'],
-                        'interval'   => ['type' => 'string', 'enum' => ['day', 'week', 'month'], 'default' => 'day'],
+                        'date_from'  => $dateFrom,
+                        'date_to'    => $dateTo,
+                        'since'      => $since,
+                        'interval'   => ['type' => 'string', 'enum' => ['hour', 'day', 'week', 'month'], 'default' => 'day', 'description' => 'Bucket size. hour is for intraday launch monitoring (capped at 180 buckets per call). Alias: granularity.'],
+                        'granularity' => ['type' => 'string', 'enum' => ['hour', 'day', 'week', 'month'], 'description' => 'Alias for interval.'],
                         'currency'   => ['type' => 'string'],
                     ],
                 ],
@@ -93,6 +170,9 @@ class ReportTools
                         'range'      => $rangeProp,
                         'start_date' => ['type' => 'string'],
                         'end_date'   => ['type' => 'string'],
+                        'date_from'  => $dateFrom,
+                        'date_to'    => $dateTo,
+                        'since'      => $since,
                         'metric'     => ['type' => 'string', 'enum' => ['revenue', 'units'], 'default' => 'revenue'],
                         'currency'   => ['type' => 'string'],
                         'limit'      => ['type' => 'integer', 'default' => 10, 'description' => 'Max 50.'],
@@ -107,13 +187,16 @@ class ReportTools
 
             'fluent-cart/get-refund-report' => [
                 'label'       => __('Get Refund Report', 'fluent-cart'),
-                'description' => __('Refund metrics for a period: refunded order count, refund rate as a share of paid orders, total and average refunded amount. Scoped to one currency.', 'fluent-cart'),
+                'description' => __('Refund metrics for a period: refunded order count, refund rate as a share of paid orders, total and average refunded amount. Counts every order refunded in the window from its total_refund, including orders that were fully refunded and then canceled (not just partial refunds on still-paid orders). Scoped to one currency.', 'fluent-cart'),
                 'input_schema' => [
                     'type'       => 'object',
                     'properties' => [
                         'range'      => $rangeProp,
                         'start_date' => ['type' => 'string'],
                         'end_date'   => ['type' => 'string'],
+                        'date_from'  => $dateFrom,
+                        'date_to'    => $dateTo,
+                        'since'      => $since,
                         'currency'   => ['type' => 'string'],
                     ],
                 ],
@@ -126,7 +209,7 @@ class ReportTools
 
             'fluent-cart/query-sources' => [
                 'label'       => __('Query Sources (UTM attribution)', 'fluent-cart'),
-                'description' => __('Flexible UTM attribution: pick metrics and group by any UTM fields — source, medium, campaign, term, content, id — over a period, with optional source/medium/campaign filters to drill down. Scoped to one currency, paid orders. Orders with no UTM fall under a none bucket. Returns up to 200 rows ranked by the first metric.', 'fluent-cart'),
+                'description' => __('Flexible UTM attribution: pick metrics and group by any UTM fields — source, medium, campaign, term, content, id — over a period, with optional source/medium/campaign filters to drill down. Pass product_id (or variation_id) to attribute only orders containing that product. Scoped to one currency, paid orders. Orders with no UTM fall under a none bucket. Returns up to 200 rows ranked by the first metric.', 'fluent-cart'),
                 'input_schema' => [
                     'type'       => 'object',
                     'properties' => [
@@ -135,9 +218,14 @@ class ReportTools
                         'utm_source'   => ['type' => 'string', 'description' => 'Filter to one source, exact match.'],
                         'utm_medium'   => ['type' => 'string', 'description' => 'Filter to one medium, exact match.'],
                         'utm_campaign' => ['type' => 'string', 'description' => 'Filter to one campaign, exact match.'],
+                        'product_id'   => ['type' => 'integer', 'description' => 'Limit attribution to orders containing this product (e.g. one product on a multi-product store).'],
+                        'variation_id' => ['type' => 'integer', 'description' => 'Limit attribution to orders containing this variation.'],
                         'range'        => $rangeProp,
                         'start_date'   => ['type' => 'string'],
                         'end_date'     => ['type' => 'string'],
+                        'date_from'    => $dateFrom,
+                        'date_to'      => $dateTo,
+                        'since'        => $since,
                         'currency'     => ['type' => 'string'],
                         'limit'        => ['type' => 'integer', 'default' => 50, 'description' => 'Max 200.'],
                     ],
@@ -151,7 +239,7 @@ class ReportTools
 
             'fluent-cart/query-orders' => [
                 'label'       => __('Query Orders (flexible aggregate)', 'fluent-cart'),
-                'description' => __('Flexible order analytics: pick metrics and group by dimensions with filters. Use when a fixed report does not fit, for example revenue by payment_status this month, or orders by month. Scoped to one currency. Returns up to 200 grouped rows.', 'fluent-cart'),
+                'description' => __('Flexible order analytics: pick metrics, group by dimensions with filters, when a fixed report does not fit — e.g. revenue by payment_status, orders by month, or revenue by order_type (one-time payment vs new subscription vs renewal). product_id or variation_id limits to orders containing that product. One currency; window filters on created_at, echoed as meta.date_basis.', 'fluent-cart'),
                 'input_schema' => [
                     'type'       => 'object',
                     'properties' => [
@@ -162,12 +250,17 @@ class ReportTools
                         ],
                         'dimensions' => [
                             'type'        => 'array',
-                            'description' => 'Group by these. Empty means a single total row.',
-                            'items'       => ['type' => 'string', 'enum' => ['day', 'week', 'month', 'status', 'payment_status']],
+                            'description' => 'Group by these. Empty means a single total row. order_type splits sales by payment (one-time purchase), subscription (first subscription order) and renewal (recurring charge); combine with a time dimension for e.g. order_type x month.',
+                            'items'       => ['type' => 'string', 'enum' => ['day', 'week', 'month', 'status', 'payment_status', 'order_type']],
                         ],
+                        'product_id'   => ['type' => 'integer', 'description' => 'Limit to orders CONTAINING this product. Order-level metrics (revenue, count) reflect the whole order, not just this product\'s lines — for per-product line revenue use query-products.'],
+                        'variation_id' => ['type' => 'integer', 'description' => 'Limit to orders containing this variation.'],
                         'range'      => $rangeProp,
                         'start_date' => ['type' => 'string'],
                         'end_date'   => ['type' => 'string'],
+                        'date_from'  => $dateFrom,
+                        'date_to'    => $dateTo,
+                        'since'      => $since,
                         'currency'   => ['type' => 'string'],
                         'sort_desc'  => ['type' => 'boolean', 'default' => true, 'description' => 'Sort by the first metric descending. When grouping by a time dimension (day/week/month), rows default to chronological order unless you set this explicitly.'],
                     ],
@@ -181,15 +274,20 @@ class ReportTools
 
             'fluent-cart/query-products' => [
                 'label'       => __('Query Products (flexible aggregate)', 'fluent-cart'),
-                'description' => __('Flexible product-sales analytics over sold items: pick metrics and group by product or variation, within a period and one currency. For a time series use get-sales-trend. Returns up to 200 rows.', 'fluent-cart'),
+                'description' => __('Flexible product-line analytics over sold items: pick metrics, group by product or variation, optionally split by order_type (one-time payment vs new subscription vs renewal), within a period and one currency. Rows self-describe: product_name always, plus variation_label when grouped by variation, so no follow-up lookup. For a time series use get-sales-trend. Window filters on the parent order created_at, echoed as meta.date_basis.', 'fluent-cart'),
                 'input_schema' => [
                     'type'       => 'object',
                     'properties' => [
-                        'metrics'    => ['type' => 'array', 'description' => 'Defaults to units_sold and line_revenue. net_revenue = line_revenue minus refunds.', 'items' => ['type' => 'string', 'enum' => ['units_sold', 'line_revenue', 'net_revenue', 'order_count', 'avg_unit_price', 'refund_amount']]],
-                        'dimensions' => ['type' => 'array', 'items' => ['type' => 'string', 'enum' => ['product', 'variation']]],
+                        'metrics'    => ['type' => 'array', 'description' => 'Defaults to units_sold and line_revenue. list_price_sum = units x list price before any discount; discount_amount = list_price_sum minus line_revenue (coupon + manual discount) — pick both with line_revenue to see margin leakage directly; net_revenue = line_revenue minus refunds.', 'items' => ['type' => 'string', 'enum' => ['units_sold', 'line_revenue', 'list_price_sum', 'discount_amount', 'net_revenue', 'order_count', 'avg_unit_price', 'refund_amount']]],
+                        'dimensions' => ['type' => 'array', 'description' => 'Group by these. order_type splits a product\'s sales by the parent order type: payment (one-time purchase), subscription (first subscription order) and renewal (recurring charge). Combine with product/variation, e.g. product x order_type.', 'items' => ['type' => 'string', 'enum' => ['product', 'variation', 'order_type']]],
+                        'product_id'   => ['type' => 'integer', 'description' => 'Limit to one product (by product/post id). Combine with dimensions=[variation] to break that single product down by variation.'],
+                        'variation_id' => ['type' => 'integer', 'description' => 'Limit to one variation of the product.'],
                         'range'      => $rangeProp,
                         'start_date' => ['type' => 'string'],
                         'end_date'   => ['type' => 'string'],
+                        'date_from'  => $dateFrom,
+                        'date_to'    => $dateTo,
+                        'since'      => $since,
                         'currency'   => ['type' => 'string'],
                     ],
                 ],
@@ -220,7 +318,77 @@ class ReportTools
                 },
                 'annotations' => ['readonly' => true],
             ],
+
+            'fluent-cart/query-subscriptions' => [
+                'label'       => __('Query Subscriptions (flexible aggregate)', 'fluent-cart'),
+                'description' => __('Flexible subscription analytics: pick metrics, group by month/plan_type/status/billing_interval over a date window. plan_type splits fixed-term installment/split-pay from open-ended recurring plans. contract_value books installments at their full committed price, recurring_total x bill_times — a split-pay deal counts once at signup, not per charge. date_basis=created_at for booking cohorts, canceled_at for churn — a completed installment is paid-in-full, never churn. Not currency-scoped; money is store currency.', 'fluent-cart'),
+                'input_schema' => [
+                    'type'       => 'object',
+                    'properties' => [
+                        'metrics'    => ['type' => 'array', 'description' => 'Defaults to subscription_count and contract_value. contract_value = full committed price of installments, recurring_total x bill_times, and 0 for open-ended plans; recurring_value = one-cycle total.', 'items' => ['type' => 'string', 'enum' => ['subscription_count', 'contract_value', 'recurring_value']]],
+                        'dimensions' => ['type' => 'array', 'description' => 'Group by these. Empty means a single total row. plan_type splits installment vs recurring; status keeps completed installments separate from canceled/expired churn.', 'items' => ['type' => 'string', 'enum' => ['month', 'plan_type', 'status', 'billing_interval']]],
+                        'date_basis' => ['type' => 'string', 'enum' => ['created_at', 'canceled_at', 'next_billing_date'], 'default' => 'created_at', 'description' => 'Which date the range and the month dimension use: created_at for booking cohorts, canceled_at for churn, next_billing_date for upcoming renewals.'],
+                        'plan_type'  => ['type' => 'string', 'enum' => ['installment', 'recurring', 'all'], 'default' => 'all', 'description' => 'Filter to installment (bill_times > 0) or recurring (bill_times = 0) plans.'],
+                        'status'     => ['type' => 'string', 'enum' => $subStatuses],
+                        'product_id' => ['type' => 'integer', 'description' => 'Limit to subscriptions for one product.'],
+                        'range'      => $rangeProp,
+                        'start_date' => ['type' => 'string'],
+                        'end_date'   => ['type' => 'string'],
+                        'date_from'  => $dateFrom,
+                        'date_to'    => $dateTo,
+                        'since'      => $since,
+                    ],
+                ],
+                'execute_callback'    => [self::class, 'querySubscriptions'],
+                'permission_callback' => function () {
+                    return PermissionGate::can('reports/view');
+                },
+                'annotations' => ['readonly' => true],
+            ],
         ];
+
+        // The live/test mode filter applies only to order-based reports —
+        // fct_orders has a mode column, but subscription/customer analytics do
+        // not. Injected here so the shared $modeProp stays a single definition.
+        foreach ([
+            'fluent-cart/get-sales-report',
+            'fluent-cart/get-sales-trend',
+            'fluent-cart/get-top-products',
+            'fluent-cart/get-refund-report',
+            'fluent-cart/query-sources',
+            'fluent-cart/query-orders',
+            'fluent-cart/query-products',
+        ] as $modeTool) {
+            $defs[$modeTool]['input_schema']['properties']['mode'] = $modeProp;
+        }
+
+        // page/per_page belong on the flexible aggregates, whose grouped output can
+        // exceed the 200-row cap. The fixed reports (sales/trend/top/refund) return
+        // a bounded shape and don't paginate. query-sources is excluded on purpose:
+        // it already exposes its own `limit` + peek + truncated, and adding a
+        // second page-size param would be ambiguous.
+        foreach ([
+            'fluent-cart/query-orders',
+            'fluent-cart/query-products',
+            'fluent-cart/query-customers',
+            'fluent-cart/query-subscriptions',
+        ] as $pagedTool) {
+            $defs[$pagedTool]['input_schema']['properties']['page']     = $pageProp;
+            $defs[$pagedTool]['input_schema']['properties']['per_page'] = $perPageProp;
+        }
+
+        // All five query-* aggregates share the same response envelope.
+        foreach ([
+            'fluent-cart/query-orders',
+            'fluent-cart/query-products',
+            'fluent-cart/query-customers',
+            'fluent-cart/query-subscriptions',
+            'fluent-cart/query-sources',
+        ] as $queryTool) {
+            $defs[$queryTool]['output_schema'] = $queryOutputSchema;
+        }
+
+        return $defs;
     }
 
     // -----------------------------------------------------------------
@@ -231,8 +399,9 @@ class ReportTools
     {
         $currency = self::currency($params);
         $range    = self::resolveRange($params);
+        $mode     = self::orderMode($params);
 
-        $current = self::salesMetrics($range['start'], $range['end'], $currency);
+        $current = self::salesMetrics($range['start'], $range['end'], $currency, $mode);
 
         $data = [
             'range'       => self::rangeBlock($range, $currency),
@@ -242,7 +411,7 @@ class ReportTools
 
         $compare = !isset($params['compare']) || !empty($params['compare']);
         if ($compare && $range['prev_start']) {
-            $prior = self::salesMetrics($range['prev_start'], $range['prev_end'], $currency);
+            $prior = self::salesMetrics($range['prev_start'], $range['prev_end'], $currency, $mode);
             $data['comparison'] = [
                 'prior_metrics'  => self::salesMetricsOut($prior, $currency),
                 'change_percent' => [
@@ -261,19 +430,20 @@ class ReportTools
             MCPHelper::displayAmount($current['aov'], $currency)
         );
 
-        return MCPHelper::envelope($summary, $data, ['currency' => $currency, 'date_basis' => 'created_at']);
+        return MCPHelper::envelope($summary, $data, ['currency' => $currency, 'date_basis' => 'created_at', 'mode' => $mode]);
     }
 
-    private static function salesMetrics($start, $end, $currency)
+    private static function salesMetrics($start, $end, $currency, $mode = 'all')
     {
         // One aggregate scan instead of eight (this is the headline report, and
         // it runs twice when compare=true). Same filtered set, same numbers.
-        $row = Order::query()
+        $q = Order::query()
             ->whereIn('payment_status', self::PAID)
             ->where('currency', $currency)
             ->where('created_at', '>=', $start)
-            ->where('created_at', '<=', $end)
-            ->selectRaw(
+            ->where('created_at', '<=', $end);
+        self::applyMode($q, $mode);
+        $row = $q->selectRaw(
                 'COUNT(*) as orders, '
                 . 'COALESCE(SUM(total_amount), 0) as gross, '
                 . 'COALESCE(SUM(total_paid), 0) as paid, '
@@ -327,9 +497,10 @@ class ReportTools
     private static function metricDefs()
     {
         return [
-            'paid_orders'   => 'Orders with payment_status in: ' . implode(', ', self::PAID),
-            'gross_revenue' => 'Sum of order total_amount for paid orders.',
-            'net_revenue'   => 'Sum of total_paid minus total_refund.',
+            'paid_orders'   => 'Orders that captured payment at some point (payment_status in: ' . implode(', ', self::PAID) . '). A fully refunded order (payment_status "refunded") is included — it captured payment, so it counts toward gross/paid and the refunded total, and nets to zero in net_revenue.',
+            'gross_revenue' => 'Sum of order total_amount for paid orders (gross sales, before refunds).',
+            'net_revenue'   => 'Sum of total_paid minus total_refund; a fully refunded order nets to zero.',
+            'refunded'      => 'Sum of total_refund over paid orders — includes fully refunded orders, independent of current order status.',
             'aov'           => 'gross_revenue divided by paid order count.',
             'date_basis'    => 'created_at, within the given range.',
         ];
@@ -343,16 +514,23 @@ class ReportTools
     {
         $currency = self::currency($params);
         $range    = self::resolveRange($params);
-        $interval = isset($params['interval']) && in_array($params['interval'], ['day', 'week', 'month'], true) ? $params['interval'] : 'day';
+        $mode     = self::orderMode($params);
+        // `granularity` is an alias for `interval`; hour is for intraday launch
+        // monitoring (MAX_BUCKETS caps it at 180 hours ~ 7.5 days per call).
+        $intervalIn = isset($params['granularity']) ? $params['granularity'] : (isset($params['interval']) ? $params['interval'] : 'day');
+        $interval   = in_array($intervalIn, ['hour', 'day', 'week', 'month'], true) ? $intervalIn : 'day';
 
-        $format = $interval === 'month' ? '%Y-%m' : ($interval === 'week' ? '%x-W%v' : '%Y-%m-%d');
+        $format = $interval === 'month'
+            ? '%Y-%m'
+            : ($interval === 'week' ? '%x-W%v' : ($interval === 'hour' ? '%Y-%m-%d %H:00' : '%Y-%m-%d'));
 
-        $rows = Order::query()
+        $q = Order::query()
             ->whereIn('payment_status', self::PAID)
             ->where('currency', $currency)
             ->where('created_at', '>=', $range['start'])
-            ->where('created_at', '<=', $range['end'])
-            ->selectRaw('DATE_FORMAT(created_at, ?) as bucket, COUNT(*) as order_count, SUM(total_amount) as gross', [$format])
+            ->where('created_at', '<=', $range['end']);
+        self::applyMode($q, $mode);
+        $rows = $q->selectRaw('DATE_FORMAT(created_at, ?) as bucket, COUNT(*) as order_count, SUM(total_amount) as gross', [$format])
             ->groupBy('bucket')
             ->orderBy('bucket', 'ASC')
             ->limit(self::MAX_BUCKETS)
@@ -381,7 +559,7 @@ class ReportTools
         return MCPHelper::envelope(
             $summary,
             ['interval' => $interval, 'range' => self::rangeBlock($range, $currency), 'trend' => $trend],
-            ['currency' => $currency, 'truncated' => count($rows) >= self::MAX_BUCKETS]
+            ['currency' => $currency, 'date_basis' => 'created_at', 'mode' => $mode, 'truncated' => count($rows) >= self::MAX_BUCKETS]
         );
     }
 
@@ -393,16 +571,18 @@ class ReportTools
     {
         $currency = self::currency($params);
         $range    = self::resolveRange($params);
+        $mode     = self::orderMode($params);
         $metric   = isset($params['metric']) && $params['metric'] === 'units' ? 'units' : 'revenue';
         $limit    = isset($params['limit']) ? min(max((int) $params['limit'], 1), 50) : 10;
         $orderCol = $metric === 'units' ? 'units' : 'revenue';
 
         $rows = OrderItem::query()
-            ->whereHas('order', function ($q) use ($range, $currency) {
+            ->whereHas('order', function ($q) use ($range, $currency, $mode) {
                 $q->whereIn('payment_status', self::PAID)
                     ->where('currency', $currency)
                     ->where('created_at', '>=', $range['start'])
                     ->where('created_at', '<=', $range['end']);
+                self::applyMode($q, $mode);
             })
             ->selectRaw('post_id, MAX(post_title) as title, SUM(quantity) as units, SUM(line_total - refund_total) as revenue, COUNT(DISTINCT order_id) as order_count')
             ->groupBy('post_id')
@@ -428,7 +608,7 @@ class ReportTools
             $metric
         );
 
-        return MCPHelper::envelope($summary, ['metric' => $metric, 'range' => self::rangeBlock($range, $currency), 'products' => $products], ['currency' => $currency]);
+        return MCPHelper::envelope($summary, ['metric' => $metric, 'range' => self::rangeBlock($range, $currency), 'products' => $products], ['currency' => $currency, 'date_basis' => 'created_at', 'mode' => $mode]);
     }
 
     // -----------------------------------------------------------------
@@ -439,12 +619,14 @@ class ReportTools
     {
         $currency = self::currency($params);
         $range    = self::resolveRange($params);
+        $mode     = self::orderMode($params);
 
         $paidBase = Order::query()
             ->whereIn('payment_status', self::PAID)
             ->where('currency', $currency)
             ->where('created_at', '>=', $range['start'])
             ->where('created_at', '<=', $range['end']);
+        self::applyMode($paidBase, $mode);
 
         $paidCount = (clone $paidBase)->count();
 
@@ -472,8 +654,13 @@ class ReportTools
                 'refund_rate_percent'  => $rate,
                 'total_refunded'       => MCPHelper::money($refundedAmount, $currency),
                 'average_refund'       => MCPHelper::money($avg, $currency),
+                'definitions'          => [
+                    'refunded_order_count' => 'Orders with total_refund > 0 in the window, regardless of current status — a fully refunded (canceled) order still counts. Matches the admin refund report.',
+                    'paid_order_count'     => 'Orders that captured payment in the window, including those later fully refunded. This is the refund_rate denominator.',
+                    'refund_rate_percent'  => 'refunded_order_count / paid_order_count * 100. A fully refunded order was paid before being refunded, so it is counted in BOTH the numerator and the denominator.',
+                ],
             ],
-            ['currency' => $currency]
+            ['currency' => $currency, 'date_basis' => 'created_at', 'mode' => $mode]
         );
     }
 
@@ -487,6 +674,7 @@ class ReportTools
     {
         $currency   = self::currency($params);
         $range      = self::resolveRange($params);
+        $mode       = self::orderMode($params);
         $limit      = isset($params['limit']) ? min(max((int) $params['limit'], 1), self::MAX_ROWS) : 50;
         $metrics    = self::pickList($params, 'metrics', ['orders', 'gross_revenue', 'net_revenue', 'aov', 'unique_customers', 'refunded_amount'], ['orders', 'gross_revenue']);
         $dimensions = self::pickList($params, 'dimensions', self::UTM_DIMENSIONS, ['utm_source', 'utm_medium', 'utm_campaign']);
@@ -516,11 +704,28 @@ class ReportTools
             ->where('o.currency', $currency)
             ->where('o.created_at', '>=', $range['start'])
             ->where('o.created_at', '<=', $range['end']);
+        // Orders table is aliased 'o' here; qualify the mode column to match.
+        self::applyMode($query, $mode, 'o.mode');
 
         // Optional drill-down filters on exact UTM values.
         foreach (['utm_source', 'utm_medium', 'utm_campaign'] as $f) {
             if (!empty($params[$f])) {
                 $query->where('oo.' . $f, sanitize_text_field($params[$f]));
+            }
+        }
+
+        // Optional entity filters: restrict attribution to orders containing a
+        // product/variation. whereExists on fct_order_items (never a join, so the
+        // per-order SUM()s don't fan out) — mirrors the admin SourceReport filter.
+        foreach (['product_id' => 'post_id', 'variation_id' => 'object_id'] as $param => $col) {
+            if (!empty($params[$param])) {
+                $val = (int) $params[$param];
+                $query->whereExists(function ($q) use ($col, $val) {
+                    $q->selectRaw('1')
+                        ->from('fct_order_items as oi')
+                        ->whereRaw('oi.order_id = o.id')
+                        ->where('oi.' . $col, $val);
+                });
             }
         }
 
@@ -615,6 +820,7 @@ class ReportTools
             [
                 'currency'   => $currency,
                 'date_basis' => 'created_at',
+                'mode'       => $mode,
                 'returned'   => count($out),
                 'limit'      => $limit,
                 'max_rows'   => self::MAX_ROWS,
@@ -632,14 +838,21 @@ class ReportTools
     {
         $currency   = self::currency($params);
         $range      = self::resolveRange($params);
+        $mode       = self::orderMode($params);
         $metrics    = self::pickList($params, 'metrics', ['order_count', 'gross_revenue', 'paid_revenue', 'refunded_amount', 'aov', 'unique_customers'], ['order_count', 'gross_revenue']);
-        $dimensions = self::pickList($params, 'dimensions', ['day', 'week', 'month', 'status', 'payment_status'], []);
+        $dimensions = self::pickList($params, 'dimensions', ['day', 'week', 'month', 'status', 'payment_status', 'order_type'], []);
 
         $query = Order::query()
             ->whereIn('payment_status', self::PAID)
             ->where('currency', $currency)
             ->where('created_at', '>=', $range['start'])
             ->where('created_at', '<=', $range['end']);
+        self::applyMode($query, $mode);
+
+        // Optional entity filters: restrict to orders CONTAINING a product/variation.
+        // whereHas keeps the aggregate order-level (metrics still reflect the whole
+        // order); it never fans out rows the way a raw join would.
+        self::applyOrderItemFilter($query, $params);
 
         $selects   = [];
         $groupCols = [];
@@ -689,6 +902,7 @@ class ReportTools
             }
         }
 
+        $paging = self::queryPaging($params);
         if ($groupCols) {
             if ($timeDim !== null && !isset($params['sort_desc'])) {
                 // A time series reads chronologically by default; ranking a
@@ -698,14 +912,24 @@ class ReportTools
             } else {
                 $query->orderBy($firstMetric, $sortDesc ? 'DESC' : 'ASC');
             }
+            // Deterministic tie-break on the group key so offset paging never
+            // reshuffles equal-metric rows across pages.
+            foreach ($groupCols as $g) {
+                $query->orderBy($g, 'ASC');
+            }
         }
-        $query->limit(self::MAX_ROWS);
+        // One extra row peeks past the page boundary → meta.page.has_more.
+        $query->limit($paging['per_page'] + 1)->offset($paging['offset']);
 
         $rows         = $query->get();
+        $fetched      = count($rows);
         $moneyMetrics = ['gross_revenue', 'paid_revenue', 'refunded_amount'];
 
         $out = [];
         foreach ($rows as $row) {
+            if (count($out) >= $paging['per_page']) {
+                break;
+            }
             $r = [];
             foreach ($dimensions as $dim) {
                 $r[$dim] = $row->{$dim};
@@ -735,7 +959,7 @@ class ReportTools
         return MCPHelper::envelope(
             $summary,
             ['metrics' => $metrics, 'dimensions' => $dimensions, 'range' => self::rangeBlock($range, $currency), 'rows' => $out],
-            ['currency' => $currency, 'truncated' => count($rows) >= self::MAX_ROWS]
+            array_merge(['currency' => $currency, 'date_basis' => 'created_at', 'mode' => $mode], self::pageMeta($paging, $fetched))
         );
     }
 
@@ -747,34 +971,91 @@ class ReportTools
     {
         $currency   = self::currency($params);
         $range      = self::resolveRange($params);
-        $metrics    = self::pickList($params, 'metrics', ['units_sold', 'line_revenue', 'net_revenue', 'order_count', 'avg_unit_price', 'refund_amount'], ['units_sold', 'line_revenue']);
-        $dimensions = self::pickList($params, 'dimensions', ['product', 'variation'], ['product']);
+        $mode       = self::orderMode($params);
+        $metrics    = self::pickList($params, 'metrics', ['units_sold', 'line_revenue', 'list_price_sum', 'discount_amount', 'net_revenue', 'order_count', 'avg_unit_price', 'refund_amount'], ['units_sold', 'line_revenue']);
+        $dimensions = self::pickList($params, 'dimensions', ['product', 'variation', 'order_type'], ['product']);
 
-        $query = OrderItem::query()->whereHas('order', function ($q) use ($range, $currency) {
+        $query = OrderItem::query()->whereHas('order', function ($q) use ($range, $currency, $mode) {
             $q->whereIn('payment_status', self::PAID)
                 ->where('currency', $currency)
                 ->where('created_at', '>=', $range['start'])
                 ->where('created_at', '<=', $range['end']);
+            self::applyMode($q, $mode);
         });
+
+        // Entity filters on the line item itself: post_id is the product, object_id
+        // the variation. These live on fct_order_items (the base model here), so a
+        // plain where — no join — scopes the whole aggregate to one product/variation.
+        // Without this, dimensions=[variation] grouped across the ENTIRE catalog even
+        // when a product_id was passed (the param was silently dropped).
+        if (!empty($params['product_id'])) {
+            $query->where('post_id', (int) $params['product_id']);
+        }
+        if (!empty($params['variation_id'])) {
+            $query->where('object_id', (int) $params['variation_id']);
+        }
+
+        // order_type lives on the parent order (fct_orders.type), not the line
+        // item. Join orders only when it's requested so existing calls are
+        // unchanged. order_id -> orders.id is many-to-one, so the join never fans
+        // out line rows and the SUM()s stay identical to the ungrouped query.
+        $groupByOrderType = in_array('order_type', $dimensions, true);
+        if ($groupByOrderType) {
+            $query->join('fct_orders as fctord', 'fct_order_items.order_id', '=', 'fctord.id');
+        }
+
+        $hasProduct   = in_array('product', $dimensions, true);
+        $hasVariation = in_array('variation', $dimensions, true);
 
         $selects   = [];
         $groupCols = [];
-        if (in_array('product', $dimensions, true)) {
+        if ($hasProduct) {
             $selects[]   = 'post_id';
             $selects[]   = 'MAX(post_title) as product_title';
             $groupCols[] = 'post_id';
         }
-        if (in_array('variation', $dimensions, true)) {
+        if ($hasVariation) {
             $selects[]   = 'object_id';
             $groupCols[] = 'object_id';
+            // Make variation rows self-describing so the agent needs no follow-up
+            // lookup: the variation's own stored title, plus the parent product's
+            // id + name when we aren't already grouping by product. A variation
+            // belongs to exactly one product, so MAX(post_id)/MAX(post_title) is
+            // that single product's value per group — the join never fans out.
+            $selects[] = 'MAX(title) as variation_label';
+            if (!$hasProduct) {
+                $selects[] = 'MAX(post_id) as vproduct_id';
+                $selects[] = 'MAX(post_title) as product_title';
+            }
+        }
+        if ($groupByOrderType) {
+            // Reuse the order_type -> column mapping from query-orders rather than
+            // hard-coding it again; qualify it with the join alias.
+            $selects[]   = 'fctord.' . self::dimensionExpr('order_type') . ' as order_type';
+            $groupCols[] = 'order_type';
         }
 
+        // line_total = subtotal - discount_total on every item (see DiscountService/
+        // CheckoutProcessor), so list_price_sum - line_revenue == discount_amount by
+        // construction: margin leakage is the gap between what was listed and what
+        // was charged, before refunds.
+        //
+        // Every item column below is qualified with the real (prefixed) items table.
+        // When order_type is grouped, fct_orders is joined and columns that exist on
+        // BOTH tables — subtotal is one — make a bare SUM(subtotal) throw SQL 1052
+        // ("column is ambiguous"). selectRaw bypasses the grammar's table-prefixing,
+        // so the literal prefixed name (not the bare `fct_order_items`) is required.
+        // Qualifying all of them, not just subtotal, keeps a future column collision
+        // (or a new metric) from silently reintroducing the crash.
+        $itemsTable = App::db()->getTableName('fct_order_items');
         $metricSql = [
-            'units_sold'    => 'SUM(quantity) as units_sold',
-            'line_revenue'  => 'SUM(line_total) as line_revenue',
-            'net_revenue'   => 'SUM(line_total - refund_total) as net_revenue',
-            'order_count'   => 'COUNT(DISTINCT order_id) as order_count',
-            'refund_amount' => 'SUM(refund_total) as refund_amount',
+            'units_sold'      => 'SUM(' . $itemsTable . '.quantity) as units_sold',
+            'line_revenue'    => 'SUM(' . $itemsTable . '.line_total) as line_revenue',
+            'list_price_sum'  => 'SUM(' . $itemsTable . '.subtotal) as list_price_sum',
+            'discount_amount' => 'SUM(' . $itemsTable . '.discount_total) as discount_amount',
+            'net_revenue'     => 'SUM(' . $itemsTable . '.line_total - ' . $itemsTable . '.refund_total) as net_revenue',
+            'order_count'     => 'COUNT(DISTINCT ' . $itemsTable . '.order_id) as order_count',
+            'refund_amount'   => 'SUM(' . $itemsTable . '.refund_total) as refund_amount',
         ];
         foreach ($metrics as $m) {
             if (isset($metricSql[$m])) {
@@ -799,23 +1080,41 @@ class ReportTools
         if ($firstMetric === 'avg_unit_price') {
             $firstMetric = 'line_revenue';
         }
+        $paging = self::queryPaging($params);
         if ($groupCols && isset($metricSql[$firstMetric])) {
             $query->orderBy($firstMetric, 'DESC');
+            // Deterministic tie-break on the group key for stable offset paging.
+            foreach ($groupCols as $g) {
+                $query->orderBy($g, 'ASC');
+            }
         }
-        $query->limit(self::MAX_ROWS);
+        $query->limit($paging['per_page'] + 1)->offset($paging['offset']);
 
         $rows         = $query->get();
-        $moneyMetrics = ['line_revenue', 'net_revenue', 'refund_amount', 'avg_unit_price'];
+        $fetched      = count($rows);
+        $moneyMetrics = ['line_revenue', 'list_price_sum', 'discount_amount', 'net_revenue', 'refund_amount', 'avg_unit_price'];
 
         $out = [];
         foreach ($rows as $row) {
-            $r = [];
-            if (in_array('product', $dimensions, true)) {
-                $r['product_id']    = (int) $row->post_id;
-                $r['product_title'] = $row->product_title;
+            if (count($out) >= $paging['per_page']) {
+                break;
             }
-            if (in_array('variation', $dimensions, true)) {
-                $r['variation_id'] = (int) $row->object_id;
+            $r = [];
+            if ($hasProduct) {
+                $r['product_id']    = (int) $row->post_id;
+                $r['product_name']  = $row->product_title;
+                // product_title kept as a backward-compatible alias of product_name.
+                $r['product_title'] = $row->product_title;
+            } elseif ($hasVariation) {
+                $r['product_id']   = (int) $row->vproduct_id;
+                $r['product_name'] = $row->product_title;
+            }
+            if ($hasVariation) {
+                $r['variation_id']    = (int) $row->object_id;
+                $r['variation_label'] = $row->variation_label;
+            }
+            if ($groupByOrderType) {
+                $r['order_type'] = $row->order_type;
             }
             foreach ($metrics as $m) {
                 if ($m === 'avg_unit_price') {
@@ -839,7 +1138,7 @@ class ReportTools
                 implode(', ', $metrics)
             ),
             ['metrics' => $metrics, 'dimensions' => $dimensions, 'range' => self::rangeBlock($range, $currency), 'rows' => $out],
-            ['currency' => $currency, 'truncated' => count($rows) >= self::MAX_ROWS]
+            array_merge(['currency' => $currency, 'date_basis' => 'created_at', 'mode' => $mode], self::pageMeta($paging, $fetched))
         );
     }
 
@@ -902,17 +1201,27 @@ class ReportTools
             $query->groupByRaw(implode(', ', $groupCols));
         }
 
+        $paging      = self::queryPaging($params);
         $firstMetric = isset($metrics[0]) ? $metrics[0] : 'customer_count';
         if ($groupCols && isset($metricSql[$firstMetric])) {
             $query->orderBy($firstMetric, 'DESC');
+            // Deterministic tie-break on the grouped dimensions (their aliases)
+            // so offset paging is stable across pages.
+            foreach ($dimensions as $d) {
+                $query->orderBy($d, 'ASC');
+            }
         }
-        $query->limit(self::MAX_ROWS);
+        $query->limit($paging['per_page'] + 1)->offset($paging['offset']);
 
         $rows         = $query->get();
+        $fetched      = count($rows);
         $moneyMetrics = ['total_ltv', 'avg_ltv'];
 
         $out = [];
         foreach ($rows as $row) {
+            if (count($out) >= $paging['per_page']) {
+                break;
+            }
             $r = [];
             foreach ($dimensions as $dim) {
                 $r[$dim] = $row->{$dim};
@@ -937,8 +1246,150 @@ class ReportTools
                 implode(', ', $metrics)
             ),
             ['metrics' => $metrics, 'dimensions' => $dimensions, 'rows' => $out],
-            ['currency' => MCPHelper::currencyCode(), 'note' => 'LTV is in store currency; customers are not currency-scoped.']
+            array_merge(['currency' => MCPHelper::currencyCode(), 'note' => 'LTV is in store currency; customers are not currency-scoped.'], self::pageMeta($paging, $fetched))
         );
+    }
+
+    // -----------------------------------------------------------------
+    // query-subscriptions (flexible aggregate)
+    // -----------------------------------------------------------------
+
+    public static function querySubscriptions($params = [])
+    {
+        $range      = self::resolveRange($params);
+        $dateBasis  = self::subDateBasis($params);
+        $metrics    = self::pickList($params, 'metrics', ['subscription_count', 'contract_value', 'recurring_value'], ['subscription_count', 'contract_value']);
+        $dimensions = self::pickList($params, 'dimensions', ['month', 'plan_type', 'status', 'billing_interval'], []);
+
+        // Same UTC window resolution as every other report; the chosen date_basis
+        // is the only thing that varies (signup cohort vs churn vs upcoming).
+        $query = Subscription::query()
+            ->where($dateBasis, '>=', $range['start'])
+            ->where($dateBasis, '<=', $range['end']);
+
+        if (!empty($params['product_id'])) {
+            $query->where('product_id', (int) $params['product_id']);
+        }
+        if (!empty($params['status'])) {
+            $query->where('status', sanitize_text_field($params['status']));
+        }
+        $planType = isset($params['plan_type']) && in_array($params['plan_type'], ['installment', 'recurring'], true) ? $params['plan_type'] : 'all';
+        if ($planType !== 'all') {
+            $query->ofPlanType($planType);
+        }
+
+        // plan_type is derived from bill_times with the SAME threshold as
+        // Subscription::isInstallment(), so the SQL and PHP definitions agree.
+        $planExpr = "CASE WHEN bill_times > 0 THEN 'installment' ELSE 'recurring' END";
+
+        $selects   = [];
+        $groupExpr = [];
+        foreach ($dimensions as $dim) {
+            if ($dim === 'month') {
+                $expr = "DATE_FORMAT($dateBasis, '%Y-%m')";
+            } elseif ($dim === 'plan_type') {
+                $expr = $planExpr;
+            } else {
+                // status / billing_interval — plain columns.
+                $expr = $dim;
+            }
+            $selects[]   = $expr . ' as ' . $dim;
+            $groupExpr[] = $expr;
+        }
+
+        // contract_value is the SUM form of Subscription::totalContractValue()
+        // (recurring_total * bill_times) — installments booked at full committed
+        // value, 0 for open-ended plans. No parallel money math.
+        $metricSql = [
+            'subscription_count' => 'COUNT(*) as subscription_count',
+            'contract_value'     => 'SUM(recurring_total * bill_times) as contract_value',
+            'recurring_value'    => 'SUM(recurring_total) as recurring_value',
+        ];
+        foreach ($metrics as $m) {
+            if (isset($metricSql[$m])) {
+                $selects[] = $metricSql[$m];
+            }
+        }
+
+        $query->selectRaw(implode(', ', $selects));
+        if ($groupExpr) {
+            $query->groupByRaw(implode(', ', $groupExpr));
+        }
+
+        $paging      = self::queryPaging($params);
+        $firstMetric = isset($metrics[0]) ? $metrics[0] : 'subscription_count';
+        if ($groupExpr && isset($metricSql[$firstMetric])) {
+            $query->orderBy($firstMetric, 'DESC');
+            // Deterministic tie-break on the grouped dimensions (their aliases).
+            foreach ($dimensions as $d) {
+                $query->orderBy($d, 'ASC');
+            }
+        }
+        $query->limit($paging['per_page'] + 1)->offset($paging['offset']);
+
+        $rows         = $query->get();
+        $fetched      = count($rows);
+        $moneyMetrics = ['contract_value', 'recurring_value'];
+
+        $out = [];
+        foreach ($rows as $row) {
+            if (count($out) >= $paging['per_page']) {
+                break;
+            }
+            $r = [];
+            foreach ($dimensions as $dim) {
+                $r[$dim] = $row->{$dim};
+            }
+            foreach ($metrics as $m) {
+                if (in_array($m, $moneyMetrics, true)) {
+                    $r[$m] = MCPHelper::moneyCompact((int) $row->{$m});
+                } else {
+                    $r[$m] = (int) $row->{$m};
+                }
+            }
+            $out[] = $r;
+        }
+
+        return MCPHelper::envelope(
+            sprintf(
+                /* translators: 1: row count, 2: metric list, 3: dimension list */
+                __('%1$d rows — subscription metrics [%2$s] grouped by [%3$s].', 'fluent-cart'),
+                count($out),
+                implode(', ', $metrics),
+                $dimensions ? implode(', ', $dimensions) : __('total', 'fluent-cart')
+            ),
+            ['metrics' => $metrics, 'dimensions' => $dimensions, 'date_basis' => $dateBasis, 'range' => self::rangeBlock($range, MCPHelper::currencyCode()), 'rows' => $out],
+            array_merge([
+                'currency'   => MCPHelper::currencyCode(),
+                'date_basis' => $dateBasis,
+                'note'       => 'Money is in the store currency; subscriptions are not currency-scoped. contract_value books installments at recurring_total x bill_times; completed installments are paid-in-full, not churn.',
+            ], self::pageMeta($paging, $fetched))
+        );
+    }
+
+    private static function subDateBasis($params)
+    {
+        $allowed = ['created_at', 'canceled_at', 'next_billing_date'];
+
+        return isset($params['date_basis']) && in_array($params['date_basis'], $allowed, true) ? $params['date_basis'] : 'created_at';
+    }
+
+    /**
+     * Restrict an Order-model aggregate to orders CONTAINING a given product /
+     * variation. Uses whereHas on order_items (post_id = product, object_id =
+     * variation) so the filter is a subquery, not a join — order-level metrics stay
+     * per-order and never fan out. Both filters combine (AND) when both are given.
+     */
+    private static function applyOrderItemFilter($query, $params)
+    {
+        foreach (['product_id' => 'post_id', 'variation_id' => 'object_id'] as $param => $col) {
+            if (!empty($params[$param])) {
+                $val = (int) $params[$param];
+                $query->whereHas('order_items', function ($q) use ($col, $val) {
+                    $q->where($col, $val);
+                });
+            }
+        }
     }
 
     private static function dimensionExpr($dim)
@@ -951,6 +1402,13 @@ class ReportTools
         }
         if ($dim === 'month') {
             return "DATE_FORMAT(created_at, '%Y-%m')";
+        }
+        if ($dim === 'order_type') {
+            // The order-type values (payment | renewal | subscription) live on the
+            // fct_orders.type column; expose it under the order_type alias so the
+            // dimension name and response key read naturally and don't collide
+            // with the unrelated payment_type on line items.
+            return 'type';
         }
         return $dim;
     }
@@ -968,16 +1426,65 @@ class ReportTools
     }
 
     /**
+     * Effective order-mode filter: 'live', 'test', or 'all'. Reports have always
+     * counted BOTH live and test orders, so 'all' (the default) keeps existing
+     * numbers unchanged; an agent opts into 'live' for clean revenue. Applied to
+     * the fct_orders.mode column.
+     */
+    private static function orderMode($params)
+    {
+        $m = isset($params['mode']) ? strtolower(sanitize_text_field((string) $params['mode'])) : 'all';
+        return in_array($m, ['live', 'test'], true) ? $m : 'all';
+    }
+
+    /**
+     * Apply the mode filter to an Order query (or an order-relation subquery /
+     * whereHas closure). 'all' is a no-op so existing numbers are unchanged. The
+     * column is fct_orders.mode; pass a qualified name via $column when the orders
+     * table is aliased (e.g. query-sources uses 'o.mode').
+     */
+    private static function applyMode($query, $mode, $column = 'mode')
+    {
+        if ($mode !== 'all') {
+            $query->where($column, $mode);
+        }
+        return $query;
+    }
+
+    /**
      * Resolve range/start/end into a UTC window plus the prior equal-length
      * window. Relative ranges are computed in store timezone, expressed in UTC.
+     *
+     * Public so the single source of truth for MCP date-window resolution is
+     * shared (e.g. list-transactions) instead of duplicated — every tool then
+     * accepts the identical range vocabulary and UTC semantics.
      */
-    private static function resolveRange($params)
+    public static function resolveRange($params)
     {
         // Resolve windows in UTC to match FluentCart's own admin reports, which
         // bucket on the GMT-stored created_at (DATE_FORMAT(created_at, ...)) with
         // no timezone conversion. Using store-local boundaries here would make a
         // local day straddle two UTC dates and emit an extra trailing bucket.
         $tz = new \DateTimeZone('UTC');
+
+        // Delta mode: everything strictly after an instant, up to now. Time-precise
+        // (not snapped to a day) so "what changed since 14:05" works during a launch.
+        if (!empty($params['since'])) {
+            $start = self::instant($params['since'], $tz, false);
+            if ($start !== null) {
+                return self::withPrior($start, gmdate('Y-m-d H:i:s'), 'since');
+            }
+        }
+
+        // Time-precise custom window (ISO 8601). A time of day is kept; a date-only
+        // value snaps to the day edge. Overrides range and the legacy start/end_date.
+        if (!empty($params['date_from']) || !empty($params['date_to'])) {
+            $start = self::instant(!empty($params['date_from']) ? $params['date_from'] : '-30 days', $tz, false);
+            $end   = self::instant(!empty($params['date_to']) ? $params['date_to'] : 'now', $tz, true);
+            if ($start !== null && $end !== null) {
+                return self::withPrior($start, $end, 'custom');
+            }
+        }
 
         if (!empty($params['start_date']) || !empty($params['end_date'])) {
             $start = self::dayStart(!empty($params['start_date']) ? $params['start_date'] : '-30 days', $tz);
@@ -986,6 +1493,19 @@ class ReportTools
         }
 
         $range = isset($params['range']) && in_array($params['range'], self::RANGES, true) ? $params['range'] : 'last_30_days';
+
+        // since_launch (alias: all_time): the store's first paid order to now.
+        // Needs a DB read, so it sits here rather than in the pure calendar math
+        // below. Falls back to the last 30 days if the store has no paid orders
+        // yet. Both names resolve identically — for a paid-order-scoped report the
+        // first paid order IS the start of all data — so an agent that learned
+        // all_time from get-product-financials succeeds here too. The label echoes
+        // whichever name was requested.
+        if ($range === 'since_launch' || $range === 'all_time') {
+            $launch = self::storeLaunchDate();
+            $start  = $launch ? $launch : self::dayStart('-30 days', $tz);
+            return self::withPrior($start, gmdate('Y-m-d H:i:s'), $range);
+        }
 
         $now     = new \DateTime('now', $tz);
         $startDt = clone $now;
@@ -1085,6 +1605,38 @@ class ReportTools
         ];
     }
 
+    /**
+     * Parse an ISO-8601 / relative value to a UTC 'Y-m-d H:i:s'. A date-only input
+     * (YYYY-MM-DD) is snapped to the day start (or end when $isEnd); an explicit
+     * time is preserved. Returns null on an unparseable value so the caller can
+     * fall back to the next window source rather than silently matching all rows.
+     */
+    private static function instant($value, $tz, $isEnd = false)
+    {
+        try {
+            $dt = new \DateTime((string) $value, $tz);
+        } catch (\Exception $e) {
+            return null;
+        }
+        if (preg_match('/^\d{4}-\d{2}-\d{2}$/', trim((string) $value))) {
+            $dt->setTime($isEnd ? 23 : 0, $isEnd ? 59 : 0, $isEnd ? 59 : 0);
+        }
+        $dt->setTimezone(new \DateTimeZone('UTC'));
+        return $dt->format('Y-m-d H:i:s');
+    }
+
+    /**
+     * The store's first paid order timestamp (UTC); null if the store has no paid
+     * orders yet. Only hit on the since_launch path (one indexed min per call), so
+     * it is not memoized — a static cache would leak across calls in a long-lived
+     * process (e.g. the test runner) for no real per-request gain.
+     */
+    private static function storeLaunchDate()
+    {
+        $min = Order::query()->whereIn('payment_status', self::PAID)->min('created_at');
+        return ($min && strpos((string) $min, '0000-00-00') !== 0) ? (string) $min : null;
+    }
+
     private static function dayStart($value, $tz)
     {
         try {
@@ -1131,6 +1683,40 @@ class ReportTools
             }
         }
         return $out ? $out : $default;
+    }
+
+    /**
+     * Page/offset for the query-* aggregates. per_page defaults to and is clamped
+     * at MAX_ROWS — grouped rows are compact but a single page still can't exceed
+     * the context guardrail. Returns page, per_page and the row offset.
+     */
+    private static function queryPaging($params)
+    {
+        $page    = isset($params['page']) ? max(1, (int) $params['page']) : 1;
+        $perPage = isset($params['per_page']) ? (int) $params['per_page'] : self::MAX_ROWS;
+        if ($perPage < 1 || $perPage > self::MAX_ROWS) {
+            $perPage = self::MAX_ROWS;
+        }
+        return ['page' => $page, 'per_page' => $perPage, 'offset' => ($page - 1) * $perPage];
+    }
+
+    /**
+     * meta.page block for a query-* aggregate. The query fetches per_page + 1 rows
+     * to peek past the page boundary; $fetchedCount is that raw count. `truncated`
+     * is kept (never removed — additive API rule) and now means "more rows exist
+     * beyond this page"; raise `page` to fetch them.
+     */
+    private static function pageMeta($paging, $fetchedCount)
+    {
+        $hasMore = $fetchedCount > $paging['per_page'];
+        return [
+            'page'      => [
+                'current'  => $paging['page'],
+                'per_page' => $paging['per_page'],
+                'has_more' => $hasMore,
+            ],
+            'truncated' => $hasMore,
+        ];
     }
 
     private static function pct($current, $prior)

@@ -22,6 +22,7 @@ class ThankYouRender
 
     protected $order_operation = null;
 
+    private $fctTaxSummaryCache = [];
 
     public function __construct($config)
     {
@@ -33,6 +34,18 @@ class ThankYouRender
         $this->settings = new StoreSettings();
         AssetLoader::enqueueThankYouPageAssets();
 
+    }
+
+    private function getMemoizedTaxSummary($order)
+    {
+        if (!$order) {
+            return TaxSummaryHelper::computeTaxSummary($order);
+        }
+        $id = (int) $order->id;
+        if (!isset($this->fctTaxSummaryCache[$id])) {
+            $this->fctTaxSummaryCache[$id] = TaxSummaryHelper::computeTaxSummary($order);
+        }
+        return $this->fctTaxSummaryCache[$id];
     }
 
     public function renderWrapperStart()
@@ -278,6 +291,7 @@ class ThankYouRender
     public function renderOrderItemsBody()
     {
         $order = Arr::get($this->config, 'order', null);
+        $fctTaxDisplayMode = TaxSummaryHelper::getTaxDisplayMode();
         ?>
         <div class="fct-thank-you-page-order-items-body">
             <?php
@@ -315,7 +329,9 @@ class ThankYouRender
                 </div>
 
                 <div class="fct-thank-you-page-order-items-tax-info">
-                    <?php $this->renderItemTaxPill($item, $order); ?>
+                    <?php if ($fctTaxDisplayMode !== 'simplified'): ?>
+                        <?php $this->renderItemTaxPill($item, $order); ?>
+                    <?php endif; ?>
                     <?php if (!empty($item['setup_info'])): ?>
                         <div class="fct-thank-you-page-order-items-setup-fee">
                             <div class="setup-fee">
@@ -327,7 +343,9 @@ class ThankYouRender
                             </div>
                         </div>
                     <?php endif; ?>
-                    <?php $this->renderItemSetupFeeTaxPills($item, $order); ?>
+                    <?php if ($fctTaxDisplayMode !== 'simplified'): ?>
+                        <?php $this->renderItemSetupFeeTaxPills($item, $order); ?>
+                    <?php endif; ?>
                 </div>
             <?php endforeach; ?>
 
@@ -393,7 +411,7 @@ class ThankYouRender
         $order = Arr::get($this->config, 'order', null);
         if ($order->isReverseChargeTaxOrder()): ?>
             <div style="text-align: right; font-size: 14px; margin-top: 10px;">
-                <?php echo '*' . esc_html__('Tax to be paid on reverse charge basis', 'fluent-cart') ?>
+                <?php echo '*' . esc_html(TaxModule::getReverseChargeNoticeText()) ?>
             </div>
         <?php
         endif;
@@ -467,7 +485,7 @@ class ThankYouRender
         }
         $displayShipping = (int) $order->shipping_total;
         if ($order->isReverseChargeTaxOrder()) {
-            $rcAdj = (int) Arr::get(TaxSummaryHelper::computeTaxSummary($order), 'rcShippingAdjustment', 0);
+            $rcAdj = (int) Arr::get($this->getMemoizedTaxSummary($order), 'rcShippingAdjustment', 0);
             if ($rcAdj > 0) {
                 $displayShipping = max(0, $displayShipping - $rcAdj);
             }
@@ -501,62 +519,6 @@ class ThankYouRender
         <?php endforeach;
     }
 
-    public function renderTaxTotal()
-    {
-        $order = Arr::get($this->config, 'order', null);
-
-        if ($order->isReverseChargeTaxOrder()): ?>
-            <?php
-                $rcReversedTotal = $order->getReversedTaxTotal();
-                $rcChargeLabel = $rcReversedTotal > 0
-                    ? sprintf(
-                        /* translators: %1$s: formatted reversed tax amount */
-                        __('Tax reversed: %1$s', 'fluent-cart'),
-                        Helper::toDecimal($rcReversedTotal)
-                    )
-                    : __('Charge reversed', 'fluent-cart');
-            ?>
-            <div class="fct-meta-line fct-thank-you-page-order-items-total-tax">
-                <div class="fct-meta-line-label fct-thank-you-page-order-items-total-label">
-                    <?php echo esc_html__('Tax', 'fluent-cart'); ?>
-                </div>
-                <div class="fct-meta-line-value fct-thank-you-page-order-items-total-value">
-                    <?php echo esc_html($rcChargeLabel); ?>
-                </div>
-            </div>
-        <?php elseif ($order->tax_total > 0): ?>
-            <div class="fct-meta-line fct-thank-you-page-order-items-total-tax">
-                <div class="fct-meta-line-label fct-thank-you-page-order-items-total-label">
-                    <?php echo esc_html__('Total Tax', 'fluent-cart'); ?>
-                    <?php echo \FluentCart\App\Helpers\Helper::getOrderTaxLabel($order); ?>
-                </div>
-                <div class="fct-meta-line-value fct-thank-you-page-order-items-total-value">
-                    <?php echo esc_html(Helper::toDecimal($order->tax_total)); ?>
-                </div>
-            </div>
-        <?php endif;
-    }
-
-    public function renderShippingTax()
-    {
-        $order = Arr::get($this->config, 'order', null);
-
-        if ($order->shipping_tax <= 0) {
-            return;
-        }
-        ?>
-        <div class="fct-meta-line fct-thank-you-page-order-items-total-shipping-tax">
-            <div class="fct-meta-line-label fct-thank-you-page-order-items-total-label">
-                <?php echo esc_html__('Shipping Tax', 'fluent-cart'); ?>
-                <?php echo \FluentCart\App\Helpers\Helper::getOrderTaxLabel($order); ?>
-            </div>
-            <div class="fct-meta-line-value fct-thank-you-page-order-items-total-value">
-                <?php echo esc_html(Helper::toDecimal($order->shipping_tax)); ?>
-            </div>
-        </div>
-        <?php
-    }
-
     public function renderRefund()
     {
         $order = Arr::get($this->config, 'order', null);
@@ -578,7 +540,7 @@ class ThankYouRender
         $order = Arr::get($this->config, 'order', null);
         $displayTotal = (int) $order->total_amount - (int) $order->total_refund;
         if ($order->isReverseChargeTaxOrder()) {
-            $rcAdj = (int) Arr::get(TaxSummaryHelper::computeTaxSummary($order), 'rcTotalAdjustment', 0);
+            $rcAdj = (int) Arr::get($this->getMemoizedTaxSummary($order), 'rcTotalAdjustment', 0);
             if ($rcAdj > 0) {
                 $displayTotal = max(0, $displayTotal - $rcAdj);
             }
@@ -1112,15 +1074,45 @@ class ThankYouRender
     public function renderTaxSummaryBox()
     {
         $order   = Arr::get($this->config, 'order', null);
-        $summary = TaxSummaryHelper::computeTaxSummary($order);
+        $summary = $this->getMemoizedTaxSummary($order);
         if (!$summary['shouldRender']) {
             return;
         }
+
+        $tyIsSimplified = (($summary['displayMode'] ?? '') === 'simplified') && !empty($summary['simpleLine']);
+
+        if ($tyIsSimplified) :
+            ?>
+            <div class="fct-meta-line fct-thank-you-tax-simple-line">
+                <div class="fct-meta-line-label fct-thank-you-page-order-items-total-label fct-thank-you-tax-simple-label">
+                    <span><?php echo esc_html($summary['simpleLine']['label']); ?></span>
+                    <?php if (!empty($summary['simpleLine']['hasDetails'])) : ?>
+                    <details class="fct-thank-you-tax-details">
+                        <summary class="fct-thank-you-tax-toggle"><?php echo esc_html__('See details', 'fluent-cart'); ?> &#9662;</summary>
+                        <div class="fct-thank-you-tax-summary fct-thank-you-tax-floating">
+                            <?php $this->renderTaxBreakdownCardInner($summary); ?>
+                        </div>
+                    </details>
+                    <?php endif; ?>
+                </div>
+                <div class="fct-meta-line-value fct-thank-you-page-order-items-total-value"><?php echo esc_html($summary['simpleLine']['value']); ?></div>
+            </div>
+            <?php
+        else :
+            ?>
+            <div class="fct-thank-you-tax-summary">
+                <?php $this->renderTaxBreakdownCardInner($summary); ?>
+            </div>
+            <?php
+        endif;
+    }
+
+    private function renderTaxBreakdownCardInner($summary)
+    {
         ?>
-        <div class="fct-thank-you-tax-summary">
             <div class="fct-thank-you-tax-summary-header">
                 <span class="fct-thank-you-tax-summary-title">
-                    <?php if (!$summary['isReverseCharge'] && !empty(Arr::get($summary, 'foldedRateLines', []))): ?>
+                    <?php if (!empty(Arr::get($summary, 'foldedRateLines', []))): ?>
                         <?php echo esc_html__('Tax breakdown by rate', 'fluent-cart'); ?>
                     <?php else: ?>
                         <?php echo esc_html__('TAX SUMMARY', 'fluent-cart'); ?>
@@ -1135,47 +1127,39 @@ class ThankYouRender
                 </span>
             </div>
 
-            <?php if ($summary['isReverseCharge']): ?>
+            <?php
+                $tyFoldedRateLines  = Arr::get($summary, 'foldedRateLines', []);
+                $tyIsReverseCharge  = !empty($summary['isReverseCharge']);
+                $rcReversedTotal    = (int) Arr::get($summary, 'reversedTaxTotal', 0);
+                $rcReversedShipping = (int) Arr::get($summary, 'reversedShippingTax', 0);
+                $rcReversedValue    = $rcReversedTotal > 0
+                    ? Helper::toDecimal($rcReversedTotal)
+                    : __('Charge reversed', 'fluent-cart');
+            ?>
+            <?php if (!empty($tyFoldedRateLines)): ?>
                 <?php
-                    $rcReversedTotal    = (int) Arr::get($summary, 'reversedTaxTotal', 0);
-                    $rcReversedShipping = (int) Arr::get($summary, 'reversedShippingTax', 0);
-                    $rcReversedValue    = $rcReversedTotal > 0
-                        ? Helper::toDecimal($rcReversedTotal)
-                        : __('Charge reversed', 'fluent-cart');
-                ?>
-                <?php if ($summary['showRcShippingRow'] && $rcReversedShipping > 0): ?>
-                <div class="fct-thank-you-tax-summary-row fct-thank-you-tax-summary-row--muted">
-                    <span><?php echo esc_html__('Added on shipping', 'fluent-cart'); ?></span>
-                    <span style="text-decoration:line-through;opacity:0.6;"><?php echo esc_html(Helper::toDecimal($rcReversedShipping)); ?></span>
-                </div>
-                <?php endif; ?>
-                <div class="fct-thank-you-tax-summary-row fct-thank-you-tax-summary-row--total">
-                    <span><?php echo esc_html__('Tax reversed', 'fluent-cart'); ?></span>
-                    <span><?php echo esc_html($rcReversedValue); ?></span>
-                </div>
-            <?php else: ?>
-                <?php
-                    $tyFoldedRateLines  = Arr::get($summary, 'foldedRateLines', []);
                     $tyIncludedInPrices = (int) Arr::get($summary, 'includedInPrices', 0);
                     $tyPayableTax       = (int) Arr::get($summary, 'payableTax', 0);
                     $tyTotalOrderTax    = (int) Arr::get($summary, 'totalOrderTax', 0);
-                    $tyFeeRows          = Arr::get($summary, 'feeTaxLineRows', []);
-                    $taxRateLines       = Arr::get($summary, 'taxRateLines', []);
-                    $shippingTaxLines   = Arr::get($summary, 'shippingTaxLines', []);
                 ?>
-                <?php if (!empty($tyFoldedRateLines)): ?>
-                    <div style="display:grid;grid-template-columns:minmax(0,1fr) 92px 64px;column-gap:12px;align-items:start;">
-                        <span style="min-width:0;font-size:11px;text-transform:uppercase;letter-spacing:0.04em;color:#94a3b8;"><?php echo esc_html__('Rate', 'fluent-cart'); ?></span>
-                        <span style="text-align:right;font-size:11px;text-transform:uppercase;letter-spacing:0.04em;color:#94a3b8;white-space:nowrap;"><?php echo esc_html__('Taxable base', 'fluent-cart'); ?></span>
-                        <span style="text-align:right;font-size:11px;text-transform:uppercase;letter-spacing:0.04em;color:#94a3b8;white-space:nowrap;"><?php echo esc_html__('Tax', 'fluent-cart'); ?></span>
+                <div style="display:grid;grid-template-columns:minmax(0,1fr) 92px 64px;column-gap:12px;align-items:start;">
+                    <span style="min-width:0;font-size:11px;text-transform:uppercase;letter-spacing:0.04em;color:#94a3b8;"><?php echo esc_html__('Rate', 'fluent-cart'); ?></span>
+                    <span style="text-align:right;font-size:11px;text-transform:uppercase;letter-spacing:0.04em;color:#94a3b8;white-space:nowrap;"><?php echo esc_html__('Taxable base', 'fluent-cart'); ?></span>
+                    <span style="text-align:right;font-size:11px;text-transform:uppercase;letter-spacing:0.04em;color:#94a3b8;white-space:nowrap;"><?php echo esc_html__('Tax', 'fluent-cart'); ?></span>
+                </div>
+                <?php foreach ($tyFoldedRateLines as $tyFoldedLine): ?>
+                    <div class="fct-thank-you-tax-summary-row<?php echo !empty($tyFoldedLine['inclusive']) ? ' fct-thank-you-tax-summary-row--muted' : ''; ?>" style="display:grid;grid-template-columns:minmax(0,1fr) 92px 64px;column-gap:12px;align-items:start;">
+                        <span style="min-width:0;white-space:normal;overflow-wrap:anywhere;word-break:break-word;"><?php echo esc_html($tyFoldedLine['label']); ?></span>
+                        <span style="text-align:right;color:#94a3b8;white-space:nowrap;"><?php echo esc_html(Helper::toDecimal($tyFoldedLine['base'])); ?></span>
+                        <span style="text-align:right;white-space:nowrap;"><?php echo esc_html(Helper::toDecimal($tyFoldedLine['tax'])); ?></span>
                     </div>
-                    <?php foreach ($tyFoldedRateLines as $tyFoldedLine): ?>
-                        <div class="fct-thank-you-tax-summary-row<?php echo !empty($tyFoldedLine['inclusive']) ? ' fct-thank-you-tax-summary-row--muted' : ''; ?>" style="display:grid;grid-template-columns:minmax(0,1fr) 92px 64px;column-gap:12px;align-items:start;">
-                            <span style="min-width:0;white-space:normal;overflow-wrap:anywhere;word-break:break-word;"><?php echo esc_html($tyFoldedLine['label']); ?></span>
-                            <span style="text-align:right;color:#94a3b8;white-space:nowrap;"><?php echo esc_html(Helper::toDecimal($tyFoldedLine['base'])); ?></span>
-                            <span style="text-align:right;white-space:nowrap;"><?php echo esc_html(Helper::toDecimal($tyFoldedLine['tax'])); ?></span>
-                        </div>
-                    <?php endforeach; ?>
+                <?php endforeach; ?>
+                <?php if ($tyIsReverseCharge): ?>
+                    <div class="fct-thank-you-tax-summary-row fct-thank-you-tax-summary-row--total">
+                        <span><?php echo esc_html__('VAT reversed', 'fluent-cart'); ?></span>
+                        <span><?php echo esc_html($rcReversedValue); ?></span>
+                    </div>
+                <?php else: ?>
                     <div class="fct-thank-you-tax-summary-row fct-thank-you-tax-summary-row--total">
                         <span><?php echo esc_html__('Total tax', 'fluent-cart'); ?></span>
                         <span><?php echo esc_html(Helper::toDecimal($tyTotalOrderTax)); ?></span>
@@ -1192,7 +1176,24 @@ class ThankYouRender
                             <span><?php echo esc_html(Helper::toDecimal($tyPayableTax)); ?></span>
                         </div>
                     <?php endif; ?>
-                <?php else: ?>
+                <?php endif; ?>
+            <?php elseif ($tyIsReverseCharge): ?>
+                <?php if ($summary['showRcShippingRow'] && $rcReversedShipping > 0): ?>
+                <div class="fct-thank-you-tax-summary-row fct-thank-you-tax-summary-row--muted">
+                    <span><?php echo esc_html__('Added on shipping', 'fluent-cart'); ?></span>
+                    <span style="text-decoration:line-through;opacity:0.6;"><?php echo esc_html(Helper::toDecimal($rcReversedShipping)); ?></span>
+                </div>
+                <?php endif; ?>
+                <div class="fct-thank-you-tax-summary-row fct-thank-you-tax-summary-row--total">
+                    <span><?php echo esc_html__('Tax reversed', 'fluent-cart'); ?></span>
+                    <span><?php echo esc_html($rcReversedValue); ?></span>
+                </div>
+            <?php else: ?>
+                <?php
+                    $tyFeeRows          = Arr::get($summary, 'feeTaxLineRows', []);
+                    $taxRateLines       = Arr::get($summary, 'taxRateLines', []);
+                    $shippingTaxLines   = Arr::get($summary, 'shippingTaxLines', []);
+                ?>
                     <?php
                         $productTaxRowCount = !empty($taxRateLines)
                             ? count($taxRateLines)
@@ -1267,8 +1268,6 @@ class ThankYouRender
                         </div>
                     <?php endif; ?>
                 <?php endif; ?>
-            <?php endif; ?>
-        </div>
         <?php
     }
 

@@ -5,6 +5,7 @@ namespace FluentCart\App\Modules\MCP\Tools;
 use FluentCart\App\Models\Order;
 use FluentCart\App\Models\Customer;
 use FluentCart\App\Models\Subscription;
+use FluentCart\App\Modules\MCP\AbilitiesRegistrar;
 use FluentCart\App\Modules\MCP\Support\MCPHelper;
 use FluentCart\App\Modules\MCP\Support\PermissionGate;
 use FluentCart\App\Services\DateTime\DateTime;
@@ -47,6 +48,10 @@ class ContextTools
         'shipping_statuses'     => ['none', 'unshipped', 'shipped', 'delivered', 'unshippable'],
         'order_types'           => ['payment', 'renewal', 'subscription'],
         'subscription_statuses' => ['active', 'trialing', 'paused', 'canceled', 'failing', 'expired', 'expiring', 'past_due', 'intended', 'pending', 'completed'],
+        // installment = fixed-term split-pay plan (a lifetime license paid off in
+        // a finite number of charges, bill_times > 0); recurring = open-ended
+        // subscription (bill_times = 0). Derived from bill_times, never the title.
+        'plan_types'            => ['installment', 'recurring'],
         'billing_intervals'     => ['daily', 'weekly', 'monthly', 'quarterly', 'half_yearly', 'yearly'],
         'fulfillment_types'     => ['physical', 'digital'],
         'coupon_types'          => ['fixed', 'percentage'],
@@ -80,7 +85,7 @@ class ContextTools
 
             'fluent-cart/list-reference-data' => [
                 'label'       => __('List Reference Data', 'fluent-cart'),
-                'description' => __('On-demand lookup lists kept out of get-store-context to keep it lean: coupons, labels, gateways, tax_classes, shipping_zones, product_categories. Pass kinds[] with only what you need. Kinds your role cannot see are reported in meta.warnings, not dropped silently.', 'fluent-cart'),
+                'description' => __('On-demand lookup lists kept out of get-store-context to keep it lean: coupons, labels, gateways, tax_classes, shipping_zones, product_categories. Pass kinds[] with only what you need. Kinds your role cannot see are reported in meta.warnings, not dropped silently. The coupons kind is a capped snapshot (newest 200, each with times_used) — to filter by status/code, paginate, or find usable-now coupons, use list-coupons instead.', 'fluent-cart'),
                 'input_schema' => [
                     'type'       => 'object',
                     'properties' => [
@@ -154,6 +159,7 @@ class ContextTools
                 'stats'            => $stats,
                 'enums'            => apply_filters('fluent_cart/mcp_enums', self::ENUMS),
                 'reference_kinds'  => self::referenceKinds(),
+                'tool_index'       => self::toolIndex(),
                 'guidelines'       => self::guidelines(),
             ]
         );
@@ -241,9 +247,75 @@ class ContextTools
         return ['coupons', 'labels', 'gateways', 'tax_classes', 'shipping_zones', 'product_categories'];
     }
 
+    /**
+     * Task → tool routing table so an agent picks the right ability among ~30
+     * without trial and error, grouped by intent (discovery / find / load /
+     * analytics / write).
+     *
+     * Derived from the LIVE registry so a newly registered tool can never
+     * silently go missing — each is annotated with a curated "reach for this
+     * when…" hint, and any tool without one still appears under its label.
+     * Filterable so pro / add-on tools can slot themselves in.
+     */
+    private static function toolIndex()
+    {
+        // [category, one-line "use this when…"], keyed by ability name.
+        $hints = [
+            'fluent-cart/get-store-context'          => ['discovery', 'Call first — identity, permissions, currency, enums, headline stats, and this index.'],
+            'fluent-cart/list-reference-data'        => ['discovery', 'Resolve names to ids: coupons, labels, gateways, tax classes, shipping zones, product categories.'],
+            'fluent-cart/list-orders'                => ['find', 'Find orders by status / payment / customer / product / date.'],
+            'fluent-cart/list-customers'             => ['find', 'Find customers by name / email / location / LTV.'],
+            'fluent-cart/list-products'              => ['find', 'Find products by title / category / price.'],
+            'fluent-cart/list-subscriptions'         => ['find', 'Find subscriptions by status / plan / product; summary_only for a fast aggregate.'],
+            'fluent-cart/list-coupons'               => ['find', 'Find coupons by status / code, with usage counts.'],
+            'fluent-cart/list-transactions'          => ['find', 'The payment ledger across records — refunds last week, failed charges for dunning, one customer\'s payment history.'],
+            'fluent-cart/get-inventory'              => ['find', 'Products at or below their stock threshold, or out of stock.'],
+            'fluent-cart/get-order'                  => ['load', 'One order in full; include[] transactions / refunds / addresses / coupons / subscriptions.'],
+            'fluent-cart/get-order-activity'         => ['load', 'The audit timeline for one order.'],
+            'fluent-cart/get-customer'               => ['load', 'One customer profile; include[] orders / subscriptions.'],
+            'fluent-cart/get-product'                => ['load', 'One product with variations; include[] sales / downloads.'],
+            'fluent-cart/get-subscription'           => ['load', 'One subscription; include[] transactions / labels.'],
+            'fluent-cart/get-product-financials'     => ['load', 'One product\'s money: one-time + installment + recurring, MRR / ARR, payment schedule.'],
+            'fluent-cart/get-sales-report'           => ['analytics', 'The headline revenue number for a period, against the prior period.'],
+            'fluent-cart/get-sales-trend'            => ['analytics', 'Revenue / order time series by hour / day / week / month.'],
+            'fluent-cart/get-top-products'           => ['analytics', 'Best sellers by revenue or units.'],
+            'fluent-cart/get-refund-report'          => ['analytics', 'Refund count, rate and amount for a period.'],
+            'fluent-cart/get-upcoming-payments'      => ['analytics', 'Forward renewal cohort and at-risk revenue.'],
+            'fluent-cart/query-orders'               => ['analytics', 'Flexible order metrics by dimension — revenue by payment_status / order_type / month.'],
+            'fluent-cart/query-products'             => ['analytics', 'Product-line analytics — discount / margin leakage, by product / variation / order_type.'],
+            'fluent-cart/query-customers'            => ['analytics', 'Customer analytics by country / state / status / cohort.'],
+            'fluent-cart/query-subscriptions'        => ['analytics', 'Subscription analytics — contract vs recurring value, churn basis.'],
+            'fluent-cart/query-sources'              => ['analytics', 'UTM attribution — revenue by source / medium / campaign.'],
+            'fluent-cart/change-order-status'        => ['write', 'Set an order or shipping status.'],
+            'fluent-cart/add-order-note'             => ['write', 'Add an internal note to an order.'],
+            'fluent-cart/refund-order'               => ['write', 'Refund via the gateway — call dry_run first.'],
+            'fluent-cart/upsert-customer'            => ['write', 'Create or update a customer.'],
+            'fluent-cart/change-subscription-status' => ['write', 'Cancel a subscription — call dry_run first.'],
+            'fluent-cart/manage-coupon'              => ['write', 'Create, update or deactivate a coupon.'],
+            'fluent-cart/apply-labels'               => ['write', 'Add or remove labels on an order / customer / subscription.'],
+        ];
+
+        // Preserve intent order; empty groups are dropped below.
+        $index = ['discovery' => [], 'find' => [], 'load' => [], 'analytics' => [], 'write' => [], 'other' => []];
+
+        foreach (AbilitiesRegistrar::getDefinitions() as $name => $def) {
+            $category = isset($hints[$name]) ? $hints[$name][0] : 'other';
+            $hint     = isset($hints[$name]) ? $hints[$name][1] : (isset($def['label']) ? $def['label'] : $name);
+            $short    = strpos($name, 'fluent-cart/') === 0 ? substr($name, strlen('fluent-cart/')) : $name;
+
+            $index[$category][$short] = $hint;
+        }
+
+        $index = array_filter($index, function ($group) {
+            return !empty($group);
+        });
+
+        return apply_filters('fluent_cart/mcp_tool_index', $index);
+    }
+
     private static function guidelines()
     {
-        $default = 'Call get-store-context once per session, then use search-* tools to find records and get-* tools to load one record fully. '
+        $default = 'Call get-store-context once per session. Consult the tool_index in this payload to pick the right tool for a task, then use list-* and query-* tools to find and aggregate records and get-* tools to load one record fully. '
             . 'Money is returned as both a number (amount) and a formatted string (display) — quote display, compare amount. '
             . 'Dates are ISO-8601 UTC; pass a relative range (e.g. last_30_days) or explicit start_date/end_date to report tools. '
             . 'Use the exact enum values from this payload — never invent a status. '
@@ -327,7 +399,7 @@ class ContextTools
         try {
             if ($kind === 'coupons' && class_exists('\FluentCart\App\Models\Coupon')) {
                 $coupons = \FluentCart\App\Models\Coupon::query()
-                    ->select(['id', 'code', 'title', 'type', 'amount', 'status'])
+                    ->select(['id', 'code', 'title', 'type', 'amount', 'status', 'use_count'])
                     ->orderBy('id', 'DESC')
                     ->limit(200)
                     ->get();
@@ -339,12 +411,17 @@ class ContextTools
                         ? 0 + \FluentCart\App\Helpers\Helper::toDecimalWithoutComma((int) $c->amount)
                         : (is_numeric($c->amount) ? 0 + $c->amount : $c->amount);
                     $out[] = [
-                        'id'     => (int) $c->id,
-                        'code'   => $c->code,
-                        'title'  => $c->title,
-                        'type'   => $c->type,
-                        'amount' => $amount,
-                        'status' => $c->status,
+                        'id'         => (int) $c->id,
+                        'code'       => $c->code,
+                        'title'      => $c->title,
+                        'type'       => $c->type,
+                        'amount'     => $amount,
+                        'status'     => $c->status,
+                        // Usage count so "how many times was code X used" is
+                        // answerable without a second call. Alias times_used matches
+                        // list-coupons.
+                        'use_count'  => (int) $c->use_count,
+                        'times_used' => (int) $c->use_count,
                     ];
                 }
                 return $out;

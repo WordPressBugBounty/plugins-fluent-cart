@@ -352,6 +352,62 @@ class ProductResource extends BaseResourceApi
         );
     }
 
+    public static function partialUpdate(array $data, $postId)
+    {
+        $product = get_post($postId);
+
+        if (!$product || $product->post_type !== 'fluent-products') {
+            return new \WP_Error('not_found', __('Product not found', 'fluent-cart'));
+        }
+
+        $postData = ['ID' => (int) $postId];
+
+        $allowedFields = ['post_title', 'post_content', 'post_excerpt', 'post_status', 'post_date'];
+
+        foreach ($allowedFields as $field) {
+            if (\array_key_exists($field, $data)) {
+                $postData[$field] = $data[$field];
+            }
+        }
+
+        if (\count($postData) === 1) {
+            return new \WP_Error('no_fields', __('No valid fields provided for update', 'fluent-cart'));
+        }
+
+        $newStatus    = $postData['post_status'] ?? null;
+        $syncOrmDates = false;
+
+        if ($newStatus === 'future') {
+            $postDate = DateTime::anyTimeToGmt($postData['post_date'])->format('Y-m-d H:i:s');
+            $postData['post_date']     = $postDate;
+            $postData['post_date_gmt'] = $postDate;
+            $syncOrmDates              = true;
+        } elseif ($newStatus === 'publish' && $product->post_status === 'future') {
+            $now = DateTime::gmtNow()->format('Y-m-d H:i:s');
+            $postData['post_date']     = $now;
+            $postData['post_date_gmt'] = $now;
+            $syncOrmDates              = true;
+        }
+
+        $updated = wp_update_post($postData, true);
+
+        if (is_wp_error($updated)) {
+            return $updated;
+        }
+
+        if ($syncOrmDates) {
+            Product::query()->where('ID', $postId)->update([
+                'post_status'   => $newStatus,
+                'post_date'     => $postData['post_date'],
+                'post_date_gmt' => $postData['post_date_gmt'],
+            ]);
+        }
+
+        $product = static::getQuery()->with('variants')->addAppends(['viewUrl'])->find($postId);
+
+        return static::makeSuccessResponse($product, __('Product has been updated', 'fluent-cart'));
+    }
+
     public static function updateWpPost($postId, $params = [])
     {
 
@@ -361,14 +417,6 @@ class ProductResource extends BaseResourceApi
         $postExcerpt = Arr::get($params, 'post_excerpt');
         $commentStatus = Arr::get($params, 'comment_status');
         $postName = Arr::get($params, 'post_name');
-        $postDate = Arr::get($params, 'post_date');
-        if (empty($postDate) || $postStatus !== 'future') {
-            $postDate = DateTime::gmtNow()->format('Y-m-d H:i:s');
-        }
-
-        if ($postStatus === 'future') {
-            $postDate = DateTime::anyTimeToGmt($postDate)->format('Y-m-d H:i:s');
-        }
 
         $data = [
             'ID'             => $postId,
@@ -389,23 +437,39 @@ class ProductResource extends BaseResourceApi
         if (isset($postContent)) {
             $data['post_content'] = $postContent;
         }
-        if (!empty($postDate)) {
-            $data['post_date'] = $postDate;
+
+        // Only write post_date when the product is being scheduled (status
+        // "future") — the admin editor exposes the date picker in that case
+        // only. For ordinary edits we must NOT rewrite post_date/post_date_gmt,
+        // otherwise the creation date changes on every save and "sort by newest"
+        // breaks. WordPress updates post_modified on its own.
+        $postDate = null;
+        if ($postStatus === 'future') {
+            $scheduledDate = Arr::get($params, 'post_date');
+            if (empty($scheduledDate)) {
+                $scheduledDate = DateTime::gmtNow()->format('Y-m-d H:i:s');
+            }
+            $postDate = DateTime::anyTimeToGmt($scheduledDate)->format('Y-m-d H:i:s');
+            $data['post_date']     = $postDate;
             $data['post_date_gmt'] = $postDate;
-            $data['post_modified'] = $postDate;
-            $data['post_modified_gmt'] = $postDate;
+        } elseif ($postStatus === 'publish' && get_post_field('post_status', $postId) === 'future') {
+            // Publishing a scheduled product early: stamp the creation date to
+            // now so it doesn't go live with a future date (which would sort as
+            // "newest"). Mirrors partialUpdate().
+            $postDate = DateTime::gmtNow()->format('Y-m-d H:i:s');
+            $data['post_date']     = $postDate;
+            $data['post_date_gmt'] = $postDate;
         }
 
         $updated = wp_update_post($data);
 
         if ($updated) {
-            Product::query()->where('ID', $postId)->update([
-                'post_status'       => $postStatus,
-                'post_date'         => $postDate,
-                'post_date_gmt'     => $postDate,
-                'post_modified'     => $postDate,
-                'post_modified_gmt' => $postDate,
-            ]);
+            $ormData = ['post_status' => $postStatus];
+            if ($postDate !== null) {
+                $ormData['post_date']     = $postDate;
+                $ormData['post_date_gmt'] = $postDate;
+            }
+            Product::query()->where('ID', $postId)->update($ormData);
         }
 
         return $updated;

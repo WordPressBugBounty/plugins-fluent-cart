@@ -14,7 +14,7 @@ class BuySection extends Element
 {
     public $category = 'fluent-cart';
     public $name = 'fct-product-buy-section';
-    public $icon = 'ti-shopping-cart';
+    public $icon = 'ti-shopping-cart fluent-cart-element-icon';
 
     public function enqueue_scripts()
     {
@@ -23,7 +23,7 @@ class BuySection extends Element
 
     public function get_label()
     {
-        return esc_html__('Buy Section (FluentCart)', 'fluent-cart');
+        return esc_html__('Buy Section', 'fluent-cart');
     }
 
     public function set_control_groups()

@@ -15,6 +15,7 @@
 <?php
 
 use FluentCart\Framework\Support\Arr;
+use FluentCart\App\Modules\Tax\TaxModule;
 use FluentCart\App\Services\Renderer\Receipt\TaxSummaryHelper;
     $allOrderItems = $order->order_items ? $order->order_items->toArray() : [];
     $orderItems = array_filter($allOrderItems, function ($item) {
@@ -27,6 +28,7 @@ use FluentCart\App\Services\Renderer\Receipt\TaxSummaryHelper;
     $isRefund = $is_refund ?? false;
     $isReversed = $order->isReverseChargeTaxOrder();
     $rcMode = $order->getOrderRcMode();
+    $fctEmailDisplayMode = ($order instanceof \FluentCart\App\Models\Order) ? TaxSummaryHelper::getTaxDisplayMode() : 'itemized';
 
 ?>
 
@@ -95,7 +97,7 @@ use FluentCart\App\Services\Renderer\Receipt\TaxSummaryHelper;
         <?php
             $itemRates = TaxSummaryHelper::getItemTaxRates($item);
         ?>
-        <?php if (!empty($itemRates)): ?>
+        <?php if ($fctEmailDisplayMode !== 'simplified' && !empty($itemRates)): ?>
             <tr>
                 <td colspan="3" style="padding: 0 16px 8px;">
                     <table width="100%" style="border-spacing:0;border-collapse:collapse;">
@@ -129,7 +131,7 @@ use FluentCart\App\Services\Renderer\Receipt\TaxSummaryHelper;
                     </table>
                 </td>
             </tr>
-        <?php elseif (!empty($item['tax_amount'])): ?>
+        <?php elseif ($fctEmailDisplayMode !== 'simplified' && !empty($item['tax_amount'])): ?>
             <?php
                 $itemIsInclusive = TaxSummaryHelper::isPrimaryTaxInclusive($order);
                 $reversedAmountStyle = ($isReversed && (!$itemIsInclusive || $rcMode === 'dynamic')) ? 'text-decoration:line-through;opacity:0.6;' : '';
@@ -191,7 +193,7 @@ use FluentCart\App\Services\Renderer\Receipt\TaxSummaryHelper;
                 }
                 $sfRates = $sfSibling ? TaxSummaryHelper::getItemTaxRates($sfSibling) : [];
             ?>
-            <?php if (!empty($sfRates)): ?>
+            <?php if ($fctEmailDisplayMode !== 'simplified' && !empty($sfRates)): ?>
                 <tr>
                     <td colspan="3" style="padding: 0 16px 8px;">
                         <table width="100%" style="border-spacing:0;border-collapse:collapse;">
@@ -234,7 +236,7 @@ use FluentCart\App\Services\Renderer\Receipt\TaxSummaryHelper;
                         $sfTax       = (int) Arr::get($sfOtherInfo, 'signup_fee_tax', 0);
                     }
                 ?>
-                <?php if ($sfTax > 0): ?>
+                <?php if ($fctEmailDisplayMode !== 'simplified' && $sfTax > 0): ?>
                     <?php
                         $sfIsInclusive   = TaxSummaryHelper::isPrimaryTaxInclusive($order);
                         $reversedAmountStyle = ($isReversed && (!$sfIsInclusive || $rcMode === 'dynamic')) ? 'text-decoration:line-through;opacity:0.6;' : '';
@@ -404,6 +406,21 @@ use FluentCart\App\Services\Renderer\Receipt\TaxSummaryHelper;
             <table role="presentation" width="100%"
                    style="width:100%;border-spacing:0;border-collapse:collapse;border:none;">
                 <tbody>
+                <?php if (($emailTaxSummary['displayMode'] ?? '') === 'simplified' && !empty($emailTaxSummary['simpleLine'])): ?>
+                    <tr style="width:100%">
+                        <td style="width:70%">
+                            <p style="font-size:14px; font-weight:700; color:#1e293b; line-height:24px; margin:0;">
+                                <?php echo esc_html($emailTaxSummary['simpleLine']['label']); ?>
+                            </p>
+                        </td>
+                        <td style="width:30%; text-align:right">
+                            <p style="font-size:14px; font-weight:700; color:#1e293b; margin:0; line-height:24px;">
+                                <?php echo esc_html($emailTaxSummary['simpleLine']['value']); ?>
+                            </p>
+                        </td>
+                    </tr>
+                <?php endif; ?>
+                <?php if (($emailTaxSummary['displayMode'] ?? '') !== 'simplified'): ?>
                 <tr style="width:100%">
                     <td colspan="2" style="padding:0 0 4px;">
                         <p style="font-size:10px; font-weight:600; text-transform:uppercase;
@@ -416,41 +433,14 @@ use FluentCart\App\Services\Renderer\Receipt\TaxSummaryHelper;
                         </p>
                     </td>
                 </tr>
-                <?php if ($emailTaxSummary['isReverseCharge']): ?>
-                    <?php
-                        $rcReversedTotal    = (int) Arr::get($emailTaxSummary, 'reversedTaxTotal', 0);
-                        $rcReversedShipping = (int) Arr::get($emailTaxSummary, 'reversedShippingTax', 0);
-                        $rcReversedValue    = $rcReversedTotal > 0
-                            ? \FluentCart\App\Helpers\Helper::toDecimal($rcReversedTotal)
-                            : __('Charge reversed', 'fluent-cart');
-                    ?>
-                    <?php if ($emailTaxSummary['showRcShippingRow'] && $rcReversedShipping > 0): ?>
-                    <tr style="width:100%">
-                        <td style="width:70%">
-                            <p style="font-size:14px; color:#94a3b8; line-height:24px; margin:0;">
-                                <?php echo esc_html__('Added on shipping', 'fluent-cart'); ?>
-                            </p>
-                        </td>
-                        <td style="width:30%; text-align:right">
-                            <p style="font-size:14px; color:#94a3b8; margin:0; line-height:24px;">
-                                <span style="text-decoration:line-through;opacity:0.6;"><?php echo esc_html(\FluentCart\App\Helpers\Helper::toDecimal($rcReversedShipping)); ?></span>
-                            </p>
-                        </td>
-                    </tr>
-                    <?php endif; ?>
-                    <tr style="width:100%">
-                        <td style="width:70%">
-                            <p style="font-size:14px; font-weight:700; color:#1e293b; line-height:24px; margin:0;">
-                                <?php echo esc_html__('Tax reversed', 'fluent-cart'); ?>
-                            </p>
-                        </td>
-                        <td style="width:30%; text-align:right">
-                            <p style="font-size:14px; font-weight:700; color:#1e293b; margin:0; line-height:24px;">
-                                <?php echo esc_html($rcReversedValue); ?>
-                            </p>
-                        </td>
-                    </tr>
-                <?php elseif (!empty($emailFoldedRateLines)): ?>
+                <?php
+                    $rcReversedTotal    = (int) Arr::get($emailTaxSummary, 'reversedTaxTotal', 0);
+                    $rcReversedShipping = (int) Arr::get($emailTaxSummary, 'reversedShippingTax', 0);
+                    $rcReversedValue    = $rcReversedTotal > 0
+                        ? \FluentCart\App\Helpers\Helper::toDecimal($rcReversedTotal)
+                        : __('Charge reversed', 'fluent-cart');
+                ?>
+                <?php if (!empty($emailFoldedRateLines)): ?>
                     <tr style="width:100%">
                         <td colspan="2" style="padding:0 0 4px;">
                             <table style="width:100%;border-collapse:collapse;border-spacing:0;table-layout:fixed;">
@@ -485,6 +475,20 @@ use FluentCart\App\Services\Renderer\Receipt\TaxSummaryHelper;
                             </table>
                         </td>
                     </tr>
+                    <?php if ($emailTaxSummary['isReverseCharge']): ?>
+                    <tr style="width:100%">
+                        <td style="width:70%">
+                            <p style="font-size:14px; font-weight:700; color:#1e293b; line-height:24px; margin:0; border-top:1px solid #e2e8f0; padding-top:4px;">
+                                <?php echo esc_html__('VAT reversed', 'fluent-cart'); ?>
+                            </p>
+                        </td>
+                        <td style="width:30%; text-align:right">
+                            <p style="font-size:14px; font-weight:700; color:#1e293b; margin:0; line-height:24px; border-top:1px solid #e2e8f0; padding-top:4px;">
+                                <?php echo esc_html($rcReversedValue); ?>
+                            </p>
+                        </td>
+                    </tr>
+                    <?php else: ?>
                     <tr style="width:100%">
                         <td style="width:70%">
                             <p style="font-size:14px; font-weight:700; color:#1e293b; line-height:24px; margin:0; border-top:1px solid #e2e8f0; padding-top:4px;">
@@ -525,6 +529,34 @@ use FluentCart\App\Services\Renderer\Receipt\TaxSummaryHelper;
                         </td>
                     </tr>
                     <?php endif; ?>
+                    <?php endif; ?>
+                <?php elseif ($emailTaxSummary['isReverseCharge']): ?>
+                    <?php if ($emailTaxSummary['showRcShippingRow'] && $rcReversedShipping > 0): ?>
+                    <tr style="width:100%">
+                        <td style="width:70%">
+                            <p style="font-size:14px; color:#94a3b8; line-height:24px; margin:0;">
+                                <?php echo esc_html__('Added on shipping', 'fluent-cart'); ?>
+                            </p>
+                        </td>
+                        <td style="width:30%; text-align:right">
+                            <p style="font-size:14px; color:#94a3b8; margin:0; line-height:24px;">
+                                <span style="text-decoration:line-through;opacity:0.6;"><?php echo esc_html(\FluentCart\App\Helpers\Helper::toDecimal($rcReversedShipping)); ?></span>
+                            </p>
+                        </td>
+                    </tr>
+                    <?php endif; ?>
+                    <tr style="width:100%">
+                        <td style="width:70%">
+                            <p style="font-size:14px; font-weight:700; color:#1e293b; line-height:24px; margin:0;">
+                                <?php echo esc_html__('Tax reversed', 'fluent-cart'); ?>
+                            </p>
+                        </td>
+                        <td style="width:30%; text-align:right">
+                            <p style="font-size:14px; font-weight:700; color:#1e293b; margin:0; line-height:24px;">
+                                <?php echo esc_html($rcReversedValue); ?>
+                            </p>
+                        </td>
+                    </tr>
                 <?php else: ?>
                     <?php
                         $emailFeeRowsList    = Arr::get($emailTaxSummary, 'feeTaxLineRows', []);
@@ -666,6 +698,7 @@ use FluentCart\App\Services\Renderer\Receipt\TaxSummaryHelper;
                         </tr>
                     <?php endif; ?>
                 <?php endif; ?>
+                <?php endif; ?>
                 </tbody>
             </table>
                     </td>
@@ -742,7 +775,7 @@ use FluentCart\App\Services\Renderer\Receipt\TaxSummaryHelper;
             <?php
                 if($order->isReverseChargeTaxOrder()): ?>
                 <div style="text-align: right; font-size: 14px; margin-top: 10px;">
-                    <?php echo '*' . esc_html__('Tax to be paid on reverse charge basis', 'fluent-cart'); ?>
+                    <?php echo '*' . esc_html(TaxModule::getReverseChargeNoticeText()); ?>
                 </div>
 
             <?php endif ?>

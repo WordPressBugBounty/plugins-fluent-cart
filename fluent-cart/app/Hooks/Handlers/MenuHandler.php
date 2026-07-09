@@ -30,6 +30,7 @@ use FluentCart\App\Services\Filter\CustomerFilter;
 use FluentCart\App\Modules\Integrations\AddOnModule;
 use FluentCart\App\Services\Translations\TransStrings;
 use FluentCart\App\Services\Permission\PermissionManager;
+use FluentCart\Database\DataBackfills;
 use FluentCart\App\Modules\PaymentMethods\Core\GatewayManager;
 
 class MenuHandler
@@ -461,6 +462,7 @@ class MenuHandler
         $settings = new StoreSettings();
         $checkoutUrl = add_query_arg(Helper::INSTANT_CHECKOUT_URL_PARAM, '=', $settings->getCheckoutPage());
         $restVars = Helper::getRestInfo();
+        $hasDataMigrations = current_user_can('manage_options') && DataBackfills::hasPending();
 
         $filterOptions = [
             'order_filter_options'    => OrderFilter::getTableFilterOptions(),
@@ -563,6 +565,8 @@ class MenuHandler
             'modules_settings'                 => ModuleSettings::getAllSettings(),
             'purchase_fluent_cart_link'        => 'https://fluentcart.com/',
             'admin_notices'                    => apply_filters('fluent_cart/admin_notices', []),
+            // POSTs data-backfills/run until done; endpoint requires manage_options
+            'has_data_migrations'              => $hasDataMigrations,
             'subscription_intervals'           => Helper::getAvailableSubscriptionIntervalOptions(),
 
             'datei18'               => TransStrings::dateTimeStrings(),

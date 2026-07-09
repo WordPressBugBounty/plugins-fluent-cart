@@ -550,22 +550,12 @@ class OrderParser extends BaseParser
 
         $rows = '';
 
-        if ($summary['isReverseCharge']) {
-            $rcReversedTotal = isset($summary['reversedTaxTotal']) ? (int) $summary['reversedTaxTotal'] : 0;
-            $rcReversedValue = $rcReversedTotal > 0
-                ? esc_html(Helper::toDecimal($rcReversedTotal))
-                : esc_html__('Charge reversed', 'fluent-cart');
-            $rows .= '<tr><td colspan="2" style="' . $headingStyle . '">'
-                   . esc_html__('TAX SUMMARY', 'fluent-cart')
-                   . '</td></tr>';
-            $rows .= '<tr>'
-                   . '<td style="' . $totalStyle . '">' . esc_html__('Tax reversed', 'fluent-cart') . '</td>'
-                   . '<td style="' . $totalStyle . $valueStyle . '">' . $rcReversedValue . '</td>'
-                   . '</tr>';
-            return $this->wrapTaxBreakdownBox($rows);
-        }
-
         $foldedRateLines  = Arr::get($summary, 'foldedRateLines', []);
+        $isRcOrder        = !empty($summary['isReverseCharge']);
+        $rcReversedTotal  = isset($summary['reversedTaxTotal']) ? (int) $summary['reversedTaxTotal'] : 0;
+        $rcReversedValue  = $rcReversedTotal > 0
+            ? esc_html(Helper::toDecimal($rcReversedTotal))
+            : esc_html__('Charge reversed', 'fluent-cart');
         $includedInPrices = (int) Arr::get($summary, 'includedInPrices', 0);
         $opFeeRows        = Arr::get($summary, 'feeTaxLineRows', []);
         $taxRateLines     = Arr::get($summary, 'taxRateLines', []);
@@ -578,6 +568,18 @@ class OrderParser extends BaseParser
             || !empty($shippingTaxLines)
             || $rowCount >= 2
             || ($rowCount === 1 && !($summary['payableTax'] > 0 || $summary['inclusiveTax'] > 0 || (int) Arr::get($summary, 'inclusiveFeeTax', 0) > 0));
+
+        $isSimplifiedMode = ($summary['displayMode'] ?? '') === 'simplified';
+
+        if ($isSimplifiedMode && !empty($summary['simpleLine'])) {
+            $rows .= '<tr>'
+                   . '<td style="' . $normalStyle . '">' . esc_html((string) $summary['simpleLine']['label']) . '</td>'
+                   . '<td style="' . $normalStyle . $valueStyle . '">' . esc_html((string) $summary['simpleLine']['value']) . '</td>'
+                   . '</tr>';
+
+            // Simplified mode: single tax line only, skip the detailed breakdown below.
+            return $this->wrapTaxBreakdownBox($rows);
+        }
 
         if (!empty($foldedRateLines)) {
             $colHeadStyle     = 'width:58%;padding:3px 8px 3px 0;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;color:#64748b;vertical-align:top;';
@@ -608,6 +610,17 @@ class OrderParser extends BaseParser
 
             $rows .= '<tr><td colspan="2" style="padding:2px 0 0 0;">' . $nestedTable . '</td></tr>';
 
+            if ($isRcOrder) {
+                $rcReversedTotalValue = $rcReversedTotal > 0
+                    ? CurrencySettings::getPriceHtml($rcReversedTotal, $currency)
+                    : esc_html__('Charge reversed', 'fluent-cart');
+                $rows .= '<tr>'
+                       . '<td style="' . $totalStyle . '">' . esc_html__('VAT reversed', 'fluent-cart') . '</td>'
+                       . '<td style="' . $totalStyle . $valueStyle . '">' . $rcReversedTotalValue . '</td>'
+                       . '</tr>';
+                return $this->wrapTaxBreakdownBox($rows);
+            }
+
             $rows .= '<tr>'
                    . '<td style="' . $totalStyle . '">' . esc_html__('Total tax', 'fluent-cart') . '</td>'
                    . '<td style="' . $totalStyle . $valueStyle . '">' . CurrencySettings::getPriceHtml((int) $summary['totalOrderTax'], $currency) . '</td>'
@@ -628,6 +641,17 @@ class OrderParser extends BaseParser
                        . '</tr>';
             }
 
+            return $this->wrapTaxBreakdownBox($rows);
+        }
+
+        if ($isRcOrder) {
+            $rows .= '<tr><td colspan="2" style="' . $headingStyle . '">'
+                   . esc_html__('TAX SUMMARY', 'fluent-cart')
+                   . '</td></tr>';
+            $rows .= '<tr>'
+                   . '<td style="' . $totalStyle . '">' . esc_html__('Tax reversed', 'fluent-cart') . '</td>'
+                   . '<td style="' . $totalStyle . $valueStyle . '">' . $rcReversedValue . '</td>'
+                   . '</tr>';
             return $this->wrapTaxBreakdownBox($rows);
         }
 

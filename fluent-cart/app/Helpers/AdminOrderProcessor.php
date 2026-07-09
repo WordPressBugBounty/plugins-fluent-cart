@@ -387,6 +387,35 @@ class AdminOrderProcessor
             $subscriptionData['customer_id'] = $customerId;
             $subscriptionData['parent_order_id'] = $this->orderModel->id;
             $this->subscriptionModel = Subscription::query()->create($subscriptionData);
+
+            // bill_count counting can't tell "billed cycle" from "something else
+            // charged alongside it." Must be decided at creation: payment-method switching
+            // also sets is_trial_days_simulated, so the flag alone can't be trusted at runtime.
+            $isSimulated = Arr::get($subscriptionData, 'config.is_trial_days_simulated', 'no') === 'yes';
+            $trialDays   = (int)Arr::get($subscriptionData, 'trial_days', 0);
+            $billTimes   = (int)$this->subscriptionModel->bill_times;
+            $orderTotal  = (int)$this->orderModel->total_amount;
+
+            // Simulated trial, $0 first cycle: consumes a cycle but produces no
+            // total > 0 transaction — add billed_cycles_offset so it still counts.
+            if ($isSimulated
+                && $billTimes > 0
+                && (int)$this->subscriptionModel->signup_fee <= 0
+                && !$orderTotal
+            ) {
+                $this->subscriptionModel->updateMeta('billed_cycles_offset', 1);
+            }
+
+            // Real trial with a signup fee: the initial charge is the signup fee only,
+            // but it IS a total > 0 transaction linked to the subscription — mark
+            // billed_cycles_deduction so it does NOT count as a cycle.
+            if (!$isSimulated
+                && $trialDays > 0
+                && $billTimes > 0
+                && $orderTotal > 0
+            ) {
+                $this->subscriptionModel->updateMeta('billed_cycles_deduction', 1);
+            }
         }
 
         // Let's create the transaction
@@ -506,7 +535,7 @@ class AdminOrderProcessor
             Arr::set($item, 'other_info.trial_days', PaymentHelper::getIntervalDays(Arr::get($item, 'other_info.repeat_interval')));
             Arr::set($item, 'other_info.signup_fee', $firstPrice);
             Arr::set($item, 'other_info.manage_setup_fee', 'yes');
-            Arr::set($item, 'other_info.times', Arr::get($item, 'other_info.times', 0) > 1 ? Arr::get($item, 'other_info.times', 0) - 1 : 0);
+            // times stays the full installment count — the simulated trial cycle is installment #1
         } else if ($firstPrice > $recurringPrice) {
             Arr::set($item, 'other_info.signup_fee', $firstPrice - $recurringPrice);
             Arr::set($item, 'other_info.manage_setup_fee', 'yes');
@@ -674,7 +703,8 @@ class AdminOrderProcessor
                 $result['is_trial_days_simulated'] = 'yes';
                 $result['signup_fee'] = $firstCycleCost;
                 $result['manage_setup_fee'] = 'yes';
-                $result['times'] = $times > 0 ? $times - 1 : 0;
+                // bill_times stays the full installment count. The simulated trial cycle IS the
+                // first installment; gateways derive remaining remote cycles from is_trial_days_simulated.
             } else if ($firstCycleCost > $recurringAmount) {
                 $result['trial_days'] = 0;
                 $result['signup_fee'] = $firstCycleCost - $recurringAmount;

@@ -193,6 +193,10 @@ class TaxModule
 
     public function renderTaxRow($cart, $atts = '')
     {
+        if ($this->getCheckoutTaxBreakdownDisplayMode() === 'simplified') {
+            return;
+        }
+
         $taxAmount         = (int) Arr::get($cart->checkout_data, 'tax_data.tax_total', 0);
         $reversedTaxAmount = (int) Arr::get($cart->checkout_data, 'tax_data.reverse_charge_tax_total', 0);
         $isReverseCharge   = $this->isReverseChargeCheckout($cart->checkout_data);
@@ -224,6 +228,10 @@ class TaxModule
 
     public function renderShippingTaxRow($cart, $atts = '')
     {
+        if ($this->getCheckoutTaxBreakdownDisplayMode() === 'simplified') {
+            return '';
+        }
+
         $shippingTax     = (int) Arr::get($cart->checkout_data, 'tax_data.shipping_tax', 0);
         $isReverseCharge = $this->isReverseChargeCheckout($cart->checkout_data);
         $rcShippingTax   = (int) Arr::get($cart->checkout_data, 'tax_data.reverse_charge_shipping_tax', 0);
@@ -316,21 +324,83 @@ class TaxModule
             }
             $foldedSource[$rateKey] = $rateLine;
         }
+        // Fixed-mode reverse charge leaves tax-inclusive prices (and their embedded VAT)
+        // untouched — only dynamic mode reverses the inclusive portion. Exclude inclusive
+        // lines from the map in fixed mode so the rate rows sum to the reversed total.
+        $rcNonDynamic = $isReverseCharge
+            && Arr::get($taxData, 'reverse_charge_price_mode', 'fixed') !== 'dynamic';
+        $rateBaseMap  = TaxSummaryHelper::computeRateBaseMap((array) ($cart->cart_data ?: []), $rcNonDynamic);
+        if ($isReverseCharge) {
+            // Under reverse charge the stored tax_lines amounts are zeroed at calc time,
+            // but the original per-rate amounts survive in item line_meta. Restore them
+            // (and the pre-zeroing shipping lines) so the box renders the same
+            // breakdown-by-rate table as a normal order.
+            foreach ($foldedSource as $rateKey => &$foldedLine) {
+                $rid = (int) Arr::get($foldedLine, 'rate_id', $rateKey);
+                if (isset($rateBaseMap[$rid])) {
+                    $foldedLine['tax_amount'] = (int) round($rateBaseMap[$rid]['tax']);
+                }
+            }
+            unset($foldedLine);
+            if ($rcNonDynamic) {
+                // Rates present only on inclusive lines have nothing reversible in
+                // fixed mode — drop them instead of rendering a zero row.
+                foreach (array_keys($foldedSource) as $rateKey) {
+                    $rid = (int) Arr::get($foldedSource[$rateKey], 'rate_id', $rateKey);
+                    if (!isset($rateBaseMap[$rid])) {
+                        unset($foldedSource[$rateKey]);
+                    }
+                }
+            }
+            $shippingTaxLines = (array) Arr::get($taxData, 'reverse_charge_shipping_tax_lines', []);
+        }
         $checkoutRateRows = TaxSummaryHelper::buildFoldedRateRows(
-            $foldedSource, $shippingTaxLines, 'tax_amount', $isShippingInclusive
+            $foldedSource, $shippingTaxLines, 'tax_amount', $isShippingInclusive, $rateBaseMap
         );
         // Inclusive shipping tax follows the store global tax mode — when shipping is
         // priced inclusive its tax is baked into the shipping price, so it counts as
         // "of which included in prices". Keeps includedInPrices + payableTax === totalOrderTax.
         $includedInPrices = $inclusiveTax + $inclusiveFeeTax + ($isShippingInclusive ? $shippingTax : 0);
 
+        $displayMode = $this->getCheckoutTaxBreakdownDisplayMode();
+        $isSimplified = $displayMode === 'simplified';
+        $simpleLabel  = $this->getTaxDisplayLabel();
+        if ($isReverseCharge) {
+            $simpleValue = __('Reverse charge', 'fluent-cart');
+        } elseif ($payableTax === 0 && $totalOrderTax > 0) {
+            $suffix = (string) Arr::get($this->getSettings(), 'price_suffix_included', '');
+            if ($suffix === '') {
+                $suffix = __('(incl.)', 'fluent-cart');
+            }
+            /* translators: %1$s: formatted tax amount, %2$s: inclusive suffix */
+            $simpleValue = sprintf(__('%1$s %2$s', 'fluent-cart'), html_entity_decode(Helper::toDecimal($totalOrderTax), ENT_QUOTES, 'UTF-8'), $suffix);
+        } else {
+            $simpleValue = html_entity_decode(Helper::toDecimal($payableTax), ENT_QUOTES, 'UTF-8');
+        }
+
         $tooltipId = 'fct-tax-summary-tooltip-' . Helper::getUidSerial();
         ?>
         <li class="fct_tax_summary_li" data-fct-tax-summary>
+<?php if ($isSimplified) : ?>
+            <style>
+                .fct_tax_simple_details > summary { list-style: none; cursor: pointer; }
+                .fct_tax_simple_details > summary::-webkit-details-marker { display: none; }
+                .fct_tax_simple_toggle { color: #2563eb; text-decoration: none; font-size: 11px; }
+                .fct_tax_simple_label { color: inherit; }
+            </style>
+            <details class="fct_tax_simple_details">
+                <summary class="fct_tax_simple_summary" style="display:flex;justify-content:space-between;align-items:center;gap:8px;cursor:pointer;list-style:none;">
+                    <span class="fct_tax_simple_left">
+                        <span class="fct_tax_simple_label"><?php echo esc_html($simpleLabel); ?></span>
+                        <span class="fct_tax_simple_toggle"><?php esc_html_e('See details', 'fluent-cart'); ?> &#9662;</span>
+                    </span>
+                    <span class="fct_tax_simple_value"><?php echo esc_html($simpleValue); ?></span>
+                </summary>
+<?php endif; ?>
             <div class="fct_tax_summary_box">
                 <div class="fct_tax_summary_header">
                     <span class="fct_tax_summary_heading">
-                        <?php echo (!empty($checkoutRateRows) && !$isReverseCharge)
+                        <?php echo !empty($checkoutRateRows)
                             ? esc_html__('Tax breakdown by rate', 'fluent-cart')
                             : esc_html__('TAX', 'fluent-cart'); ?>
                     </span>
@@ -372,36 +442,73 @@ class TaxModule
                     </div>
                 </div>
                 <div class="fct_tax_summary_rows">
+                    <?php if (!empty($checkoutRateRows)) : ?>
+                    <div class="fct_tax_summary_row fct_tax_summary_row--head" style="display:flex;justify-content:space-between;gap:8px;">
+                        <span style="flex:1;font-size:11px;text-transform:uppercase;letter-spacing:0.04em;color:#94a3b8;">
+                            <?php esc_html_e('Rate', 'fluent-cart'); ?>
+                        </span>
+                        <span style="min-width:88px;text-align:right;font-size:11px;text-transform:uppercase;letter-spacing:0.04em;color:#94a3b8;">
+                            <?php esc_html_e('Taxable base', 'fluent-cart'); ?>
+                        </span>
+                        <span style="min-width:64px;text-align:right;font-size:11px;text-transform:uppercase;letter-spacing:0.04em;color:#94a3b8;">
+                            <?php esc_html_e('Tax', 'fluent-cart'); ?>
+                        </span>
+                    </div>
+                    <?php foreach ($checkoutRateRows as $checkoutRateRow) : ?>
+                    <div class="fct_tax_summary_row<?php echo !empty($checkoutRateRow['inclusive']) ? ' fct_tax_summary_row--muted' : ''; ?>" style="display:flex;justify-content:space-between;gap:8px;">
+                        <span class="fct_tax_summary_row_label" style="flex:1;">
+                            <?php echo esc_html($checkoutRateRow['label']); ?>
+                        </span>
+                        <span style="min-width:88px;text-align:right;color:#94a3b8;">
+                            <?php echo esc_html(Helper::toDecimal((int) $checkoutRateRow['base'])); ?>
+                        </span>
+                        <span class="fct_tax_summary_row_amount" style="min-width:64px;text-align:right;">
+                            <?php echo esc_html(Helper::toDecimal((int) $checkoutRateRow['tax'])); ?>
+                        </span>
+                    </div>
+                    <?php endforeach; ?>
+                    <?php endif; ?>
                     <?php if ($isReverseCharge) : ?>
-                        <?php
-                            $rcShippingDisplay  = (int) Arr::get($taxData, 'reverse_charge_shipping_tax', 0);
-                            $rcInclusiveAdj     = (int) Arr::get($taxData, 'reverse_charge_inclusive_adjustment', 0);
-                            $rcExclusiveNonShip = max(0, $reversedTaxTotalDisplay - $rcShippingDisplay - $rcInclusiveAdj);
-                            $rcBreakdownCount   = (int) ($rcInclusiveAdj > 0) + (int) ($rcExclusiveNonShip > 0) + (int) ($rcShippingDisplay > 0);
-                        ?>
-                        <?php if ($rcBreakdownCount >= 2) : ?>
-                            <?php if ($rcInclusiveAdj > 0) : ?>
+                        <?php if (empty($checkoutRateRows)) : ?>
+                            <?php
+                                $rcShippingDisplay  = (int) Arr::get($taxData, 'reverse_charge_shipping_tax', 0);
+                                $rcInclusiveAdj     = (int) Arr::get($taxData, 'reverse_charge_inclusive_adjustment', 0);
+                                $rcExclusiveNonShip = max(0, $reversedTaxTotalDisplay - $rcShippingDisplay - $rcInclusiveAdj);
+                                $rcBreakdownCount   = (int) ($rcInclusiveAdj > 0) + (int) ($rcExclusiveNonShip > 0) + (int) ($rcShippingDisplay > 0);
+                            ?>
+                            <?php if ($rcBreakdownCount >= 2) : ?>
+                                <?php if ($rcInclusiveAdj > 0) : ?>
+                                <div class="fct_tax_summary_row fct_tax_summary_row--muted">
+                                    <span class="fct_tax_summary_row_label">
+                                        <?php esc_html_e('Included in item prices', 'fluent-cart'); ?>
+                                    </span>
+                                    <span class="fct_tax_summary_row_amount" style="text-decoration:line-through;opacity:0.6;">
+                                        <?php echo esc_html(Helper::toDecimal($rcInclusiveAdj)); ?>
+                                    </span>
+                                </div>
+                                <?php endif; ?>
+                                <?php if ($rcExclusiveNonShip > 0) : ?>
+                                <div class="fct_tax_summary_row">
+                                    <span class="fct_tax_summary_row_label">
+                                        <?php esc_html_e('Added on products', 'fluent-cart'); ?>
+                                    </span>
+                                    <span class="fct_tax_summary_row_amount" style="text-decoration:line-through;opacity:0.6;">
+                                        <?php echo esc_html(Helper::toDecimal($rcExclusiveNonShip)); ?>
+                                    </span>
+                                </div>
+                                <?php endif; ?>
+                                <?php if ($rcShippingDisplay > 0) : ?>
+                                <div class="fct_tax_summary_row<?php echo $isShippingInclusive ? ' fct_tax_summary_row--muted' : ''; ?>">
+                                    <span class="fct_tax_summary_row_label">
+                                        <?php echo $isShippingInclusive ? esc_html__('Included in shipping prices', 'fluent-cart') : esc_html__('Added on shipping', 'fluent-cart'); ?>
+                                    </span>
+                                    <span class="fct_tax_summary_row_amount" style="text-decoration:line-through;opacity:0.6;">
+                                        <?php echo esc_html(Helper::toDecimal($rcShippingDisplay)); ?>
+                                    </span>
+                                </div>
+                                <?php endif; ?>
+                            <?php elseif ($rcShippingDisplay > 0) : ?>
                             <div class="fct_tax_summary_row fct_tax_summary_row--muted">
-                                <span class="fct_tax_summary_row_label">
-                                    <?php esc_html_e('Included in item prices', 'fluent-cart'); ?>
-                                </span>
-                                <span class="fct_tax_summary_row_amount" style="text-decoration:line-through;opacity:0.6;">
-                                    <?php echo esc_html(Helper::toDecimal($rcInclusiveAdj)); ?>
-                                </span>
-                            </div>
-                            <?php endif; ?>
-                            <?php if ($rcExclusiveNonShip > 0) : ?>
-                            <div class="fct_tax_summary_row">
-                                <span class="fct_tax_summary_row_label">
-                                    <?php esc_html_e('Added on products', 'fluent-cart'); ?>
-                                </span>
-                                <span class="fct_tax_summary_row_amount" style="text-decoration:line-through;opacity:0.6;">
-                                    <?php echo esc_html(Helper::toDecimal($rcExclusiveNonShip)); ?>
-                                </span>
-                            </div>
-                            <?php endif; ?>
-                            <?php if ($rcShippingDisplay > 0) : ?>
-                            <div class="fct_tax_summary_row<?php echo $isShippingInclusive ? ' fct_tax_summary_row--muted' : ''; ?>">
                                 <span class="fct_tax_summary_row_label">
                                     <?php echo $isShippingInclusive ? esc_html__('Included in shipping prices', 'fluent-cart') : esc_html__('Added on shipping', 'fluent-cart'); ?>
                                 </span>
@@ -410,51 +517,16 @@ class TaxModule
                                 </span>
                             </div>
                             <?php endif; ?>
-                        <?php elseif ($rcShippingDisplay > 0) : ?>
-                        <div class="fct_tax_summary_row fct_tax_summary_row--muted">
-                            <span class="fct_tax_summary_row_label">
-                                <?php echo $isShippingInclusive ? esc_html__('Included in shipping prices', 'fluent-cart') : esc_html__('Added on shipping', 'fluent-cart'); ?>
-                            </span>
-                            <span class="fct_tax_summary_row_amount" style="text-decoration:line-through;opacity:0.6;">
-                                <?php echo esc_html(Helper::toDecimal($rcShippingDisplay)); ?>
-                            </span>
-                        </div>
                         <?php endif; ?>
                         <div class="fct_tax_summary_row fct_tax_summary_row--total">
                             <span class="fct_tax_summary_row_label">
-                                <?php esc_html_e('Tax reversed', 'fluent-cart'); ?>
+                                <?php esc_html_e('VAT reversed', 'fluent-cart'); ?>
                             </span>
                             <span class="fct_tax_summary_row_amount">
                                 <?php echo esc_html(Helper::toDecimal($reversedTaxTotalDisplay)); ?>
                             </span>
                         </div>
                     <?php else : ?>
-                        <?php if (!empty($checkoutRateRows)) : ?>
-                        <div class="fct_tax_summary_row fct_tax_summary_row--head" style="display:flex;justify-content:space-between;gap:8px;">
-                            <span style="flex:1;font-size:11px;text-transform:uppercase;letter-spacing:0.04em;color:#94a3b8;">
-                                <?php esc_html_e('Rate', 'fluent-cart'); ?>
-                            </span>
-                            <span style="min-width:88px;text-align:right;font-size:11px;text-transform:uppercase;letter-spacing:0.04em;color:#94a3b8;">
-                                <?php esc_html_e('Taxable base', 'fluent-cart'); ?>
-                            </span>
-                            <span style="min-width:64px;text-align:right;font-size:11px;text-transform:uppercase;letter-spacing:0.04em;color:#94a3b8;">
-                                <?php esc_html_e('Tax', 'fluent-cart'); ?>
-                            </span>
-                        </div>
-                        <?php foreach ($checkoutRateRows as $checkoutRateRow) : ?>
-                        <div class="fct_tax_summary_row<?php echo !empty($checkoutRateRow['inclusive']) ? ' fct_tax_summary_row--muted' : ''; ?>" style="display:flex;justify-content:space-between;gap:8px;">
-                            <span class="fct_tax_summary_row_label" style="flex:1;">
-                                <?php echo esc_html($checkoutRateRow['label']); ?>
-                            </span>
-                            <span style="min-width:88px;text-align:right;color:#94a3b8;">
-                                <?php echo esc_html(Helper::toDecimal((int) $checkoutRateRow['base'])); ?>
-                            </span>
-                            <span class="fct_tax_summary_row_amount" style="min-width:64px;text-align:right;">
-                                <?php echo esc_html(Helper::toDecimal((int) $checkoutRateRow['tax'])); ?>
-                            </span>
-                        </div>
-                        <?php endforeach; ?>
-                        <?php endif; ?>
                         <?php if (empty($checkoutRateRows) && $inclusiveTax > 0 && $shouldShowBreakdown) : ?>
                         <div class="fct_tax_summary_row fct_tax_summary_row--muted">
                             <span class="fct_tax_summary_row_label">
@@ -558,6 +630,9 @@ class TaxModule
                     <?php endif; ?>
                 </div>
             </div>
+<?php if ($isSimplified) : ?>
+            </details>
+<?php endif; ?>
         </li>
         <?php
     }
@@ -713,7 +788,8 @@ class TaxModule
             'tax_inclusion'         => 'included',
             'tax_calculation_basis' => 'shipping',
             'tax_rounding'          => 'item',
-            'checkout_tax_breakdown_display' => 'both',
+            'checkout_tax_breakdown_display' => 'itemized',
+            'tax_display_label'     => 'Tax',
             'enable_tax'            => 'no',
             'eu_vat_settings'       => [
                 'require_vat_number'              => 'no',
@@ -741,13 +817,17 @@ class TaxModule
 
     protected function getCheckoutTaxBreakdownDisplayMode()
     {
-        $mode = Arr::get($this->getSettings(), 'checkout_tax_breakdown_display', 'both');
+        // Backward compat: legacy stored values ('both', 'label', 'tooltip', or anything
+        // else) all collapse to 'itemized'. Only an explicit 'simplified' stays simplified.
+        $mode = Arr::get($this->getSettings(), 'checkout_tax_breakdown_display', 'itemized');
 
-        if (!in_array($mode, ['both', 'label', 'tooltip'], true)) {
-            return 'both';
-        }
+        return $mode === 'simplified' ? 'simplified' : 'itemized';
+    }
 
-        return $mode;
+    protected function getTaxDisplayLabel()
+    {
+        $label = trim((string) Arr::get($this->getSettings(), 'tax_display_label', ''));
+        return $label !== '' ? $label : __('Tax', 'fluent-cart');
     }
 
     protected function normalizeCheckoutLineTaxRates($item)
@@ -804,7 +884,7 @@ class TaxModule
     public function renderCheckoutLineItemTaxLabel($data)
     {
         $mode = $this->getCheckoutTaxBreakdownDisplayMode();
-        if (!in_array($mode, ['both', 'label'], true)) {
+        if ($mode === 'simplified') {
             return;
         }
 
@@ -822,7 +902,7 @@ class TaxModule
     public function renderCheckoutSetupFeeTaxLabel($data)
     {
         $mode = $this->getCheckoutTaxBreakdownDisplayMode();
-        if (!in_array($mode, ['both', 'label'], true)) {
+        if ($mode === 'simplified') {
             return;
         }
 
@@ -860,6 +940,16 @@ class TaxModule
 
     private function renderTaxBadges(array $normalizedRates, $isReversed = false, $rcMode = 'fixed')
     {
+        // Fixed-mode reverse charge: inclusive-priced lines keep their gross price and
+        // no VAT is charged, so an "incl. X" badge would be misleading — hide those rates.
+        if ($isReversed && $rcMode !== 'dynamic') {
+            $normalizedRates = array_values(array_filter($normalizedRates, function ($rate) {
+                return empty($rate['inclusive']);
+            }));
+        }
+        if (empty($normalizedRates)) {
+            return;
+        }
         ?>
         <div class="fct_item_tax_badges" aria-label="<?php esc_attr_e('Tax breakdown', 'fluent-cart'); ?>">
             <?php foreach ($normalizedRates as $rate) : ?>
@@ -948,7 +1038,7 @@ class TaxModule
     public function renderCheckoutSetupFeeTaxTooltip($data)
     {
         $mode = $this->getCheckoutTaxBreakdownDisplayMode();
-        if (!in_array($mode, ['both', 'tooltip'], true)) {
+        if ($mode === 'simplified') {
             return;
         }
 
@@ -1020,7 +1110,7 @@ class TaxModule
     public function renderCheckoutSetupFeeTaxInfo($data)
     {
         $mode = $this->getCheckoutTaxBreakdownDisplayMode();
-        if (!in_array($mode, ['both', 'label'], true)) {
+        if ($mode === 'simplified') {
             return;
         }
 
@@ -1054,7 +1144,7 @@ class TaxModule
     public function renderCheckoutLineItemTaxTooltip($data)
     {
         $mode = $this->getCheckoutTaxBreakdownDisplayMode();
-        if (!in_array($mode, ['both', 'tooltip'], true)) {
+        if ($mode === 'simplified') {
             return;
         }
 
@@ -1130,7 +1220,7 @@ class TaxModule
     public function renderCheckoutLineItemTaxInfo($data)
     {
         $mode = $this->getCheckoutTaxBreakdownDisplayMode();
-        if (!in_array($mode, ['both', 'label'], true)) {
+        if ($mode === 'simplified') {
             return;
         }
 
@@ -1264,6 +1354,63 @@ class TaxModule
             return $fillData;
         }
 
+        // Shipping tax is derived from each item's itemwise_shipping_charge, but the
+        // authoritative selected shipping charge lives in checkout_data.shipping_data.
+        // These desync when a recalc entry point (VAT apply/remove, order placement,
+        // address patch) runs after the display path computed shipping without persisting
+        // the per-item distribution. Left unfixed the tax calculator sees zero shipping and
+        // drops the shipping tax (and, under reverse charge, its reversed portion). Repair
+        // the distribution here — the single point all recalc paths share.
+        $shipMethodId = Arr::get($checkoutData, 'shipping_data.shipping_method_id');
+        $shipCharge   = (int) Arr::get($checkoutData, 'shipping_data.shipping_charge', 0);
+        $distributedShipping = 0;
+        foreach ($lineItems as $cartLine) {
+            $distributedShipping += (int) Arr::get($cartLine, 'itemwise_shipping_charge', 0);
+            $distributedShipping += (int) Arr::get($cartLine, 'shipping_charge', 0);
+        }
+        if ($shipMethodId && $shipCharge > 0 && $distributedShipping === 0) {
+            // A method is selected with a charge but no per-item share — redistribute it.
+            $shipMethod = \FluentCart\App\Models\ShippingMethod::query()->find($shipMethodId);
+            if ($shipMethod) {
+                $redistributed = \FluentCart\App\Helpers\CartHelper::calculateShippingMethodCharge(
+                    $shipMethod, $lineItems, 'items'
+                );
+                $lineItems = Arr::get($redistributed, 'items', $lineItems);
+            }
+        } elseif (!$shipMethodId && $distributedShipping === 0) {
+            // Nothing persisted in the stored cart, yet the checkout page auto-selects the
+            // single available method for display. Logged-in customers whose default address
+            // is pre-filled never fire the change event that would persist that selection, so
+            // shipping_data stays empty and the tax calculator drops shipping entirely. Mirror
+            // the renderer's single-method auto-select so VAT apply / placement tax the
+            // shipping the customer already sees selected.
+            $requiresShipping = false;
+            foreach ($lineItems as $cartLine) {
+                if (Arr::get($cartLine, 'fulfillment_type') === 'physical') {
+                    $requiresShipping = true;
+                    break;
+                }
+            }
+            if ($requiresShipping) {
+                $autoCountry = Arr::get($checkoutData, 'form_data.shipping_country')
+                    ?: Arr::get($checkoutData, 'form_data.billing_country');
+                $autoState = Arr::get($checkoutData, 'form_data.shipping_state')
+                    ?: Arr::get($checkoutData, 'form_data.billing_state');
+                if ($autoCountry) {
+                    $autoMethods = \FluentCart\App\Helpers\AddressHelper::getShippingMethods($autoCountry, $autoState);
+                    if ($autoMethods && !is_wp_error($autoMethods) && count($autoMethods) === 1) {
+                        $autoMethod = Arr::first($autoMethods);
+                        $autoCalc = \FluentCart\App\Helpers\CartHelper::calculateShippingMethodCharge(
+                            $autoMethod, $lineItems, 'items'
+                        );
+                        $lineItems = Arr::get($autoCalc, 'items', $lineItems);
+                        Arr::set($checkoutData, 'shipping_data.shipping_method_id', $autoMethod->id);
+                        Arr::set($checkoutData, 'shipping_data.shipping_charge', (int) Arr::get($autoCalc, 'shipping_amount', 0));
+                    }
+                }
+            }
+        }
+
         $country = '';
         $state = '';
         $postCode = '';
@@ -1364,15 +1511,17 @@ class TaxModule
             }
         }
 
-        $inclusiveTaxAdjustment = 0;
-        $reversedTaxTotal       = 0;
-        $reversedShippingTax    = 0;
+        $inclusiveTaxAdjustment   = 0;
+        $reversedTaxTotal         = 0;
+        $reversedShippingTax      = 0;
+        $reversedShippingTaxLines = [];
         if ($shouldApplyReverseCharge) {
             $inclusivePortion  = $taxTotal - $exclusiveTaxTotal - $feeTax;
             $reversedInclusive = ($rcMode === 'dynamic') ? $inclusivePortion : 0;
             $reversedTaxTotal  = $exclusiveTaxTotal + $feeTax + $shippingTax + $reversedInclusive;
             $inclusiveTaxAdjustment = $inclusivePortion;
             $reversedShippingTax = $shippingTax;
+            $reversedShippingTaxLines = $shippingTaxLines;
             $taxTotal = 0;
             $exclusiveTaxTotal = 0;
             $shippingTax = 0;
@@ -1505,6 +1654,7 @@ class TaxModule
         $checkoutData['tax_data']['shipping_tax'] = $shippingTax;
         $checkoutData['tax_data']['shipping_tax_lines'] = $shippingTaxLines;
         $checkoutData['tax_data']['reverse_charge_shipping_tax'] = $reversedShippingTax;
+        $checkoutData['tax_data']['reverse_charge_shipping_tax_lines'] = $reversedShippingTaxLines;
         $checkoutData['tax_data']['reverse_charge_price_mode'] = $shouldApplyReverseCharge ? $this->getEffectiveRcMode() : 'fixed';
         $checkoutData['tax_data']['fee_tax'] = $feeTax;
         $checkoutData['tax_data']['fee_tax_lines'] = $feeTaxLines;
@@ -1793,12 +1943,6 @@ class TaxModule
             Arr::get($requestData, 'billing_legal_registration_id', '')
                 ?: Arr::get($checkoutData, 'form_data.billing_legal_registration_id', '')
         );
-        $declarationNote = sanitize_text_field(Arr::get($checkoutData, 'tax_data.declaration_note', ''));
-
-        if ($declarationNote === '') {
-            $declarationNote = sanitize_text_field(App::request()->get('fct_vat_declaration_note', ''));
-        }
-
         if (!$taxNumber && !$companyName && !$legalRegId) {
             return;
         }
@@ -1822,9 +1966,6 @@ class TaxModule
                 $businessInfo['tax_number_validated'] = true;
                 $businessInfo['tax_number_country']   = sanitize_text_field(Arr::get($checkoutData, 'tax_data.country', ''));
                 $businessInfo['tax_number_name']      = sanitize_text_field(Arr::get($checkoutData, 'tax_data.name', ''));
-                if ($declarationNote !== '') {
-                    $businessInfo['reverse_charge_declaration'] = $declarationNote;
-                }
             }
         }
 
@@ -2096,6 +2237,7 @@ class TaxModule
             unset($checkoutData['tax_data']['declaration_note']);
             unset($checkoutData['tax_data']['reverse_charge_tax_total']);
             unset($checkoutData['tax_data']['reverse_charge_shipping_tax']);
+            unset($checkoutData['tax_data']['reverse_charge_shipping_tax_lines']);
             unset($checkoutData['tax_data']['reverse_charge_inclusive_adjustment']);
         }
 
@@ -2307,7 +2449,7 @@ class TaxModule
         $shippingTaxByRateId = [];
         foreach ($shippingTaxLines as $stl) {
             $stlRateId = (int) Arr::get($stl, 'rate_id', 0);
-            if ($stlRateId > 0) {
+            if ($stlRateId !== 0) {
                 $shippingTaxByRateId[$stlRateId] = (int) Arr::get($stl, 'shipping_tax', 0);
             }
         }
@@ -2404,6 +2546,22 @@ class TaxModule
         $storeCountry = (new StoreSettings())->get('store_country');
         return Arr::get($taxSettings, 'eu_vat_settings.local_reverse_charge', 'no') === 'yes'
             || $countryCode !== $storeCountry;
+    }
+
+    /**
+     * The legal reverse-charge notice shown on checkout, invoices, receipts and emails.
+     * EU VAT Directive 2006/112/EC Article 226(11a) requires the invoice to carry the
+     * literal mention "Reverse charge" when the customer is liable for the VAT, so the
+     * default string must always start with those exact words. Article 196 covers
+     * services; stores supplying intra-EU goods (Art. 138) or needing other
+     * jurisdiction-specific wording can override via the filter.
+     */
+    public static function getReverseChargeNoticeText()
+    {
+        return apply_filters(
+            'fluent_cart/tax/reverse_charge_notice_text',
+            __('Reverse charge — Article 196, Council Directive 2006/112/EC. Customer is liable for VAT.', 'fluent-cart')
+        );
     }
 
     public static function euVatCountyOptions()

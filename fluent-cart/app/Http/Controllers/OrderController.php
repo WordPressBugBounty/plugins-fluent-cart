@@ -224,7 +224,7 @@ class OrderController extends Controller
             ->first();
 
         return $this->sendSuccess([
-            'message' => 'Address updated successfully',
+            'message' => __('Address updated successfully', 'fluent-cart'),
             'order'   => $freshOrder,
         ]);
     }

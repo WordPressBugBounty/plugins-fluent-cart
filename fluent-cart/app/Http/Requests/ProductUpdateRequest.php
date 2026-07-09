@@ -184,8 +184,35 @@ class ProductUpdateRequest extends RequestGuard
      */
     public function rules(): array
     {
+        $data = $this->all();
+        $hasDetail   = isset($data['detail']) && is_array($data['detail']);
+        $hasVariants = isset($data['variants']) && is_array($data['variants']);
 
-        $variationType = Arr::get($this->all(), 'detail.variation_type', 'simple');
+        if (!$hasDetail && !$hasVariants) {
+            $rules = [];
+            if (isset($data['post_title'])) {
+                $rules['post_title'] = 'sanitizeText|maxLength:200';
+            }
+            if (isset($data['post_excerpt'])) {
+                $rules['post_excerpt'] = ['nullable', 'string'];
+            }
+            if (isset($data['post_status'])) {
+                $rules['post_status'] = ['string', function ($attribute, $value) {
+                    if (!in_array($value, ['publish', 'draft', 'future', 'private'], true)) {
+                        return __('Invalid post status provided.', 'fluent-cart');
+                    }
+                    return null;
+                }];
+            }
+            if (isset($data['post_status']) && $data['post_status'] === 'future') {
+                $rules['post_date'] = function ($attribute, $value) {
+                    return $this->validatePostDate($attribute, $value);
+                };
+            }
+            return $rules;
+        }
+
+        $variationType = Arr::get($data, 'detail.variation_type', 'simple');
         $rules = [
             'post_title'                          => 'required|sanitizeText|maxLength:200',
             'post_excerpt'                        => [

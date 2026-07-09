@@ -790,7 +790,6 @@ class WebCheckoutHandler
             'billing_legal_registration_id' => 'form_data.billing_legal_registration_id',
             'is_business'          => 'form_data.is_business',
             'fct_billing_tax_id'        => 'tax_data.vat_number',
-            'fct_vat_declaration_note'  => 'tax_data.declaration_note',
         ];
 
         $addressFieldKeys = [
@@ -1141,8 +1140,6 @@ class WebCheckoutHandler
                 $sanitizedData[$dataKey] = sanitize_text_field($dataValue);
             } else if ($dataKey === 'is_business') {
                 $sanitizedData[$dataKey] = $dataValue === 'yes' ? 'yes' : 'no';
-            } else if ($dataKey === 'fct_vat_declaration_note') {
-                $sanitizedData[$dataKey] = mb_substr(sanitize_text_field($dataValue), 0, 255);
             } else if ($dataKey === 'billing_state' && !empty($dataValue)) {
                 $billingCountry = Arr::get($allData, 'billing_country');
 

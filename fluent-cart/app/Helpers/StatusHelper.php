@@ -53,7 +53,34 @@ class StatusHelper
 
         (new OrderStatusUpdated($this->order, $oldStatus, $orderStatus, true, $actionActivity, 'order_status'))->dispatch();
 
+        if (in_array($orderStatus, Status::getOrderSuccessStatuses())) {
+            // Without this, the cart stays reusable, gets resurrected by the
+            // logged-in user lookup and permanently blocks checkout with
+            // "You have already completed this order."
+            $this->completeRelatedCart();
+        }
+
         return $this;
+    }
+
+    protected function completeRelatedCart()
+    {
+        $relatedCart = Cart::query()->where('order_id', $this->order->id)
+            ->where('stage', '!=', 'completed')
+            ->first();
+
+        if (!$relatedCart) {
+            return;
+        }
+
+        $relatedCart->stage = 'completed';
+        $relatedCart->completed_at = DateTime::now()->format('Y-m-d H:i:s');
+        $relatedCart->save();
+
+        do_action('fluent_cart/cart_completed', [
+            'cart'  => $relatedCart,
+            'order' => $this->order,
+        ]);
     }
 
     public function updateTotalPaid($amount)

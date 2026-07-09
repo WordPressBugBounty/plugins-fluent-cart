@@ -27,10 +27,10 @@ class API
         return $this->remoteRequest($path, $data, $apiKey, 'GET');
     }
 
-    public function createStripeObject($path, $data = [], $mode = 'current')
+    public function createStripeObject($path, $data = [], $mode = 'current', $idempotencyKey = null)
     {
         $apiKey = (new StripeSettingsBase())->getApiKey($mode);
-        return $this->remoteRequest($path, $data, $apiKey, 'POST');
+        return $this->remoteRequest($path, $data, $apiKey, 'POST', $idempotencyKey);
     }
 
     public function deleteStripeObject($path, $data = [], $mode = 'current')
@@ -39,7 +39,7 @@ class API
         return $this->remoteRequest($path, $data, $apiKey, 'DELETE');
     }
 
-    public function remoteRequest($path, $data, $apiKey, $method)
+    public function remoteRequest($path, $data, $apiKey, $method, $idempotencyKey = null)
     {
         $stripeApiKey = $apiKey;
         $apiVersion = '2025-02-24.acacia';
@@ -48,6 +48,13 @@ class API
             'Content-Type'   => 'application/x-www-form-urlencoded',
             'Stripe-Version' => $apiVersion
         );
+
+        // Stripe dedupes any POST carrying the same Idempotency-Key (valid 24h),
+        // so a duplicate/retried create request returns the original object instead
+        // of charging the customer or creating a second subscription again.
+        if ($idempotencyKey && $method === 'POST') {
+            $sessionHeaders['Idempotency-Key'] = $idempotencyKey;
+        }
 
         $url = $this->apiUrl . $path;
 

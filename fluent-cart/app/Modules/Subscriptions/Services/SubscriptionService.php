@@ -243,21 +243,7 @@ class SubscriptionService
      */
     public static function syncSubscriptionStates(Subscription $subscriptionModel, $subscriptionUpdateArgs = [])
     {
-        $billsCount = OrderTransaction::query()
-            ->where('subscription_id', $subscriptionModel->id)
-            ->where('transaction_type', Status::TRANSACTION_TYPE_CHARGE)
-            ->where('status', Status::TRANSACTION_SUCCEEDED)
-            ->where('total', '>', 0)
-            ->count();
-
-
-        $earlyPaymentHistory = $subscriptionModel->getMeta('early_payment_history', []);
-        foreach ($earlyPaymentHistory as $earlyPayment) {
-            $paidCount = (int) Arr::get($earlyPayment, 'count', 1);
-            if ($paidCount > 1) {
-                $billsCount += ($paidCount - 1);
-            }
-        }
+        $billsCount = $subscriptionModel->calculateBillCount();
 
         $subscriptionUpdateArgs['bill_count'] = $billsCount;
         $billTimes = $subscriptionModel->bill_times;

@@ -30,11 +30,12 @@ class SubscriptionTools
         return [
             'fluent-cart/list-subscriptions' => [
                 'label'       => __('List Subscriptions', 'fluent-cart'),
-                'description' => __('Find and filter subscriptions. Compact rows: customer, plan, status, recurring total, interval, next/created/canceled dates. Use next_billing_before to find upcoming renewals; created_* and canceled_* ranges to inspect cohorts and churn. min_recurring is in store currency, not cents.', 'fluent-cart'),
+                'description' => __('Find and filter subscriptions. Compact rows carry customer, plan, status, recurring_total, interval, next/created/canceled dates, and installment fields: is_installment, installments_paid, installments_remaining, total_contract_value = recurring_total x bill_times (the full committed price). Use plan_type to split fixed-term installment/split-pay from open-ended recurring plans; next_billing_before for upcoming renewals; created_*/canceled_* ranges for cohorts and churn — a completed installment is paid-in-full, not churn. summary_only=true returns just the aggregates (count by status, committed recurring total, remaining installments). min_recurring is in store currency, not cents.', 'fluent-cart'),
                 'input_schema' => [
                     'type'       => 'object',
                     'properties' => [
                         'status'              => ['type' => 'string', 'enum' => $statuses],
+                        'plan_type'           => ['type' => 'string', 'enum' => ['installment', 'recurring', 'all'], 'default' => 'all', 'description' => 'installment = fixed-term split-pay such as a lifetime license paid in N installments where bill_times > 0; recurring = open-ended subscription where bill_times = 0; all = both.'],
                         'customer_id'         => ['type' => 'integer'],
                         'product_id'          => ['type' => 'integer'],
                         'billing_interval'    => ['type' => 'string', 'enum' => $intervals],
@@ -47,6 +48,8 @@ class SubscriptionTools
                         'min_recurring'       => ['type' => 'number', 'description' => 'Minimum recurring total in store currency.'],
                         'sort_by'             => ['type' => 'string', 'enum' => ['id', 'next_billing_date', 'created_at', 'canceled_at', 'recurring_total'], 'default' => 'id'],
                         'sort_type'           => ['type' => 'string', 'enum' => ['ASC', 'DESC'], 'default' => 'DESC'],
+                        'fields'              => ['type' => 'array', 'items' => ['type' => 'string'], 'description' => 'Optional: return only these row keys to shrink the payload (subscription_id is always kept). Available: status, item_name, customer, recurring_total, billing_interval, next_billing_date, created_at, canceled_at, bill_count, bill_times, is_installment, installments_paid, installments_remaining, total_contract_value, currency, label. Omit for the full row.'],
+                        'summary_only'        => ['type' => 'boolean', 'description' => 'When true, return ONLY aggregates across all matching subscriptions — count_by_status, summed recurring_total, and total remaining installments — with no per-record array. Answers "how many active subs and how much is committed" with a tiny payload. Honors all the filters above.'],
                         'page'                => ['type' => 'integer', 'default' => 1],
                         'per_page'            => ['type' => 'integer', 'default' => 15, 'description' => 'Max 200.'],
                     ],
@@ -81,7 +84,7 @@ class SubscriptionTools
 
             'fluent-cart/change-subscription-status' => [
                 'label'       => __('Change Subscription Status', 'fluent-cart'),
-                'description' => __('Cancel a subscription through its gateway. Cancel is destructive — call dry_run:true first to preview and receive a confirm_token, then call again with that confirm_token plus an idempotency_key to execute. Cancellation takes effect immediately (the subscription is marked canceled now). The preview reports payment_mode and live_gateway_action; executing a LIVE cancellation requires the operator to opt in (test-mode always works).', 'fluent-cart'),
+                'description' => __('Cancel a subscription through its gateway — destructive. Call dry_run:true first to preview and get a confirm_token, then call again with that confirm_token plus an idempotency_key to execute. Cancellation is immediate. The preview reports payment_mode and live_gateway_action; a LIVE cancellation requires operator opt-in, and test-mode always works.', 'fluent-cart'),
                 'input_schema' => [
                     'type'       => 'object',
                     'properties' => [
@@ -99,20 +102,27 @@ class SubscriptionTools
                 'permission_callback' => function () {
                     return PermissionGate::can('subscriptions/manage');
                 },
-                'annotations' => ['destructive' => true],
+                // Cancels via the gateway — destructive. readonly:false is explicit
+                // so a client never mistakes it for a preview-only tool.
+                'annotations' => ['readonly' => false, 'destructive' => true],
             ],
         ];
     }
 
     public static function listSubscriptions($params = [])
     {
-        $paging = MCPHelper::pagination($params, 15, 200);
-        $query  = Subscription::query()->with('customer');
+        $query = Subscription::query();
 
         foreach (['status', 'billing_interval'] as $col) {
             if (!empty($params[$col])) {
                 $query->where($col, sanitize_text_field($params[$col]));
             }
+        }
+        // Reuse the model's plan-type definition (bill_times threshold) so the
+        // filter and the per-row is_installment flag can never disagree.
+        $planType = self::allowed($params, 'plan_type', ['installment', 'recurring', 'all'], 'all');
+        if ($planType !== 'all') {
+            $query->ofPlanType($planType);
         }
         if (!empty($params['customer_id'])) {
             $query->where('customer_id', (int) $params['customer_id']);
@@ -142,6 +152,16 @@ class SubscriptionTools
             $query->where('recurring_total', '>=', Helper::toCent($params['min_recurring']));
         }
 
+        // Bonus: aggregate-only mode — counts + sums across ALL matching
+        // subscriptions (not just one page), no per-record array. Respects every
+        // filter applied above.
+        if (!empty($params['summary_only'])) {
+            return self::summaryResponse($query);
+        }
+
+        $paging = MCPHelper::pagination($params, 15, 200);
+        $query->with('customer');
+
         $sortBy   = self::allowed($params, 'sort_by', ['id', 'next_billing_date', 'created_at', 'canceled_at', 'recurring_total'], 'id');
         $sortType = strtoupper(isset($params['sort_type']) ? $params['sort_type'] : 'DESC') === 'ASC' ? 'ASC' : 'DESC';
         $query->orderBy($sortBy, $sortType);
@@ -152,9 +172,10 @@ class SubscriptionTools
         $paginator = $query->paginate($paging['per_page'], ['*'], 'page', $paging['page']);
         $total     = self::total($paginator);
 
-        $rows = [];
+        $fields = isset($params['fields']) ? $params['fields'] : null;
+        $rows   = [];
         foreach (MCPHelper::paginatorItems($paginator) as $sub) {
-            $rows[] = self::formatRow($sub);
+            $rows[] = MCPHelper::pickFields(self::formatRow($sub), $fields, ['subscription_id']);
         }
 
         return MCPHelper::envelope(
@@ -168,25 +189,86 @@ class SubscriptionTools
         );
     }
 
+    /**
+     * Aggregate-only response for summary_only: status counts, summed
+     * recurring_total and total remaining installments across the full filtered
+     * set. Two lightweight GROUP BY / SUM scans, no row hydration. Money is in the
+     * store currency (subscriptions are not currency-scoped), matching formatRow.
+     */
+    private static function summaryResponse($query)
+    {
+        $byStatusRows = (clone $query)
+            ->selectRaw('status, COUNT(*) as cnt, COALESCE(SUM(recurring_total), 0) as recurring_sum')
+            ->groupBy('status')
+            ->get();
+
+        $byStatus     = [];
+        $totalCount   = 0;
+        $recurringSum = 0;
+        foreach ($byStatusRows as $row) {
+            $count = (int) $row->cnt;
+            $sum   = (int) $row->recurring_sum;
+            $byStatus[(string) $row->status] = [
+                'count'               => $count,
+                'recurring_total_sum' => MCPHelper::moneyCompact($sum),
+            ];
+            $totalCount   += $count;
+            $recurringSum += $sum;
+        }
+
+        // Remaining installments across finite (bill_times > 0) plans only.
+        $remRow = (clone $query)
+            ->selectRaw('COALESCE(SUM(CASE WHEN bill_times > 0 THEN GREATEST(bill_times - bill_count, 0) ELSE 0 END), 0) as rem')
+            ->first();
+        $remaining = $remRow ? (int) $remRow->rem : 0;
+
+        $summary = sprintf(
+            /* translators: 1: subscription count, 2: summed recurring total */
+            __('%1$d subscriptions; committed recurring total %2$s.', 'fluent-cart'),
+            $totalCount,
+            MCPHelper::displayAmount($recurringSum, MCPHelper::currencyCode())
+        );
+
+        return MCPHelper::envelope(
+            $summary,
+            [
+                'summary_only'                  => true,
+                'total_count'                   => $totalCount,
+                'recurring_total_sum'           => MCPHelper::moneyCompact($recurringSum),
+                'remaining_installments_total'  => $remaining,
+                'count_by_status'               => $byStatus,
+            ],
+            ['currency' => MCPHelper::currencyCode(), 'note' => 'Aggregates across all matching subscriptions; money is in the store currency, not currency-scoped.']
+        );
+    }
+
     private static function formatRow($sub)
     {
         $customer = ($sub->relationLoaded('customer') && $sub->customer) ? $sub->customer : null;
         $currency = strtoupper((string) $sub->currency);
 
+        $isInstallment = $sub->isInstallment();
+
         return [
-            'subscription_id'   => (int) $sub->id,
-            'label'             => self::label($sub, $customer),
-            'status'            => $sub->status,
-            'item_name'         => $sub->item_name,
-            'customer'          => $customer ? ['id' => (int) $customer->id, 'name' => MCPHelper::personName($customer), 'email' => $customer->email] : null,
-            'recurring_total'   => MCPHelper::moneyCompact($sub->recurring_total),
-            'billing_interval'  => $sub->billing_interval,
-            'next_billing_date' => MCPHelper::toIso8601($sub->next_billing_date),
-            'created_at'        => MCPHelper::toIso8601($sub->created_at),
-            'canceled_at'       => MCPHelper::toIso8601($sub->canceled_at),
-            'bill_count'        => (int) $sub->bill_count,
-            'bill_times'        => (int) $sub->bill_times,
-            'currency'          => $currency,
+            'subscription_id'        => (int) $sub->id,
+            'label'                  => self::label($sub, $customer),
+            'status'                 => $sub->status,
+            'item_name'              => $sub->item_name,
+            'customer'               => $customer ? ['id' => (int) $customer->id, 'name' => MCPHelper::personName($customer), 'email' => $customer->email] : null,
+            'recurring_total'        => MCPHelper::moneyCompact($sub->recurring_total),
+            'billing_interval'       => $sub->billing_interval,
+            'next_billing_date'      => MCPHelper::toIso8601($sub->next_billing_date),
+            'created_at'             => MCPHelper::toIso8601($sub->created_at),
+            'canceled_at'            => MCPHelper::toIso8601($sub->canceled_at),
+            'bill_count'             => (int) $sub->bill_count,
+            'bill_times'             => (int) $sub->bill_times,
+            // Derived installment view (bill_times > 0). total_contract_value is
+            // null for open-ended plans, which have no fixed committed total.
+            'is_installment'         => $isInstallment,
+            'installments_paid'      => (int) $sub->bill_count,
+            'installments_remaining' => $sub->installmentsRemaining(),
+            'total_contract_value'   => $isInstallment ? MCPHelper::money($sub->totalContractValue(), $currency) : null,
+            'currency'               => $currency,
         ];
     }
 
@@ -232,13 +314,17 @@ class SubscriptionTools
             'variation_id'         => $sub->variation_id ? (int) $sub->variation_id : null,
             'quantity'             => (int) $sub->quantity,
             'billing'              => [
-                'interval'        => $sub->billing_interval,
-                'signup_fee'      => MCPHelper::money($sub->signup_fee, $currency),
+                'interval'         => $sub->billing_interval,
+                'signup_fee'       => MCPHelper::money($sub->signup_fee, $currency),
                 'recurring_amount' => MCPHelper::money($sub->recurring_amount, $currency),
-                'recurring_total' => MCPHelper::money($sub->recurring_total, $currency),
-                'bill_times'      => (int) $sub->bill_times,
-                'bill_count'      => (int) $sub->bill_count,
+                'recurring_total'  => MCPHelper::money($sub->recurring_total, $currency),
+                'bill_times'       => (int) $sub->bill_times,
+                'bill_count'       => (int) $sub->bill_count,
                 'collection_method' => $sub->collection_method,
+                'is_installment'         => $sub->isInstallment(),
+                'installments_paid'      => (int) $sub->bill_count,
+                'installments_remaining' => $sub->installmentsRemaining(),
+                'total_contract_value'   => $sub->isInstallment() ? MCPHelper::money($sub->totalContractValue(), $currency) : null,
             ],
             'next_billing_date'    => MCPHelper::toIso8601($sub->next_billing_date),
             'trial_ends_at'        => MCPHelper::toIso8601($sub->trial_ends_at),

@@ -14,11 +14,11 @@ class ProductContent extends Element
 {
     public $category = 'fluent-cart';
     public $name = 'fct-product-content';
-    public $icon = 'ion-md-list-box';
+    public $icon = 'ion-md-list-box fluent-cart-element-icon';
 
     public function get_label()
     {
-        return esc_html__('Product Content (FluentCart)', 'fluent-cart');
+        return esc_html__('Product Content', 'fluent-cart');
     }
 
     public function set_controls()

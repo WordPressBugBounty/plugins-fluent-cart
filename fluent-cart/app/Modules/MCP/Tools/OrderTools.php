@@ -71,6 +71,7 @@ class OrderTools
                         'search'          => ['type' => 'string', 'description' => 'Matches invoice/receipt number, order uuid, and customer name/email.'],
                         'sort_by'         => ['type' => 'string', 'enum' => ['id', 'created_at', 'completed_at', 'total_amount'], 'default' => 'id'],
                         'sort_type'       => ['type' => 'string', 'enum' => ['ASC', 'DESC'], 'default' => 'DESC'],
+                        'fields'          => ['type' => 'array', 'items' => ['type' => 'string'], 'description' => 'Optional: return only these row keys to shrink the payload (order_id is always kept). Available: number, label, status, payment_status, shipping_status, type, total, customer, items, created_at. Omit for the full row.'],
                         'page'            => ['type' => 'integer', 'default' => 1],
                         'per_page'        => ['type' => 'integer', 'default' => 15, 'description' => 'Max 100.'],
                     ],
@@ -96,6 +97,7 @@ class OrderTools
                             'description' => 'Optional heavier sections. items + customer are always included.',
                             'items'       => ['type' => 'string', 'enum' => ['transactions', 'refunds', 'addresses', 'coupons', 'subscriptions']],
                         ],
+                        'fields'     => ['type' => 'array', 'items' => ['type' => 'string'], 'description' => 'Optional: return only these top-level keys to shrink the payload (order_id is always kept). e.g. status, payment_status, totals, items, customer. Applies after include[]. Omit for the full record.'],
                     ],
                 ],
                 'execute_callback'    => [self::class, 'getOrder'],
@@ -107,7 +109,7 @@ class OrderTools
 
             'fluent-cart/get-order-activity' => [
                 'label'       => __('Get Order Activity', 'fluent-cart'),
-                'description' => __('Audit timeline for one order — status changes, payments, refunds, notes, emails sent: who did what and when. Use after get-order when you need history, not just current state.', 'fluent-cart'),
+                'description' => __('Audit timeline for one order — status changes, payments, refunds, notes, emails sent: who did what and when. Refund and payment rows carry the amount (backfilled onto activity rows from the matching transaction), so you need not cross-reference. Use after get-order when you need history, not just current state.', 'fluent-cart'),
                 'input_schema' => [
                     'type'       => 'object',
                     'properties' => [
@@ -139,6 +141,10 @@ class OrderTools
                 'permission_callback' => function () {
                     return PermissionGate::can('orders/manage_statuses');
                 },
+                // Mutates, but reversible (a status can be set back) and no-op
+                // aware, so not destructive. Setting the same status twice is a
+                // no-op — idempotent.
+                'annotations' => ['readonly' => false, 'destructive' => false, 'idempotent' => true],
             ],
 
             'fluent-cart/add-order-note' => [
@@ -156,11 +162,14 @@ class OrderTools
                 'permission_callback' => function () {
                     return PermissionGate::can('orders/manage');
                 },
+                // Appends a note (mutating, not destructive). Each call adds a
+                // new note, so it is NOT idempotent.
+                'annotations' => ['readonly' => false, 'destructive' => false],
             ],
 
             'fluent-cart/refund-order' => [
                 'label'       => __('Refund Order', 'fluent-cart'),
-                'description' => __('Refund an order through its payment gateway. ALWAYS call with dry_run:true first to preview the refundable amount and receive a confirm_token, then call again with that confirm_token plus an idempotency_key to execute. Without an idempotency_key a repeated execute could double-refund. amount is in store currency; omit to refund the full remaining balance. The preview reports payment_mode and live_gateway_action; executing a LIVE refund requires the operator to opt in (test-mode always works).', 'fluent-cart'),
+                'description' => __('Refund an order through its gateway. ALWAYS call dry_run:true first to preview the refundable amount and get a confirm_token, then call again with that confirm_token plus an idempotency_key to execute — without the key a repeated execute could double-refund. amount is in store currency; omit for the full remaining balance. The preview reports payment_mode and live_gateway_action; a LIVE refund requires operator opt-in, and test-mode always works.', 'fluent-cart'),
                 'input_schema' => [
                     'type'       => 'object',
                     'properties' => [
@@ -178,7 +187,9 @@ class OrderTools
                 'permission_callback' => function () {
                     return PermissionGate::can('orders/can_refund');
                 },
-                'annotations' => ['destructive' => true],
+                // Moves money via the gateway — the destructive write. readonly:false
+                // is explicit so a client never mistakes it for a preview-only tool.
+                'annotations' => ['readonly' => false, 'destructive' => true],
             ],
         ];
     }
@@ -221,9 +232,10 @@ class OrderTools
         $paginator = $query->paginate($paging['per_page'], ['*'], 'page', $paging['page']);
         $total     = self::total($paginator);
 
-        $rows = [];
+        $fields = isset($params['fields']) ? $params['fields'] : null;
+        $rows   = [];
         foreach (MCPHelper::paginatorItems($paginator) as $order) {
-            $rows[] = self::formatRow($order);
+            $rows[] = MCPHelper::pickFields(self::formatRow($order), $fields, ['order_id']);
         }
 
         return MCPHelper::envelope(
@@ -472,7 +484,11 @@ class OrderTools
             $data['subscriptions'] = self::subscriptionsBlock($order);
         }
 
-        return MCPHelper::envelope(self::label($order, $order->customer), $data);
+        // fields projection runs last, so it can trim both the base record and any
+        // include[] sections; order_id is always kept.
+        $fields = isset($params['fields']) ? $params['fields'] : null;
+
+        return MCPHelper::envelope(self::label($order, $order->customer), MCPHelper::pickFields($data, $fields, ['order_id']));
     }
 
     private static function resolveOrder($params)
@@ -677,6 +693,7 @@ class OrderTools
             foreach ($rows as $row) {
                 $events[] = [
                     '_sort'          => (string) $row->created_at,
+                    '_ts'            => self::toTs($row->created_at),
                     'event'          => self::activityEvent($row),
                     'source'         => 'activity',
                     'title'          => $row->title,
@@ -694,25 +711,54 @@ class OrderTools
         // Money events: charges and refunds from the transactions ledger. These
         // are the payment/refund timeline entries the activity log doesn't carry.
         $order->load('transactions');
+        $refundTxns = [];
+        $chargeTxns = [];
         if ($order->relationLoaded('transactions')) {
             foreach ($order->transactions as $txn) {
-                $type  = $txn->transaction_type ? $txn->transaction_type : 'charge';
-                $event = ($type === 'refund') ? 'refund' : (($type === 'charge') ? 'payment' : $type);
+                $type   = $txn->transaction_type ? $txn->transaction_type : 'charge';
+                $event  = ($type === 'refund') ? 'refund' : (($type === 'charge') ? 'payment' : $type);
+                $amount = MCPHelper::money($txn->total, $txn->currency ? $txn->currency : null);
+                $ts     = self::toTs($txn->created_at);
                 $events[] = [
                     '_sort'          => (string) $txn->created_at,
+                    '_ts'            => $ts,
                     'event'          => $event,
                     'source'         => 'transaction',
                     'title'          => self::txnTitle($type, $txn),
                     'status'         => $txn->status,
                     'content'        => null,
                     'by'             => null,
-                    'amount'         => MCPHelper::money($txn->total, $txn->currency ? $txn->currency : null),
+                    'amount'         => $amount,
                     'payment_method' => $txn->payment_method ? $txn->payment_method : null,
                     'reference'      => $txn->vendor_charge_id ? $txn->vendor_charge_id : null,
                     'created_at'     => MCPHelper::toIso8601($txn->created_at),
                 ];
+                if ($type === 'refund') {
+                    $refundTxns[] = ['ts' => $ts, 'amount' => $amount];
+                } elseif ($type === 'charge') {
+                    $chargeTxns[] = ['ts' => $ts, 'amount' => $amount];
+                }
             }
         }
+
+        // Activity rows about a refund/payment don't store the amount (the Activity
+        // model has no amount column), so a consumer previously had to cross-
+        // reference the transaction rows. Backfill each such row from the money
+        // event it mirrors — the closest refund/charge transaction on this order by
+        // time — since the activity log is written seconds after its transaction in
+        // the same request, so the amount is known and no cross-reference is needed.
+        foreach ($events as &$moneyRow) {
+            if ($moneyRow['source'] !== 'activity' || $moneyRow['amount'] !== null) {
+                continue;
+            }
+            $kind = self::activityMoneyKind($moneyRow['title']);
+            if ($kind === 'refund') {
+                $moneyRow['amount'] = self::nearestTxnAmount($moneyRow['_ts'], $refundTxns);
+            } elseif ($kind === 'payment') {
+                $moneyRow['amount'] = self::nearestTxnAmount($moneyRow['_ts'], $chargeTxns);
+            }
+        }
+        unset($moneyRow);
 
         // Merge both streams most-recent-first, then cap at $limit.
         usort($events, function ($a, $b) {
@@ -720,7 +766,7 @@ class OrderTools
         });
         $events = array_slice($events, 0, $limit);
         foreach ($events as &$event) {
-            unset($event['_sort']);
+            unset($event['_sort'], $event['_ts']);
         }
         unset($event);
 
@@ -749,6 +795,62 @@ class OrderTools
             return 'api';
         }
         return 'note';
+    }
+
+    /**
+     * Classify an activity row's money kind from its title so its amount can be
+     * backfilled from the matching transaction. Title-only (not content) to avoid
+     * false positives like a note that merely mentions "refund".
+     */
+    private static function activityMoneyKind($title)
+    {
+        $t = strtolower((string) $title);
+        if (strpos($t, 'refund') !== false) {
+            return 'refund';
+        }
+        if (strpos($t, 'payment') !== false || strpos($t, 'charge') !== false || strpos($t, 'captured') !== false) {
+            return 'payment';
+        }
+        return null;
+    }
+
+    /**
+     * Amount of the transaction closest in time to $ts, from a pool of
+     * ['ts' => int|null, 'amount' => money] entries. Returns null if $ts is unknown
+     * or the pool is empty. Refund activity rows match only refund transactions and
+     * payment rows only charges, so the nearest by time is the right money event.
+     */
+    private static function nearestTxnAmount($ts, array $pool)
+    {
+        if ($ts === null || !$pool) {
+            return null;
+        }
+        $best     = null;
+        $bestDiff = null;
+        foreach ($pool as $entry) {
+            if ($entry['ts'] === null) {
+                continue;
+            }
+            $diff = abs($entry['ts'] - $ts);
+            if ($bestDiff === null || $diff < $bestDiff) {
+                $bestDiff = $diff;
+                $best     = $entry['amount'];
+            }
+        }
+        return $best;
+    }
+
+    /** Parse a stored GMT datetime to a UTC unix timestamp; null on empty/zero-date. */
+    private static function toTs($value)
+    {
+        if (!$value || strpos((string) $value, '0000-00-00') === 0) {
+            return null;
+        }
+        try {
+            return (new \DateTime((string) $value, new \DateTimeZone('UTC')))->getTimestamp();
+        } catch (\Exception $e) {
+            return null;
+        }
     }
 
     /** Human-readable title for a transaction timeline entry. */

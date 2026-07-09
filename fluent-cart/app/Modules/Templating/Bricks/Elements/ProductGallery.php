@@ -16,7 +16,7 @@ class ProductGallery extends Element
 {
     public $category = 'fluent-cart';
     public $name = 'fct-product-gallery';
-    public $icon = 'ti-gallery';
+    public $icon = 'ti-gallery fluent-cart-element-icon';
 
     public function enqueue_scripts()
     {
@@ -25,7 +25,7 @@ class ProductGallery extends Element
 
     public function get_label()
     {
-        return esc_html__('Product Gallery (FluentCart)', 'fluent-cart');
+        return esc_html__('Product Gallery', 'fluent-cart');
     }
 
     public function set_controls()

@@ -11,7 +11,7 @@ class OrderTaxRateMigrator extends Migrator
     {
         return "`id` BIGINT(20) UNSIGNED NOT NULL PRIMARY KEY AUTO_INCREMENT,
 				`order_id` BIGINT(20) UNSIGNED NOT NULL,
-                `tax_rate_id` BIGINT(20) UNSIGNED NOT NULL,
+                `tax_rate_id` BIGINT(20) NOT NULL,
                 `shipping_tax` BIGINT NULL,
                 `order_tax` BIGINT NULL,
                 `total_tax` BIGINT NULL,
@@ -25,8 +25,16 @@ class OrderTaxRateMigrator extends Migrator
     {
         static::addMetaColumn();
         static::addFiledAtColumn();
+        static::allowVirtualTaxRateIds();
         static::deduplicateOrderTaxRates();
         static::addOrderTaxRateUniqueIndex();
+    }
+
+    public static function allowVirtualTaxRateIds()
+    {
+        // EU VAT registration rates are virtual and use negative IDs. Keep zero
+        // reserved for the no-tax sentinel while allowing those rows to persist.
+        static::modifyColumnIfExists('tax_rate_id', 'BIGINT(20) NOT NULL');
     }
 
     public static function deduplicateOrderTaxRates()

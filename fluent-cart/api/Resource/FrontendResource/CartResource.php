@@ -743,10 +743,13 @@ class CartResource extends BaseResourceApi
 
         $userId = get_current_user_id();
         if ($userId) {
+            // Latest cart first — without an order, first() picks by primary key
+            // (cart_hash), which resurrects an arbitrary old cart for the user.
             $cart = static::getQuery()
                 ->where('user_id', $userId)
                 ->where('stage', '!=', 'completed')
                 ->where('cart_group', 'global')
+                ->orderBy('updated_at', 'DESC')
                 ->first();
 
             if ($cart) {

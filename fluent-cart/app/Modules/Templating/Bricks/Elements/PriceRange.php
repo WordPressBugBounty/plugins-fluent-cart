@@ -15,11 +15,11 @@ class PriceRange extends Element
 
     public $category = 'fluent-cart';
     public $name = 'fct-price-range';
-    public $icon = 'ti-money';
+    public $icon = 'ti-money fluent-cart-element-icon';
 
     public function get_label()
     {
-        return esc_html__('Price Range (FluentCart)', 'fluent-cart');
+        return esc_html__('Price Range', 'fluent-cart');
     }
 
     public function set_controls()
@@ -57,7 +57,7 @@ class PriceRange extends Element
 
         $this->controls['hideNoRange'] = [
             'tab'     => 'content',
-            'label'   => esc_html__('Hide when max and mix is same', 'fluent-cart'),
+            'label'   => esc_html__('Hide when max and min is same', 'fluent-cart'),
             'type'    => 'checkbox'
         ];
         $this->controls['priceRangeTypography'] = [

@@ -12,6 +12,7 @@ use FluentCart\App\Http\Controllers\AppControllers\AppController;
 use FluentCart\App\Http\Controllers\CheckoutFieldsController;
 use FluentCart\App\Http\Controllers\CustomerController;
 use FluentCart\App\Http\Controllers\DashboardController;
+use FluentCart\App\Http\Controllers\DataBackfillController;
 use FluentCart\App\Http\Controllers\EmailNotificationController;
 use FluentCart\App\Http\Controllers\FileUploadController;
 use FluentCart\App\Http\Controllers\IntegrationController;
@@ -48,6 +49,10 @@ $router->get('widgets', [WidgetsController::class, '__invoke'])->withPolicy('Ord
 
 $router->prefix('dashboard')->withPolicy('AdminPolicy')->group(function (Router $router) {
     $router->get('/', [DashboardController::class, 'getOnboardingData']);
+});
+
+$router->prefix('data-backfills')->withPolicy('AdminPolicy')->group(function (Router $router) {
+    $router->post('/run', [DataBackfillController::class, 'run']);
 });
 
 $router->prefix('dashboard')->withPolicy('DashboardPolicy')->group(function (Router $router) {

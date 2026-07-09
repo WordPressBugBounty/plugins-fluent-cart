@@ -200,6 +200,7 @@ class CheckoutProcessor
             $subscriptionData['parent_order_id'] = $this->orderModel->id;
 
             $this->subscriptionModel = Subscription::query()->create($subscriptionData);
+            $this->syncInitialCycleCounting();
         }
 
         // Let's create the transaction
@@ -424,6 +425,7 @@ class CheckoutProcessor
                     } else {
                         $this->subscriptionModel = Subscription::query()->create($subscriptionData);
                     }
+                    $this->syncInitialCycleCounting();
                 }
             } else {
                 Subscription::query()->where('parent_order_id', $this->orderModel->id)->delete();
@@ -466,6 +468,18 @@ class CheckoutProcessor
             ->first();
 
         if ($existingTransaction) {
+            // Retry vs duplicate for gateway idempotency (PaymentInstance::getIdempotencySeed):
+            // re-submitting a pending transaction is a duplicate (keep attempt -> gateway
+            // dedupes); re-submitting a FAILED one is a retry (bump attempt -> fresh seed,
+            // never answered with the failed attempt's cached gateway response).
+            $attempt = (int) Arr::get($existingTransaction->meta ?: [], 'payment_attempt', 0);
+            if ($existingTransaction->status === Status::PAYMENT_FAILED) {
+                $attempt++;
+            }
+            if ($attempt) {
+                $transactionData['meta'] = ['payment_attempt' => $attempt];
+            }
+
             $existingTransaction->fill($transactionData);
             $existingTransaction->save();
             $this->transactionModel = $existingTransaction;
@@ -832,7 +846,7 @@ class CheckoutProcessor
         $item = reset($subscriptionItems);
         $signupFeeItem = reset($signupFeeItems) ?? [];
         $signupFeeTax = (int)Arr::get($signupFeeItem, 'tax_amount', 0);
-        $taxBehavior = Arr::get($this->args, 'tax_behavior', 0);
+        $taxBehavior = (int)Arr::get($this->args, 'tax_behavior', 0);
 
         $recurringTotal = (int)$item['subtotal'];
         $recurringTax = (int)Arr::get($item, 'other_info.recurring_tax', 0);
@@ -843,11 +857,18 @@ class CheckoutProcessor
             $recurringTotal -= $recurringDiscountAmount;
         }
 
-        // Add shipping charges to recurring total for physical subscription products
+        // Add shipping charges (and tax) to recurring total for physical subscription products
         $shippingCharge = (int)Arr::get($this->args, 'shipping_charge', 0);
         $isPhysicalProduct = Arr::get($item, 'fulfillment_type') === 'physical';
         if ($isPhysicalProduct && $shippingCharge > 0) {
             $recurringTotal += $shippingCharge;
+            $shippingTax = (int)Arr::get($this->args, 'shipping_tax', 0);
+            if ($shippingTax > 0) {
+                $storeTaxBehavior = (int)Arr::get($this->args, 'store_tax_behavior', $taxBehavior);
+                if ($taxBehavior === 1 || ($taxBehavior === 3 && $storeTaxBehavior === 1)) {
+                    $recurringTotal += $shippingTax;
+                }
+            }
         }
 
         $itemInclusive = (bool) Arr::get($item, 'line_meta.tax_config.inclusive', false);
@@ -860,11 +881,17 @@ class CheckoutProcessor
         // in case of discount applied 'tax_amount' is different than recurring tax ,
         $firstIterationTax = (int)Arr::get($item, 'tax_amount', 0) + $signupFeeTax;
 
-
         // Calculate recurring amount including shipping for physical products
         $recurringAmount = (int)$item['subtotal'];
         if ($isPhysicalProduct && $shippingCharge > 0) {
             $recurringAmount += $shippingCharge;
+            $shippingTaxForFirst = (int)Arr::get($this->args, 'shipping_tax', 0);
+            if ($shippingTaxForFirst > 0) {
+                $storeTaxBehaviorForFirst = (int)Arr::get($this->args, 'store_tax_behavior', $taxBehavior);
+                if ($taxBehavior === 1 || ($taxBehavior === 3 && $storeTaxBehaviorForFirst === 1)) {
+                    $firstIterationTax += $shippingTaxForFirst;
+                }
+            }
         }
 
         $discountTotal = $item['discount_total'] + Arr::get($signupFeeItem, 'discount_total', 0) + $this->prorateCreditTotal + $this->upgradeDiscountTotal;
@@ -1194,7 +1221,9 @@ class CheckoutProcessor
                     $result['is_trial_days_simulated'] = 'yes';
                     $result['signup_fee'] = $firstCycleCost;
                     $result['manage_setup_fee'] = 'yes';
-                    $result['times'] = $times > 0 ? $times - 1 : 0;
+                    // bill_times stays the full installment count. The simulated trial cycle IS the
+                    // first installment (charged as one-time payment / free when 100% discounted);
+                    // gateways derive the remaining remote cycles from is_trial_days_simulated.
                 } else if ($firstCycleCost > $recurringAmount) {
                     $result['trial_days'] = 0;
                     $result['signup_fee'] = $firstCycleCost - $recurringAmount;
@@ -1238,5 +1267,56 @@ class CheckoutProcessor
             'recurring_tax_total'     => $recurringTax,
             'signup_fee'              => $result['signup_fee'] ?? 0,
         ];
+    }
+
+    /**
+     * bill_count is derived from counting total > 0 CHARGE transactions linked to
+     * the subscription (see syncSubscriptionStates / getRequiredBillTimes), which
+     * can't tell "this was a billed cycle" from "this was something else
+     * charged alongside it." Two corrections needed only at initial checkout —
+     * is_trial_days_simulated alone can't be used at runtime because
+     * payment-method switching also sets that flag:
+     *
+     * - Simulated trial, $0 first cycle: consumes a cycle but produces no
+     *   total > 0 transaction — add billed_cycles_offset so it still counts.
+     * - Real trial with a signup fee: the initial charge is the signup fee only
+     *   (the recurring item isn't billed yet), but it IS a total > 0 transaction
+     *   linked to the subscription — mark billed_cycles_deduction so it does
+     *   NOT count as a cycle.
+     */
+    private function syncInitialCycleCounting()
+    {
+        if (!$this->subscriptionModel) {
+            return;
+        }
+
+        $isSimulated = Arr::get($this->subscriptionData, 'config.is_trial_days_simulated', 'no') === 'yes';
+        $trialDays = (int)Arr::get($this->subscriptionData, 'trial_days', 0);
+        $billTimes = (int)$this->subscriptionModel->bill_times;
+        $orderTotal = (int)$this->orderModel->total_amount;
+
+        // signup_fee <= 0 (not just == 0): prorate/upgrade credit can push the
+        // first cycle cost negative — still a free first cycle for counting
+        $isFreeFirstCycle = $isSimulated
+            && $billTimes > 0
+            && (int)$this->subscriptionModel->signup_fee <= 0
+            && !$orderTotal;
+
+        if ($isFreeFirstCycle) {
+            $this->subscriptionModel->updateMeta('billed_cycles_offset', 1);
+        } else {
+            $this->subscriptionModel->deleteMeta('billed_cycles_offset');
+        }
+
+        $isRealTrialWithCharge = !$isSimulated
+            && $trialDays > 0
+            && $billTimes > 0
+            && $orderTotal > 0;
+
+        if ($isRealTrialWithCharge) {
+            $this->subscriptionModel->updateMeta('billed_cycles_deduction', 1);
+        } else {
+            $this->subscriptionModel->deleteMeta('billed_cycles_deduction');
+        }
     }
 }

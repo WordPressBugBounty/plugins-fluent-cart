@@ -726,8 +726,18 @@ class ProductRenderer
         if ($this->defaultVariant) {
             $isStock = $isStock && $this->defaultVariant->isStock();
         }
+
         $stockLabel = Arr::get($stockAvailability, 'availability');
-        $statusClass = $isStock ? ($stockAvailability['class'] ?? '') : 'out-of-stock';
+        $statusClass = $stockAvailability['class'] ?? '';
+
+        // The variant-level check above can override the aggregate stock_availability
+        // used for $stockLabel/$statusClass (e.g. this specific default variant is out
+        // of stock even though the product overall has other in-stock variants) — keep
+        // the label and class in sync so the badge never shows mismatched text/color.
+        if (!$isStock) {
+            $statusClass = 'out-of-stock';
+            $stockLabel = __('Out of Stock', 'fluent-cart');
+        }
         echo sprintf(
                 '<div class="fct-product-stock %1$s" role="status" aria-live="polite">
                     <div %2$s>

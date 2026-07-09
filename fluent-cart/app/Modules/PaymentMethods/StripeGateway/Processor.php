@@ -102,7 +102,22 @@ class Processor
         ];
 
         if (Arr::get($stripePlan, 'trial_period_days')) {
-            $stripeSubscriptionData['trial_end'] = strtotime('+' . Arr::get($stripePlan, 'trial_period_days') . ' days');
+            // Anchor trial_end to a STABLE point (the charge transaction's creation time,
+            // which is preserved across re-submissions) instead of "now". A volatile
+            // trial_end would make a retried create send a different body, and Stripe
+            // rejects a reused Idempotency-Key whose parameters changed (400), bricking
+            // the order for the key's 24h lifetime. Anchoring keeps retries byte-identical.
+            $trialDays = (int) Arr::get($stripePlan, 'trial_period_days');
+            $anchorTs = $paymentInstance->transaction && $paymentInstance->transaction->created_at
+                ? strtotime($paymentInstance->transaction->created_at . ' UTC')
+                : time();
+            $trialEnd = strtotime('+' . $trialDays . ' days', $anchorTs);
+            // Stripe requires trial_end in the future; only a stale late retry could fall
+            // behind, and that order would already carry a fresh transaction/key anyway.
+            if ($trialEnd <= time() + MINUTE_IN_SECONDS) {
+                $trialEnd = strtotime('+' . $trialDays . ' days');
+            }
+            $stripeSubscriptionData['trial_end'] = $trialEnd;
         }
 
         // Maybe we have initial amount
@@ -131,7 +146,25 @@ class Processor
           //  $stripeSubscriptionData['cancel_at'] = $expireAt;
         }
 
-        $stripeSubscription = (new API())->createStripeObject('subscriptions', $stripeSubscriptionData);
+        // Duplicate-charge defense — key construction contract in
+        // .claude/skills/coding-rules/payment-idempotency.md. Seed dedupes duplicates
+        // and frees retries; fingerprint = charge-material params so an edited order
+        // gets a fresh key instead of a same-key/changed-parameters 400 (the abandoned
+        // incomplete subscription auto-expires). Params, not transaction->total: a
+        // recurring coupon can change the plan while the first charge stays $0.
+        // Metadata excluded — volatile filters must not change the key on a duplicate.
+        $idempotencyFingerprint = [
+            'customer'          => Arr::get($stripeSubscriptionData, 'customer'),
+            'items'             => Arr::get($stripeSubscriptionData, 'items'),
+            'add_invoice_items' => Arr::get($stripeSubscriptionData, 'add_invoice_items'),
+            'trial_end'         => Arr::get($stripeSubscriptionData, 'trial_end'),
+        ];
+        $idempotencySeed = $paymentInstance->getIdempotencySeed();
+        $idempotencyKey = $idempotencySeed
+            ? 'fct_stripe_sub_' . md5($idempotencySeed . '|' . wp_json_encode($idempotencyFingerprint))
+            : null;
+
+        $stripeSubscription = (new API())->createStripeObject('subscriptions', $stripeSubscriptionData, 'current', $idempotencyKey);
 
         if (is_wp_error($stripeSubscription)) {
             return $stripeSubscription;
@@ -261,7 +294,22 @@ class Processor
             'transaction' => $transaction
         ]);
 
-        $intent = (new API())->createStripeObject('payment_intents', $intentData);
+        // Same duplicate-charge defense for one-time onsite payments. Customer is in
+        // the fingerprint because a guest editing their email between attempts maps to
+        // a different Stripe customer — same key there would 400 for the key's 24h
+        // lifetime. Built AFTER the intent-args filter so filtered amounts are what
+        // get fingerprinted.
+        $idempotencyFingerprint = [
+            'amount'   => Arr::get($intentData, 'amount'),
+            'currency' => Arr::get($intentData, 'currency'),
+            'customer' => Arr::get($intentData, 'customer'),
+        ];
+        $idempotencySeed = $paymentInstance->getIdempotencySeed();
+        $idempotencyKey = $idempotencySeed
+            ? 'fct_stripe_pi_' . md5($idempotencySeed . '|' . wp_json_encode($idempotencyFingerprint))
+            : null;
+
+        $intent = (new API())->createStripeObject('payment_intents', $intentData, 'current', $idempotencyKey);
 
         if (is_wp_error($intent)) {
             return $intent;
@@ -360,7 +408,20 @@ class Processor
             'transaction' => $transaction
         ]);
 
-        $session = (new API())->createStripeObject('checkout/sessions', $sessionData);
+        // Same duplicate-charge defense as every other Stripe create path: a pure
+        // duplicate replays the key and gets the original session back; an edited-cart
+        // resubmit gets a fresh key instead of a same-key/changed-parameters 400.
+        $idempotencyFingerprint = [
+            'customer'   => Arr::get($sessionData, 'customer'),
+            'line_items' => Arr::get($sessionData, 'line_items'),
+            'mode'       => Arr::get($sessionData, 'mode'),
+        ];
+        $idempotencySeed = $paymentInstance->getIdempotencySeed();
+        $idempotencyKey = $idempotencySeed
+            ? 'fct_stripe_cs_' . md5($idempotencySeed . '|' . wp_json_encode($idempotencyFingerprint))
+            : null;
+
+        $session = (new API())->createStripeObject('checkout/sessions', $sessionData, 'current', $idempotencyKey);
 
         if (is_wp_error($session)) {
             return $session;
@@ -515,7 +576,21 @@ class Processor
             'subscription' => $subscriptionModel
         ]);
 
-        $session = (new API())->createStripeObject('checkout/sessions', $sessionData);
+        // Same duplicate-subscription defense as the onsite path, applied to the hosted
+        // Checkout Session. Metadata is excluded so a volatile metadata filter cannot
+        // change the key on a genuine duplicate and reopen the double-charge window.
+        $idempotencyFingerprint = [
+            'customer'          => Arr::get($sessionData, 'customer'),
+            'line_items'        => Arr::get($sessionData, 'line_items'),
+            'mode'              => Arr::get($sessionData, 'mode'),
+            'subscription_data' => Arr::get($sessionData, 'subscription_data'),
+        ];
+        $idempotencySeed = $paymentInstance->getIdempotencySeed();
+        $idempotencyKey = $idempotencySeed
+            ? 'fct_stripe_sub_cs_' . md5($idempotencySeed . '|' . wp_json_encode($idempotencyFingerprint))
+            : null;
+
+        $session = (new API())->createStripeObject('checkout/sessions', $sessionData, 'current', $idempotencyKey);
 
         if (is_wp_error($session)) {
             return $session;

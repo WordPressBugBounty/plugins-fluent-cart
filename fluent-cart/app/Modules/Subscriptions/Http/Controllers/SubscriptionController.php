@@ -106,7 +106,11 @@ class SubscriptionController extends Controller
 
         if (is_wp_error($vendorCancelled)) {
             return $this->sendError([
-                'message' => 'Subscription cancelled locally. Vendor Response: ' . $vendorCancelled->get_error_message()
+                'message' => sprintf(
+                /* translators: %1$s: error message returned by the payment vendor */
+                    __('Subscription cancelled locally. Vendor Response: %1$s', 'fluent-cart'),
+                    $vendorCancelled->get_error_message()
+                )
             ]);
         }
 

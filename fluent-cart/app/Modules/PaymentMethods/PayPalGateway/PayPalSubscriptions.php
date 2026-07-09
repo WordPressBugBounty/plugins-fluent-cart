@@ -154,12 +154,18 @@ class PayPalSubscriptions extends AbstractSubscriptionModule
 
         $subscriptionStatus = (new SubscriptionManager)->getCorrectSubscriptionStatus(Arr::get($paypalSubscription, 'status'));
 
-       if ($subscriptionStatus === Status::SUBSCRIPTION_CANCELED) {
-            $statusUpdateTime = Arr::get($paypalSubscription, 'status_update_time');
-            return [
-                'status' => Status::SUBSCRIPTION_CANCELED,
-                'canceled_at' => $statusUpdateTime ? gmdate('Y-m-d H:i:s', strtotime($statusUpdateTime)) : NULL
+        // CANCELLED and EXPIRED are terminal at PayPal — the cancel API rejects them with SUBSCRIPTION_STATUS_INVALID
+        if (in_array($subscriptionStatus, [Status::SUBSCRIPTION_CANCELED, Status::SUBSCRIPTION_EXPIRED])) {
+            $result = [
+                'status' => $subscriptionStatus
             ];
+
+            if ($subscriptionStatus === Status::SUBSCRIPTION_CANCELED) {
+                $statusUpdateTime = Arr::get($paypalSubscription, 'status_update_time');
+                $result['canceled_at'] = $statusUpdateTime ? gmdate('Y-m-d H:i:s', strtotime($statusUpdateTime)) : NULL;
+            }
+
+            return $result;
         }
 
         $response = API::createResource('billing/subscriptions/' . $vendorSubscriptionId . '/cancel', [

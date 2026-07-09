@@ -24,6 +24,8 @@ class ReceiptRenderer
 
     protected $orderTz;
 
+    private $fctTaxSummaryCache = [];
+
     public function __construct($config = [])
     {
         $this->config = $config;
@@ -34,6 +36,18 @@ class ReceiptRenderer
         $this->settings = new StoreSettings();
 
         $this->orderTz = Arr::get($this->config, 'user_tz', 'UTC');
+    }
+
+    private function getMemoizedTaxSummary($order)
+    {
+        if (!$order) {
+            return TaxSummaryHelper::computeTaxSummary($order);
+        }
+        $id = (int) $order->id;
+        if (!isset($this->fctTaxSummaryCache[$id])) {
+            $this->fctTaxSummaryCache[$id] = TaxSummaryHelper::computeTaxSummary($order);
+        }
+        return $this->fctTaxSummaryCache[$id];
     }
 
     public function wrapperStart()
@@ -496,6 +510,7 @@ class ReceiptRenderer
                 $orderItems = $order->order_items->toArray();
                 $isReversed = $order->isReverseChargeTaxOrder();
                 $rcMode = $order->getOrderRcMode();
+                $fctReceiptTaxDisplayMode = TaxSummaryHelper::getTaxDisplayMode();
 
                 foreach ($orderItems as $item) :
                     if (($item['payment_type'] ?? '') === 'fee') {
@@ -515,7 +530,7 @@ class ReceiptRenderer
                             <?php if (!empty($item['payment_info'])) : ?>
                                 <small style="font-size: 13px;color: #758195;"><?php echo esc_html($item['payment_info']); ?></small>
                             <?php endif; ?>
-                            <?php if (empty($itemRates) && !empty($item['tax_amount'])) : ?>
+                            <?php if ($fctReceiptTaxDisplayMode !== 'simplified' && empty($itemRates) && !empty($item['tax_amount'])) : ?>
                                 <small style="font-size: 12px; color: #94a3b8; display:block; margin-top:2px;">
                                     <?php
                                     /* translators: %1$s: formatted tax amount */
@@ -539,7 +554,7 @@ class ReceiptRenderer
                             <?php echo esc_html($item['formatted_total']); ?>
                         </td>
                     </tr>
-                    <?php if (!empty($itemRates)) : ?>
+                    <?php if ($fctReceiptTaxDisplayMode !== 'simplified' && !empty($itemRates)) : ?>
                     <tr>
                         <td colspan="4" style="padding:0 8px 8px 8px;border:none;border-bottom:1px solid #dee2e6;">
                             <?php echo $this->renderTaxRatePills($itemRates, $isReversed, $rcMode); ?>
@@ -648,7 +663,7 @@ class ReceiptRenderer
         }
         $displayShipping = (int) $order->shipping_total;
         if ($order->isReverseChargeTaxOrder()) {
-            $rcAdj = (int) Arr::get(\FluentCart\App\Services\Renderer\Receipt\TaxSummaryHelper::computeTaxSummary($order), 'rcShippingAdjustment', 0);
+            $rcAdj = (int) Arr::get($this->getMemoizedTaxSummary($order), 'rcShippingAdjustment', 0);
             if ($rcAdj > 0) {
                 $displayShipping = max(0, $displayShipping - $rcAdj);
             }
@@ -684,64 +699,6 @@ class ReceiptRenderer
         <?php endforeach;
     }
 
-    public function renderTaxTotal()
-    {
-        $order = Arr::get($this->config, 'order', null);
-
-        if ($order->isReverseChargeTaxOrder()): ?>
-            <?php
-                $rcReversedTotal = $order->getReversedTaxTotal();
-                $rcChargeLabel = $rcReversedTotal > 0
-                    ? sprintf(
-                        /* translators: %1$s: formatted reversed tax amount */
-                        __('Tax reversed: %1$s', 'fluent-cart'),
-                        Helper::toDecimal($rcReversedTotal)
-                    )
-                    : __('Charge reversed', 'fluent-cart');
-            ?>
-            <tr>
-                <td style="padding: 8px 20px 8px 0;text-align: right;border: none;">
-                    <?php echo esc_html__('Tax', 'fluent-cart'); ?>
-                </td>
-                <td style="padding: 8px 8px 8px 0;width: 100px;text-align: right;border: none;">
-                    <?php echo esc_html($rcChargeLabel); ?>
-                </td>
-            </tr>
-        <?php elseif ($order->tax_total > 0): ?>
-            <tr>
-                <td style="padding: 8px 20px 8px 0;text-align: right;border: none;">
-                    <?php echo esc_html__('Tax', 'fluent-cart');
-                    echo esc_html(\FluentCart\App\Helpers\Helper::getOrderTaxLabel($order));
-                    ?>
-                </td>
-                <td style="padding: 8px 8px 8px 0;width: 100px;text-align: right;border: none;">
-                    <?php echo esc_html(\FluentCart\App\Helpers\Helper::toDecimal($order->tax_total)); ?>
-                </td>
-            </tr>
-        <?php endif;
-    }
-
-    public function renderShippingTax()
-    {
-        $order = Arr::get($this->config, 'order', null);
-
-        if ($order->shipping_tax <= 0) {
-            return;
-        }
-        ?>
-        <tr>
-            <td style="padding: 8px 20px 8px 0;text-align: right;border: none;">
-                <?php echo esc_html__('Shipping Tax', 'fluent-cart');
-                echo esc_html(\FluentCart\App\Helpers\Helper::getOrderTaxLabel($order));
-                ?>
-            </td>
-            <td style="padding: 8px 8px 8px 0;width: 100px;text-align: right;border: none;">
-                <?php echo esc_html(\FluentCart\App\Helpers\Helper::toDecimal($order->shipping_tax)); ?>
-            </td>
-        </tr>
-        <?php
-    }
-
     public function renderRefund()
     {
         $order = Arr::get($this->config, 'order', null);
@@ -762,7 +719,7 @@ class ReceiptRenderer
         $order = Arr::get($this->config, 'order', null);
         $displayTotal = (int) $order->total_amount - (int) $order->total_refund;
         if ($order->isReverseChargeTaxOrder()) {
-            $rcAdj = (int) Arr::get(\FluentCart\App\Services\Renderer\Receipt\TaxSummaryHelper::computeTaxSummary($order), 'rcTotalAdjustment', 0);
+            $rcAdj = (int) Arr::get($this->getMemoizedTaxSummary($order), 'rcTotalAdjustment', 0);
             if ($rcAdj > 0) {
                 $displayTotal = max(0, $displayTotal - $rcAdj);
             }
@@ -800,7 +757,7 @@ class ReceiptRenderer
         if ($order->isReverseChargeTaxOrder()): ?>
 
             <div style="text-align: right; font-size: 14px; margin-top: 10px;">
-                <?php echo esc_html__('* Tax to be paid on reverse charge basis', 'fluent-cart'); ?>
+                <?php echo '*' . esc_html(TaxModule::getReverseChargeNoticeText()); ?>
             </div>
 
         <?php endif;
@@ -923,7 +880,7 @@ class ReceiptRenderer
     public function renderTaxSummaryBox()
     {
         $order   = Arr::get($this->config, 'order', null);
-        $summary = TaxSummaryHelper::computeTaxSummary($order);
+        $summary = $this->getMemoizedTaxSummary($order);
         if (!$summary['shouldRender']) {
             return;
         }
@@ -934,60 +891,38 @@ class ReceiptRenderer
                 <tr>
                 <td style="padding:6px 8px 6px 0;">
                 <table width="100%" cellpadding="0" cellspacing="0" style="border:none;border-collapse:collapse;">
+                    <?php if (($summary['displayMode'] ?? '') === 'simplified' && !empty($summary['simpleLine'])): ?>
+                    <tr>
+                        <td style="padding:4px 0 3px 8px; font-size:11px; font-weight:600; color:#1e293b; text-align:left;">
+                            <?php echo esc_html($summary['simpleLine']['label']); ?>
+                        </td>
+                        <td style="padding:4px 0 3px; font-size:11px; font-weight:600; color:#1e293b; text-align:right;">
+                            <?php echo esc_html($summary['simpleLine']['value']); ?>
+                        </td>
+                    </tr>
+                    <?php endif; ?>
+                    <?php if (($summary['displayMode'] ?? '') !== 'simplified'): ?>
                     <tr>
                         <td colspan="2" style="padding:0 0 3px 0; font-size:10px; font-weight:600;
                                                text-transform:uppercase; letter-spacing:0.06em; color:#64748b;">
-                            <?php echo esc_html__('TAX SUMMARY', 'fluent-cart'); ?>
+                            <?php if (!empty(Arr::get($summary, 'foldedRateLines', []))): ?>
+                                <?php echo esc_html__('Tax breakdown by rate', 'fluent-cart'); ?>
+                            <?php else: ?>
+                                <?php echo esc_html__('TAX SUMMARY', 'fluent-cart'); ?>
+                            <?php endif; ?>
                         </td>
                     </tr>
-                    <?php if ($summary['isReverseCharge']): ?>
-                        <?php
-                            $rcReversedTotal    = (int) Arr::get($summary, 'reversedTaxTotal', 0);
-                            $rcReversedShipping = (int) Arr::get($summary, 'reversedShippingTax', 0);
-                            $rcReversedValue    = $rcReversedTotal > 0
-                                ? Helper::toDecimal($rcReversedTotal)
-                                : __('Charge reversed', 'fluent-cart');
-                        ?>
-                        <?php if ($summary['showRcShippingRow'] && $rcReversedShipping > 0): ?>
-                        <tr>
-                            <td style="padding:3px 0 3px 8px; font-size:11px; color:#94a3b8;">
-                                <?php echo esc_html__('Added on shipping', 'fluent-cart'); ?>
-                            </td>
-                            <td style="padding:3px 0 3px; font-size:11px; text-align:right; color:#94a3b8;">
-                                <span style="text-decoration:line-through;opacity:0.6;"><?php echo esc_html(Helper::toDecimal($rcReversedShipping)); ?></span>
-                            </td>
-                        </tr>
-                        <?php endif; ?>
-                        <tr>
-                            <td style="padding:3px 0 4px 8px; font-size:11px; font-weight:600; color:#1e293b; text-align: left;">
-                                <?php echo esc_html__('Tax reversed', 'fluent-cart'); ?>
-                            </td>
-                            <td style="padding:3px 0 4px; font-size:11px; text-align:right; font-weight:600; color:#1e293b;">
-                                <?php echo esc_html($rcReversedValue); ?>
-                            </td>
-                        </tr>
-                    <?php else: ?>
-                        <?php
-                            $foldedRateLines  = Arr::get($summary, 'foldedRateLines', []);
-                            $includedInPrices = (int) Arr::get($summary, 'includedInPrices', 0);
-                            $rcFeeRows        = Arr::get($summary, 'feeTaxLineRows', []);
-                            $taxRateLines     = Arr::get($summary, 'taxRateLines', []);
-                            $productTaxRowCount = !empty($taxRateLines)
-                                ? count($taxRateLines)
-                                : (int) ($summary['inclusiveTax'] > 0) + (int) ($summary['exclusiveTax'] > 0);
-                            $rowCount   = $productTaxRowCount + count($rcFeeRows) + (int) ($summary['shippingTax'] > 0);
-                            $shippingTaxLines = Arr::get($summary, 'shippingTaxLines', []);
-                            $shouldShowBreakdown = !empty($taxRateLines)
-                                || !empty($shippingTaxLines)
-                                || $rowCount >= 2
-                                || ($rowCount === 1 && !($summary['payableTax'] > 0 || $summary['inclusiveTax'] > 0 || (int) Arr::get($summary, 'inclusiveFeeTax', 0) > 0));
-                        ?>
-                        <?php if (!empty($foldedRateLines)): ?>
-                            <tr>
-                                <td colspan="2" style="padding:5px 0 2px 8px; font-size:10px; font-weight:600; text-transform:uppercase; letter-spacing:0.06em; color:#64748b;">
-                                    <?php echo esc_html__('Tax breakdown by rate', 'fluent-cart'); ?>
-                                </td>
-                            </tr>
+                    <?php
+                        $foldedRateLines    = Arr::get($summary, 'foldedRateLines', []);
+                        $rcIsReverseCharge  = !empty($summary['isReverseCharge']);
+                        $rcReversedTotal    = (int) Arr::get($summary, 'reversedTaxTotal', 0);
+                        $rcReversedShipping = (int) Arr::get($summary, 'reversedShippingTax', 0);
+                        $rcReversedValue    = $rcReversedTotal > 0
+                            ? Helper::toDecimal($rcReversedTotal)
+                            : __('Charge reversed', 'fluent-cart');
+                        $includedInPrices   = (int) Arr::get($summary, 'includedInPrices', 0);
+                    ?>
+                    <?php if (!empty($foldedRateLines)): ?>
                             <tr>
                                 <td colspan="2" style="padding:2px 0 0 0;">
                                     <table width="100%" cellpadding="0" cellspacing="0" style="border:none;border-collapse:collapse;table-layout:fixed;">
@@ -1019,6 +954,16 @@ class ReceiptRenderer
                                     </table>
                                 </td>
                             </tr>
+                            <?php if ($rcIsReverseCharge): ?>
+                            <tr>
+                                <td style="padding:3px 0 4px 8px; font-size:11px; font-weight:600; color:#1e293b; text-align: left;">
+                                    <?php echo esc_html__('VAT reversed', 'fluent-cart'); ?>
+                                </td>
+                                <td style="padding:3px 0 4px; font-size:11px; text-align:right; font-weight:600; color:#1e293b;">
+                                    <?php echo esc_html($rcReversedValue); ?>
+                                </td>
+                            </tr>
+                            <?php else: ?>
                             <tr>
                                 <td style="padding:4px 0 3px 8px; font-size:11px; font-weight:600; color:#1e293b; border-top:1px solid #e2e8f0; text-align:left;">
                                     <?php echo esc_html__('Total tax', 'fluent-cart'); ?>
@@ -1047,7 +992,40 @@ class ReceiptRenderer
                                 </td>
                             </tr>
                             <?php endif; ?>
-                        <?php else: ?>
+                        <?php endif; ?>
+                    <?php elseif ($rcIsReverseCharge): ?>
+                        <?php if ($summary['showRcShippingRow'] && $rcReversedShipping > 0): ?>
+                        <tr>
+                            <td style="padding:3px 0 3px 8px; font-size:11px; color:#94a3b8;">
+                                <?php echo esc_html__('Added on shipping', 'fluent-cart'); ?>
+                            </td>
+                            <td style="padding:3px 0 3px; font-size:11px; text-align:right; color:#94a3b8;">
+                                <span style="text-decoration:line-through;opacity:0.6;"><?php echo esc_html(Helper::toDecimal($rcReversedShipping)); ?></span>
+                            </td>
+                        </tr>
+                        <?php endif; ?>
+                        <tr>
+                            <td style="padding:3px 0 4px 8px; font-size:11px; font-weight:600; color:#1e293b; text-align: left;">
+                                <?php echo esc_html__('Tax reversed', 'fluent-cart'); ?>
+                            </td>
+                            <td style="padding:3px 0 4px; font-size:11px; text-align:right; font-weight:600; color:#1e293b;">
+                                <?php echo esc_html($rcReversedValue); ?>
+                            </td>
+                        </tr>
+                    <?php else: ?>
+                        <?php
+                            $rcFeeRows        = Arr::get($summary, 'feeTaxLineRows', []);
+                            $taxRateLines     = Arr::get($summary, 'taxRateLines', []);
+                            $productTaxRowCount = !empty($taxRateLines)
+                                ? count($taxRateLines)
+                                : (int) ($summary['inclusiveTax'] > 0) + (int) ($summary['exclusiveTax'] > 0);
+                            $rowCount   = $productTaxRowCount + count($rcFeeRows) + (int) ($summary['shippingTax'] > 0);
+                            $shippingTaxLines = Arr::get($summary, 'shippingTaxLines', []);
+                            $shouldShowBreakdown = !empty($taxRateLines)
+                                || !empty($shippingTaxLines)
+                                || $rowCount >= 2
+                                || ($rowCount === 1 && !($summary['payableTax'] > 0 || $summary['inclusiveTax'] > 0 || (int) Arr::get($summary, 'inclusiveFeeTax', 0) > 0));
+                        ?>
                             <?php if (!empty($taxRateLines) && $shouldShowBreakdown): ?>
                                 <?php foreach ($taxRateLines as $taxLine):
                                     $taxLineColor = !empty($taxLine['inclusive']) ? '#94a3b8' : '#334155'; ?>
@@ -1141,7 +1119,7 @@ class ReceiptRenderer
                                     </td>
                                 </tr>
                             <?php endif; ?>
-                        <?php endif; ?>
+                    <?php endif; ?>
                     <?php endif; ?>
                 </table>
                 </td>

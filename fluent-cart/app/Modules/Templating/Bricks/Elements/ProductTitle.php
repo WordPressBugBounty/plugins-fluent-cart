@@ -8,11 +8,11 @@ if ( ! defined( 'ABSPATH' ) ) exit; // Exit if accessed directly
 class ProductTitle extends Element {
     public $category = 'fluent-cart';
     public $name     = 'fct-product-title';
-    public $icon     = 'ti-text';
+    public $icon     = 'ti-text fluent-cart-element-icon';
     public $tag      = 'h1';
 
     public function get_label() {
-        return esc_html__( 'Product Title (FluentCart)', 'fluent-cart' );
+        return esc_html__( 'Product Title', 'fluent-cart' );
     }
 
     public function set_controls() {

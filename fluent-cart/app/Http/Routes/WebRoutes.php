@@ -334,6 +334,10 @@ class WebRoutes
 
     private static function handlePrintRoute($method): bool
     {
+        if (!is_user_logged_in() || !current_user_can('manage_options')) {
+            return false;
+        }
+
         $order = App::request()->get('order');
         if (!empty($order)) {
             PrintService::$method($order);

@@ -5,7 +5,6 @@ namespace FluentCart\App\Modules\PaymentMethods\StripeGateway;
 use FluentCart\App\App;
 use FluentCart\App\Helpers\Status;
 use FluentCart\App\Models\Order;
-use FluentCart\App\Models\OrderTransaction;
 use FluentCart\App\Models\ProductVariation;
 use FluentCart\App\Models\Subscription;
 use FluentCart\App\Models\SubscriptionMeta;
@@ -270,10 +269,7 @@ class SwitchCustomerMethod
 
         $billTimes = Arr::get($subscription, 'bill_times');
 
-        $billCount = OrderTransaction::query()->where('subscription_id', $subscription->id)
-            ->where('transaction_type', Status::TRANSACTION_TYPE_CHARGE)
-            ->where('status', Status::TRANSACTION_SUCCEEDED)
-            ->count();
+        $billCount = $subscription->calculateBillCount();
 
         if ($billTimes && $billCount) {
             $billTimes = $billTimes - $billCount;

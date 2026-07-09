@@ -101,6 +101,10 @@ class CustomerTools
                 'permission_callback' => function () {
                     return PermissionGate::can('customers/manage');
                 },
+                // Upsert by id/email with if_exists — repeating the same call
+                // converges to the same record (idempotent). Archives rather than
+                // hard-deletes, so not destructive.
+                'annotations' => ['readonly' => false, 'destructive' => false, 'idempotent' => true],
             ],
         ];
     }

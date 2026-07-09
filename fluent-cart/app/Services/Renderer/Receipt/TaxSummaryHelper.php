@@ -2,6 +2,7 @@
 
 namespace FluentCart\App\Services\Renderer\Receipt;
 
+use FluentCart\App\Helpers\Helper;
 use FluentCart\App\Models\Order;
 use FluentCart\Framework\Support\Arr;
 
@@ -163,6 +164,8 @@ class TaxSummaryHelper
                 'shippingTaxLines' => $shippingTaxLines,
                 'foldedRateLines'  => [],
                 'includedInPrices' => 0,
+                'displayMode'      => self::getTaxDisplayMode(),
+                'simpleLine'       => null,
             ];
         }
 
@@ -193,7 +196,7 @@ class TaxSummaryHelper
         // it at all (fixed), so the strikethrough is misleading in both cases.
         $showRcShippingRow = $isReverseCharge && !$isShippingInclusive && $reversedShippingTax > 0;
 
-        return [
+        $summary = [
             'shouldRender'        => (bool) $shouldRender,
             'isReverseCharge'     => $isReverseCharge,
             'inclusiveTax'        => $inclusiveTax,
@@ -213,13 +216,39 @@ class TaxSummaryHelper
             'rcShippingAdjustment' => $rcShippingAdjustment,
             'rcTotalAdjustment'    => $rcShippingAdjustment,
             'showRcShippingRow'    => $showRcShippingRow,
-            'foldedRateLines'     => self::buildFoldedRateRows($taxRateLines, $shippingTaxLines, 'order_tax', $isShippingInclusive),
+            // Under reverse charge the stored rate/shipping lines are zeroed, so the
+            // per-rate rows are rebuilt from item-level line_meta instead. Empty rows
+            // there mean "not recoverable" — surfaces fall back to the simplified box.
+            'foldedRateLines'     => $isReverseCharge
+                ? self::buildReverseChargeRateRows($order)
+                : self::buildFoldedRateRows(
+                    $taxRateLines,
+                    $shippingTaxLines,
+                    'order_tax',
+                    $isShippingInclusive,
+                    self::computeRateBaseMap(self::getOrderItemsForBaseMap($order))
+                ),
             // Inclusive shipping tax follows the store global tax mode: when shipping is
             // priced inclusive its tax is already baked into the shipping price, so it
             // belongs in "of which included in prices". This keeps
             // includedInPrices + payableTax === totalOrderTax on every surface.
             'includedInPrices'    => $inclusiveTax + $inclusiveFeeTax + ($isShippingInclusive ? $shippingTax : 0),
         ];
+
+        $summary['displayMode'] = self::getTaxDisplayMode();
+        $summary['simpleLine']  = self::buildSimpleLine($summary);
+
+        return $summary;
+    }
+
+    /**
+     * Order items used to build the per-rate base map for the tax breakdown table.
+     */
+    private static function getOrderItemsForBaseMap(Order $order)
+    {
+        $order->loadMissing(['order_items']);
+
+        return $order->order_items ? $order->order_items->all() : [];
     }
 
     /**
@@ -398,6 +427,60 @@ class TaxSummaryHelper
     }
 
     /**
+     * Aggregate the real taxable base per rate from item-level tax data.
+     *
+     * For inclusive lines the stored taxable_amount is gross (base + tax), so the
+     * rate's own tax is subtracted to get the net base. Amounts can be fractional
+     * cents when the store uses subtotal tax rounding — callers round for display.
+     *
+     * @param iterable $items Order items (models or arrays) or cart line arrays,
+     *                        each carrying line_meta.tax_config.
+     * @return array [rate_id => ['base' => float, 'tax' => float]]
+     */
+    public static function computeRateBaseMap($items, $excludeInclusive = false)
+    {
+        $map = [];
+        foreach ($items as $item) {
+            if (is_array($item)) {
+                $lineMeta = Arr::get($item, 'line_meta', []);
+            } else {
+                $lineMeta = is_object($item) ? $item->line_meta : [];
+            }
+            if (!is_array($lineMeta)) {
+                continue;
+            }
+            $taxConfig = Arr::get($lineMeta, 'tax_config');
+            if (is_array($taxConfig)) {
+                $rates     = Arr::get($taxConfig, 'rates', []);
+                $inclusive = (bool) Arr::get($taxConfig, 'inclusive', false);
+            } else {
+                // Legacy signup-fee shape: rates at the line_meta root.
+                $rates     = Arr::get($lineMeta, 'rates', []);
+                $inclusive = (bool) Arr::get($lineMeta, 'inclusive', false);
+            }
+            if (!$rates || !is_array($rates)) {
+                continue;
+            }
+            // Fixed-mode reverse charge keeps tax-inclusive prices untouched — those
+            // lines carry no reversible VAT, so callers can exclude them from the map.
+            if ($excludeInclusive && $inclusive) {
+                continue;
+            }
+            foreach ($rates as $rate) {
+                $rateId  = (int) Arr::get($rate, 'rate_id', 0);
+                $tax     = (float) Arr::get($rate, 'tax_amount', 0);
+                $taxable = (float) Arr::get($rate, 'taxable_amount', 0);
+                if (!isset($map[$rateId])) {
+                    $map[$rateId] = ['base' => 0.0, 'tax' => 0.0];
+                }
+                $map[$rateId]['base'] += $inclusive ? max(0, $taxable - $tax) : $taxable;
+                $map[$rateId]['tax']  += $tax;
+            }
+        }
+        return $map;
+    }
+
+    /**
      * Build a folded per-rate row array for the 3-column tax breakdown table.
      *
      * Merges order-tax rate lines with shipping-tax lines by rate_id so each rate
@@ -407,9 +490,13 @@ class TaxSummaryHelper
      * @param array  $shippingLines      Output of Order::getDisplayShippingTaxLines().
      * @param string $taxAmountKey       Key holding the order tax amount in each $rateLine ('order_tax').
      * @param bool   $isShippingInclusive Whether shipping tax is inclusive.
+     * @param array  $rateBaseMap        Output of computeRateBaseMap() — exact per-rate bases
+     *                                   from item data. A rate entry is only trusted when its
+     *                                   item tax sum matches the rate row's tax (guards fee
+     *                                   items and legacy rows missing from the item data).
      * @return array Each row: ['label'=>string,'base'=>int,'tax'=>int,'inclusive'=>bool]
      */
-    public static function buildFoldedRateRows($rateLines, $shippingLines, $taxAmountKey, $isShippingInclusive)
+    public static function buildFoldedRateRows($rateLines, $shippingLines, $taxAmountKey, $isShippingInclusive, $rateBaseMap = [])
     {
         $rateLines     = is_array($rateLines) ? $rateLines : [];
         $shippingLines = is_array($shippingLines) ? $shippingLines : [];
@@ -426,10 +513,23 @@ class TaxSummaryHelper
             $ratePercent = (float) Arr::get($rateLine, 'rate_percent', 0);
             $shipForRate = isset($shippingByRate[$rid]) ? (int) $shippingByRate[$rid] : 0;
             unset($shippingByRate[$rid]);
-            $combinedTax = (int) Arr::get($rateLine, $taxAmountKey, 0) + $shipForRate;
-            $base        = $ratePercent > 0
-                ? (int) round($combinedTax * 100 / $ratePercent)
-                : (int) Arr::get($rateLine, 'taxable_amount', 0);
+            $productTax  = (int) Arr::get($rateLine, $taxAmountKey, 0);
+            $combinedTax = $productTax + $shipForRate;
+            $mapEntry    = isset($rateBaseMap[$rid]) ? $rateBaseMap[$rid] : null;
+            if ($mapEntry && abs($mapEntry['tax'] - $productTax) <= 1) {
+                // Exact net base from item-level data. Shipping has no stored per-rate
+                // base, so its (small) contribution is still derived from its tax amount.
+                $base = (int) round($mapEntry['base']);
+                if ($shipForRate > 0 && $ratePercent > 0) {
+                    $base += (int) round($shipForRate * 100 / $ratePercent);
+                }
+            } elseif ($ratePercent > 0) {
+                // No trustworthy item data (legacy order / fee tax folded into the row):
+                // approximate the base from the rounded tax.
+                $base = (int) round($combinedTax * 100 / $ratePercent);
+            } else {
+                $base = (int) Arr::get($rateLine, 'taxable_amount', 0);
+            }
             $label = (string) Arr::get($rateLine, 'rate_label', Arr::get($rateLine, 'label', ''));
             $rows[] = [
                 'label'     => $label,
@@ -462,6 +562,73 @@ class TaxSummaryHelper
     }
 
     /**
+     * Rebuild the per-rate breakdown rows for a reverse-charge order.
+     *
+     * Under reverse charge the stored tax lines (and shipping tax lines) are zeroed
+     * at order placement, but the original per-rate amounts survive in item-level
+     * `line_meta.tax_config.rates`, and the pre-zeroing shipping lines survive in the
+     * rate-meta snapshot (`vat_reverse.reverse_charge_shipping_tax_lines`). This
+     * restores both and folds shipping into the rate rows so post-order surfaces can
+     * render the same "Tax breakdown by rate" table as a normal order.
+     *
+     * Returns [] when no per-rate data is recoverable (old orders without line-level
+     * tax data) — callers must fall back to the simplified reverse-charge box.
+     *
+     * @return array Same row shape as buildFoldedRateRows().
+     */
+    public static function buildReverseChargeRateRows(Order $order)
+    {
+        $order->loadMissing(['orderTaxRates', 'order_items']);
+
+        $primaryRate = $order->orderTaxRates ? $order->orderTaxRates->first() : null;
+        $meta        = ($primaryRate && is_array($primaryRate->meta)) ? $primaryRate->meta : [];
+
+        // Fixed-mode reverse charge leaves tax-inclusive prices (and their embedded
+        // VAT) untouched — only dynamic mode reverses the inclusive portion. Exclude
+        // inclusive lines in fixed mode so the rate rows sum to the reversed total.
+        $rcNonDynamic = Arr::get($meta, 'reverse_charge_price_mode', 'fixed') !== 'dynamic';
+
+        $items = [];
+        if ($order->order_items) {
+            foreach ($order->order_items as $item) {
+                if ($item->payment_type === 'fee') {
+                    continue;
+                }
+                $items[] = $item;
+            }
+        }
+        $rateBaseMap = self::computeRateBaseMap($items, $rcNonDynamic);
+
+        // Pre-zeroing shipping tax lines snapshot (may be [] on older orders).
+        $shippingLines = (array) Arr::get($meta, 'vat_reverse.reverse_charge_shipping_tax_lines', []);
+
+        // Stored rate lines are zeroed under reverse charge — restore each rate's
+        // amount from the item-level map. Rates without a map entry have nothing
+        // reversible (fixed-mode inclusive-only rates / legacy rows) and are dropped.
+        $restoredLines = [];
+        foreach ($order->getDisplayTaxLines() as $rateKey => $rateLine) {
+            $rid = (int) Arr::get($rateLine, 'rate_id', $rateKey);
+            if (!isset($rateBaseMap[$rid])) {
+                continue;
+            }
+            $rateLine['order_tax'] = (int) round($rateBaseMap[$rid]['tax']);
+            $restoredLines[]       = $rateLine;
+        }
+
+        if (empty($restoredLines) && empty($shippingLines)) {
+            return [];
+        }
+
+        return self::buildFoldedRateRows(
+            $restoredLines,
+            $shippingLines,
+            'order_tax',
+            self::isShippingTaxInclusive($order),
+            $rateBaseMap
+        );
+    }
+
+    /**
      * Checkout-side variant: determines whether the shipping tax is inclusive of the
      * shipping price. Shipping always follows the store-level tax mode, so this returns
      * true only when store_tax_behavior === 2 (inclusive). Per-product inclusive flags
@@ -472,5 +639,62 @@ class TaxSummaryHelper
         $storeBehavior = (int) Arr::get($taxData, 'store_tax_behavior', Arr::get($taxData, 'tax_behavior', 2));
 
         return $storeBehavior === 2;
+    }
+
+    protected static function getTaxSettings(): array
+    {
+        return (array) get_option('fluent_cart_tax_configuration_settings', []);
+    }
+
+    public static function getTaxDisplayMode(): string
+    {
+        // Backward compat: legacy stored values ('both', 'label', 'tooltip', or anything
+        // else) all collapse to 'itemized'. Only an explicit 'simplified' stays simplified.
+        $mode = Arr::get(self::getTaxSettings(), 'checkout_tax_breakdown_display', 'itemized');
+        return $mode === 'simplified' ? 'simplified' : 'itemized';
+    }
+
+    protected static function getTaxDisplayLabel(): string
+    {
+        $label = trim((string) Arr::get(self::getTaxSettings(), 'tax_display_label', ''));
+        return $label !== '' ? $label : __('Tax', 'fluent-cart');
+    }
+
+    protected static function getPriceSuffixIncluded(): string
+    {
+        return (string) Arr::get(self::getTaxSettings(), 'price_suffix_included', '');
+    }
+
+    public static function buildSimpleLine(array $summary): array
+    {
+        $label   = self::getTaxDisplayLabel();
+        $isRc    = !empty($summary['isReverseCharge']);
+        $total   = (int) Arr::get($summary, 'totalOrderTax', 0);
+        $payable = (int) Arr::get($summary, 'payableTax', 0);
+        $folded  = (array) Arr::get($summary, 'foldedRateLines', []);
+        $hasDetails = !empty($folded) || $total > 0 || $isRc;
+
+        if ($isRc) {
+            $valueType = 'reverse_charge';
+            $value     = __('Reverse charge', 'fluent-cart');
+        } elseif ($payable === 0 && $total > 0) {
+            $valueType = 'included';
+            $suffix    = self::getPriceSuffixIncluded();
+            if ($suffix === '') {
+                $suffix = __('(incl.)', 'fluent-cart');
+            }
+            /* translators: %1$s: formatted tax amount, %2$s: inclusive suffix */
+            $value = sprintf(__('%1$s %2$s', 'fluent-cart'), html_entity_decode(Helper::toDecimal($total), ENT_QUOTES, 'UTF-8'), $suffix);
+        } else {
+            $valueType = 'amount';
+            $value     = html_entity_decode(Helper::toDecimal($payable), ENT_QUOTES, 'UTF-8');
+        }
+
+        return [
+            'label'      => $label,
+            'value'      => $value,
+            'valueType'  => $valueType,
+            'hasDetails' => $hasDetails,
+        ];
     }
 }

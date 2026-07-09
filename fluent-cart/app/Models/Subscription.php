@@ -680,6 +680,34 @@ class Subscription extends Model
         return $this->recurring_total;
     }
 
+    /**
+     * Cycles the remote (vendor) plan must bill at INITIAL checkout.
+     * With a simulated trial the first installment is already collected outside
+     * the remote recurring cycles (one-time charge, paid/free trial cycle), so
+     * the remote plan only needs bill_times - 1.
+     *
+     * Only valid at initial checkout — do NOT use for renewals/reactivation
+     * (payment-method switching also sets is_trial_days_simulated; renewal flows
+     * must use getRequiredBillTimes() which is bill_count based).
+     *
+     * @return int 0 means unlimited
+     */
+    public function getInitialRemoteBillTimes()
+    {
+        $billTimes = (int)$this->bill_times;
+
+        if (!$billTimes) {
+            return 0;
+        }
+
+        if (Arr::get($this->config, 'is_trial_days_simulated', 'no') === 'yes') {
+            // never return 0 here — 0 means unlimited to the gateways
+            $billTimes = max(1, $billTimes - 1);
+        }
+
+        return $billTimes;
+    }
+
     public function getRequiredBillTimes()
     {
         $billTimes = (int)$this->bill_times;
@@ -687,20 +715,7 @@ class Subscription extends Model
         if ($billTimes > 0) {
             $billTimes = $billTimes - $this->bill_count;
             if ($billTimes <= 0) {
-                $transacactionsCount = OrderTransaction::query()
-                    ->where('subscription_id', $this->id)
-                    ->where('transaction_type', Status::TRANSACTION_TYPE_CHARGE)
-                    ->where('status', Status::TRANSACTION_SUCCEEDED)
-                    ->where('total', '>', 0)
-                    ->count();
-
-                $earlyPaymentHistory = $this->getMeta('early_payment_history', []);
-                foreach ($earlyPaymentHistory as $earlyPayment) {
-                    $paidCount = (int) Arr::get($earlyPayment, 'count', 1);
-                    if ($paidCount > 1) {
-                        $transacactionsCount += ($paidCount - 1);
-                    }
-                }
+                $transacactionsCount = $this->calculateBillCount();
 
                 if ($transacactionsCount != $this->bill_count) {
                     $this->bill_count = $transacactionsCount;
@@ -717,6 +732,119 @@ class Subscription extends Model
         }
 
         return $billTimes;
+    }
+
+    /**
+     * Canonical bill_count formula. Every writer of bill_count must go through
+     * this — a separate ad hoc count (e.g. StripeGateway\SubscriptionsManager
+     * previously) silently drops the offset/deduction corrections below and
+     * reports a wrong count until the next recompute.
+     *
+     * total > 0 CHARGE transactions linked to this subscription, adjusted for
+     * the two one-time corrections decided at creation (see
+     * CheckoutProcessor::syncInitialCycleCounting):
+     * - billed_cycles_offset: free simulated-trial first cycle consumed a
+     *   cycle without producing a total > 0 transaction.
+     * - billed_cycles_deduction: real-trial signup-fee-only charge is a
+     *   total > 0 transaction but isn't a billed cycle.
+     */
+    public function calculateBillCount()
+    {
+        $transacactionsCount = OrderTransaction::query()
+            ->where('subscription_id', $this->id)
+            ->where('transaction_type', Status::TRANSACTION_TYPE_CHARGE)
+            ->where('status', Status::TRANSACTION_SUCCEEDED)
+            ->where('total', '>', 0)
+            ->count();
+
+        $earlyPaymentHistory = $this->getMeta('early_payment_history', []);
+        foreach ((array)$earlyPaymentHistory as $earlyPayment) {
+            $paidCount = (int) Arr::get($earlyPayment, 'count', 1);
+            if ($paidCount > 1) {
+                $transacactionsCount += ($paidCount - 1);
+            }
+        }
+
+        $transacactionsCount += (int) $this->getMeta('billed_cycles_offset', 0);
+        $transacactionsCount -= (int) $this->getMeta('billed_cycles_deduction', 0);
+
+        return $transacactionsCount;
+    }
+
+    /**
+     * Installment / split-pay plan: a finite-term subscription (a lifetime
+     * license paid off in a fixed number of charges), as opposed to an
+     * open-ended recurring subscription. The canonical structural signal is
+     * bill_times > 0 (0 = infinite/open-ended). Reused across analytics,
+     * filters and lifecycle handling — do NOT reintroduce title-string
+     * ("Split") matching, which the data does not reliably carry.
+     *
+     * @return bool
+     */
+    public function isInstallment()
+    {
+        return (int) $this->bill_times > 0;
+    }
+
+    /**
+     * Installments still owed: 0 for open-ended plans, or once the term is
+     * fully paid.
+     *
+     * @return int
+     */
+    public function installmentsRemaining()
+    {
+        if (!$this->isInstallment()) {
+            return 0;
+        }
+
+        return max(0, (int) $this->bill_times - (int) $this->bill_count);
+    }
+
+    /**
+     * Has a finite installment plan collected every scheduled charge (end of
+     * term)? Open-ended plans never reach term end.
+     *
+     * @return bool
+     */
+    public function hasReachedTermEnd()
+    {
+        return $this->isInstallment() && (int) $this->bill_count >= (int) $this->bill_times;
+    }
+
+    /**
+     * Full committed price of an installment contract: recurring_total x
+     * bill_times, in cents. 0 for open-ended plans (no fixed total). This is
+     * the per-row form of the SUM(recurring_total * bill_times) used by the
+     * subscription analytics aggregate.
+     *
+     * @return int
+     */
+    public function totalContractValue()
+    {
+        if (!$this->isInstallment()) {
+            return 0;
+        }
+
+        return (int) $this->recurring_total * (int) $this->bill_times;
+    }
+
+    /**
+     * Filter by plan type: 'installment' (finite term, bill_times > 0),
+     * 'recurring' (open-ended, bill_times = 0) or anything else (no filter).
+     * The bill_times threshold is kept identical to isInstallment() so the SQL
+     * and PHP definitions never drift apart.
+     */
+    public function scopeOfPlanType($query, $planType)
+    {
+        if ($planType === 'installment') {
+            return $query->where('bill_times', '>', 0);
+        }
+        if ($planType === 'recurring') {
+            return $query->where('bill_times', '<=', 0);
+        }
+
+        return $query;
     }
 
     public function getReactivationTrialDays()
@@ -808,7 +936,7 @@ class Subscription extends Model
      * Processes all candidates in batches to avoid memory issues.
      * The query example works as follows:
      * SELECT * FROM subscriptions WHERE
-            status IN ('active', 'trialing', 'canceled')
+            status IN ('active', 'trialing', 'canceled', 'expiring', 'past_due')
             AND next_billing_date IS NOT NULL
             AND id > 0                          -- last processed ID for batch cursor
             AND next_billing_date < DATE_SUB(
@@ -853,6 +981,7 @@ class Subscription extends Model
                 $cutoffDates[$interval] = gmdate('Y-m-d H:i:s', $currentTime - ((int)$days * DAY_IN_SECONDS));
             }
 
+            // Fallback cutoff for unknown/null billing intervals.
             $defaultGraceDays = 7;
             $defaultCutoff = gmdate('Y-m-d H:i:s', $currentTime - ($defaultGraceDays * DAY_IN_SECONDS));
             $knownIntervals = array_keys($cutoffDates);
@@ -862,8 +991,8 @@ class Subscription extends Model
                     Status::SUBSCRIPTION_ACTIVE,
                     Status::SUBSCRIPTION_TRIALING,
                     Status::SUBSCRIPTION_CANCELED,
-                    Status::SUBSCRIPTION_EXPIRING
-
+                    Status::SUBSCRIPTION_EXPIRING,
+                    Status::SUBSCRIPTION_PAST_DUE
                 ])
                 ->whereNotNull('next_billing_date')
                 ->where('next_billing_date', '>', '0000-00-00 00:00:00')
@@ -874,9 +1003,11 @@ class Subscription extends Model
                             Status::SUBSCRIPTION_ACTIVE,
                             Status::SUBSCRIPTION_TRIALING,
                             Status::SUBSCRIPTION_EXPIRING,
+                            Status::SUBSCRIPTION_PAST_DUE,
                         ])->where(function ($dateQuery) use ($cutoffDates, $knownIntervals, $defaultCutoff) {
                             $index = 0;
 
+                            // OR together one (interval + its cutoff) clause per known interval.
                             foreach ($cutoffDates as $interval => $cutoff) {
                                 $method = $index === 0 ? 'where' : 'orWhere';
 
@@ -888,6 +1019,7 @@ class Subscription extends Model
                                 $index++;
                             }
 
+                            // Unknown/null intervals fall back to the default cutoff.
                             $dateQuery->orWhere(function ($intervalQuery) use ($knownIntervals, $defaultCutoff) {
                                 $intervalQuery->where(function ($unknownIntervalQuery) use ($knownIntervals) {
                                     $unknownIntervalQuery->whereNotIn('billing_interval', $knownIntervals)
@@ -895,6 +1027,7 @@ class Subscription extends Model
                                 })->where('next_billing_date', '<', $defaultCutoff);
                             });
                         });
+                    // Branch B: canceled subs expire the moment their paid period ends (no grace).
                     })->orWhere(function ($subQuery) use ($now) {
                         $subQuery->where('status', Status::SUBSCRIPTION_CANCELED)
                             ->where('next_billing_date', '<', $now);
@@ -915,19 +1048,24 @@ class Subscription extends Model
             foreach ($subscriptions as $subscription) {
                 $nextBillingTimestamp = strtotime($subscription->next_billing_date);
 
+                // Skip unparseable/invalid dates.
                 if (!$nextBillingTimestamp || $nextBillingTimestamp <= 0) {
                     continue;
                 }
 
+                // Re-validate in PHP (SQL was a coarse filter) and derive the exact cutoff used as a write guard below.
                 if ($subscription->status === Status::SUBSCRIPTION_CANCELED) {
+                    // Superseded by an upgrade -> the new sub owns validity, leave this one alone.
                     if (isset($subscription->config['upgraded_to_sub_id'])) {
                         continue;
                     }
 
+                    // Already processed in a prior run.
                     if ($subscription->getMeta('validity_expired_at')) {
                         continue;
                     }
 
+                    // Paid period not over yet.
                     if ($nextBillingTimestamp >= $currentTime) {
                         continue;
                     }
@@ -938,6 +1076,7 @@ class Subscription extends Model
                     $graceDays = max(0, (int)$graceDays);
                     $cutoffTimestamp = $currentTime - ($graceDays * DAY_IN_SECONDS);
 
+                    // Still inside the grace window.
                     if ($nextBillingTimestamp >= $cutoffTimestamp) {
                         continue;
                     }
@@ -945,19 +1084,22 @@ class Subscription extends Model
                     $cutoff = gmdate('Y-m-d H:i:s', $cutoffTimestamp);
                 }
 
+                // Null out next_billing_date so the row can't be re-selected/re-processed.
                 $updateData = [
                     'next_billing_date' => NULL,
                     'updated_at'        => gmdate('Y-m-d H:i:s', $currentTime),
                 ];
 
+                // Canceled subs keep their status; only billing statuses flip to EXPIRED.
                 if ($subscription->status !== Status::SUBSCRIPTION_CANCELED) {
                     $updateData['status'] = Status::SUBSCRIPTION_EXPIRED;
                 }
 
+                // Optimistic-lock write: only apply if status + past-cutoff still hold, so a concurrent
+                // renewal/cancel between SELECT and UPDATE can't be overwritten with a stale decision.
                 $updated = Subscription::query()
                     ->where('id', $subscription->id)
                     ->where('status', $subscription->status)
-                    ->where('next_billing_date', $subscription->next_billing_date)
                     ->where('next_billing_date', '<', $cutoff)
                     ->update($updateData);
 
@@ -973,6 +1115,7 @@ class Subscription extends Model
                     continue;
                 }
 
+                // Idempotency marker + audit timestamp for this expiry.
                 $subscription->updateMeta('validity_expired_at', gmdate('Y-m-d H:i:s', $currentTime));
 
                 $event = new \FluentCart\App\Events\Subscription\SubscriptionValidityExpired(

@@ -14,11 +14,11 @@ class ProductStock extends Element
 {
     public $category = 'fluent-cart';
     public $name = 'fct-product-stock';
-    public $icon = 'ti-package';
+    public $icon = 'ti-package fluent-cart-element-icon';
 
     public function get_label()
     {
-        return esc_html__('Product Stock (FluentCart)', 'fluent-cart');
+        return esc_html__('Product Stock', 'fluent-cart');
     }
 
     public function set_control_groups()

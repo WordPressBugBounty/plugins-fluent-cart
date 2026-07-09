@@ -45,7 +45,11 @@ class LabelTools
                 'permission_callback' => function () {
                     return PermissionGate::can('labels/manage');
                 },
-                'annotations' => ['bulk' => true],
+                // Mutating but reversible (labels can be removed) and re-applying
+                // the same set is a no-op — idempotent. 'bulk' was a non-standard
+                // hint the MCP client could not read; readonly:false is the real
+                // "this mutates" signal.
+                'annotations' => ['readonly' => false, 'destructive' => false, 'idempotent' => true],
             ],
         ];
     }

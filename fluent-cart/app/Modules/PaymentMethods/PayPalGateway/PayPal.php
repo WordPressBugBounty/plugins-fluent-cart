@@ -805,7 +805,7 @@ class PayPal extends AbstractPaymentGateway
 
         $paymentDetails = [
             'mode'     => 'payment',
-            'amount'   => Helper::toDecimalWithoutComma($totalPrice),
+            'amount'   => number_format(Helper::toDecimalWithoutComma($totalPrice), 2, '.', ''),
             'currency' => strtoupper(CurrencySettings::get('currency')),
         ];
 

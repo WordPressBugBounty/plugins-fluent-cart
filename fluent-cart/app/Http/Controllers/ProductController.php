@@ -83,7 +83,7 @@ class ProductController extends Controller
         $productId = absint($productId);
 
         if (!$productId) {
-            return $this->sendError('Invalid product ID');
+            return $this->sendError(__('Invalid product ID', 'fluent-cart'));
         }
 
         $relatedBy = [];
@@ -324,6 +324,13 @@ class ProductController extends Controller
     {
         $data = $request->getSafe($request->sanitize());
 
+        $isPartialUpdate = !(isset($data['detail']) && is_array($data['detail'])) &&
+                           !(isset($data['variants']) && is_array($data['variants']));
+
+        if ($isPartialUpdate) {
+            return $this->applyPartialPostUpdate($data, $postId);
+        }
+
         if (
             Arr::get($data, 'detail.variation_type') === 'simple' &&
             (empty(Arr::get($data, 'variants')) || empty(Arr::get($data, 'variants.0')))
@@ -342,7 +349,6 @@ class ProductController extends Controller
 
         $isUpdated = ProductResource::update($data, $postId);
 
-
         if (is_wp_error($isUpdated)) {
             return $isUpdated;
         }
@@ -353,6 +359,23 @@ class ProductController extends Controller
         ]);
 
         return $this->response->sendSuccess($isUpdated);
+    }
+
+    private function applyPartialPostUpdate(array $data, $postId)
+    {
+        $result = ProductResource::partialUpdate($data, $postId);
+
+        if (is_wp_error($result)) {
+            $statusCode = $result->get_error_code() === 'not_found' ? 404 : 422;
+            return $this->sendError(['message' => $result->get_error_message()], $statusCode);
+        }
+
+        do_action('fluent_cart/product_updated', [
+            'data'    => $data,
+            'product' => $result['data'],
+        ]);
+
+        return $this->response->sendSuccess($result);
     }
 
     public function updateLongDescEditorMode(Request $request, $postId)

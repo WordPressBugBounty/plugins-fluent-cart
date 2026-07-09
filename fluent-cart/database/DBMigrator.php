@@ -155,8 +155,21 @@ class DBMigrator
 
             update_option('_fluent_cart_db_version', FLUENTCART_DB_VERSION, 'no');
 
+            if (!$currentDBVersion) {
+                // Brand-new store: default tax display to the simplified single line.
+                // Existing stores fall through to the read-time default 'itemized'.
+                $taxSettings = get_option('fluent_cart_tax_configuration_settings', []);
+                if (!isset($taxSettings['checkout_tax_breakdown_display'])) {
+                    $taxSettings['checkout_tax_breakdown_display'] = 'simplified';
+                    update_option('fluent_cart_tax_configuration_settings', $taxSettings, true);
+                }
+            }
+
             // 2026-04-25
             TaxRatesMigrator::upgradeShippingOverridePrecision();
+
+            // 2026-07-01
+            OrderTaxRateMigrator::allowVirtualTaxRateIds();
 
             // 2026-05-27
             TaxRatesMigrator::fixPostcodeRangeSeparator();
@@ -499,6 +512,19 @@ class DBMigrator
                     update_option('fluent_cart_tax_configuration_settings', $taxSettings, true);
                 }
                 update_option('_fluent_cart_price_suffix_migrated', '1', 'no');
+            }
+
+            // 2026-07-08
+            // One-time migration: rename the legacy tax-display value 'both'
+            // (and the removed 'label'/'tooltip') to 'itemized'. Value-guarded —
+            // once migrated the stored value is 'itemized' so this no-ops; no
+            // separate flag option is written (nothing left behind when this
+            // block is removed later). Safe to remove after ~2027-07.
+            $fctTaxSettings = get_option('fluent_cart_tax_configuration_settings', []);
+            if (isset($fctTaxSettings['checkout_tax_breakdown_display'])
+                && in_array($fctTaxSettings['checkout_tax_breakdown_display'], ['both', 'label', 'tooltip'], true)) {
+                $fctTaxSettings['checkout_tax_breakdown_display'] = 'itemized';
+                update_option('fluent_cart_tax_configuration_settings', $fctTaxSettings, true);
             }
 
             // 2026-05-18

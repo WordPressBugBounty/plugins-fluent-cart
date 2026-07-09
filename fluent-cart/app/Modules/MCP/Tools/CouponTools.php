@@ -31,12 +31,13 @@ class CouponTools
         return [
             'fluent-cart/list-coupons' => [
                 'label'       => __('List Coupons', 'fluent-cart'),
-                'description' => __('Find and filter coupons with usage counts and validity windows. Interpret amount via type: percentage means a percent (10 = 10 percent), fixed means a currency value. Use active_now to get only coupons usable today.', 'fluent-cart'),
+                'description' => __('Find and filter coupons with usage counts (times_used) and validity windows. Filter by status, by code substring, or by type; paginate with page/per_page. Interpret amount via type: percentage means a percent (10 = 10 percent), fixed means a currency value. Use active_now to get only coupons usable today (status active and within the start/end window — i.e. not expired). status inactive means disabled.', 'fluent-cart'),
                 'input_schema' => [
                     'type'       => 'object',
                     'properties' => [
                         'search'     => ['type' => 'string', 'description' => 'Matches coupon code or title.'],
-                        'status'     => ['type' => 'string', 'enum' => ['active', 'inactive']],
+                        'code'       => ['type' => 'string', 'description' => 'Matches the coupon code only (substring). Narrower than search.'],
+                        'status'     => ['type' => 'string', 'enum' => ['active', 'inactive'], 'description' => 'inactive = disabled. For "expired", use active_now=false / read valid_now on each row.'],
                         'type'       => ['type' => 'string', 'enum' => ['fixed', 'percentage']],
                         'active_now' => ['type' => 'boolean', 'description' => 'Only coupons that are active and within their start/end window right now.'],
                         'sort_by'    => ['type' => 'string', 'enum' => ['id', 'use_count', 'priority', 'end_date'], 'default' => 'id'],
@@ -75,6 +76,10 @@ class CouponTools
                 'permission_callback' => function () {
                     return PermissionGate::can('coupons/manage');
                 },
+                // Mutating; deactivate sets status inactive rather than deleting,
+                // so not destructive. create is not idempotent (a repeat makes a
+                // second coupon), so no idempotent hint on the dispatcher.
+                'annotations' => ['readonly' => false, 'destructive' => false],
             ],
         ];
     }
@@ -255,6 +260,9 @@ class CouponTools
                 $q->where('code', 'LIKE', $like)->orWhere('title', 'LIKE', $like);
             });
         }
+        if (!empty($params['code'])) {
+            $query->where('code', 'LIKE', '%' . sanitize_text_field($params['code']) . '%');
+        }
         if (!empty($params['status'])) {
             $query->where('status', sanitize_text_field($params['status']));
         }
@@ -309,6 +317,9 @@ class CouponTools
             'amount'     => self::couponAmount($coupon),
             'status'     => $coupon->status,
             'use_count'  => (int) $coupon->use_count,
+            // times_used is the doc-facing alias of use_count — same value, kept so
+            // agents can read either name.
+            'times_used' => (int) $coupon->use_count,
             'stackable'  => $coupon->stackable,
             'start_date' => MCPHelper::toIso8601($coupon->start_date),
             'end_date'   => MCPHelper::toIso8601($coupon->end_date),

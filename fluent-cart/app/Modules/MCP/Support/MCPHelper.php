@@ -85,6 +85,83 @@ class MCPHelper
     }
 
     // -----------------------------------------------------------------
+    // Output schema (advertised to clients; not validated server-side)
+    // -----------------------------------------------------------------
+
+    /**
+     * JSON Schema fragment for the full money object returned by money(). Inlined
+     * by each tool's output_schema (rather than a $ref) so it never depends on the
+     * client validator resolving $defs across JSON-Schema draft versions.
+     *
+     * @return array
+     */
+    public static function moneyDef()
+    {
+        // Field docs live in the object description (once), not per-property: this
+        // object is inlined many times across an output_schema (10x on the sales
+        // report alone), so per-field descriptions multiply into real token cost
+        // for names that are already self-explanatory.
+        return [
+            'type'        => 'object',
+            'description' => 'Money: amount (decimal), amount_cents (integer, smallest unit), currency (ISO 4217), display (formatted string, e.g. "$19.99").',
+            'properties'  => [
+                'amount'       => ['type' => 'number'],
+                'amount_cents' => ['type' => 'integer'],
+                'currency'     => ['type' => 'string'],
+                'display'      => ['type' => 'string'],
+            ],
+        ];
+    }
+
+    /**
+     * JSON Schema for the shared meta block. Permissive (extra keys allowed) so a
+     * tool can add its own meta (mode, date_basis, page, warnings, …) without a
+     * client that validates structuredContent tripping on the extras.
+     *
+     * @param array $extraProps additional documented meta properties for this tool
+     * @return array
+     */
+    public static function metaSchema(array $extraProps = [])
+    {
+        return [
+            'type'        => 'object',
+            'description' => 'Envelope metadata: schema version, currency, plus per-tool keys (date_basis, mode, page, warnings).',
+            'properties'  => array_merge([
+                'schema_version' => ['type' => 'string'],
+                'generated_at'   => ['type' => 'string', 'description' => 'ISO-8601 UTC timestamp.'],
+                'currency'       => ['type' => 'string', 'description' => 'ISO 4217 store currency for reference.'],
+                'warnings'       => ['type' => 'array', 'items' => ['type' => 'string'], 'description' => 'Non-fatal notes, e.g. an ignored parameter.'],
+            ], $extraProps),
+        ];
+    }
+
+    /**
+     * Wrap a `data` schema in the canonical { summary, data, meta } envelope every
+     * tool returns.
+     *
+     * `data` keys are DESCRIBED but not required: the fields[] projection may prune
+     * them and summary_only omits records, so a client should treat declared data
+     * keys as optional. The adapter advertises this to the model but does not
+     * validate results against it, so it is documentation, not a runtime gate.
+     *
+     * @param array $dataSchema JSON Schema for the tool's data payload
+     * @param array $metaProps  extra documented meta properties
+     * @return array
+     */
+    public static function envelopeSchema(array $dataSchema, array $metaProps = [])
+    {
+        return [
+            'type'       => 'object',
+            'properties' => [
+                'summary' => ['type' => 'string', 'description' => 'One-line, human-readable answer — quotable verbatim.'],
+                'data'    => $dataSchema,
+                'meta'    => self::metaSchema($metaProps),
+            ],
+            'required' => ['summary', 'data', 'meta'],
+        ];
+    }
+
+    // -----------------------------------------------------------------
     // Money
     // -----------------------------------------------------------------
 
@@ -334,6 +411,45 @@ class MCPHelper
     // -----------------------------------------------------------------
     // People / labels
     // -----------------------------------------------------------------
+
+    // -----------------------------------------------------------------
+    // Field selection
+    // -----------------------------------------------------------------
+
+    /**
+     * Project a record down to a caller-requested subset of top-level keys, to
+     * shrink heavy payloads. Returns the record UNCHANGED when $fields is empty
+     * or not an array (the default, backward-compatible behavior). Only keys that
+     * actually exist are kept, in the record's own order; unknown requested keys
+     * are ignored. Keys in $alwaysKeep (the record's identifier) are retained
+     * regardless so a projected record is never anonymous.
+     *
+     * @param array $row
+     * @param mixed $fields     array of key names, or null/non-array for "all"
+     * @param array $alwaysKeep keys to keep even if not requested (e.g. the id)
+     */
+    public static function pickFields($row, $fields, array $alwaysKeep = [])
+    {
+        if (empty($fields) || !is_array($fields)) {
+            return $row;
+        }
+
+        $wanted = [];
+        foreach ($alwaysKeep as $k) {
+            $wanted[$k] = true;
+        }
+        foreach ($fields as $f) {
+            $wanted[(string) $f] = true;
+        }
+
+        $out = [];
+        foreach ($row as $key => $val) {
+            if (isset($wanted[$key])) {
+                $out[$key] = $val;
+            }
+        }
+        return $out;
+    }
 
     /** "First Last <email>" style name from a customer/person-ish model. */
     public static function personName($model)

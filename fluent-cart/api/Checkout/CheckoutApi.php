@@ -55,6 +55,21 @@ class CheckoutApi
             ]);
         }
 
+        // Serialize all submissions of one cart BEFORE the prevOrder read: locking later
+        // (or per-order) lets two concurrent first submissions both see prevOrder = null
+        // and create two orders -> two idempotency keys -> double charge.
+        static::acquireCartLock($cart->cart_hash);
+
+        // Re-read under the lock (fresh(), not getCart() — that one is request-cached):
+        // a submission we waited on may have completed this cart meanwhile.
+        $cart = $cart->fresh();
+        if (!$cart || !$cart->cart_data || $cart->stage === 'completed') {
+            wp_send_json([
+                'status'  => 'failed',
+                'message' => __('Cart is empty or already completed', 'fluent-cart'),
+            ]);
+        }
+
         $cart = $cart->reValidateCoupons();
 
         $cartData = $cart->cart_data;
@@ -70,10 +85,26 @@ class CheckoutApi
                 !in_array($prevOrder->payment_status, Status::getPaymentRetryableStatuses())
             )
         ) {
-            wp_send_json([
-                'status'  => 'failed',
-                'message' => __('You have already completed this order.', 'fluent-cart'),
-            ]);
+            if ($isLockedCart) {
+                // Locked carts are bound to a specific order (e.g. pay-for-order links),
+                // so a finalized order really means there is nothing left to pay.
+                wp_send_json([
+                    'status'  => 'failed',
+                    'message' => __('You have already completed this order.', 'fluent-cart'),
+                ]);
+            }
+
+            // The linked order is already finalized but the cart was never marked
+            // completed (e.g. a stale cart resurrected by the logged-in user lookup).
+            // Detach the dead order so the customer can check out again instead of
+            // being blocked on every future purchase.
+            $cart->order_id = null;
+            $checkoutData = $cart->checkout_data;
+            unset($checkoutData['is_locked']);
+            $cart->checkout_data = $checkoutData;
+            $cart->save();
+            $prevOrder = null;
+            $isLockedCart = false;
         }
 
         $data = static::addLoggedUserData($data);
@@ -390,6 +421,8 @@ class CheckoutApi
 
     private static function finalizeOrder(Order $order, $args = [])
     {
+        // Duplicate/concurrent submissions are already serialized by the cart-hash lock
+        // at the top of placeOrder() — no per-order lock needed here.
         AddressHelper::insertOrderAddresses(
             $order->id,
             Arr::get($args, 'billing_address', []),
@@ -430,6 +463,16 @@ class CheckoutApi
         $data = $gateway->makePaymentFromPaymentInstance($paymentInstance);
 
         if (is_wp_error($data)) {
+            // Server-observed create failure: mark the transaction FAILED so the next
+            // resubmit is a RETRY (payment_attempt bump -> fresh idempotency seed) —
+            // gateways cache error responses under the key, so keeping it pending would
+            // replay the same error on every resubmit. Client-side declines stay pending
+            // on purpose: there the same key resolving to the same gateway object IS the
+            // retry path.
+            if ($paymentInstance->transaction && $paymentInstance->transaction->status === Status::PAYMENT_PENDING) {
+                $paymentInstance->transaction->update(['status' => Status::PAYMENT_FAILED]);
+            }
+
             wp_send_json([
                 'status'  => 'failed',
                 'message' => $data->get_error_message(),
@@ -438,6 +481,40 @@ class CheckoutApi
         }
 
         wp_send_json($data, 200);
+    }
+
+    /**
+     * Serialize checkout submissions per cart with a MySQL named lock.
+     *
+     * Keyed on cart_hash (not order id) so concurrent FIRST submissions — no draft
+     * order yet — contend on the same lock. Release goes through a shutdown function,
+     * not try/finally: wp_send_json() exits via die() (skips finally), and persistent
+     * DB connections don't drop the lock on request end.
+     */
+    private static function acquireCartLock($cartHash)
+    {
+        global $wpdb;
+
+        // md5 keeps the name inside MySQL's 64-char lock-name limit regardless of
+        // table-prefix length; the prefix scopes the lock per site on multisite.
+        $lockName = 'fct_checkout_' . md5($wpdb->prefix . $cartHash);
+
+        $lockAcquired = (string) $wpdb->get_var(
+            $wpdb->prepare('SELECT GET_LOCK(%s, %d)', $lockName, 10)
+        ) === '1';
+
+        if (!$lockAcquired) {
+            wp_send_json([
+                'status'  => 'failed',
+                'message' => __('This order is already being processed. Please wait a moment — do not refresh or resubmit.', 'fluent-cart'),
+                'data'    => []
+            ], 429);
+        }
+
+        register_shutdown_function(function () use ($lockName) {
+            global $wpdb;
+            $wpdb->get_var($wpdb->prepare('SELECT RELEASE_LOCK(%s)', $lockName));
+        });
     }
 
     private static function syncCustomerNames($order, $args)
@@ -681,8 +758,13 @@ class CheckoutApi
         $agreeTermsRequired = CheckoutFieldsSchema::isTermsRequired();
 
         $customTitles = [
-            'address_1' => 'Street Address',
-            'address_2' => 'Apt, Suite, Unit',
+            'address_1' => __('Street Address', 'fluent-cart'),
+            'address_2' => __('Apt, Suite, Unit', 'fluent-cart'),
+            'country'   => __('Country', 'fluent-cart'),
+            'state'     => __('State', 'fluent-cart'),
+            'city'      => __('City', 'fluent-cart'),
+            'postcode'  => __('Postcode', 'fluent-cart'),
+            'phone'     => __('Phone', 'fluent-cart'),
         ];
 
         foreach ($billingValidations as $key => $rule) {
@@ -960,7 +1042,7 @@ class CheckoutApi
         ]);
 
         if (count($errors) > 0) {
-            return new \Wp_Error('validation_error', 'Validation error', $errors);
+            return new \Wp_Error('validation_error', __('Validation error', 'fluent-cart'), $errors);
         }
 
         return $data;

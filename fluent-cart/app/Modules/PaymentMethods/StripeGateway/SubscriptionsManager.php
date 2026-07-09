@@ -4,7 +4,6 @@ namespace FluentCart\App\Modules\PaymentMethods\StripeGateway;
 
 use FluentCart\App\Events\Subscription\SubscriptionActivated;
 use FluentCart\App\Helpers\Status;
-use FluentCart\App\Models\OrderTransaction;
 use FluentCart\App\Models\Subscription;
 use FluentCart\App\Models\SubscriptionMeta;
 use FluentCart\App\Modules\PaymentMethods\StripeGateway\API\API;
@@ -214,7 +213,7 @@ class SubscriptionsManager
         }
 
         $status = StripeHelper::transformSubscriptionStatus($response, $subscription);
-        $billCount = OrderTransaction::query()->where('subscription_id', $subscription->id)->count();
+        $billCount = $subscription->calculateBillCount();
 
         $oldStatus = $subscription->status;
 

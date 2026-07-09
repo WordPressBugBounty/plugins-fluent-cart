@@ -57,6 +57,30 @@ class PaymentInstance
         return $this;
     }
 
+    /**
+     * Gateway-agnostic idempotency seed for the current charge attempt. The ONLY
+     * seed source for gateway idempotency keys — full contract in
+     * .claude/skills/coding-rules/payment-idempotency.md.
+     *
+     * Stable across duplicate submissions (transaction uuid survives draft-order
+     * re-submission -> gateway dedupes), fresh after an observed failure
+     * (payment_attempt is bumped when a FAILED transaction is re-submitted ->
+     * retries are never blocked or answered with a cached gateway error).
+     *
+     * @return string Empty string when no charge transaction exists — callers
+     *                must skip idempotency rather than share a static key.
+     */
+    public function getIdempotencySeed()
+    {
+        if (!$this->transaction || !$this->transaction->uuid) {
+            return '';
+        }
+
+        $attempt = (int) Arr::get($this->transaction->meta ?: [], 'payment_attempt', 0);
+
+        return $this->transaction->uuid . ($attempt ? '_r' . $attempt : '');
+    }
+
     public function getExtraAddonAmount()
     {
         if (empty($this->subscription)) {
@@ -83,17 +107,26 @@ class PaymentInstance
             }
         }
 
-        // shipping charge, in case addons are physical products
-        $shippingCharge = (int) $this->order->shipping_total;
-        if ($shippingCharge) {
-            $extraAmount += $shippingCharge;
+        // shipping for physical addons (digital sub + one-time physical items)
+        // skip when subscription itself is physical — shipping already in recurring_total
+        // if subscription is digital, but has physical addons, we need to add shipping for those addons, because shipping is not included in recurring_total for digital subscriptions
+        $subscriptionItem = $this->order->order_items->filter(function ($item) {
+            return $item->payment_type === 'subscription';
+        })->first();
+        $subscriptionIsPhysical = $subscriptionItem && $subscriptionItem->fulfillment_type === 'physical';
 
-            if ($taxBehavior === 1) {
-                $extraAmount += (int) $this->order->shipping_tax;
-            } elseif ($taxBehavior === 3) {
-                $storeTaxBehavior = (int) $this->order->getMeta('store_tax_behavior', 1);
-                if ($storeTaxBehavior === 1) {
+        if (!$subscriptionIsPhysical) {
+            $shippingCharge = (int) $this->order->shipping_total;
+            if ($shippingCharge) {
+                $extraAmount += $shippingCharge;
+
+                if ($taxBehavior === 1) {
                     $extraAmount += (int) $this->order->shipping_tax;
+                } elseif ($taxBehavior === 3) {
+                    $storeTaxBehavior = (int) $this->order->getMeta('store_tax_behavior', 1);
+                    if ($storeTaxBehavior === 1) {
+                        $extraAmount += (int) $this->order->shipping_tax;
+                    }
                 }
             }
         }

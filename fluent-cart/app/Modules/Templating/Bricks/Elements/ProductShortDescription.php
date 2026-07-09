@@ -14,11 +14,11 @@ class ProductShortDescription extends Element
 {
     public $category = 'fluent-cart';
     public $name = 'fct-product-short-description';
-    public $icon = 'ti-paragraph';
+    public $icon = 'ti-paragraph fluent-cart-element-icon';
 
     public function get_label()
     {
-        return esc_html__('Product Excerpt (FluentCart)', 'fluent-cart');
+        return esc_html__('Product Excerpt', 'fluent-cart');
     }
 
     public function set_controls()

@@ -109,11 +109,9 @@ class VatFieldRenderer
 
     public function renderValidNote($checkoutData)
     {
-        $isValid         = Arr::get($checkoutData, 'tax_data.valid', false);
-        $name            = Arr::get($checkoutData, 'tax_data.name', '');
-        $taxTotal        = Arr::get($checkoutData, 'tax_data.tax_total', 0);
-        $declarationNote = sanitize_text_field(Arr::get($checkoutData, 'tax_data.declaration_note', ''));
-        $isReverseCharge = $isValid && (int) Arr::get($checkoutData, 'tax_data.tax_behavior', 2) === 0;
+        $isValid  = Arr::get($checkoutData, 'tax_data.valid', false);
+        $name     = Arr::get($checkoutData, 'tax_data.name', '');
+        $taxTotal = Arr::get($checkoutData, 'tax_data.tax_total', 0);
         ?>
         <div
             class="fct_vat_valid_note <?php echo !$isValid ? 'is-hidden' : ''; ?>"
@@ -127,21 +125,6 @@ class VatFieldRenderer
                 <span class="fct_vat_reverse_charge_warning">
                     <?php echo esc_html__('(Reverse Charge not applied)', 'fluent-cart'); ?>
                 </span>
-            <?php endif; ?>
-
-            <?php if ($isReverseCharge): ?>
-                <div class="fct_vat_declaration_note_wrapper">
-                    <textarea
-                        id="fct_vat_declaration_note"
-                        name="fct_vat_declaration_note"
-                        data-fluent-cart-vat-declaration-note
-                        maxlength="255"
-                        rows="2"
-                        placeholder="<?php echo esc_attr__('e.g. I confirm reverse charge applies — VAT will be self-accounted in my country. Saved with your order. Max 255 characters. ', 'fluent-cart'); ?>"
-                        aria-label="<?php echo esc_attr__('Reverse Charge Declaration', 'fluent-cart'); ?>"
-                        aria-describedby="fct_vat_declaration_note_hint"
-                    ><?php echo esc_textarea($declarationNote); ?></textarea>
-                </div>
             <?php endif; ?>
         </div>
         <?php

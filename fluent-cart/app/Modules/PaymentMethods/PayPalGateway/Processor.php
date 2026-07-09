@@ -36,7 +36,7 @@ class Processor
                 'description' => strlen($title) > 4000 ? substr($title, 0, 3997) . '...' : $title,
                 'unit_amount' => [
                     'currency_code' => $transaction->currency,
-                    'value'         => $perQuantity,
+                    'value'         => number_format($perQuantity, 2, '.', ''),
                 ],
                 'quantity'    => $quantity,
             ];
@@ -53,7 +53,7 @@ class Processor
             'reference_id' => $transaction->uuid, // This is the order UUID
             'amount'       => [ // https://developer.paypal.com/docs/api/orders/v2/#definition-amount_breakdown
                 'currency_code' => $transaction->currency,
-                'value'         => $chargingAmount,
+                'value'         => number_format($chargingAmount, 2, '.', ''),
                 'breakdown'     => [
                     'item_total' => [
                         'currency_code' => $transaction->currency,
@@ -79,7 +79,7 @@ class Processor
             $shippingAmount = $this->toDecimal($order->shipping_total);
             $purchaseUnits['amount']['breakdown']['shipping'] = [
                 'currency_code' => $transaction->currency,
-                'value'         => $shippingAmount,
+                'value'         => number_format($shippingAmount, 2, '.', ''),
             ];
             $pushedTotal += $shippingAmount;
         }
@@ -144,7 +144,17 @@ class Processor
             $purchaseUnits['amount']['breakdown']['item_total']['value'] = number_format($adjustedItemTotal, 2, '.', '');
         }
 
-        $paypalOrder = API::createOrder($purchaseUnits);
+        // Duplicate-charge defense (see .claude/skills/coding-rules/payment-idempotency.md).
+        // The whole purchase unit is fingerprinted: PayPal silently ignores a changed
+        // body on a reused PayPal-Request-Id, so charge-material changes must land in
+        // the id itself. Everything in $purchaseUnits comes from persisted order state —
+        // nothing volatile per-request.
+        $idempotencySeed = $paymentInstance->getIdempotencySeed();
+        $requestId = $idempotencySeed
+            ? 'fct_pp_order_' . md5($idempotencySeed . '|' . wp_json_encode($purchaseUnits))
+            : null;
+
+        $paypalOrder = API::createOrder($purchaseUnits, $requestId);
 
         if (is_wp_error($paypalOrder)) {
             return $paypalOrder;
@@ -215,7 +225,7 @@ class Processor
                 'interval_count'   => 1, // 1
                 'recurring_amount' => $subscription->recurring_total, // default recurring total in cents
                 'signup_fee'       => $initialAmount, // default setup fee in cents ($0.00)
-                'bill_times'       => (int)$subscription->bill_times, // 0 for unlimited
+                'bill_times'       => $subscription->getInitialRemoteBillTimes(), // 0 for unlimited; simulated-trial first installment excluded
             ];
 
         }

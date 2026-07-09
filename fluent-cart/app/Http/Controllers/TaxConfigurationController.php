@@ -78,7 +78,7 @@ class TaxConfigurationController extends Controller
             'tax_inclusion'         => ['included', 'excluded'],
             'tax_calculation_basis' => ['shipping', 'billing', 'store'],
             'tax_rounding'          => ['item', 'total', 'subtotal'],
-            'checkout_tax_breakdown_display' => ['both', 'label', 'tooltip'],
+            'checkout_tax_breakdown_display' => ['itemized', 'simplified'],
             'enable_tax'            => ['yes', 'no'],
         ];
         foreach ($enumDefaults as $key => $allowed) {
@@ -120,7 +120,8 @@ class TaxConfigurationController extends Controller
             'tax_inclusion'          => 'included',
             'tax_calculation_basis'  => 'shipping',
             'tax_rounding'           => 'item',
-            'checkout_tax_breakdown_display' => 'both',
+            'checkout_tax_breakdown_display' => 'itemized',
+            'tax_display_label'      => 'Tax',
             'enable_tax'             => 'no',
             'price_suffix_included'  => '',
             'price_suffix_excluded'  => '',

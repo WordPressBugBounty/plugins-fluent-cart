@@ -20,18 +20,20 @@ class ProductsCollection extends Custom_Render_Element
 {
     public $category = 'fluent-cart';
     public $name = 'fct-products';
-    public $icon = 'ti-archive';
+    public $icon = 'ti-archive fluent-cart-element-icon';
 
     protected $cssRoot = '.fct-products-wrapper-inner .fct-products-container';
 
     public function enqueue_scripts()
     {
         AssetLoader::loadProductArchiveAssets();
+        
+        do_action('fluent_cart/advanced_variation/enqueue_assets');
     }
 
     public function get_label()
     {
-        return esc_html__('Products (FluentCart)', 'fluent-cart');
+        return esc_html__('Products', 'fluent-cart');
     }
 
     public function set_control_groups()
@@ -516,6 +518,10 @@ class ProductsCollection extends Custom_Render_Element
                             class="fct-products-container grid-columns-<?php echo esc_attr($columns); ?>"
                         >
                             <?php $this->renderProducts($products); ?>
+                        </div>
+
+                        <div class="fluent-cart-product-loader loader-hidden" data-fluent-cart-product-loader>
+                            <div class="fluent-cart-product-spinner"></div>
                         </div>
 
                     </div>

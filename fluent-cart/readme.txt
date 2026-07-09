@@ -4,7 +4,7 @@ Tags: ecommerce, cart, checkout, subscriptions, payments
 Requires at least: 6.7
 Tested up to: 7.0
 Requires PHP: 7.4
-Stable tag: 1.5.2
+Stable tag: 1.5.3
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -313,6 +313,40 @@ This service is provided by PayPal: [Terms of Service](https://www.paypal.com/le
 
 == Changelog ==
 
+= 1.5.3 (Jul 9, 2026) =
+- Adds Configurable Tax Display Styles with customizable tax labels.
+- Adds MCP AI support for profitability, subscription forecasts, and payment ledger access.
+- Adds Advanced AI report filters, pagination, coupon usage, and margin insights.
+- Adds Support for report add-ons in the Reports sidebar.
+- Adds Inline tax class creation for Tax and EU VAT settings.
+- Adds An option to hide product SKUs.
+- Improves duplicate order protection during checkout.
+- Improves AI refund and subscription cancellation safety with confirmation.
+- Improves EU B2B reverse charge declarations on generated documents.
+- Improves Authorize.Net subscription reliability and retry handling.
+- Improves Bricks element labels.
+- Improves storefront, checkout, and cart drawer styling.
+- Improves expiration filters to include past-due subscriptions.
+- Improves translation coverage across the admin and storefront.
+- Improves integration support with partial product price updates.
+- Improves security through ongoing audits and hardening.
+- Fixes Shipping calculation for Stripe subscriptions with physical products.
+- Fixes Shipping tax calculation based on the selected shipping method.
+- Fixes Per-item shipping allocation accuracy.
+- Fixes Reverse-charge tax breakdowns across all order views.
+- Fixes Installment counts after checkout discounts.
+- Fixes Authorize.Net and Mollie installment billing cycles.
+- Fixes PayPal amount formatting.
+- Fixes PayPal installment cancellation detection.
+- Fixes Carts remaining locked after completed checkouts.
+- Fixes Product creation dates being overwritten during edits.
+- Fixes Stock badge labels for default variations.
+- Fixes Bricks Products Collection loading state.
+- Fixes Price range labels on Bricks product pages.
+- Fixes Database upgrades after plugin updates.
+- Fixes Licensed add-on downloads, including Page History.
+- Fixes Capability checks for the current customer session.
+
 = 1.5.2 (Jun 30, 2026) =
 - Adds SSLCommerz payment gateway support
 - Adds Product template type support for Bricks Builder
@@ -419,6 +453,58 @@ Fixes Security issues with ongoing audits and platform hardening
 - Fixes Webhook failures caused by 301 redirects on subdirectory installs
 - Fixes Turnstile fallback handling when auto-verification fails
 - Fixes NULL value rounding issues in subscription reports
+
+= 1.3.27 (May 8, 2026) =
+- Adds List/Grid view switcher and advanced product filtering for Bricks
+- Adds Copy Variation ID action for simple product pricing panel
+- Adds Licensing Sites, Site pages, and advanced site filtering
+- Adds SubscriptionReactivated event
+- Fixes Order bump free-shipping checkbox issue
+- Fixes Missing shortcode variables in PDF receipt emails
+- Fixes Long file names overflowing receipt page download buttons
+- Fixes Cart allowing mixed or multiple subscriptions
+- Fixes Offline subscriptions with 100% recurring coupons issue when Subscription Activated
+- Fixes Subscription reactivation after refunds
+- Fixes PayPal IPN subscription handling
+- Fixes Redundant admin table search requests
+- Fixes Amount formatting and customer profile display in Site Detail view (Pro)
+- Fixes PHP warnings from deleted/invalid store pages
+- Fixes Admin menu active state style bleeding
+- Fixes Bricks Builder dynamic tag name mismatch
+- Fixes Authorize.net subscription issue
+- Improves Animation experience for table filters
+- Improves Bricks Builder pagination rendering and performance
+- Improves Product Pricing edit UX
+
+= 1.3.26 (May 5, 2026) =
+- Adds Square Payment gateway
+- Adds Private products support in discounts, coupons, and order bumps
+- Adds Subscription setup fee to receipts and emails
+- Fixes Order/invoice dates showing the previous day in profiles
+- Fixes Coupon expiration timezone mismatch
+- Fixes Duplicate success toast on product update
+- Fixes Email preview created_at DateTime issue
+- Fixes Safari chevron icon visibility issue
+- Fixes Menu button and dropdown styling issues
+- Fixes LearnDash course expiry resolution for users
+- Improves button feedback with visual indicators only
+- Fixes Skip subscription field validation when subscription is disabled
+- Fixes Auto-expand Additional display prices section when subscription is enabled
+
+= 1.3.25 (Apr 30, 2026) =
+- Fixes Sites with www and non-www counted as separate activations
+- Fixes Subscription orders with coupon discounts getting stuck after checkout
+- Fixes Duplicate renewal records created during payment processing
+- Fixes Page freeze when clicking empty mini cart
+- Fixes Max-width constraints and responsive padding on product pages
+- Fixes Incorrect coupon expiration time in admin dashboard
+- Fixes Shipping overcharge with multiple shipping classes in cart
+- Fixes Free shipping adding class surcharges with multiple shipping classes
+- Fixes Paddle subscriptions not cancelling immediately after refund
+- Fixes Customer lifetime stats not updating after refund
+- Fixes Double encryption when saving Stripe settings
+- Fixes Raw transaction and subscription status keys shown in customer portal
+- Improves Product variation management
 
 = 1.3.23 (Apr 28, 2026) =
 - Adds Subscription access end date in cancellation emails
