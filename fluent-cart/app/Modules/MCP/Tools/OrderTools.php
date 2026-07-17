@@ -6,6 +6,7 @@ use FluentCart\App\Helpers\Helper;
 use FluentCart\App\Helpers\Status;
 use FluentCart\App\Models\Order;
 use FluentCart\App\Models\OrderTransaction;
+use FluentCart\App\Modules\MCP\Support\AdvancedSearch;
 use FluentCart\App\Modules\MCP\Support\MCPHelper;
 use FluentCart\App\Modules\MCP\Support\PermissionGate;
 use FluentCart\App\Modules\MCP\Support\WriteGuard;
@@ -49,7 +50,7 @@ class OrderTools
         return [
             'fluent-cart/list-orders' => [
                 'label'       => __('List Orders', 'fluent-cart'),
-                'description' => __('Find and filter orders. Returns compact rows (id, number, customer, total, statuses, date, plus an items list: each line item\'s product, title and quantity) — call get-order for the full money/refund breakdown. All filters optional; combine freely. For one customer\'s orders, pass customer_email or customer_id here. Money filters are in store currency (e.g. 49.99), not cents.', 'fluent-cart'),
+                'description' => __('Find and filter orders. Returns compact rows (id, number, customer, total, statuses, date, plus an items list: each line item\'s product, title and quantity) — call get-order for the full money/refund breakdown. All filters optional; combine freely. For one customer\'s orders, pass customer_email or customer_id here. Money filters are in store currency (e.g. 49.99), not cents. For conditions these flat filters cannot express (OR groups, relative dates, transaction/UTM/label/license properties) pass advanced_filters — call get-search-schema entity=orders first (Pro).', 'fluent-cart'),
                 'input_schema' => [
                     'type'       => 'object',
                     'properties' => [
@@ -69,6 +70,7 @@ class OrderTools
                         'created_before'  => ['type' => 'string', 'description' => 'YYYY-MM-DD or ISO 8601, UTC.'],
                         'mode'            => ['type' => 'string', 'enum' => ['live', 'test'], 'description' => 'Defaults to all modes.'],
                         'search'          => ['type' => 'string', 'description' => 'Matches invoice/receipt number, order uuid, and customer name/email.'],
+                        'advanced_filters' => ['type' => 'array', 'items' => ['type' => ['object', 'array']], 'description' => 'Pro: condition groups {property, operator, value} — outer array = OR groups, inner = AND. Call get-search-schema entity=orders FIRST for properties/operators/format. AND-combines with the other filters here. An empty array means no advanced filter.'],
                         'sort_by'         => ['type' => 'string', 'enum' => ['id', 'created_at', 'completed_at', 'total_amount'], 'default' => 'id'],
                         'sort_type'       => ['type' => 'string', 'enum' => ['ASC', 'DESC'], 'default' => 'DESC'],
                         'fields'          => ['type' => 'array', 'items' => ['type' => 'string'], 'description' => 'Optional: return only these row keys to shrink the payload (order_id is always kept). Available: number, label, status, payment_status, shipping_status, type, total, customer, items, created_at. Omit for the full row.'],
@@ -202,12 +204,27 @@ class OrderTools
     {
         $paging = MCPHelper::pagination($params);
 
+        // advanced_filters routes through the admin filter engine (validated
+        // first — a bad condition errors, never silently drops); the named
+        // filters below then AND onto the same query either way.
+        $advWarnings = [];
+        if (!empty($params['advanced_filters'])) {
+            $built = AdvancedSearch::buildQuery('orders', $params['advanced_filters']);
+            if (is_wp_error($built)) {
+                return $built;
+            }
+            $query       = $built['query'];
+            $advWarnings = $built['warnings'];
+        } else {
+            $query = Order::query();
+        }
+
         // Eager-load customer plus a TRIMMED order_items relation — only the
         // columns needed for a "what's in this order" preview, never the full
         // money/refund/fulfillment row (that's get-order's job). formatRow caps
         // the preview, so even a large multi-item order can't flood the payload.
         // The product_id filter uses whereHas (a join), independent of this load.
-        $query = Order::query()->with([
+        $query->with([
             'customer',
             'order_items' => function ($q) {
                 $q->select(['id', 'order_id', 'post_id', 'post_title', 'title', 'quantity']);
@@ -238,6 +255,11 @@ class OrderTools
             $rows[] = MCPHelper::pickFields(self::formatRow($order), $fields, ['order_id']);
         }
 
+        $meta = MCPHelper::pagingMeta($paginator);
+        if ($advWarnings) {
+            $meta['warnings'] = $advWarnings;
+        }
+
         return MCPHelper::envelope(
             sprintf(
                 /* translators: %d: number of matching orders */
@@ -245,7 +267,7 @@ class OrderTools
                 $total
             ),
             ['orders' => $rows],
-            MCPHelper::pagingMeta($paginator)
+            $meta
         );
     }
 

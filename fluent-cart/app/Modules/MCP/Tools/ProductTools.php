@@ -6,6 +6,7 @@ use FluentCart\App\Helpers\Helper;
 use FluentCart\App\Models\Product;
 use FluentCart\App\Models\ProductVariation;
 use FluentCart\App\Models\OrderItem;
+use FluentCart\App\Modules\MCP\Support\AdvancedSearch;
 use FluentCart\App\Modules\MCP\Support\MCPHelper;
 use FluentCart\App\Modules\MCP\Support\PermissionGate;
 
@@ -31,7 +32,7 @@ class ProductTools
         return [
             'fluent-cart/list-products' => [
                 'label'       => __('List Products', 'fluent-cart'),
-                'description' => __('Find and filter products. Compact rows: title, status, price range, variation count, fulfillment, stock status. Use get-product for full detail and per-variation stock. Price filters are in store currency, not cents.', 'fluent-cart'),
+                'description' => __('Find and filter products. Compact rows: title, status, price range, variation count, fulfillment, stock status. Use get-product for full detail and per-variation stock. Price filters are in store currency, not cents. For conditions these flat filters cannot express (OR groups, order/variation counts, available stock quantity, taxonomy terms) pass advanced_filters — call get-search-schema entity=products first (Pro).', 'fluent-cart'),
                 'input_schema' => [
                     'type'       => 'object',
                     'properties' => [
@@ -43,6 +44,7 @@ class ProductTools
                         'category'         => ['type' => 'string', 'description' => 'Category term slug.'],
                         'min_price'        => ['type' => 'number', 'description' => 'Minimum price in store currency.'],
                         'max_price'        => ['type' => 'number', 'description' => 'Maximum price in store currency.'],
+                        'advanced_filters' => ['type' => 'array', 'items' => ['type' => ['object', 'array']], 'description' => 'Pro: condition groups {property, operator, value} — outer array = OR groups, inner = AND. Call get-search-schema entity=products FIRST for properties/operators/format. AND-combines with the other filters here. An empty array means no advanced filter.'],
                         'sort_by'          => ['type' => 'string', 'enum' => ['id', 'title', 'date'], 'default' => 'date'],
                         'sort_type'        => ['type' => 'string', 'enum' => ['ASC', 'DESC'], 'default' => 'DESC'],
                         'page'             => ['type' => 'integer', 'default' => 1],
@@ -103,10 +105,24 @@ class ProductTools
     {
         $paging = MCPHelper::pagination($params);
 
-        // Product model adds a global scope pinning post_type to the canonical
-        // CPT (fluent-products) — don't re-add it here, a wrong literal would
-        // AND against the scope and match nothing.
-        $query = Product::query()->with('detail');
+        // advanced_filters routes through the admin filter engine (validated
+        // first — a bad condition errors, never silently drops); the named
+        // filters below then AND onto the same query either way.
+        $advWarnings = [];
+        if (!empty($params['advanced_filters'])) {
+            $built = AdvancedSearch::buildQuery('products', $params['advanced_filters']);
+            if (is_wp_error($built)) {
+                return $built;
+            }
+            $query       = $built['query'];
+            $advWarnings = $built['warnings'];
+        } else {
+            // Product model adds a global scope pinning post_type to the canonical
+            // CPT (fluent-products) — don't re-add it here, a wrong literal would
+            // AND against the scope and match nothing.
+            $query = Product::query();
+        }
+        $query->with('detail');
 
         if (!empty($params['search'])) {
             $query->where('post_title', 'LIKE', '%' . sanitize_text_field($params['search']) . '%');
@@ -168,6 +184,11 @@ class ProductTools
             $rows[] = self::formatRow($product);
         }
 
+        $meta = MCPHelper::pagingMeta($paginator);
+        if ($advWarnings) {
+            $meta['warnings'] = $advWarnings;
+        }
+
         return MCPHelper::envelope(
             sprintf(
                 /* translators: %d: number of matching products */
@@ -175,7 +196,7 @@ class ProductTools
                 $total
             ),
             ['products' => $rows],
-            MCPHelper::pagingMeta($paginator)
+            $meta
         );
     }
 

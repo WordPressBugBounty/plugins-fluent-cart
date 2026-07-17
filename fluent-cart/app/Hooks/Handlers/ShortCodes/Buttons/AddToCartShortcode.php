@@ -77,8 +77,8 @@ class AddToCartShortcode extends ShortCode
         }
 
         $atts = [
-            'text'        => $buttonText,
-            'is_shortcode'=> true,
+            'add_to_cart_text' => $buttonText,
+            'is_shortcode'     => true,
         ];
 
         if ($buttonClass) {
@@ -88,4 +88,3 @@ class AddToCartShortcode extends ShortCode
         return (new ProductRenderer($product, $rendererConfig))->renderAddToCartButton($atts);
     }
 }
-

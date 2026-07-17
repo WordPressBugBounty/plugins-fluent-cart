@@ -668,10 +668,16 @@ class ReceiptRenderer
                 $displayShipping = max(0, $displayShipping - $rcAdj);
             }
         }
+        $shippingMethodTitle = (string) Arr::get($order->config, 'shipping_method_title', '');
         ?>
         <tr>
             <td style="padding: 8px 20px 8px 0;text-align: right;border: none;">
                 <?php echo esc_html__('Shipping', 'fluent-cart'); ?>
+                <?php if ($shippingMethodTitle): ?>
+                    <span style="display:block;font-size:12px;color:rgb(107,114,128);line-height:18px;">
+                        <?php echo esc_html($shippingMethodTitle); ?>
+                    </span>
+                <?php endif; ?>
             </td>
             <td style="padding: 8px 8px 8px 0;width: 100px;text-align: right;border: none;">
                 <?php echo esc_html(\FluentCart\App\Helpers\Helper::toDecimal($displayShipping)); ?>

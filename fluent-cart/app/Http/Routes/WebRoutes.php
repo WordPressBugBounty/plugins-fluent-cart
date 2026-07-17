@@ -144,7 +144,33 @@ class WebRoutes
             if ($coupons) {
                 $coupons = explode(',', $coupons);
                 $coupons = array_map('sanitize_text_field', $coupons);
-                $cart->applyCoupon($coupons);
+                $couponResult = $cart->applyCoupon($coupons);
+                
+
+                $couponErrors = [];
+                if (is_wp_error($couponResult)) {
+                    $couponErrors[] = esc_html($couponResult->get_error_message());
+                } elseif (is_array($couponResult)) {
+                    $perCouponResults = Arr::get($couponResult, 'coupon_results', []);
+                    foreach ($coupons as $code) {
+                        foreach ($perCouponResults as $resultCode => $result) {
+                            if (strcasecmp((string) $resultCode, (string) $code) === 0) {
+                                $errorMessage = Arr::get($result, 'error', '');
+                                if ($errorMessage !== '') {
+                                    $couponErrors[] = esc_html($errorMessage);
+                                }
+                                break;
+                            }
+                        }
+                    }
+                }
+
+                if ($couponErrors) {
+                    $checkoutData = is_array($cart->checkout_data) ? $cart->checkout_data : [];
+                    $checkoutData['__checkout_error_notices'] = $couponErrors;
+                    $cart->checkout_data = $checkoutData;
+                    $cart->save();
+                }
             }
 
             $target_path = (new StoreSettings())->getCheckoutPage();

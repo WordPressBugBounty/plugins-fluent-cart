@@ -23,9 +23,6 @@ class ProductContent extends Element
 
     public function set_controls()
     {
-        $edit_link = Helpers::get_preview_post_link(get_the_ID());
-        $label = esc_html__('Edit product content in FluentCart.', 'fluent-cart');
-
         $this->controls['queryType'] = [
             'tab'      => 'content',
             'type'     => 'select',
@@ -60,7 +57,7 @@ class ProductContent extends Element
         $this->controls['info'] = [
             'tab'     => 'content',
             'type'    => 'info',
-            'content' => $edit_link ? '<a href="' . esc_url($edit_link) . '" target="_blank">' . $label . '</a>' : $label,
+            'content' => esc_html__('Edit product content in FluentCart.', 'fluent-cart'),
         ];
     }
 

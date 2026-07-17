@@ -78,7 +78,7 @@ class PaymentInstance
 
         $attempt = (int) Arr::get($this->transaction->meta ?: [], 'payment_attempt', 0);
 
-        return $this->transaction->uuid . ($attempt ? '_r' . $attempt : '');
+        return $this->transaction->uuid . (int) $this->transaction->total .  ($attempt ? '_r' . $attempt : '');
     }
 
     public function getExtraAddonAmount()

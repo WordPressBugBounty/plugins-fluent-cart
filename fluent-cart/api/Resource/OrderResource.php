@@ -1878,7 +1878,10 @@ class OrderResource extends BaseResourceApi
                 $methodTitle = (string)$shippingMeta['title'];
             }
 
-            $checkoutShipping = ($methodId && $methodTitle) ? [
+            // Gate on the title alone. Live-rate carriers use non-numeric method
+            // ids (e.g. "carrier:shippo:usps_priority") which (int) casts to 0,
+            // so requiring a truthy id silently hid the method name.
+            $checkoutShipping = $methodTitle ? [
                 'method_id'      => $methodId,
                 'method_title'   => $methodTitle,
                 'shipping_total' => (int)Arr::get($order, 'shipping_total', 0),

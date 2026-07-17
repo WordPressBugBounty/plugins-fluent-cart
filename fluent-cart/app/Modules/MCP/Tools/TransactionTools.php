@@ -256,8 +256,12 @@ class TransactionTools
 
         return [
             'matching_count'     => $count,
-            'by_type'            => self::countBy((clone $query), 'transaction_type'),
-            'by_status'          => self::countBy((clone $query), 'status'),
+            // Cast to object: the output_schema types these as 'object', but a
+            // dynamically-built PHP map is an empty array [] when nothing matches,
+            // which json_encodes to [] and fails structured-output validation.
+            // (object) forces {} when empty and a JSON object otherwise.
+            'by_type'            => (object) self::countBy((clone $query), 'transaction_type'),
+            'by_status'          => (object) self::countBy((clone $query), 'status'),
             'amount_by_currency' => $amountByCurrency,
             'note'               => 'amount_by_currency sums transaction total within each currency; charges and refunds are both stored as positive amounts, so filter by type for a single-sided figure.',
         ];

@@ -263,6 +263,7 @@ class ContextTools
         $hints = [
             'fluent-cart/get-store-context'          => ['discovery', 'Call first — identity, permissions, currency, enums, headline stats, and this index.'],
             'fluent-cart/list-reference-data'        => ['discovery', 'Resolve names to ids: coupons, labels, gateways, tax classes, shipping zones, product categories.'],
+            'fluent-cart/get-search-schema'          => ['discovery', 'The advanced_filters reference for one entity — every filterable property, operators, value formats. Call before building an advanced search.'],
             'fluent-cart/list-orders'                => ['find', 'Find orders by status / payment / customer / product / date.'],
             'fluent-cart/list-customers'             => ['find', 'Find customers by name / email / location / LTV.'],
             'fluent-cart/list-products'              => ['find', 'Find products by title / category / price.'],
@@ -320,6 +321,7 @@ class ContextTools
             . 'Dates are ISO-8601 UTC; pass a relative range (e.g. last_30_days) or explicit start_date/end_date to report tools. '
             . 'Use the exact enum values from this payload — never invent a status. '
             . 'Reports never sum across currencies; filter by one currency if the store has several. '
+            . 'When a list tool\'s named filters cannot express a segmentation (OR groups, relative dates, per-property operators, relation properties like transactions/UTM/labels), call get-search-schema for the entity and pass advanced_filters to its list tool (requires Pro). '
             . 'Writes (refund-order, change-subscription-status:cancel) require a dry_run preview first.';
 
         return apply_filters('fluent_cart/mcp_guidelines', $default);

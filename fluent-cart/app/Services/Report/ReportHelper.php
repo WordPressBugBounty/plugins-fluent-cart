@@ -153,16 +153,28 @@ class ReportHelper
         return $attributes;
     }
 
+    /**
+     * Whitelist a groupKey value used to build raw SQL (SELECT/GROUP BY clauses)
+     * so an unrecognized or missing value never reaches the query builder.
+     *
+     * @param mixed $value
+     * @return string
+     */
+    public static function sanitizeGroupKey($value)
+    {
+        $acceptedValues = ['billing_country', 'shipping_country', 'payment_method', 'payment_status', 'default', 'monthly', 'yearly'];
+        return in_array($value, $acceptedValues) ? $value : 'payment_method';
+    }
+
     protected static function sanitizeParams($params)
-    {        
+    {
         $rules = [
             'startDate'        => 'sanitize_text_field',
             'endDate'          => 'sanitize_text_field',
             'compareType'      => 'sanitize_text_field',
             'compareDate'      => 'sanitize_text_field',
             'groupKey'         => function ($value) {
-                $acceptedValues = ['billing_country', 'shipping_country', 'payment_method', 'payment_status', 'default', 'monthly', 'yearly'];
-                return in_array($value, $acceptedValues) ? $value : 'payment_method';
+                return static::sanitizeGroupKey($value);
             },
             'currency'         => 'sanitize_text_field',
             'filterMode'       => 'sanitize_text_field',

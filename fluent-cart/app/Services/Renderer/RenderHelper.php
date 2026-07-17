@@ -15,6 +15,19 @@ class RenderHelper
         }
     }
 
+    public static function renderPriceSuffix($product, $variant, $scope)
+    {
+        $suffixContext = apply_filters('fluent_cart/product/price_suffix_context', [
+            'product' => $product,
+            'variant' => $variant,
+            'scope'   => $scope,
+        ]);
+        $priceSuffix = apply_filters('fluent_cart/product/price_suffix_atts', '', $suffixContext);
+        if ($priceSuffix) {
+            echo '<span class="fct_price_suffix">' . wp_kses_post($priceSuffix) . '</span>';
+        }
+    }
+
     public static function getBlockWrapperAttributes(array $attributes = [])
     {
         if (

@@ -3,7 +3,6 @@
 namespace FluentCart\App\Modules\Templating\Bricks\Elements;
 
 use Bricks\Element;
-use Bricks\Helpers;
 use FluentCart\App\Modules\Templating\Bricks\BricksLoader;
 use FluentCart\App\Modules\Data\ProductDataSetup;
 use FluentCart\App\Services\Renderer\ProductRenderer;
@@ -23,8 +22,6 @@ class ProductShortDescription extends Element
 
     public function set_controls()
     {
-        $edit_link = Helpers::get_preview_post_link(get_the_ID());
-        $label = esc_html__('Edit product short description in WordPress.', 'fluent-cart');
 
         $this->controls['queryType'] = [
             'tab'      => 'content',
@@ -58,9 +55,9 @@ class ProductShortDescription extends Element
         ];
 
         $this->controls['info'] = [
-            'tab'     => 'content',
-            'type'    => 'info',
-            'content' => $edit_link ? '<a href="' . esc_url($edit_link) . '" target="_blank">' . $label . '</a>' : $label,
+            'tab'      => 'content',
+            'type'     => 'info',
+            'content'  => esc_html__('Edit product short description in WordPress.', 'fluent-cart'),
         ];
     }
 

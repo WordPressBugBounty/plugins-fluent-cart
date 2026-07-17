@@ -307,12 +307,18 @@ use FluentCart\App\Services\Renderer\Receipt\TaxSummaryHelper;
                 ?>
                 <?php if ($order->shipping_total > 0):
                     $emailDisplayShipping = max(0, (int) $order->shipping_total - $emailRcShippingAdj);
+                    $emailShippingMethodTitle = (string) \FluentCart\Framework\Support\Arr::get($order->config, 'shipping_method_title', '');
                 ?>
                     <tr style="width:100%">
                         <td style="width:70%">
                             <p style="font-size:14px;color:rgb(55,65,81);line-height:24px;margin: 0;">
                                 <?php echo esc_html__('Shipping', 'fluent-cart'); ?>
                             </p>
+                            <?php if ($emailShippingMethodTitle): ?>
+                                <p style="font-size:12px;color:rgb(107,114,128);line-height:18px;margin:0;">
+                                    <?php echo esc_html($emailShippingMethodTitle); ?>
+                                </p>
+                            <?php endif; ?>
                         </td>
                         <td style="width:30%;text-align:right">
                             <p style="font-size:14px;color:rgb(55,65,81);margin:0;line-height:24px;">

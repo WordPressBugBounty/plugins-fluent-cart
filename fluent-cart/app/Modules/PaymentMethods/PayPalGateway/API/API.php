@@ -61,11 +61,10 @@ class API
      * @param string $method HTTP method ex: GET, POST, DELETE (Optional)
      * @param array $args API request arguments (Optional)
      * @param string $mode PayPal mode ex: live, test (Optional)
-     * @param string|null $requestId Idempotency id sent as PayPal-Request-Id (Optional)
      * @return mixed $response API response
      * @throws \Exception if error occurs
      */
-    public static function makeRequest($path, $version = 'v1', $method = 'POST', $args = [], $mode = '', $requestId = null)
+    public static function makeRequest($path, $version = 'v1', $method = 'POST', $args = [], $mode = '')
     {
         if (empty($path)) {
             return new \WP_Error('invalid_path', esc_html__('API path is required', 'fluent-cart'));
@@ -120,14 +119,6 @@ class API
 
         if ('POST' === $method) {
             $headers['Prefer'] = 'return=representation';
-
-            // PayPal dedupes POSTs by PayPal-Request-Id — a duplicate returns the
-            // ORIGINAL object. Unlike Stripe, a reused id with a changed body is NOT
-            // rejected (the new body is silently ignored), so callers must fingerprint
-            // charge-material params into the id itself.
-            if ($requestId) {
-                $headers['PayPal-Request-Id'] = $requestId;
-            }
         }
 
         $response = wp_remote_post($paypal_api_url, [
@@ -283,13 +274,22 @@ class API
         return new \WP_Error($http_code, $message, $body);
     }
 
-    public static function createOrder($purchaseUnit, $requestId = null)
+    /**
+     * Two-step order: no payment_source in the body, so the buyer approves and the JS SDK
+     * captures. PayPal-Request-Id is optional here and deliberately omitted — see
+     * .claude/skills/coding-rules/payment-idempotency.md.
+     *
+     * Adding payment_source (card, vault_id, billing_agreement_id) makes this a single-step
+     * call that moves money on create. PayPal then REQUIRES PayPal-Request-Id (max 108 chars,
+     * keys stored 6h), and the idempotency design must be revisited before doing so.
+     */
+    public static function createOrder($purchaseUnit)
     {
         return self::makeRequest('checkout/orders', 'v2', 'POST', [
             'intent'              => 'CAPTURE',
             'purchase_units'      => [$purchaseUnit],
             'application_context' => ['shipping_preference' => 'NO_SHIPPING'],
-        ], '', $requestId);
+        ]);
     }
 
     public static function verifyPayment($paymentId)

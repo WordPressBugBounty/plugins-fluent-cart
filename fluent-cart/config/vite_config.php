@@ -4751,6 +4751,12 @@
         'src' => 'resources/images/bill-line.svg',
         'isEntry' => true
     ],
+    'resources/images/bricks/logo.png' => [
+        'file' => 'images/bricks/logo.png',
+        'name' => 'logo',
+        'src' => 'resources/images/bricks/logo.png',
+        'isEntry' => true
+    ],
     'resources/images/cart.svg' => [
         'file' => 'images/cart.svg',
         'name' => 'cart',

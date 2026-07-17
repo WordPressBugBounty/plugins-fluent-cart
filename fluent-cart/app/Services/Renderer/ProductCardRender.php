@@ -415,12 +415,15 @@ class ProductCardRender
                 </span>
             <?php endif; ?>
 
-            <?php do_action('fluent_cart/product/after_price', [
+            <?php
+            do_action('fluent_cart/product/after_price', [
                     'product'       => $this->product,
                     'variant'       => $firstVariant,
                     'current_price' => $minPrice,
                     'scope'         => 'product_card'
-            ]); ?>
+            ]);
+            RenderHelper::renderPriceSuffix($this->product, $firstVariant, 'product_card');
+            ?>
         </div>
         <?php
         do_action('fluent_cart/product/group/after_price_block', [

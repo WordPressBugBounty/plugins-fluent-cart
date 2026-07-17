@@ -94,7 +94,11 @@ class SslcommerzAddon extends AbstractPaymentGateway
             'footer_text'  => __('Download manually with FluentCart free, or install automatically with FluentCart Pro.', 'fluent-cart'),
         ];
 
-        return $this->settings->generateAddonNotice($config);
+        if ($this->settings instanceof AddonGatewaySettings) {
+            return $this->settings->generateAddonNotice($config);
+        }
+
+        return null;
     }
 
     public function fields()

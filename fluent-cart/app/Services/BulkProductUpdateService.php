@@ -4,6 +4,7 @@ namespace FluentCart\App\Services;
 
 use FluentCart\Api\Resource\ProductResource;
 use FluentCart\Api\Resource\ProductVariationResource;
+use FluentCart\App\Helpers\Helper;
 use FluentCart\App\Models\Product;
 use FluentCart\App\Models\ProductDetail;
 use FluentCart\App\Models\ProductVariation;
@@ -194,6 +195,13 @@ class BulkProductUpdateService
             ],
             'variants.*.other_info'                  => 'required|array',
             'variants.*.other_info.payment_type'     => 'required|sanitizeText|in:onetime,subscription',
+            'variants.*.other_info.times'            => [
+                function ($attribute, $value, $rules, $allData) {
+                    $index = explode('.', $attribute)[1];
+
+                    return Helper::installmentTimesError(Arr::get($allData, "variants.$index.other_info"));
+                },
+            ],
             'variants.*.other_info.repeat_interval'  => 'nullable|required_if:variants.*.other_info.payment_type,subscription|sanitizeText|in:yearly,half_yearly,quarterly,monthly,weekly,daily',
             'variants.*.other_info.trial_days'        => 'nullable|numeric|min:0|max:365',
             'variants.*.other_info.manage_setup_fee' => 'nullable|required_if:variants.*.other_info.payment_type,subscription|sanitizeText|in:no,yes',

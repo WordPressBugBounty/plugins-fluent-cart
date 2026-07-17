@@ -537,7 +537,6 @@ class MenuHandler
             'editable_order_statues'           => Status::getEditableOrderStatuses(),
             'editable_customer_statues'        => Status::getEditableCustomerStatuses(),
             'shipping_statuses'                => Status::getShippingStatuses(),
-            'allow_bulk_payment_status_change' => true,
             // Attribute library powering the Advanced Variation feature.
             'variation_attributes'             => AttributeGroup::with(['terms'])->get(),
             'variation_terms'                  => AttributeTerm::query()->get()->keyBy('id'),

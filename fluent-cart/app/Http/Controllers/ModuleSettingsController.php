@@ -269,6 +269,16 @@ class ModuleSettingsController extends Controller
                 'upcoming' => false,
                 'repo_link' => 'https://github.com/WPManageNinja/fluent-cart-elementor-blocks'
             ],
+            'fluent-cart-bricks-blocks' => [
+                'title'       => __('FluentCart Bricks Blocks', 'fluent-cart'),
+                'description' => __('Enable to get Bricks Builder elements for FluentCart. Requires the Bricks theme.', 'fluent-cart'),
+                'logo'        => Vite::getAssetUrl('images/bricks/logo.png'),
+                'plugin_slug' => 'fluent-cart-bricks-blocks',
+                'plugin_file' => 'fluent-cart-bricks-blocks/fluent-cart-bricks-blocks.php',
+                'source_type' => 'cdn',
+                'upcoming'    => false,
+                'repo_link' => 'https://fluentcart.com/fluentcart-addons/'
+            ],
             'fluent-pdf' => [
                 'title'       => __('Fluent PDF', 'fluent-cart'),
                 'description' => __('Generate PDF receipts and attach them to email notifications.', 'fluent-cart'),

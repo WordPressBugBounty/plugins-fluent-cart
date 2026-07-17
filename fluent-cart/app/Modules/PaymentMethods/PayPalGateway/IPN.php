@@ -56,10 +56,25 @@ class IPN
         if ($eventType === 'payment_sale_completed') {
             $billingAgreementId = Arr::get($resource, 'billing_agreement_id', '');
             if ($billingAgreementId) {
-                do_action('fluent_cart/payments/paypal/webhook_subscription_payment_received', [
-                    'charge'                 => $resource,
-                    'vendor_subscription_id' => $billingAgreementId,
-                ]);
+                $subscriptionHash = Arr::get($resource, 'custom', '');
+                $subscription = $subscriptionHash ? Subscription::query()
+                    ->where('uuid', $subscriptionHash)
+                    ->where('current_payment_method', 'paypal')
+                    ->first() : null;
+
+                if ($subscription && $subscription->status === Status::SUBSCRIPTION_INTENDED) {
+                    // First payment - confirm initial order and activate subscription, rare case
+                    do_action('fluent_cart/payments/paypal/webhook_payment_capture_completed', [
+                        'charge'                 => $resource,
+                        'vendor_subscription_id' => $billingAgreementId,
+                    ]);
+                } else {
+                    // Renewal payment
+                    do_action('fluent_cart/payments/paypal/webhook_subscription_payment_received', [
+                        'charge'                 => $resource,
+                        'vendor_subscription_id' => $billingAgreementId,
+                    ]);
+                }
             } else {
                 // do not need webhook for one time payment
                 do_action('fluent_cart/payments/paypal/webhook_payment_capture_completed', [
@@ -107,6 +122,101 @@ class IPN
         $charge = Arr::get($data, 'charge', []);
 
         $vendorChargeId = Arr::get($charge, 'id', '');
+        $vendorSubscriptionId = Arr::get($data, 'vendor_subscription_id', '');
+
+        // Handle first payment for intended subscriptions
+        if ($vendorSubscriptionId) {
+            // Same reasoning as processPaypalWebhookEvents(): match by uuid, not
+            // vendor_subscription_id, which isn't set yet for an intended subscription.
+            $subscriptionHash = Arr::get($charge, 'custom', '');
+            $subscription = $subscriptionHash ? Subscription::query()
+                ->where('uuid', $subscriptionHash)
+                ->where('current_payment_method', 'paypal')
+                ->first() : null;
+
+            if ($subscription && $subscription->status === Status::SUBSCRIPTION_INTENDED) {
+                $transaction = $subscription->getLatestTransaction();
+                if ($transaction) {
+                    $mismatch = false;
+
+                    if ($transaction->status !== Status::TRANSACTION_SUCCEEDED) {
+                        $paidAmount = Helper::toCent(Arr::get($charge, 'amount.total', 0));
+                        $paidCurrency = strtoupper(Arr::get($charge, 'amount.currency', ''));
+
+                        if ($paidCurrency && $transaction->currency && strtoupper($transaction->currency) !== $paidCurrency) {
+                            $mismatch = true;
+                            fluent_cart_add_log(
+                                __('PayPal Webhook Currency Mismatch', 'fluent-cart'),
+                                sprintf(
+                                    /* translators: %1$s: expected currency, %2$s: received currency, %3$s: transaction UUID */
+                                    __('Payment currency mismatch detected. Expected: %1$s, Received: %2$s. Transaction: %3$s. Subscription not confirmed.', 'fluent-cart'),
+                                    $transaction->currency,
+                                    $paidCurrency,
+                                    $transaction->uuid
+                                ),
+                                'error',
+                                [
+                                    'module_name' => 'order',
+                                    'module_id'   => $transaction->order_id,
+                                    'log_type'    => 'webhook'
+                                ]
+                            );
+                        } else if ($transaction->total > 0 && $paidAmount != $transaction->total) {
+                            $mismatch = true;
+                            fluent_cart_add_log(
+                                __('PayPal Webhook Amount Mismatch', 'fluent-cart'),
+                                sprintf(
+                                    /* translators: %1$s: expected amount, %2$s: received amount, %3$s: transaction UUID */
+                                    __('Payment amount mismatch detected. Expected: %1$s, Received: %2$s. Transaction: %3$s. Subscription not confirmed.', 'fluent-cart'),
+                                    Helper::toDecimal($transaction->total),
+                                    Helper::toDecimal($paidAmount),
+                                    $transaction->uuid
+                                ),
+                                'error',
+                                [
+                                    'module_name' => 'order',
+                                    'module_id'   => $transaction->order_id,
+                                    'log_type'    => 'webhook'
+                                ]
+                            );
+                        } else {
+                            // Confirm transaction with actual charge amount from webhook
+                            (new Processor())->confirmPaymentSuccessByCharge($transaction, [
+                                'vendor_charge_id'    => $vendorChargeId,
+                                'status'              => Status::TRANSACTION_SUCCEEDED,
+                                'total'               => $paidAmount,
+                                'payment_method_type' => 'PayPal',
+                            ]);
+                        }
+                    }
+
+                    if (!$mismatch) {
+                        // Activate even if the transaction was already confirmed elsewhere (e.g. AJAX return) — activateSubscription() guards against re-activating.
+                        $paypalSubscription = API::getResource('billing/subscriptions/' . $vendorSubscriptionId);
+                        if (!is_wp_error($paypalSubscription) && $paypalSubscription) {
+                            (new Processor())->activateSubscription($paypalSubscription, $transaction, $subscription);
+                        } else {
+                            fluent_cart_add_log(
+                                __('PayPal Subscription Activation Skipped', 'fluent-cart'),
+                                sprintf(
+                                    /* translators: %1$s: subscription UUID, %2$s: vendor subscription ID */
+                                    __('Could not fetch PayPal subscription resource to activate. Subscription: %1$s, Vendor Subscription ID: %2$s.', 'fluent-cart'),
+                                    $subscription->uuid,
+                                    $vendorSubscriptionId
+                                ),
+                                'error',
+                                [
+                                    'module_name' => 'order',
+                                    'module_id'   => $transaction->order_id,
+                                    'log_type'    => 'webhook'
+                                ]
+                            );
+                        }
+                    }
+                }
+                return;
+            }
+        }
 
         $transaction = OrderTransaction::query()->where('vendor_charge_id', $vendorChargeId)->first();
 
@@ -638,10 +748,6 @@ class IPN
             $parentTransaction = $parentSubscription ? $parentSubscription->getLatestTransaction() : null;
         }
 
-        if ($parentTransaction->transaction_type === Status::TRANSACTION_FAILED) {
-            return null;
-        }
-
         if (!$parentTransaction) {
             do_action('fluent_cart/dev_log', [
                 'raw_data'    => $data,
@@ -652,6 +758,10 @@ class IPN
                 'module_name' => 'PayPal'
             ]);
 
+            return null;
+        }
+
+        if ($parentTransaction->status === Status::TRANSACTION_FAILED) {
             return null;
         }
 

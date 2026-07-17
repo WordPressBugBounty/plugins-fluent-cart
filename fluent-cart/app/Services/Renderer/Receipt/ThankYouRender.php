@@ -490,10 +490,14 @@ class ThankYouRender
                 $displayShipping = max(0, $displayShipping - $rcAdj);
             }
         }
+        $shippingMethodTitle = (string) Arr::get($order->config, 'shipping_method_title', '');
         ?>
         <div class="fct-meta-line fct-thank-you-page-order-items-total-shipping">
             <div class="fct-meta-line-label fct-thank-you-page-order-items-total-label">
                 <?php echo esc_html__('Shipping', 'fluent-cart'); ?>
+                <?php if ($shippingMethodTitle): ?>
+                    <span class="fct-shipping-method-name"><?php echo esc_html($shippingMethodTitle); ?></span>
+                <?php endif; ?>
             </div>
             <div class="fct-meta-line-value fct-thank-you-page-order-items-total-value"><?php echo esc_html(Helper::toDecimal($displayShipping)); ?></div>
         </div>

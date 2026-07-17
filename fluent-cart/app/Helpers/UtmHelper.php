@@ -26,6 +26,38 @@ class UtmHelper
         return apply_filters('fluent_cart/utm/allowed_keys', $keys, []);
     }
 
+    /**
+     * Hostnames that belong to the same store network (e.g. child/product sites
+     * that redirect visitors here for checkout). Referrers from these hosts are
+     * treated as internal navigation and never recorded as refer_url — the real
+     * source arrives as query params (refer_url, utm_*) appended by the child site.
+     */
+    public static function getInternalDomains(): array
+    {
+        $domains = apply_filters('fluent_cart/utm/internal_domains', []);
+
+        if (!is_array($domains)) {
+            return [];
+        }
+
+        $hosts = [];
+        foreach ($domains as $domain) {
+            if (!is_string($domain) || !$domain) {
+                continue;
+            }
+            $domain = strtolower(trim($domain));
+            if (strpos($domain, '//') !== false) {
+                $domain = (string)wp_parse_url($domain, PHP_URL_HOST);
+            }
+            $domain = trim($domain, '/');
+            if ($domain) {
+                $hosts[] = $domain;
+            }
+        }
+
+        return array_values(array_unique($hosts));
+    }
+
     public static function addUtmToOrder($orderId, $data = [])
     {
         $directValueKeys = [
@@ -43,7 +75,7 @@ class UtmHelper
 
         foreach ($directValues as $key => $value) {
             if ($key == 'refer_url') {
-                $directValues[$key] = sanitize_url($value);
+                $directValues[$key] = self::normalizeReferUrl($value);
             } else {
                 $directValues[$key] = sanitize_text_field($value);
             }
@@ -75,6 +107,34 @@ class UtmHelper
             $directValues = array_merge($directValues);
             $oldOperation->update($directValues);
         }
+    }
+
+    /**
+     * Reduce a referrer (full URL or bare host) to its bare domain:
+     * no scheme, no www. prefix, no path — e.g. "google.com"
+     */
+    public static function normalizeReferUrl($value): string
+    {
+        $value = trim((string)$value);
+        if (!$value) {
+            return '';
+        }
+
+        if (strpos($value, '//') !== false) {
+            $host = wp_parse_url($value, PHP_URL_HOST);
+            if ($host) {
+                $value = $host;
+            }
+        } else {
+            $value = explode('/', $value)[0];
+        }
+
+        $value = strtolower($value);
+        if (strpos($value, 'www.') === 0) {
+            $value = substr($value, 4);
+        }
+
+        return sanitize_text_field($value);
     }
 
     public static function getUtmDataOfRequest(): array

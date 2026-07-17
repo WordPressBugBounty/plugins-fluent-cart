@@ -109,7 +109,12 @@ class ProductsCollection extends Custom_Render_Element
             'max'         => 5,
             'breakpoints' => true,
             'placeholder' => 4,
-            'rerender'    => true,
+            'css'         => [
+                [
+                    'selector' => $this->cssRoot,
+                    'property' => '--grid-columns',
+                ],
+            ],
         ];
 
         $this->controls['gap'] = [
@@ -401,8 +406,6 @@ class ProductsCollection extends Custom_Render_Element
 
         $this->setBricksQuery();
 
-        $columns = $this->normalizeColumns(Arr::get($settings, 'columns', 4));
-
         $viewMode = Arr::get($settings, 'viewMode', 'grid');
         $showViewSwitcher = !empty($settings['showViewSwitcher']);
         $paginationType = Arr::get($settings, 'paginationType', 'numbers');
@@ -515,7 +518,7 @@ class ProductsCollection extends Custom_Render_Element
                         <!-- Products -->
                         <div
                             data-fluent-cart-shop-app-product-list
-                            class="fct-products-container grid-columns-<?php echo esc_attr($columns); ?>"
+                            class="fct-products-container"
                         >
                             <?php $this->renderProducts($products); ?>
                         </div>
@@ -545,24 +548,6 @@ class ProductsCollection extends Custom_Render_Element
         </div>
 
         <?php
-    }
-
-    /**
-     * Normalize columns count.
-     */
-    private function normalizeColumns($columns)
-    {
-        $columns = (int)$columns;
-
-        if (!$columns) {
-            return 4;
-        }
-
-        if ($columns > 5) {
-            return 5;
-        }
-
-        return $columns;
     }
 
     /**

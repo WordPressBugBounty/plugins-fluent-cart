@@ -1223,6 +1223,7 @@ class ProductController extends Controller
     public function fetchVariationsByIds(Request $request): array
     {
         $ids = $request->getSafe(['productIds.*' => 'intval']);
+        $ids = Arr::get($ids, 'productIds', []);
         $ids = is_array($ids) ? $ids : [];
         if (empty($ids)) {
             return ['products' => []];

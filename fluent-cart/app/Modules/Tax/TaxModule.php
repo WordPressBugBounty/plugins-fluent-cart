@@ -145,18 +145,29 @@ class TaxModule
         add_action('fluent_cart/checkout/prepare_other_data', [$this, 'prepareOtherData'], 10, 1);
 
         add_action('fluent_cart/product/after_price', function ($data) {
-            $variant     = isset($data['variant']) ? $data['variant'] : null;
-            $priceSuffix = $this->resolvePriceSuffix($variant);
-            if ($priceSuffix) {
-                echo '<span class="fct_price_suffix">' . wp_kses_post($priceSuffix) . '</span>';
+            if (Arr::get($data, 'scope') === 'price_range') {
+                return;
             }
-        }, 10, 1);
+            $variant          = Arr::get($data, 'variant', null);
+            $priceSuffix      = $this->resolvePriceSuffix($variant);
+            $variantInclusion = $variant ? Arr::get($variant->other_info ?: [], 'tax_inclusion', '') : '';
+            $taxInclusion     = $variantInclusion ?: Arr::get($this->taxSettings, 'tax_inclusion', '');
 
-        add_filter('fluent_cart/product/price_suffix_atts', function ($suffix, $context) {
-            $variant     = isset($context['variant']) ? $context['variant'] : null;
-            $priceSuffix = $this->resolvePriceSuffix($variant);
-            return $priceSuffix ?: $suffix;
-        }, 10, 2);
+            $ctxCb = null;
+            $ctxCb = function ($ctx) use ($taxInclusion, &$ctxCb) {
+                remove_filter('fluent_cart/product/price_suffix_context', $ctxCb, 1);
+                $ctx['tax_inclusion'] = $taxInclusion;
+                return $ctx;
+            };
+            add_filter('fluent_cart/product/price_suffix_context', $ctxCb, 1);
+
+            $sfxCb = null;
+            $sfxCb = function ($suffix) use ($priceSuffix, &$sfxCb) {
+                remove_filter('fluent_cart/product/price_suffix_atts', $sfxCb, 1);
+                return $priceSuffix ?: $suffix;
+            };
+            add_filter('fluent_cart/product/price_suffix_atts', $sfxCb, 1, 1);
+        }, 10, 1);
 
         add_filter('fluent_cart/cart/fees', [$this, 'applyRcFeeAdjustments'], 20, 2);
 

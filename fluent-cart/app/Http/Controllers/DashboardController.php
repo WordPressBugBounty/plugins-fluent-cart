@@ -71,6 +71,35 @@ class DashboardController extends Controller
             $completed++;
         }
 
+        if (defined('BRICKS_VERSION')) {
+            $steps['install_bricks_addon'] = [
+                'title'     => __('Install Bricks Addon', 'fluent-cart'),
+                'text'      => __('Design your store pages with FluentCart elements in Bricks.', 'fluent-cart'),
+                'icon'      => 'AppsLine',
+                'completed' => false,
+                'url'       => $baseUrl . "settings/addons"
+            ];
+
+            if (defined('FLUENT_CART_BRICKS_BLOCKS_VERSION')) {
+                $steps['install_bricks_addon']['completed'] = true;
+                $completed++;
+            }
+        }
+
+        if (defined('ELEMENTOR_VERSION')) {
+            $steps['install_elementor_addon'] = [
+                'title'     => __('Install Elementor Addon', 'fluent-cart'),
+                'text'      => __('Design your store pages with FluentCart widgets in Elementor.', 'fluent-cart'),
+                'icon'      => 'AppsLine',
+                'completed' => false,
+                'url'       => $baseUrl . "settings/addons"
+            ];
+
+            if (defined('FLUENTCART_ELEMENTOR_BLOCKS_VERSION')) {
+                $steps['install_elementor_addon']['completed'] = true;
+                $completed++;
+            }
+        }
 
         return $this->response->json([
             'data' => [

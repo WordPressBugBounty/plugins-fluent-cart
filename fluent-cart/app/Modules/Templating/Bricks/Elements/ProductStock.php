@@ -256,6 +256,17 @@ class ProductStock extends Element
                 break;
         }
 
+        // Expose the configured custom labels for BOTH statuses (not just the one
+        // rendered on load) so the frontend JS — which re-derives the badge text on
+        // load and on every variant switch — can prefer them over its generic label
+        // map instead of clobbering the server-rendered custom text.
+        if (!empty($settings['inStockText'])) {
+            $availability['in_stock_text'] = $settings['inStockText'];
+        }
+        if (!empty($settings['outOfStockText'])) {
+            $availability['out_of_stock_text'] = $settings['outOfStockText'];
+        }
+
         return $availability;
     }
 }

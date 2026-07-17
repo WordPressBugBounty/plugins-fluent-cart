@@ -33,6 +33,31 @@ class Helper
 
     const USER_ROLE = 'fluent_cart_customer';
 
+    const MIN_INSTALLMENT_TIMES = 2;
+
+    /**
+     * An installment plan must bill at least twice. times = 0 means unlimited
+     * (a plain recurring subscription) and times = 1 collects a single payment,
+     * which is a one-time purchase, not an installment plan.
+     *
+     * @param array $otherInfo A variant's other_info payload
+     * @return string|null Error message, or null when valid
+     */
+    public static function installmentTimesError($otherInfo)
+    {
+        if (Arr::get($otherInfo, 'installment', 'no') !== 'yes') {
+            return null;
+        }
+
+        $times = Arr::get($otherInfo, 'times', 0);
+
+        if (!is_numeric($times) || (int)$times < static::MIN_INSTALLMENT_TIMES) {
+            return __('Installment count must be 2 or more. A single installment is just a one-time payment — set the payment type to one-time instead.', 'fluent-cart');
+        }
+
+        return null;
+    }
+
     public static function getUidSerial()
     {
         static $id = 0;

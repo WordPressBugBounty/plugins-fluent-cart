@@ -4,7 +4,7 @@ Tags: ecommerce, cart, checkout, subscriptions, payments
 Requires at least: 6.7
 Tested up to: 7.0
 Requires PHP: 7.4
-Stable tag: 1.5.3
+Stable tag: 1.5.4
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -312,6 +312,31 @@ This service is provided by PayPal: [Terms of Service](https://www.paypal.com/le
 
 
 == Changelog ==
+
+= 1.5.4 (Jul 17, 2026) =
+- Adds Bricks Blocks dedicated add-on with 15 new blocks.
+- Adds Cross-site campaign attribution with UTM tracking across connected sites.
+- Adds A "Getting Started" onboarding flow for Bricks and Elementor.
+- Adds Advanced AI search across orders, customers, products, and subscriptions.
+- Fixes PayPal first payments activating the correct subscription.
+- Fixes Duplicate PayPal subscription activations from simultaneous payment notifications.
+- Fixes PayPal refunds syncing correctly with FluentCart.
+- Fixes Paddle subscription status synchronization across additional billing scenarios. (Pro)
+- Fixes Bricks Products Grid responsive column layouts.
+- Fixes Custom Product Stock labels in Bricks rendering on the storefront.
+- Fixes Add to Cart shortcode honoring custom button text.
+- Fixes Rejected URL coupons not displaying an error message.
+- Fixes Revenue and order reports failing with missing grouping options.
+- Fixes Dashboard activity counts matching the activity list.
+- Fixes A rare crash when loading product variations.
+- Fixes Nested layouts rendering correctly in receipt PDFs. (Pro)
+- Improves Security through ongoing audits and hardening across Core and Pro.
+- Improves Confirmation before switching to Advanced Variations.
+- Improves Shipping method visibility for admins and customers.
+- Improves Customer dashboard with date and loading refinements.
+- Improves Translation readiness across the plugin.
+- Improves Storefront support for the price suffix filter hook.
+- Improves Installment billing by enforcing a minimum of two installments.
 
 = 1.5.3 (Jul 9, 2026) =
 - Adds Configurable Tax Display Styles with customizable tax labels.

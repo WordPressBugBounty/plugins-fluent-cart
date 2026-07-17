@@ -4,6 +4,7 @@ namespace FluentCart\App\Modules\MCP\Tools;
 
 use FluentCart\App\Helpers\Helper;
 use FluentCart\App\Models\Customer;
+use FluentCart\App\Modules\MCP\Support\AdvancedSearch;
 use FluentCart\App\Modules\MCP\Support\MCPHelper;
 use FluentCart\App\Modules\MCP\Support\PermissionGate;
 use FluentCart\Api\Resource\CustomerResource;
@@ -28,7 +29,7 @@ class CustomerTools
         return [
             'fluent-cart/list-customers' => [
                 'label'       => __('List Customers', 'fluent-cart'),
-                'description' => __('Find and filter customers. Compact rows with LTV, order count, AOV, and location. For one customer\'s full history use get-customer. min_ltv is in store currency (e.g. 500), not cents.', 'fluent-cart'),
+                'description' => __('Find and filter customers. Compact rows with LTV, order count, AOV, and location. For one customer\'s full history use get-customer. min_ltv is in store currency (e.g. 500), not cents. For conditions these flat filters cannot express (OR groups, buyers of a specific product/variation, relative purchase-date windows, labels) pass advanced_filters — call get-search-schema entity=customers first (Pro).', 'fluent-cart'),
                 'input_schema' => [
                     'type'       => 'object',
                     'properties' => [
@@ -42,6 +43,7 @@ class CustomerTools
                         'first_purchase_after' => ['type' => 'string', 'description' => 'YYYY-MM-DD or ISO 8601, UTC.'],
                         'last_purchase_after'  => ['type' => 'string', 'description' => 'YYYY-MM-DD or ISO 8601, UTC.'],
                         'last_purchase_before' => ['type' => 'string', 'description' => 'YYYY-MM-DD or ISO 8601, UTC.'],
+                        'advanced_filters'     => ['type' => 'array', 'items' => ['type' => ['object', 'array']], 'description' => 'Pro: condition groups {property, operator, value} — outer array = OR groups, inner = AND. Call get-search-schema entity=customers FIRST for properties/operators/format. AND-combines with the other filters here. An empty array means no advanced filter.'],
                         'sort_by'              => ['type' => 'string', 'enum' => ['id', 'ltv', 'purchase_count', 'last_purchase_date', 'created_at'], 'default' => 'ltv'],
                         'sort_type'            => ['type' => 'string', 'enum' => ['ASC', 'DESC'], 'default' => 'DESC'],
                         'page'                 => ['type' => 'integer', 'default' => 1],
@@ -57,7 +59,7 @@ class CustomerTools
 
             'fluent-cart/get-customer' => [
                 'label'       => __('Get Customer', 'fluent-cart'),
-                'description' => __('Full profile + metrics for one customer. Identify by customer_id OR email. Add include[] for orders, subscriptions, addresses, labels, notes. Use with_orders_limit to bound order history.', 'fluent-cart'),
+                'description' => __('Full profile + metrics for one customer. Identify by customer_id OR email. Add include[] for orders (each order row carries its line items: product id, title, quantity), subscriptions, addresses, labels, notes. Use with_orders_limit to bound order history.', 'fluent-cart'),
                 'input_schema' => [
                     'type'       => 'object',
                     'properties' => [
@@ -216,7 +218,21 @@ class CustomerTools
     public static function listCustomers($params = [])
     {
         $paging = MCPHelper::pagination($params);
-        $query  = Customer::query();
+
+        // advanced_filters routes through the admin filter engine (validated
+        // first — a bad condition errors, never silently drops); the named
+        // filters below then AND onto the same query either way.
+        $advWarnings = [];
+        if (!empty($params['advanced_filters'])) {
+            $built = AdvancedSearch::buildQuery('customers', $params['advanced_filters']);
+            if (is_wp_error($built)) {
+                return $built;
+            }
+            $query       = $built['query'];
+            $advWarnings = $built['warnings'];
+        } else {
+            $query = Customer::query();
+        }
 
         if (!empty($params['search'])) {
             $like = '%' . sanitize_text_field($params['search']) . '%';
@@ -270,6 +286,11 @@ class CustomerTools
             $rows[] = self::formatRow($customer);
         }
 
+        $meta = MCPHelper::pagingMeta($paginator);
+        if ($advWarnings) {
+            $meta['warnings'] = $advWarnings;
+        }
+
         return MCPHelper::envelope(
             sprintf(
                 /* translators: %d: number of matching customers */
@@ -277,7 +298,7 @@ class CustomerTools
                 $total
             ),
             ['customers' => $rows],
-            MCPHelper::pagingMeta($paginator)
+            $meta
         );
     }
 
@@ -414,15 +435,33 @@ class CustomerTools
 
     private static function orders($customer, $limit)
     {
-        $orders = $customer->orders()->orderBy('id', 'DESC')->limit($limit)->get();
+        // Trimmed order_items eager load, same as list-orders: without the items
+        // there is no way to tell WHAT the customer bought from this view, which
+        // is the whole point of a customer's order history.
+        $orders = $customer->orders()
+            ->with(['order_items' => function ($q) {
+                $q->select(['id', 'order_id', 'post_id', 'post_title', 'title', 'quantity']);
+            }])
+            ->orderBy('id', 'DESC')->limit($limit)->get();
         $out = [];
         foreach ($orders as $order) {
+            $items = [];
+            if ($order->relationLoaded('order_items')) {
+                foreach ($order->order_items as $item) {
+                    $items[] = [
+                        'product_id' => (int) $item->post_id,
+                        'title'      => $item->getDisplayTitle(),
+                        'quantity'   => (int) $item->quantity,
+                    ];
+                }
+            }
             $out[] = [
                 'order_id'       => (int) $order->id,
                 'number'         => $order->invoice_no ? $order->invoice_no : (string) $order->id,
                 'status'         => $order->status,
                 'payment_status' => $order->payment_status,
                 'total'          => MCPHelper::moneyCompact($order->total_amount),
+                'items'          => $items,
                 'created_at'     => MCPHelper::toIso8601($order->created_at),
             ];
         }

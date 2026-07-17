@@ -559,6 +559,20 @@ class ProductVariationController extends Controller
                         $merged['signup_fee'] = Helper::toCent(floatval($otherInfoDelta['signup_fee']));
                     }
 
+                    // `installment` is not an accepted delta key (see sanitizeOtherInfoDelta),
+                    // so the stored flag on the row decides whether this is an installment
+                    // plan. Re-check only when the request changes `times`, so an unrelated
+                    // bulk price edit on a legacy row still saves. The payment_type gate
+                    // matters: `times` is stripped from $merged for a one-time variant
+                    // above, while a stale `installment` may survive in its stored JSON.
+                    if ($paymentType === 'subscription' && array_key_exists('times', $otherInfoDelta)) {
+                        $timesError = Helper::installmentTimesError($merged);
+                        if ($timesError) {
+                            $db->rollBack();
+                            return $this->sendError(['message' => $timesError], 422);
+                        }
+                    }
+
                     $merged['is_bundle_product'] = Arr::get($existingOtherInfo, 'is_bundle_product', 'no');
                     $merged['bundle_child_ids']   = Arr::get($existingOtherInfo, 'bundle_child_ids', []);
 

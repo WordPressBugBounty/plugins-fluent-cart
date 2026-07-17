@@ -259,6 +259,7 @@ class CustomerOrderController extends BaseFrontendController
             'total_paid'            => $order->total_paid,
             'total_refund'          => $order->total_refund,
             'shipping_total'        => $order->shipping_total,
+            'shipping_method_title' => (string) Arr::get($order->config, 'shipping_method_title', ''),
             'coupon_discount_total' => $order->coupon_discount_total,
             'manual_discount_total' => $order->manual_discount_total,
             'prorate_credit'        => (int) Arr::get($order->config, 'prorate_credit', 0),

@@ -6,7 +6,6 @@ namespace FluentCart\App\Http\Controllers;
 use FluentCart\Api\Resource\CustomerResource;
 use FluentCart\Api\Resource\OrderResource;
 use FluentCart\Api\StoreSettings;
-use FluentCart\App\Events\Order\OrderBulkAction;
 use FluentCart\App\Events\Subscription\SubscriptionActivated;
 use FluentCart\App\Events\Order\OrderCreated;
 use FluentCart\App\Events\Order\OrderDeleting;
@@ -852,88 +851,6 @@ class OrderController extends Controller
 
 
         }
-        if ($action == 'change_shipping_status') {
-            $newStatus = sanitize_text_field($request->get('new_status', ''));
-            if (!$newStatus) {
-                return $this->sendError([
-                    'message' => __('Please select status', 'fluent-cart')
-                ]);
-            }
-
-            $validStatuses = Helper::getShippingStatuses();
-            if (!isset($validStatuses[$newStatus])) {
-                return $this->sendError([
-                    'message' => __('Provided shipping status is not valid', 'fluent-cart')
-                ]);
-            }
-
-            // foreach ($orders as $order) {
-            //     $order->updateShippingStatus($newStatus);
-            // }
-
-            return [
-                'message' => __('Shipping Status has been changed for the selected orders', 'fluent-cart')
-            ];
-
-        }
-        if ($action == 'change_order_status') {
-
-            $newStatus = sanitize_text_field($request->get('new_status', ''));
-            if (!$newStatus) {
-                return $this->sendError([
-                    'message' => __('Please select status', 'fluent-cart')
-                ]);
-            }
-
-            $validStatuses = Status::getEditableOrderStatuses();
-            if (!isset($validStatuses[$newStatus])) {
-                return $this->sendError([
-                    'message' => __('Provided order status is not valid', 'fluent-cart')
-                ]);
-            }
-
-            $failedOrderIds = [];
-            $updatedOrderIds = [];
-
-            foreach ($orders as $order) {
-                // $order->updateStatus('status', $newStatus);
-                $isUpdated = OrderResource::updateStatuses([
-                    'order'                 => $order,
-                    'action'                => 'change_order_status',
-                    'statuses.order_status' => $newStatus,
-                    'manage_stock'          => sanitize_text_field($request->get('manage_stock')),
-                ]);
-
-                if (is_wp_error($isUpdated)) {
-                    $failedOrderIds[] = $order->id;
-                } else {
-                    $updatedOrderIds[] = $order->id;
-                }
-            }
-
-            if (count($failedOrderIds) > 0) {
-                $failedOrderIds = implode(' , ', $failedOrderIds);
-                return count($updatedOrderIds) > 0
-                    ? $this->sendSuccess([
-                        'message' => sprintf(
-                            /* translators: %s is the order ids */
-                            __("The order ID - %s cannot be updated because they are either already cancelled or have the same status. And remaining order status has been successfully changed", 'fluent-cart'), $failedOrderIds)
-                    ])
-                    :
-                    $this->sendError([
-                        'message' => sprintf(
-                            /* translators: %s is the order ids */
-                            __("The order ID - %s cannot be updated because they are either already cancelled or have the same status.", 'fluent-cart'), $failedOrderIds)
-                    ], 423);
-            }
-
-            if (count($updatedOrderIds) > 0 && count($failedOrderIds) < 1) {
-                return $this->sendSuccess([
-                    'message' => __('Order Status has been changed for the selected orders', 'fluent-cart')
-                ]);
-            }
-        }
-
         if ($action == 'capture_payments') {
             foreach ($orders as $order) {
                 $order->capturePayments();
@@ -942,74 +859,6 @@ class OrderController extends Controller
             return [
                 'message' => __('Selected payments has been successfully captured', 'fluent-cart')
             ];
-        }
-
-        if ($action == 'change_payment_status') {
-            $newStatus = sanitize_text_field($request->get('new_status', ''));
-            if (!$newStatus) {
-                return $this->sendError([
-                    'message' => __('Please select status', 'fluent-cart')
-                ]);
-            }
-
-            $validStatuses = Status::getEditableTransactionStatuses();
-            if (!isset($validStatuses[$newStatus])) {
-                return $this->sendError([
-                    'message' => __('Provided payment status is not valid', 'fluent-cart')
-                ]);
-            }
-
-            $failedOrderIds = [];
-            $updatedOrderIds = [];
-            $count = 0;
-            $customerIds = [];
-
-            foreach ($orders as $order) {
-                $transaction = $order->latest_transaction;
-                $isUpdated = OrderResource::updatePaymentStatus([
-                    'order'       => $order,
-                    'status'      => $newStatus,
-                    'transaction' => $transaction,
-                ]);
-
-                if (is_wp_error($isUpdated)) {
-                    $failedOrderIds[] = $order->id;
-                } else {
-                    $updatedOrderIds[] = $order->id;
-                    $count++;
-                    $customerIds[] = $order->customer_id;
-                }
-            }
-
-            if ($count > 0 && count($customerIds) > 0) {
-                (new OrderBulkAction($customerIds))->dispatch();
-            }
-
-            if (count($failedOrderIds) > 0) {
-                $failedOrderIds = implode(' , ', $failedOrderIds);
-                return count($updatedOrderIds) > 0
-                    ? $this->sendSuccess([
-                        'message' => sprintf(
-                            /* translators: %s is the order ids */
-                            __("The order ID - %s cannot be updated at the moment because the transaction either already has the same status or does not match the provided order. The remaining order statuses have been updated successfully.", 'fluent-cart'), $failedOrderIds)
-                    ])
-                    :
-                    $this->sendError([
-                        'message' => sprintf(
-                            /* translators: %s is the order ids */
-                            __("The order ID - %s cannot be updated at the moment because its payment status is either the same as before or has already been refunded.", 'fluent-cart'), $failedOrderIds)
-                    ], 423);
-            }
-
-            if (count($updatedOrderIds) > 0 && count($failedOrderIds) < 1) {
-                return $this->sendSuccess([
-                    'message' => sprintf(
-                        /* translators: %s is the payment status */
-                        __("Selected orders payment status has been marked as %s", 'fluent-cart'),
-                        $newStatus
-                    )
-                ]);
-            }
         }
 
         return $this->sendError([

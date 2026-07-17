@@ -2,6 +2,7 @@
 
 namespace FluentCart\App\Http\Requests;
 
+use FluentCart\App\Helpers\Helper;
 use FluentCart\App\Models\ShippingClass;
 use FluentCart\App\Services\DateTime\DateTime;
 use FluentCart\Framework\Foundation\RequestGuard;
@@ -297,6 +298,15 @@ class ProductUpdateRequest extends RequestGuard
 //            'variants.*.item_cost'                => 'required_if:variants.*.manage_cost,true',
             'variants.*.serial_index'             => 'nullable|numeric',
 //            'variants.*.downloadable' => 'nullable|sanitizeText|maxLength:10',
+            // Outside the variation_type gate below: the other_info rules there only
+            // register for 'simple', but a simple_variations save posts variants too.
+            'variants.*.other_info.times'         => [
+                function ($attribute, $value) {
+                    $index = explode('.', $attribute)[1];
+
+                    return Helper::installmentTimesError($this->get("variants.$index.other_info"));
+                },
+            ],
         ];
 
         if ($variationType === 'simple') {
@@ -314,7 +324,7 @@ class ProductUpdateRequest extends RequestGuard
                         if (!empty($value) && !is_numeric($value)) {
                             return __('Times must be a number.', 'fluent-cart');
                         }
-                        return null;
+                        return Helper::installmentTimesError($this->get("variants.$index.other_info"));
                     },
                 ],
                 'variants.*.other_info.trial_days'       => [

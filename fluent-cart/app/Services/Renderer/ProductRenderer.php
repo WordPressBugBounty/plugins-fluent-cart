@@ -730,19 +730,38 @@ class ProductRenderer
         $stockLabel = Arr::get($stockAvailability, 'availability');
         $statusClass = $stockAvailability['class'] ?? '';
 
+        // Optional per-status custom labels (e.g. set on the Bricks Product Stock
+        // element via the fluent_cart/product_stock_availability filter). Emitted as
+        // data-attributes so the frontend JS, which re-derives the badge text on load
+        // and on variant switches, prefers them over the generic label map instead of
+        // overwriting them. Absent for the default template, so behavior is unchanged.
+        $inStockText = Arr::get($stockAvailability, 'in_stock_text');
+        $outOfStockText = Arr::get($stockAvailability, 'out_of_stock_text');
+
         // The variant-level check above can override the aggregate stock_availability
         // used for $stockLabel/$statusClass (e.g. this specific default variant is out
         // of stock even though the product overall has other in-stock variants) — keep
         // the label and class in sync so the badge never shows mismatched text/color.
+        // Honor the custom out-of-stock label here too so it survives this override on
+        // first load, matching what the frontend JS shows after a variant switch.
         if (!$isStock) {
             $statusClass = 'out-of-stock';
-            $stockLabel = __('Out of Stock', 'fluent-cart');
+            $stockLabel = !empty($outOfStockText) ? $outOfStockText : __('Out of Stock', 'fluent-cart');
         }
+
+        $badgeAttributes = '';
+        if (!empty($inStockText)) {
+            $badgeAttributes .= sprintf(' data-in-stock-text="%s"', esc_attr($inStockText));
+        }
+        if (!empty($outOfStockText)) {
+            $badgeAttributes .= sprintf(' data-out-of-stock-text="%s"', esc_attr($outOfStockText));
+        }
+
         echo sprintf(
                 '<div class="fct-product-stock %1$s" role="status" aria-live="polite">
                     <div %2$s>
                         <span class="fct-stock-label">%3$s</span>
-                        <span class="fct-stock-badge fct_status_badge_%1$s" data-fluent-cart-product-stock>
+                        <span class="fct-stock-badge fct_status_badge_%1$s" data-fluent-cart-product-stock%5$s>
                             %4$s
                         </span>
                     </div>
@@ -750,7 +769,8 @@ class ProductRenderer
                 esc_attr($statusClass),
                 $wrapper_attributes, // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
                 esc_html__('Availability:', 'fluent-cart'),
-                esc_html($stockLabel)
+                esc_html($stockLabel),
+                $badgeAttributes // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- values passed through esc_attr() above
         );
     }
 
@@ -1155,6 +1175,7 @@ class ProductRenderer
                 'current_price' => $variant->item_price,
                 'scope'         => 'product_variant_price'
         ]);
+        RenderHelper::renderPriceSuffix($this->product, $variant, 'product_variant_price');
     }
 
     public function renderComparePriceWrapperStart($atts = [])
@@ -1749,12 +1770,6 @@ class ProductRenderer
             $itemClasses[] = 'selected';
         }
 
-        $priceSuffix = apply_filters('fluent_cart/product/price_suffix_atts', '', [
-                'product' => $this->product,
-                'variant' => $variant,
-                'scope'   => 'variant_item'
-        ]);
-
         $renderingAttributes = [
                 'data-fluent-cart-product-variant' => '',
                 'data-cart-id'                     => $variant->id,
@@ -1764,7 +1779,6 @@ class ProductRenderer
                 'data-available-stock'             => $availableStocks,
                 'data-item-price'                  => Helper::toDecimal($variant->item_price),
                 'data-compare-price'               => $comparePrice,
-                'data-price-suffix'                => $priceSuffix,
                 'data-stock-management'            => ModuleSettings::isActive('stock_management') ? 'yes' : 'no',
                 'data-sku'                         => $variant->sku ?? '',
                 'data-package-info'                => $this->getVariantPackageInfoJson($variant),

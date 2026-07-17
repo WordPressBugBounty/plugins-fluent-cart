@@ -144,17 +144,11 @@ class Processor
             $purchaseUnits['amount']['breakdown']['item_total']['value'] = number_format($adjustedItemTotal, 2, '.', '');
         }
 
-        // Duplicate-charge defense (see .claude/skills/coding-rules/payment-idempotency.md).
-        // The whole purchase unit is fingerprinted: PayPal silently ignores a changed
-        // body on a reused PayPal-Request-Id, so charge-material changes must land in
-        // the id itself. Everything in $purchaseUnits comes from persisted order state —
-        // nothing volatile per-request.
-        $idempotencySeed = $paymentInstance->getIdempotencySeed();
-        $requestId = $idempotencySeed
-            ? 'fct_pp_order_' . md5($idempotencySeed . '|' . wp_json_encode($purchaseUnits))
-            : null;
-
-        $paypalOrder = API::createOrder($purchaseUnits, $requestId);
+        // No PayPal-Request-Id on order-create: it reserves intent, it does not move money
+        // (capture runs client-side against one order id). A transaction-lifetime id
+        // outlives the 3h PayPal order and replays a reversed order id at the buyer.
+        // See .claude/skills/coding-rules/payment-idempotency.md.
+        $paypalOrder = API::createOrder($purchaseUnits);
 
         if (is_wp_error($paypalOrder)) {
             return $paypalOrder;
@@ -421,20 +415,30 @@ class Processor
                 $subscriptionUpdateData['status'] = Status::SUBSCRIPTION_TRIALING;
             }
 
-            $oldStatus = $subscriptionModel->status;
+            // Atomic conditional update: only the caller that actually flips status out of a
+            // pre-active state wins the transition, so concurrent AJAX-return + webhook calls
+            // can't both dispatch SubscriptionActivated.
+            $activatedNow = (bool) Subscription::query()
+                ->where('id', $subscriptionModel->id)
+                ->whereNotIn('status', [Status::SUBSCRIPTION_ACTIVE, Status::SUBSCRIPTION_TRIALING])
+                ->update($subscriptionUpdateData);
 
             $subscriptionModel->fill($subscriptionUpdateData);
-            $subscriptionModel->save();
 
-            $subscriptionModel->updateMeta('active_payment_method', PaymentHelper::parsePaymentMethodDetails('paypal', [
-                'email'    => Arr::get($paypalSubscription, 'subscriber.email_address'),
-                'payer_id' => Arr::get($paypalSubscription, 'subscriber.payer_id'),
-                'name'     => Arr::get($paypalSubscription, 'subscriber.name.given_name') . ' ' . Arr::get($paypalSubscription, 'subscriber.name.surname'),
-                'address'  => Arr::get($paypalSubscription, 'subscriber.shipping_address.address')
-            ]));
+            // updateMeta() is check-then-create with no unique (subscription_id, meta_key)
+            // constraint — gate it behind $activatedNow too, else a losing concurrent caller
+            // still inserts a duplicate active_payment_method meta row.
+            if ($activatedNow) {
+                $subscriptionModel->updateMeta('active_payment_method', PaymentHelper::parsePaymentMethodDetails('paypal', [
+                    'email'    => Arr::get($paypalSubscription, 'subscriber.email_address'),
+                    'payer_id' => Arr::get($paypalSubscription, 'subscriber.payer_id'),
+                    'name'     => Arr::get($paypalSubscription, 'subscriber.name.given_name') . ' ' . Arr::get($paypalSubscription, 'subscriber.name.surname'),
+                    'address'  => Arr::get($paypalSubscription, 'subscriber.shipping_address.address')
+                ]));
 
-            if ($oldStatus != $subscriptionModel->status && (Status::SUBSCRIPTION_ACTIVE === $subscriptionModel->status || Status::SUBSCRIPTION_TRIALING === $subscriptionModel->status)) {
-                (new SubscriptionActivated($subscriptionModel, $order, $order->customer))->dispatch();
+                if (Status::SUBSCRIPTION_ACTIVE === $subscriptionModel->status || Status::SUBSCRIPTION_TRIALING === $subscriptionModel->status) {
+                    (new SubscriptionActivated($subscriptionModel, $order, $order->customer))->dispatch();
+                }
             }
         }
 

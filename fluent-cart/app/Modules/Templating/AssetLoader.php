@@ -417,7 +417,8 @@ class AssetLoader
                 'cart_total_quantity'  => $isInstantCheckout ? 0 : ($cart ? array_sum(array_map(function ($item) { return (int) ($item['quantity'] ?? 1); }, $cart->cart_data ?? [])) : 0),
             ],
             'fluentcart_utm_vars'    => [
-                'allowed_keys' => UtmHelper::allowedUtmParameterKey()
+                'allowed_keys'     => UtmHelper::allowedUtmParameterKey(),
+                'internal_domains' => UtmHelper::getInternalDomains()
             ]
         ]);
 
@@ -514,6 +515,14 @@ class AssetLoader
             $isInstantCheckout = 'yes';
         }
 
+        $checkoutErrorNotices = Arr::get($cart->checkout_data, '__checkout_error_notices', []);
+        if ($checkoutErrorNotices) {
+            $checkoutData = is_array($cart->checkout_data) ? $cart->checkout_data : [];
+            unset($checkoutData['__checkout_error_notices']);
+            $cart->checkout_data = $checkoutData;
+            $cart->save();
+        }
+
         $data = [
             'fluentcart_checkout_vars' => [
                 'rest'                                         => Helper::getRestInfo(),
@@ -521,6 +530,7 @@ class AssetLoader
                 'is_all_digital'                               => !$cart->requireShipping(),
                 'is_cart_locked'                               => $cart->checkout_data['is_locked'] ?? 'no',
                 'disable_coupons'                              => $cart->checkout_data['disable_coupons'] ?? 'no',
+                'notices'                                      => array_values($checkoutErrorNotices),
                 'payment_methods_with_custom_checkout_buttons' => apply_filters('fluent_cart/payment_methods_with_custom_checkout_buttons', []),
                 'tax_settings'                                 => (new TaxModule())->getSettings(),
                 'submit_button'                                => [

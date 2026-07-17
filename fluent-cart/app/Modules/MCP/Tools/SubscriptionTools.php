@@ -4,6 +4,7 @@ namespace FluentCart\App\Modules\MCP\Tools;
 
 use FluentCart\App\Helpers\Helper;
 use FluentCart\App\Models\Subscription;
+use FluentCart\App\Modules\MCP\Support\AdvancedSearch;
 use FluentCart\App\Modules\MCP\Support\MCPHelper;
 use FluentCart\App\Modules\MCP\Support\PermissionGate;
 use FluentCart\App\Modules\MCP\Support\WriteGuard;
@@ -30,7 +31,7 @@ class SubscriptionTools
         return [
             'fluent-cart/list-subscriptions' => [
                 'label'       => __('List Subscriptions', 'fluent-cart'),
-                'description' => __('Find and filter subscriptions. Compact rows carry customer, plan, status, recurring_total, interval, next/created/canceled dates, and installment fields: is_installment, installments_paid, installments_remaining, total_contract_value = recurring_total x bill_times (the full committed price). Use plan_type to split fixed-term installment/split-pay from open-ended recurring plans; next_billing_before for upcoming renewals; created_*/canceled_* ranges for cohorts and churn — a completed installment is paid-in-full, not churn. summary_only=true returns just the aggregates (count by status, committed recurring total, remaining installments). min_recurring is in store currency, not cents.', 'fluent-cart'),
+                'description' => __('Find and filter subscriptions. Compact rows carry customer, plan, status, recurring_total, interval, next/created/canceled dates, and installment fields: is_installment, installments_paid, installments_remaining, total_contract_value = recurring_total x bill_times (the full committed price). Use plan_type to split fixed-term installment/split-pay from open-ended recurring plans; next_billing_before for upcoming renewals; created_*/canceled_* ranges for cohorts and churn — a completed installment is paid-in-full, not churn. summary_only=true returns just the aggregates (count by status, committed recurring total, remaining installments). min_recurring is in store currency, not cents. For conditions these flat filters cannot express (OR groups, vendor/transaction ids, payment method, license properties, labels) pass advanced_filters — call get-search-schema entity=subscriptions first (Pro).', 'fluent-cart'),
                 'input_schema' => [
                     'type'       => 'object',
                     'properties' => [
@@ -46,6 +47,7 @@ class SubscriptionTools
                         'canceled_after'      => ['type' => 'string', 'description' => 'YYYY-MM-DD or ISO 8601, UTC. Subscriptions canceled on or after this date. Pair with status=canceled to measure churn in a window.'],
                         'canceled_before'     => ['type' => 'string', 'description' => 'YYYY-MM-DD or ISO 8601, UTC. Subscriptions canceled on or before this date.'],
                         'min_recurring'       => ['type' => 'number', 'description' => 'Minimum recurring total in store currency.'],
+                        'advanced_filters'    => ['type' => 'array', 'items' => ['type' => ['object', 'array']], 'description' => 'Pro: condition groups {property, operator, value} — outer array = OR groups, inner = AND. Call get-search-schema entity=subscriptions FIRST for properties/operators/format. AND-combines with the other filters here (summary_only included). An empty array means no advanced filter.'],
                         'sort_by'             => ['type' => 'string', 'enum' => ['id', 'next_billing_date', 'created_at', 'canceled_at', 'recurring_total'], 'default' => 'id'],
                         'sort_type'           => ['type' => 'string', 'enum' => ['ASC', 'DESC'], 'default' => 'DESC'],
                         'fields'              => ['type' => 'array', 'items' => ['type' => 'string'], 'description' => 'Optional: return only these row keys to shrink the payload (subscription_id is always kept). Available: status, item_name, customer, recurring_total, billing_interval, next_billing_date, created_at, canceled_at, bill_count, bill_times, is_installment, installments_paid, installments_remaining, total_contract_value, currency, label. Omit for the full row.'],
@@ -111,7 +113,21 @@ class SubscriptionTools
 
     public static function listSubscriptions($params = [])
     {
-        $query = Subscription::query();
+        // advanced_filters routes through the admin filter engine (validated
+        // first — a bad condition errors, never silently drops); the named
+        // filters below then AND onto the same query either way, and the
+        // summary_only branch aggregates over the same filtered set.
+        $advWarnings = [];
+        if (!empty($params['advanced_filters'])) {
+            $built = AdvancedSearch::buildQuery('subscriptions', $params['advanced_filters']);
+            if (is_wp_error($built)) {
+                return $built;
+            }
+            $query       = $built['query'];
+            $advWarnings = $built['warnings'];
+        } else {
+            $query = Subscription::query();
+        }
 
         foreach (['status', 'billing_interval'] as $col) {
             if (!empty($params[$col])) {
@@ -156,7 +172,7 @@ class SubscriptionTools
         // subscriptions (not just one page), no per-record array. Respects every
         // filter applied above.
         if (!empty($params['summary_only'])) {
-            return self::summaryResponse($query);
+            return self::summaryResponse($query, $advWarnings);
         }
 
         $paging = MCPHelper::pagination($params, 15, 200);
@@ -178,6 +194,11 @@ class SubscriptionTools
             $rows[] = MCPHelper::pickFields(self::formatRow($sub), $fields, ['subscription_id']);
         }
 
+        $meta = MCPHelper::pagingMeta($paginator);
+        if ($advWarnings) {
+            $meta['warnings'] = $advWarnings;
+        }
+
         return MCPHelper::envelope(
             sprintf(
                 /* translators: %d: number of matching subscriptions */
@@ -185,7 +206,7 @@ class SubscriptionTools
                 $total
             ),
             ['subscriptions' => $rows],
-            MCPHelper::pagingMeta($paginator)
+            $meta
         );
     }
 
@@ -195,7 +216,7 @@ class SubscriptionTools
      * set. Two lightweight GROUP BY / SUM scans, no row hydration. Money is in the
      * store currency (subscriptions are not currency-scoped), matching formatRow.
      */
-    private static function summaryResponse($query)
+    private static function summaryResponse($query, array $advWarnings = [])
     {
         $byStatusRows = (clone $query)
             ->selectRaw('status, COUNT(*) as cnt, COALESCE(SUM(recurring_total), 0) as recurring_sum')
@@ -229,6 +250,11 @@ class SubscriptionTools
             MCPHelper::displayAmount($recurringSum, MCPHelper::currencyCode())
         );
 
+        $meta = ['currency' => MCPHelper::currencyCode(), 'note' => 'Aggregates across all matching subscriptions; money is in the store currency, not currency-scoped.'];
+        if ($advWarnings) {
+            $meta['warnings'] = $advWarnings;
+        }
+
         return MCPHelper::envelope(
             $summary,
             [
@@ -238,7 +264,7 @@ class SubscriptionTools
                 'remaining_installments_total'  => $remaining,
                 'count_by_status'               => $byStatus,
             ],
-            ['currency' => MCPHelper::currencyCode(), 'note' => 'Aggregates across all matching subscriptions; money is in the store currency, not currency-scoped.']
+            $meta
         );
     }
 

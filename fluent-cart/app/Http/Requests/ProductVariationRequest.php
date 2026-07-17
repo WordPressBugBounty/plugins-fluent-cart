@@ -2,6 +2,7 @@
 
 namespace FluentCart\App\Http\Requests;
 
+use FluentCart\App\Helpers\Helper;
 use FluentCart\Framework\Foundation\RequestGuard;
 use FluentCart\Framework\Support\Arr;
 
@@ -132,7 +133,7 @@ class ProductVariationRequest extends RequestGuard
                     if (!empty($value) && !is_numeric($value)) {
                         return __('Times must be a number.', 'fluent-cart');
                     }
-                    return null;
+                    return Helper::installmentTimesError($this->get('variants.other_info'));
                 },
             ],
             'variants.other_info.trial_days'       => [
