@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: FluentCart\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-17 09:44+0000\n"
+"POT-Creation-Date: 2026-07-17 16:16+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: \n"
@@ -2704,7 +2704,7 @@ msgstr ""
 msgid "An error occurred while duplicating the product."
 msgstr ""
 
-#: app/Modules/PaymentMethods/PayPalGateway/PayPal.php:740
+#: app/Modules/PaymentMethods/PayPalGateway/PayPal.php:822
 msgid "An error occurred while loading PayPal."
 msgstr ""
 
@@ -2741,7 +2741,7 @@ msgstr ""
 msgid "An unexpected error occurred while sending the reminder."
 msgstr ""
 
-#: app/Modules/PaymentMethods/PayPalGateway/PayPal.php:739
+#: app/Modules/PaymentMethods/PayPalGateway/PayPal.php:821
 msgid "An unknown error occurred"
 msgstr ""
 
@@ -2761,7 +2761,7 @@ msgstr ""
 msgid "Ancona"
 msgstr ""
 
-#: app/Modules/PaymentMethods/PayPalGateway/PayPal.php:534
+#: app/Modules/PaymentMethods/PayPalGateway/PayPal.php:616
 msgid "and now watching for Webhook Events listed bellow:"
 msgstr ""
 
@@ -2890,7 +2890,7 @@ msgstr ""
 msgid "API Only"
 msgstr ""
 
-#: app/Modules/PaymentMethods/PayPalGateway/API/API.php:70
+#: app/Modules/PaymentMethods/PayPalGateway/API/API.php:71
 msgid "API path is required"
 msgstr ""
 
@@ -6268,7 +6268,7 @@ msgid ""
 "Choose an existing billing address or add a new one in profile settings."
 msgstr ""
 
-#: app/Modules/PaymentMethods/PayPalGateway/PayPal.php:738
+#: app/Modules/PaymentMethods/PayPalGateway/PayPal.php:820
 msgid "Choose any option to continue"
 msgstr ""
 
@@ -7922,8 +7922,8 @@ msgstr ""
 msgid "Creating"
 msgstr ""
 
-#: app/Modules/PaymentMethods/PayPalGateway/PayPal.php:668
-#: app/Modules/PaymentMethods/PayPalGateway/PayPal.php:686
+#: app/Modules/PaymentMethods/PayPalGateway/PayPal.php:750
+#: app/Modules/PaymentMethods/PayPalGateway/PayPal.php:768
 msgid "Credentials are valid!"
 msgstr ""
 
@@ -12005,7 +12005,7 @@ msgstr ""
 msgid "Failed to resolve attribute options for advanced variation."
 msgstr ""
 
-#: app/Modules/PaymentMethods/PayPalGateway/API/API.php:385
+#: app/Modules/PaymentMethods/PayPalGateway/API/API.php:414
 msgid "Failed to retrieve access token from PayPal."
 msgstr ""
 
@@ -17825,7 +17825,7 @@ msgid "Live Client ID"
 msgstr ""
 
 #: app/Modules/PaymentMethods/StripeGateway/Stripe.php:301
-#: app/Modules/PaymentMethods/PayPalGateway/PayPal.php:594
+#: app/Modules/PaymentMethods/PayPalGateway/PayPal.php:676
 #: app/Modules/PaymentMethods/AirwallexGateway/Airwallex.php:177
 msgid "Live credentials"
 msgstr ""
@@ -17840,7 +17840,7 @@ msgstr ""
 msgid "Live Mode"
 msgstr ""
 
-#: app/Modules/PaymentMethods/PayPalGateway/PayPal.php:572
+#: app/Modules/PaymentMethods/PayPalGateway/PayPal.php:654
 msgid "Live Webhook ID (Copy the webhook id and paste bellow)"
 msgstr ""
 
@@ -17895,7 +17895,7 @@ msgid "Loading media..."
 msgstr ""
 
 #: app/Modules/PaymentMethods/StripeGateway/Stripe.php:183
-#: app/Modules/PaymentMethods/PayPalGateway/PayPal.php:741
+#: app/Modules/PaymentMethods/PayPalGateway/PayPal.php:823
 msgid "Loading Payment Processor..."
 msgstr ""
 
@@ -20897,7 +20897,7 @@ msgstr ""
 msgid "No pricing added yet"
 msgstr ""
 
-#: app/Modules/PaymentMethods/PayPalGateway/PayPal.php:745
+#: app/Modules/PaymentMethods/PayPalGateway/PayPal.php:827
 msgid "no processing"
 msgstr ""
 
@@ -21029,11 +21029,11 @@ msgstr ""
 msgid "No subscription found."
 msgstr ""
 
-#: app/Modules/PaymentMethods/PayPalGateway/PayPal.php:744
+#: app/Modules/PaymentMethods/PayPalGateway/PayPal.php:826
 msgid "No Subscription ID"
 msgstr ""
 
-#: app/Modules/PaymentMethods/PayPalGateway/PayPal.php:281
+#: app/Modules/PaymentMethods/PayPalGateway/PayPal.php:328
 msgid "No Subscription ID!"
 msgstr ""
 
@@ -21094,7 +21094,7 @@ msgstr ""
 msgid "No upgrade plan found"
 msgstr ""
 
-#: app/Modules/PaymentMethods/PayPalGateway/PayPal.php:800
+#: app/Modules/PaymentMethods/PayPalGateway/PayPal.php:882
 msgid "No valid Client ID found!"
 msgstr ""
 
@@ -21372,11 +21372,11 @@ msgstr ""
 msgid "Not Installed"
 msgstr ""
 
-#: app/Modules/PaymentMethods/PayPalGateway/PayPal.php:743
+#: app/Modules/PaymentMethods/PayPalGateway/PayPal.php:825
 msgid "Not proper order handler"
 msgstr ""
 
-#: app/Modules/PaymentMethods/PayPalGateway/PayPal.php:746
+#: app/Modules/PaymentMethods/PayPalGateway/PayPal.php:828
 msgid "not proper order handler"
 msgstr ""
 
@@ -22196,7 +22196,7 @@ msgstr ""
 msgid "Order created successfully!"
 msgstr ""
 
-#: app/Modules/PaymentMethods/PayPalGateway/PayPal.php:742
+#: app/Modules/PaymentMethods/PayPalGateway/PayPal.php:824
 msgid "Order creation failed"
 msgstr ""
 
@@ -22320,7 +22320,7 @@ msgstr ""
 
 #: app/Modules/PaymentMethods/StripeGateway/Stripe.php:421
 #: app/Modules/PaymentMethods/StripeGateway/Stripe.php:506
-#: app/Modules/PaymentMethods/PayPalGateway/PayPal.php:822
+#: app/Modules/PaymentMethods/PayPalGateway/PayPal.php:904
 msgid "Order info retrieved!"
 msgstr ""
 
@@ -23092,7 +23092,7 @@ msgstr ""
 msgid "Paid"
 msgstr ""
 
-#: app/Modules/PaymentMethods/PayPalGateway/PayPal.php:193
+#: app/Modules/PaymentMethods/PayPalGateway/PayPal.php:225
 msgid "Paid amount does not match with transaction amount!"
 msgstr ""
 
@@ -23389,7 +23389,7 @@ msgid "Payment addon activated successfully!"
 msgstr ""
 
 #. %1$s: expected amount, %2$s: received amount
-#: app/Modules/PaymentMethods/PayPalGateway/PayPal.php:181
+#: app/Modules/PaymentMethods/PayPalGateway/PayPal.php:213
 #, php-format
 msgid ""
 "Payment amount mismatch detected. Expected: %1$s, Received: %2$s. This may "
@@ -23433,7 +23433,7 @@ msgid "Payment completed! Updating order..."
 msgstr ""
 
 #: app/Modules/PaymentMethods/StripeGateway/Stripe.php:187
-#: app/Modules/PaymentMethods/PayPalGateway/PayPal.php:747
+#: app/Modules/PaymentMethods/PayPalGateway/PayPal.php:829
 msgid "Payment confirmation failed"
 msgstr ""
 
@@ -23441,7 +23441,7 @@ msgstr ""
 msgid "Payment Confirmation Failed!"
 msgstr ""
 
-#: app/Modules/PaymentMethods/PayPalGateway/PayPal.php:228
+#: app/Modules/PaymentMethods/PayPalGateway/PayPal.php:278
 msgid "Payment confirmation is already processing. Please try again."
 msgstr ""
 
@@ -23458,12 +23458,12 @@ msgstr ""
 msgid "Payment confirmed successfully. Redirecting...!"
 msgstr ""
 
-#: app/Modules/PaymentMethods/PayPalGateway/PayPal.php:214
+#: app/Modules/PaymentMethods/PayPalGateway/PayPal.php:246
 msgid "Payment currency does not match with transaction currency!"
 msgstr ""
 
 #. %1$s: expected currency, %2$s: received currency
-#: app/Modules/PaymentMethods/PayPalGateway/PayPal.php:202
+#: app/Modules/PaymentMethods/PayPalGateway/PayPal.php:234
 #, php-format
 msgid ""
 "Payment currency mismatch detected. Expected: %1$s, Received: %2$s. This may "
@@ -23507,7 +23507,7 @@ msgstr ""
 msgid "Payment failed. Please try again."
 msgstr ""
 
-#: app/Modules/PaymentMethods/PayPalGateway/PayPal.php:272
+#: app/Modules/PaymentMethods/PayPalGateway/PayPal.php:319
 msgid "Payment has been paid successfully! Redirecting..."
 msgstr ""
 
@@ -23605,7 +23605,8 @@ msgid ""
 "admin!"
 msgstr ""
 
-#: app/Modules/PaymentMethods/PayPalGateway/PayPal.php:163
+#: app/Modules/PaymentMethods/PayPalGateway/PayPal.php:195
+#: app/Modules/PaymentMethods/PayPalGateway/PayPal.php:268
 msgid "Payment not completed!"
 msgstr ""
 
@@ -23713,12 +23714,12 @@ msgstr ""
 msgid "Payments and Payout:"
 msgstr ""
 
-#: app/Modules/PaymentMethods/PayPalGateway/PayPal.php:586
-#: app/Modules/PaymentMethods/PayPalGateway/PayPal.php:625
+#: app/Modules/PaymentMethods/PayPalGateway/PayPal.php:668
+#: app/Modules/PaymentMethods/PayPalGateway/PayPal.php:707
 msgid "PayPal"
 msgstr ""
 
-#: app/Modules/PaymentMethods/PayPalGateway/PayPal.php:178
+#: app/Modules/PaymentMethods/PayPalGateway/PayPal.php:210
 msgid "PayPal Amount Mismatch Attempt"
 msgstr ""
 
@@ -23730,7 +23731,7 @@ msgstr ""
 msgid "PayPal Buyer Email (optional)"
 msgstr ""
 
-#: app/Modules/PaymentMethods/PayPalGateway/PayPal.php:199
+#: app/Modules/PaymentMethods/PayPalGateway/PayPal.php:231
 msgid "PayPal Currency Mismatch Attempt"
 msgstr ""
 
@@ -23739,7 +23740,7 @@ msgstr ""
 msgid "PayPal developers"
 msgstr ""
 
-#: app/Modules/PaymentMethods/PayPalGateway/PayPal.php:837
+#: app/Modules/PaymentMethods/PayPalGateway/PayPal.php:919
 msgid "PayPal does not support the currency you are using!"
 msgstr ""
 
@@ -23749,7 +23750,7 @@ msgid ""
 "payment. Get started or create a merchant account to accept payments."
 msgstr ""
 
-#: app/Modules/PaymentMethods/PayPalGateway/PayPal.php:662
+#: app/Modules/PaymentMethods/PayPalGateway/PayPal.php:744
 msgid "PayPal live credentials are required!"
 msgstr ""
 
@@ -23781,11 +23782,15 @@ msgstr ""
 msgid "PayPal Subscription Activation Skipped"
 msgstr ""
 
-#: app/Modules/PaymentMethods/PayPalGateway/PayPal.php:333
+#: app/Modules/PaymentMethods/PayPalGateway/PayPal.php:380
 msgid "PayPal subscription does not match this transaction!"
 msgstr ""
 
-#: app/Modules/PaymentMethods/PayPalGateway/PayPal.php:366
+#: app/Modules/PaymentMethods/PayPalGateway/Processor.php:406
+msgid "PayPal Subscription Payment Mismatch"
+msgstr ""
+
+#: app/Modules/PaymentMethods/PayPalGateway/PayPal.php:413
 msgid "PayPal subscription plan does not match the expected plan."
 msgstr ""
 
@@ -23805,7 +23810,7 @@ msgstr ""
 msgid "PayPal subscription updated successfully"
 msgstr ""
 
-#: app/Modules/PaymentMethods/PayPalGateway/PayPal.php:662
+#: app/Modules/PaymentMethods/PayPalGateway/PayPal.php:744
 msgid "PayPal test credentials are required!"
 msgstr ""
 
@@ -24220,7 +24225,7 @@ msgstr ""
 msgid "Please add some products!"
 msgstr ""
 
-#: app/Modules/PaymentMethods/PayPalGateway/PayPal.php:864
+#: app/Modules/PaymentMethods/PayPalGateway/PayPal.php:946
 msgid "Please check PayPal if the dispute is already accepted or not!"
 msgstr ""
 
@@ -24377,7 +24382,7 @@ msgstr ""
 msgid "Please provide a valid charge Id!"
 msgstr ""
 
-#: app/Modules/PaymentMethods/PayPalGateway/PayPal.php:796
+#: app/Modules/PaymentMethods/PayPalGateway/PayPal.php:878
 msgid "Please provide a valid Client Id!"
 msgstr ""
 
@@ -25840,7 +25845,7 @@ msgid "Provided transaction status is not valid"
 msgstr ""
 
 #: app/Modules/PaymentMethods/StripeGateway/Stripe.php:315
-#: app/Modules/PaymentMethods/PayPalGateway/PayPal.php:608
+#: app/Modules/PaymentMethods/PayPalGateway/PayPal.php:690
 msgid "Provider"
 msgstr ""
 
@@ -26500,7 +26505,7 @@ msgid "Refund amount is required"
 msgstr ""
 
 #: app/Modules/PaymentMethods/StripeGateway/Stripe.php:109
-#: app/Modules/PaymentMethods/PayPalGateway/PayPal.php:758
+#: app/Modules/PaymentMethods/PayPalGateway/PayPal.php:840
 msgid "Refund amount is required."
 msgstr ""
 
@@ -31880,7 +31885,7 @@ msgstr ""
 msgid "Subscription Activated"
 msgstr ""
 
-#: app/Modules/PaymentMethods/PayPalGateway/PayPal.php:376
+#: app/Modules/PaymentMethods/PayPalGateway/PayPal.php:423
 msgid "Subscription activation failed."
 msgstr ""
 
@@ -31957,7 +31962,7 @@ msgstr ""
 msgid "Subscription Future Revenue"
 msgstr ""
 
-#: app/Modules/PaymentMethods/PayPalGateway/PayPal.php:382
+#: app/Modules/PaymentMethods/PayPalGateway/PayPal.php:429
 msgid "Subscription has been activated successfully!"
 msgstr ""
 
@@ -31979,6 +31984,14 @@ msgstr ""
 msgid "Subscription ID"
 msgstr ""
 
+#. %1$s: expected amount, %2$s: expected currency, %3$s: received amount, %4$s: received currency
+#: app/Modules/PaymentMethods/PayPalGateway/Processor.php:409
+#, php-format
+msgid ""
+"Subscription initial payment mismatch. Expected: %1$s %2$s, Received: %3$s "
+"%4$s. Order not marked paid; awaiting webhook."
+msgstr ""
+
 #: app/Services/Translations/admin-translation.php:2316
 msgid "Subscription Interval"
 msgstr ""
@@ -31994,7 +32007,7 @@ msgid "Subscription is already in status %1$s."
 msgstr ""
 
 #: app/Services/Reminders/ReminderService.php:240
-#: app/Modules/PaymentMethods/PayPalGateway/PayPal.php:302
+#: app/Modules/PaymentMethods/PayPalGateway/PayPal.php:349
 msgid "Subscription is not active"
 msgstr ""
 
@@ -32041,7 +32054,7 @@ msgstr ""
 msgid "Subscription not found"
 msgstr ""
 
-#: app/Modules/PaymentMethods/PayPalGateway/PayPal.php:320
+#: app/Modules/PaymentMethods/PayPalGateway/PayPal.php:367
 #: app/Modules/Subscriptions/Http/Controllers/SubscriptionController.php:81
 msgid "Subscription not found!"
 msgstr ""
@@ -33262,7 +33275,7 @@ msgid "Test Client ID"
 msgstr ""
 
 #: app/Modules/PaymentMethods/StripeGateway/Stripe.php:307
-#: app/Modules/PaymentMethods/PayPalGateway/PayPal.php:600
+#: app/Modules/PaymentMethods/PayPalGateway/PayPal.php:682
 #: app/Modules/PaymentMethods/AirwallexGateway/Airwallex.php:148
 msgid "Test credentials"
 msgstr ""
@@ -33286,7 +33299,7 @@ msgstr ""
 msgid "Test order deletion completed."
 msgstr ""
 
-#: app/Modules/PaymentMethods/PayPalGateway/PayPal.php:557
+#: app/Modules/PaymentMethods/PayPalGateway/PayPal.php:639
 msgid "Test Webhook ID (Copy the webhook id and paste bellow)"
 msgstr ""
 
@@ -34282,11 +34295,11 @@ msgstr ""
 msgid "This payment method does not support remote subscription cancel"
 msgstr ""
 
-#: app/Modules/PaymentMethods/PayPalGateway/PayPal.php:262
+#: app/Modules/PaymentMethods/PayPalGateway/PayPal.php:309
 msgid "This PayPal payment has already been processed!"
 msgstr ""
 
-#: app/Modules/PaymentMethods/PayPalGateway/PayPal.php:346
+#: app/Modules/PaymentMethods/PayPalGateway/PayPal.php:393
 msgid "This PayPal subscription has already been used!"
 msgstr ""
 
@@ -35278,7 +35291,7 @@ msgstr ""
 #: api/Resource/OrderResource.php:2267
 #: app/Modules/PaymentMethods/Core/AbstractPaymentGateway.php:177
 #: app/Modules/PaymentMethods/PayPalGateway/PayPal.php:137
-#: app/Modules/PaymentMethods/PayPalGateway/PayPal.php:311
+#: app/Modules/PaymentMethods/PayPalGateway/PayPal.php:358
 msgid "Transaction not found!"
 msgstr ""
 
@@ -36513,7 +36526,7 @@ msgstr ""
 msgid "Uttarakhand"
 msgstr ""
 
-#: app/Modules/PaymentMethods/PayPalGateway/PayPal.php:737
+#: app/Modules/PaymentMethods/PayPalGateway/PayPal.php:819
 msgid "uuid not found"
 msgstr ""
 
@@ -37502,7 +37515,7 @@ msgstr ""
 msgid "Webhook"
 msgstr ""
 
-#: app/Modules/PaymentMethods/PayPalGateway/PayPal.php:531
+#: app/Modules/PaymentMethods/PayPalGateway/PayPal.php:613
 msgid "Webhook (No further setup needed) :"
 msgstr ""
 
@@ -37514,8 +37527,8 @@ msgstr ""
 msgid "Webhook ID is missing."
 msgstr ""
 
-#: app/Modules/PaymentMethods/PayPalGateway/PayPal.php:613
-#: app/Modules/PaymentMethods/PayPalGateway/PayPal.php:619
+#: app/Modules/PaymentMethods/PayPalGateway/PayPal.php:695
+#: app/Modules/PaymentMethods/PayPalGateway/PayPal.php:701
 msgid "Webhook Info"
 msgstr ""
 
@@ -37523,8 +37536,8 @@ msgstr ""
 msgid "Webhook Settings"
 msgstr ""
 
-#: app/Modules/PaymentMethods/PayPalGateway/PayPal.php:550
-#: app/Modules/PaymentMethods/PayPalGateway/PayPal.php:565
+#: app/Modules/PaymentMethods/PayPalGateway/PayPal.php:632
+#: app/Modules/PaymentMethods/PayPalGateway/PayPal.php:647
 msgid "Webhook Setup"
 msgstr ""
 
@@ -38543,6 +38556,12 @@ msgstr ""
 msgid ""
 "Your order status is marked as %s and not eligible for any further "
 "modifications at this time."
+msgstr ""
+
+#: app/Modules/PaymentMethods/PayPalGateway/PayPal.php:261
+msgid ""
+"Your payment is being reviewed by PayPal. Your order will be confirmed once "
+"the payment is completed."
 msgstr ""
 
 #: app/Services/Translations/admin-translation.php:2774

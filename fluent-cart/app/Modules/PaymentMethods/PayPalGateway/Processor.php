@@ -372,18 +372,25 @@ class Processor
             'current_payment_method' => 'paypal',
         ]);
 
-        $transactionUpdateData = [];
-        $lastTransactionAmount = Helper::toCent(Arr::get($paypalSubscription, 'billing_info.last_payment.amount.value', 0));
+        $lastPaymentAmount = Helper::toCent(Arr::get($paypalSubscription, 'billing_info.last_payment.amount.value', 0));
+        $lastPaymentCurrency = strtoupper(Arr::get($paypalSubscription, 'billing_info.last_payment.amount.currency_code', ''));
 
-        if (($lastTransactionAmount && $transaction->total == $lastTransactionAmount) || $transaction->total == 0) {
-            $transactionUpdateData = [
-                'order_id'       => $order->id,
-                'status'         => Status::TRANSACTION_SUCCEEDED,
-                'payment_method' => 'paypal'
-            ];
-        }
+        // A subscription can legitimately be ACTIVE with no initial payment yet — a free
+        // trial, or a future start_time whose first charge PayPal has not run. Only mark the
+        // initial transaction SUCCEEDED (which flips the order to paid and triggers
+        // fulfilment) when PayPal reports a real initial payment whose amount AND currency
+        // match what we expected, or when nothing is owed (total == 0). ACTIVE alone is never
+        // treated as paid: an amount- or currency-mismatched payment leaves the order pending
+        // for the PAYMENT.SALE.COMPLETED webhook to reconcile, so a forced activation can
+        // never deliver a paid product for free.
+        $currencyMatches = !$lastPaymentCurrency || !$transaction->currency
+            || strtoupper($transaction->currency) === $lastPaymentCurrency;
 
-        if ($transactionUpdateData) {
+        $initialPaymentVerified = $lastPaymentAmount
+            && $transaction->total == $lastPaymentAmount
+            && $currencyMatches;
+
+        if ($initialPaymentVerified || $transaction->total == 0) {
             $transactionUpdateData = array_filter([
                 'order_id'       => $order->id,
                 'status'         => Status::TRANSACTION_SUCCEEDED,
@@ -392,6 +399,25 @@ class Processor
 
             $transaction->fill($transactionUpdateData);
             $transaction->save();
+        } elseif ($lastPaymentAmount && $transaction->total > 0) {
+            // A payment was reported but its amount or currency does not match the expected
+            // charge — do not mark the order paid; record it for audit (possible tampering).
+            fluent_cart_warning_log(
+                __('PayPal Subscription Payment Mismatch', 'fluent-cart'),
+                sprintf(
+                    /* translators: %1$s: expected amount, %2$s: expected currency, %3$s: received amount, %4$s: received currency */
+                    __('Subscription initial payment mismatch. Expected: %1$s %2$s, Received: %3$s %4$s. Order not marked paid; awaiting webhook.', 'fluent-cart'),
+                    Helper::toDecimal($transaction->total),
+                    $transaction->currency,
+                    Helper::toDecimal($lastPaymentAmount),
+                    $lastPaymentCurrency
+                ),
+                [
+                    'module_name' => 'order',
+                    'module_id'   => $order->id,
+                    'log_type'    => 'api'
+                ]
+            );
         }
 
 

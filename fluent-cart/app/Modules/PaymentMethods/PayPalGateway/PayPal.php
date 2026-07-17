@@ -155,9 +155,41 @@ class PayPal extends AbstractPaymentGateway
             ], 422);
         }
 
-        $isPaid = Arr::get($payment_intent, 'status') === 'COMPLETED' || Arr::get($payment_intent, 'status') === 'APPROVED';
+        // Move the money ourselves — never trust the browser to have captured.
+        // FluentCart creates the order with intent=CAPTURE, but the buyer only
+        // AUTHORIZES it in the popup (status APPROVED). The funds are not captured
+        // until we call capture server-side. An APPROVED-but-uncaptured order means
+        // PayPal is holding $0; accepting it as paid delivers the product for free.
+        if (Arr::get($payment_intent, 'status') === 'APPROVED') {
+            $captured = $this->capturePayPalPayment($payPalReferenceId);
 
-        if (!$isPaid) {
+            if (is_wp_error($captured)) {
+                // The normal (non-malicious) flow captures in the browser first, so by
+                // the time we reach here the order may already be captured. That is
+                // success, not failure: re-read the order and continue. Any other
+                // capture error is fatal.
+                if (!$this->isAlreadyCapturedError($captured)) {
+                    wp_send_json([
+                        'status'  => 'failed',
+                        'message' => $captured->get_error_message(),
+                    ], 422);
+                }
+
+                $payment_intent = $this->verifyPayPalPayment($payPalReferenceId);
+                if (is_wp_error($payment_intent)) {
+                    wp_send_json([
+                        'status'  => 'failed',
+                        'message' => $payment_intent->get_error_message(),
+                    ], 422);
+                }
+            } else {
+                $payment_intent = $captured;
+            }
+        }
+
+        // Only a COMPLETED order (its capture actually moved money) counts as paid.
+        // APPROVED is deliberately NOT accepted here.
+        if (Arr::get($payment_intent, 'status') !== 'COMPLETED') {
             wp_send_json([
                 'status'  => 'failed',
                 'message' => __('Payment not completed!', 'fluent-cart')
@@ -215,27 +247,42 @@ class PayPal extends AbstractPaymentGateway
             ], 422);
         }
 
-        $chargeId = Arr::get($payment_intent, 'purchase_units.0.payments.captures.0.id', '');
+        $capture      = Arr::get($payment_intent, 'purchase_units.0.payments.captures.0', []);
+        $chargeId     = Arr::get($capture, 'id', '');
+        $captureStatus = Arr::get($capture, 'status', '');
 
-        $payPalCaptureLockAcquired = false;
+        // A completed order must have a completed capture with a real charge id. A capture
+        // in PENDING (risk/review hold) has moved no money yet: leave the transaction
+        // pending and let the PAYMENT.CAPTURE.COMPLETED webhook finalize it. Never mark the
+        // order paid off an empty charge id or a non-completed capture.
+        if ($captureStatus === 'PENDING') {
+            wp_send_json([
+                'status'  => 'pending',
+                'message' => __('Your payment is being reviewed by PayPal. Your order will be confirmed once the payment is completed.', 'fluent-cart')
+            ], 202);
+        }
+
+        if (!$chargeId || $captureStatus !== 'COMPLETED') {
+            wp_send_json([
+                'status'  => 'failed',
+                'message' => __('Payment not completed!', 'fluent-cart')
+            ], 422);
+        }
+
         $duplicateCapture = false;
 
-        if ($chargeId) {
-            $payPalCaptureLockAcquired = $this->acquirePayPalCaptureLock($chargeId);
-            if (!$payPalCaptureLockAcquired) {
-                wp_send_json([
-                    'status'  => 'failed',
-                    'message' => __('Payment confirmation is already processing. Please try again.', 'fluent-cart')
-                ], 409);
-            }
+        $payPalCaptureLockAcquired = $this->acquirePayPalCaptureLock($chargeId);
+        if (!$payPalCaptureLockAcquired) {
+            wp_send_json([
+                'status'  => 'failed',
+                'message' => __('Payment confirmation is already processing. Please try again.', 'fluent-cart')
+            ], 409);
         }
 
         // Prevent a single PayPal capture from being applied to more than one
         // transaction (replay/duplicate-capture protection).
         try {
-            if ($chargeId) {
-                $duplicateCapture = $this->hasExistingPayPalCapture($transaction, $chargeId);
-            }
+            $duplicateCapture = $this->hasExistingPayPalCapture($transaction, $chargeId);
 
             if (!$duplicateCapture) {
                 // All Verified! Let's update the transaction and order
@@ -395,6 +442,41 @@ class PayPal extends AbstractPaymentGateway
     protected function verifyPayPalPayment($payPalReferenceId)
     {
         return API::verifyPayment($payPalReferenceId);
+    }
+
+    protected function capturePayPalPayment($payPalReferenceId)
+    {
+        return API::captureOrder($payPalReferenceId);
+    }
+
+    /**
+     * Detects PayPal's "this order was already captured" response. In the normal flow the
+     * browser captures first, so our server-side capture of the same order legitimately
+     * fails with 422 UNPROCESSABLE_ENTITY / issue ORDER_ALREADY_CAPTURED — that is expected
+     * and must be treated as success (re-GET the order), not as a payment failure.
+     *
+     * @param \WP_Error $error
+     * @return bool
+     */
+    protected function isAlreadyCapturedError($error)
+    {
+        if (!is_wp_error($error)) {
+            return false;
+        }
+
+        if ($error->get_error_code() === 'ORDER_ALREADY_CAPTURED') {
+            return true;
+        }
+
+        $body = $error->get_error_data();
+        if (is_array($body)) {
+            $issue = Arr::get($body, 'details.0.issue', '');
+            if ($issue === 'ORDER_ALREADY_CAPTURED') {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     protected function hasExistingPayPalCapture(OrderTransaction $transaction, $chargeId)

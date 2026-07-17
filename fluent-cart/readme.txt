@@ -4,7 +4,7 @@ Tags: ecommerce, cart, checkout, subscriptions, payments
 Requires at least: 6.7
 Tested up to: 7.0
 Requires PHP: 7.4
-Stable tag: 1.5.4
+Stable tag: 1.5.5
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -312,6 +312,9 @@ This service is provided by PayPal: [Terms of Service](https://www.paypal.com/le
 
 
 == Changelog ==
+
+= 1.5.5 (Jul 17, 2026) =
+- Improves PayPal payment and subscription confirmation flow against unverified payment states.
 
 = 1.5.4 (Jul 17, 2026) =
 - Adds Bricks Blocks dedicated add-on with 15 new blocks.

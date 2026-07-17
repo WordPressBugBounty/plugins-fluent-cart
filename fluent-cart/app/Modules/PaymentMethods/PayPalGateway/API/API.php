@@ -61,10 +61,11 @@ class API
      * @param string $method HTTP method ex: GET, POST, DELETE (Optional)
      * @param array $args API request arguments (Optional)
      * @param string $mode PayPal mode ex: live, test (Optional)
+     * @param array $extraHeaders Additional request headers ex: PayPal-Request-Id (Optional)
      * @return mixed $response API response
      * @throws \Exception if error occurs
      */
-    public static function makeRequest($path, $version = 'v1', $method = 'POST', $args = [], $mode = '')
+    public static function makeRequest($path, $version = 'v1', $method = 'POST', $args = [], $mode = '', $extraHeaders = [])
     {
         if (empty($path)) {
             return new \WP_Error('invalid_path', esc_html__('API path is required', 'fluent-cart'));
@@ -119,6 +120,10 @@ class API
 
         if ('POST' === $method) {
             $headers['Prefer'] = 'return=representation';
+        }
+
+        foreach ($extraHeaders as $headerKey => $headerValue) {
+            $headers[$headerKey] = $headerValue;
         }
 
         $response = wp_remote_post($paypal_api_url, [
@@ -295,6 +300,30 @@ class API
     public static function verifyPayment($paymentId)
     {
         return self::makeRequest('checkout/orders/' . $paymentId, 'v2', 'GET');
+    }
+
+    /**
+     * Captures an APPROVED PayPal order server-side, moving the money. FluentCart creates
+     * the order with intent=CAPTURE but the buyer only AUTHORIZES it in the popup; the funds
+     * are not captured until this call runs. The server must never trust the browser to have
+     * captured — an APPROVED-but-uncaptured order means PayPal is holding $0.
+     *
+     * Capture MOVES MONEY, so it carries a PayPal-Request-Id for idempotency (see
+     * .claude/skills/coding-rules/payment-idempotency.md). The id is keyed on the PayPal
+     * order id, which is stable and unique per checkout attempt: a duplicate capture of the
+     * same order replays the cached response instead of double-capturing, while capturing an
+     * already-captured order returns 422 ORDER_ALREADY_CAPTURED (the caller re-GETs and
+     * continues). PayPal retains request ids for 6h — longer than the 3h order lifetime — so
+     * a keyed capture never replays a dead id.
+     *
+     * @param string $paymentId The PayPal order id (payId)
+     * @return mixed API response (the captured order) or WP_Error
+     */
+    public static function captureOrder($paymentId)
+    {
+        return self::makeRequest('checkout/orders/' . $paymentId . '/capture', 'v2', 'POST', [], '', [
+            'PayPal-Request-Id' => 'fct_paypal_capture_' . md5($paymentId),
+        ]);
     }
 
     public function verifySubscription($subscriptionId, $mode = '')
