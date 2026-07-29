@@ -29,7 +29,7 @@ class Stripe extends AbstractPaymentGateway
 
     public array $supportedFeatures = ['payment', 'refund', 'webhook', 'custom_payment', 'card_update', 'switch_payment_method' => [
         'supported_gateways' => ['stripe', 'paypal'],
-    ], 'dispute_handler', 'subscriptions', 'zero_recurring'];
+    ], 'dispute_handler', 'subscriptions', 'zero_recurring', 'system_subscription', 'manual_subscription'];
 
     public BaseGatewaySettings $settings;
 
@@ -95,10 +95,305 @@ class Stripe extends AbstractPaymentGateway
         );
 
         if ($paymentInstance->subscription) {
+            $subscription = $paymentInstance->subscription;
+
+            // Store-managed mode: charge the first order / renewal invoice one-time.
+            // No Stripe subscription object, no manual→automatic conversion — the
+            // invoice engine owns all future renewals.
+            if ($this->shouldChargeSubscriptionAsOneTime($paymentInstance)) {
+                // System subscriptions save the payment method for off-session
+                // auto-charging of future renewal invoices (consent shown at checkout).
+                if ($subscription->collection_method === 'system') {
+                    // Nothing payable now (free trial): a $0 PaymentIntent is invalid —
+                    // save the card via a SetupIntent instead. The trial-end invoice is
+                    // then charged off-session like any other system renewal. Hosted mode
+                    // never loads Stripe.js/Elements, so it needs a redirect-based
+                    // Checkout Session (mode: setup) instead of a client-side SetupIntent.
+                    if ((int) $paymentInstance->transaction->total <= 0) {
+                        $checkoutMode = $this->settings->get('checkout_mode') ?? 'onsite';
+                        if ($checkoutMode === 'hosted') {
+                            return (new Processor())->handleHostedSetupOnlyCheckout($paymentInstance, $paymentArgs);
+                        }
+
+                        return (new Processor())->handleSetupOnlyPayment($paymentInstance, $paymentArgs);
+                    }
+
+                    $paymentArgs['setup_future_usage'] = 'off_session';
+                }
+
+                return (new Processor())->handleSinglePayment($paymentInstance, $paymentArgs);
+            }
+
+            if ($subscription->collection_method === 'manual') {
+                $previousPaymentMethod = $subscription->current_payment_method;
+                $conversionResult = $this->convertManualSubscription($paymentInstance, $paymentArgs);
+                if (is_wp_error($conversionResult)) {
+                    return $conversionResult;
+                }
+                
+                $result = (new Processor())->handleSubscription($paymentInstance, $paymentArgs);
+
+                if (is_wp_error($result)) {
+                    $subscription->update([
+                        'collection_method'      => 'manual',
+                        'current_payment_method' => $previousPaymentMethod,
+                    ]);
+                } else {
+                    $subscription->addLog(
+                        'Converted to automatic billing',
+                        sprintf('Subscription converted from manual to automatic billing via %s', 'Stripe'),
+                        'info'
+                    );
+                    do_action('fluent_cart/subscription_converted_to_automatic', [
+                        'subscription'   => $subscription,
+                        'payment_method' => 'stripe',
+                    ]);
+                }
+                return $result;
+            }
+
             return (new Processor())->handleSubscription($paymentInstance, $paymentArgs);
         }
 
         return (new Processor())->handleSinglePayment($paymentInstance, $paymentArgs);
+    }
+
+    public function convertManualSubscription($paymentInstance, $paymentArgs)
+    {
+        $subscription = $paymentInstance->subscription;
+
+        if (!$subscription || $subscription->collection_method !== 'manual') {
+            return new \WP_Error('invalid_subscription', __('Subscription is not manual or does not exist', 'fluent-cart'));
+        }
+
+        if (in_array($subscription->status, ['completed'])) {
+            return new \WP_Error('subscription_invalid_status', __('Cannot convert completed subscriptions', 'fluent-cart'));
+        }
+
+        $subscription->collection_method = 'automatic';
+        $subscription->current_payment_method = 'stripe';
+        $subscription->save();
+
+        return true;
+    }
+
+    /**
+     * Stripe can vault a card without charging — the onsite Elements flow uses a
+     * client-side SetupIntent, hosted mode redirects to a Checkout Session in
+     * `mode: setup` (Processor::handleHostedSetupOnlyCheckout()).
+     */
+    public function supportsSetupWithoutCharge(): bool
+    {
+        return true;
+    }
+
+    /**
+     * Off-session charge of a system subscription's renewal invoice using the
+     * stored token. Success flows through confirmPaymentSuccessByCharge so the
+     * normal renewal-paid path (syncOrderStatuses / handleRenewalPaid) runs.
+     *
+     * @param PaymentInstance $paymentInstance
+     * @param array $args ['attempt' => int]
+     * @return true|'processing'|\WP_Error true = confirmed; 'processing' = charge
+     *                                     accepted, webhook will confirm
+     */
+    public function chargeRenewal(PaymentInstance $paymentInstance, $args = [])
+    {
+        $order = $paymentInstance->order;
+        $transaction = $paymentInstance->transaction;
+        $subscription = $paymentInstance->subscription;
+
+        if (!$order || !$transaction || !$subscription) {
+            return new \WP_Error('invalid_instance', __('Renewal invoice is missing its order, transaction, or subscription.', 'fluent-cart'));
+        }
+
+        $customerId = $subscription->vendor_customer_id;
+
+        // Token read AT FIRE TIME — never snapshotted. The meta has two shapes in
+        // the wild: vendor_method_id (confirmation paths) and
+        // details.payment_method_id (card-switch flow) — accept both.
+        $paymentMethodMeta = $subscription->getMeta('active_payment_method', []) ?: [];
+        $token = Arr::get($paymentMethodMeta, 'vendor_method_id') ?: Arr::get($paymentMethodMeta, 'details.payment_method_id');
+
+        if (!$customerId || !$token) {
+            return new \WP_Error('missing_token', __('No saved payment method is available for this subscription.', 'fluent-cart'));
+        }
+
+        // The saved customer + payment method were created in the order's Stripe
+        // mode; charging them requires that mode's secret key. If it is missing
+        // (e.g. a live-mode order on a store configured with test keys only, common
+        // on staging clones), fail with a clear message rather than sending an empty
+        // Authorization header to Stripe.
+        if ($keyError = $this->guardSecretKeyForMode($order->mode)) {
+            return $keyError;
+        }
+
+        $chargeAmount = (int) $transaction->total;
+        if ($transaction->currency && CurrenciesHelper::isZeroDecimal($transaction->currency)) {
+            $chargeAmount = (int) round($chargeAmount / 100);
+        }
+
+        $intentData = [
+            'amount'         => $chargeAmount,
+            'currency'       => strtolower($transaction->currency),
+            'customer'       => $customerId,
+            'payment_method' => $token,
+            'off_session'    => 'true',
+            'confirm'        => 'true',
+            'expand'         => ['latest_charge'],
+            'metadata'       => apply_filters('fluent_cart/payments/stripe_metadata_onetime', [
+                'fct_ref_id'      => $order->uuid,
+                'Name'            => $order->customer ? $order->customer->full_name : '',
+                'Email'           => $order->customer ? $order->customer->email : '',
+                'order_reference' => 'fct_order_id_' . $order->id,
+            ], [
+                'order'       => $order,
+                'transaction' => $transaction
+            ]),
+        ];
+
+        $attempt = max(1, (int) Arr::get($args, 'attempt', 1));
+
+        $intent = (new API())->createStripeObject('payment_intents', $intentData, $order->mode, [
+            'Idempotency-Key' => 'fct_system_charge_' . $order->id . '_' . $attempt,
+        ]);
+
+        if (is_wp_error($intent)) {
+            return $intent;
+        }
+
+        $intentStatus = Arr::get($intent, 'status');
+
+        if ($intentStatus === 'succeeded') {
+            $transaction->update(['vendor_charge_id' => Arr::get($intent, 'id')]);
+
+            (new Confirmations())->confirmPaymentSuccessByCharge($transaction, [
+                'charge'    => Arr::get($intent, 'latest_charge', []),
+                'intent_id' => Arr::get($intent, 'id'),
+            ]);
+
+            return true;
+        }
+
+        if ($intentStatus === 'processing') {
+            // Charge accepted but still settling (e.g. bank debits) — the webhook
+            // confirms it; keep the invoice scheduled rather than failing it. The
+            // distinct return keeps the success contract honest: the service fires
+            // system_charge_succeeded only once the payment is actually confirmed.
+            $transaction->update(['vendor_charge_id' => Arr::get($intent, 'id')]);
+            return 'processing';
+        }
+
+        // requires_action (off-session SCA challenge), declines, and anything else:
+        // the customer must pay interactively — surface the gateway's reason.
+        $failureMessage = Arr::get($intent, 'last_payment_error.message');
+        if (!$failureMessage) {
+            $failureMessage = sprintf(
+            /* translators: %1$s: Stripe payment intent status */
+                __('Automatic charge could not be completed (status: %1$s).', 'fluent-cart'),
+                $intentStatus ?: 'unknown'
+            );
+        }
+
+        return new \WP_Error('charge_failed', $failureMessage);
+    }
+
+    /**
+     * Re-check a processing off-session renewal charge. Recovers missed webhooks:
+     * a settled intent is confirmed through confirmPaymentSuccessByCharge.
+     *
+     * @param PaymentInstance $paymentInstance
+     * @return true|'processing'|\WP_Error
+     */
+    public function reconcileRenewalCharge(PaymentInstance $paymentInstance)
+    {
+        $order = $paymentInstance->order;
+        $transaction = $paymentInstance->transaction;
+
+        if (!$order || !$transaction || !$transaction->vendor_charge_id) {
+            return new \WP_Error('missing_intent', __('No payment intent is recorded for this renewal order.', 'fluent-cart'));
+        }
+
+        // A missing key is a configuration problem, not a transient API failure —
+        // surface it (the transient handling below would otherwise loop forever).
+        if ($keyError = $this->guardSecretKeyForMode($order->mode)) {
+            return $keyError;
+        }
+
+        $intent = (new API())->getStripeObject('payment_intents/' . $transaction->vendor_charge_id, [
+            'expand' => ['latest_charge']
+        ], $order->mode);
+
+        if (is_wp_error($intent)) {
+            // Transient API failure must not fail a possibly-settled payment —
+            // report still-processing so the reconciliation loop retries later.
+            return 'processing';
+        }
+
+        $intentStatus = Arr::get($intent, 'status');
+
+        if ($intentStatus === 'succeeded') {
+            (new Confirmations())->confirmPaymentSuccessByCharge($transaction, [
+                'charge'    => Arr::get($intent, 'latest_charge', []),
+                'intent_id' => Arr::get($intent, 'id'),
+            ]);
+
+            return true;
+        }
+
+        if ($intentStatus === 'processing') {
+            return 'processing';
+        }
+
+        $failureMessage = Arr::get($intent, 'last_payment_error.message');
+        if (!$failureMessage) {
+            $failureMessage = sprintf(
+            /* translators: %1$s: Stripe payment intent status */
+                __('The pending payment could not be completed (status: %1$s).', 'fluent-cart'),
+                $intentStatus ?: 'unknown'
+            );
+        }
+
+        return new \WP_Error('charge_failed', $failureMessage);
+    }
+
+    public function syncRemoteTransaction(\FluentCart\App\Models\OrderTransaction $transaction)
+    {
+        return (new Confirmations())->syncRemoteTransaction($transaction);
+    }
+
+    /**
+     * Ensure the Stripe secret key for the given order mode is configured before an
+     * off-session charge / reconcile. Returns a clear WP_Error when it is missing —
+     * otherwise Stripe replies with the opaque "You did not provide an API key"
+     * message. Null when the key is present.
+     *
+     * @param string $mode The order's Stripe mode ('test' | 'live').
+     * @return \WP_Error|null
+     */
+    private function guardSecretKeyForMode($mode)
+    {
+        if ((new StripeSettingsBase())->getApiKey($mode ?: 'current')) {
+            return null;
+        }
+
+        return new \WP_Error('stripe_missing_api_key', sprintf(
+        /* translators: %1$s: Stripe mode (test or live) */
+            __('This subscription was created in %1$s mode, but no Stripe %1$s secret key is configured for this store. Add the matching Stripe keys in Payment Settings to charge the saved payment method.', 'fluent-cart'),
+            $mode ?: 'current'
+        ));
+    }
+
+    private function shouldRenderAsSubscriptionMode($hasSubscription): bool
+    {
+        // One-time-charged subscription payments (store-managed mode, or a renewal of
+        // a store-managed-born subscription) go through handleSinglePayment, so
+        // Elements must initialize with intent mode `payment`, not `subscription`.
+        if (\FluentCart\App\Modules\Subscriptions\Services\SubscriptionManagementMode::currentCheckoutChargesOneTime()) {
+            return false;
+        }
+
+        return $hasSubscription;
     }
 
     public function processRefund($transaction, $amount, $args)
@@ -415,6 +710,26 @@ class Stripe extends AbstractPaymentGateway
          * @return array The modified appearance configuration
          */
         if (($this->settings->get('checkout_mode') ?? 'onsite') == 'hosted') {
+            // Same off-session consent contract as onsite checkout — the hosted
+            // Checkout Session vaults the card via setup_future_usage too, so the
+            // customer must see the same authorization copy before redirecting.
+            $hasSubscription = $this->validateSubscriptions($this->getCheckoutItems());
+            $systemConsent = '';
+            $consentRequired = false;
+            if (!$this->shouldRenderAsSubscriptionMode($hasSubscription)
+                && \FluentCart\App\Modules\Subscriptions\Services\SubscriptionManagementMode::currentCheckoutIsSystem($this)
+            ) {
+                $systemConsent = __('Your payment method will be saved securely and charged automatically on each renewal date. You can update or replace it any time from your account.', 'fluent-cart');
+
+                // Zero-payable (free trial): handleSetupOnlyPayment REQUIRES
+                // _fct_system_consent=yes — same gate as the onsite setup-mode path.
+                $cart = CartHelper::getCart();
+                $payableNow = \FluentCart\App\Services\OrderService::getItemsAmountTotal($cart->cart_data ?? [], false, false);
+                if ($payableNow <= 0) {
+                    $consentRequired = true;
+                }
+            }
+
             wp_send_json(
                 [
                     'status'       => 'success',
@@ -423,6 +738,8 @@ class Stripe extends AbstractPaymentGateway
                     'payment_args' => [
                         'checkout_mode' => 'hosted'
                     ],
+                    'system_consent'    => $systemConsent,
+                    'consent_required'  => $consentRequired,
                 ],
                 200
             );
@@ -493,21 +810,49 @@ class Stripe extends AbstractPaymentGateway
             'automatic_payment_methods' => ['enabled' => true]
         ];
 
-        if ($hasSubscription) {
+        // Determine if we should render as subscription mode
+        // This considers global mode, auto-convert, and fallback settings
+        $renderAsSubscription = $this->shouldRenderAsSubscriptionMode($hasSubscription);
+
+        // System (auto-charged, store-billed) checkout: one-time payment intent that
+        // also stores an off-session mandate, plus the save-and-auto-charge consent
+        // notice rendered under the payment element.
+        $systemConsent = '';
+        $consentRequired = false;
+        if (!$renderAsSubscription && \FluentCart\App\Modules\Subscriptions\Services\SubscriptionManagementMode::currentCheckoutIsSystem($this)) {
+            $intentData['setup_future_usage'] = 'off_session';
+            $systemConsent = __('Your payment method will be saved securely and charged automatically on each renewal date. You can update or replace it any time from your account.', 'fluent-cart');
+
+            // Nothing payable now (free trial): Elements must initialize in SETUP
+            // mode — a zero-amount payment mode is invalid — and consent becomes a
+            // required checkbox: without a saved card the trial can never bill.
+            $payableNow = \FluentCart\App\Services\OrderService::getItemsAmountTotal($cart->cart_data ?? [], false, false);
+            if ($payableNow <= 0) {
+                $intentData = [
+                    'mode'     => 'setup',
+                    'currency' => strtolower($storeCurrency),
+                ];
+                $consentRequired = true;
+            }
+        }
+
+        if ($renderAsSubscription) {
             $intentData['mode'] = 'subscription';
             $intentData['setup_future_usage'] = 'off_session';
-        } elseif (Arr::get($data, 'save_payment_method') === 'yes') {
+        } elseif (empty($intentData['setup_future_usage']) && Arr::get($data, 'save_payment_method') === 'yes') {
             $intentData['setup_future_usage'] = 'on_session';
         }
 
         wp_send_json(
             [
-                'status'       => 'success',
-                'message'      => __('Order info retrieved!', 'fluent-cart'),
-                'data'         => [],
-                'payment_args' => $paymentArgs,
-                'intent'       => $intentData,
-                'appearance'   => $appearance,
+                'status'         => 'success',
+                'message'        => __('Order info retrieved!', 'fluent-cart'),
+                'data'           => [],
+                'payment_args'   => $paymentArgs,
+                'intent'         => $intentData,
+                'appearance'     => $appearance,
+                'system_consent' => $systemConsent,
+                'consent_required' => $consentRequired,
             ],
             200
         );

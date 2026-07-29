@@ -6,12 +6,9 @@ namespace FluentCart\App\Http\Controllers;
 use FluentCart\Api\Resource\CustomerResource;
 use FluentCart\Api\Resource\OrderResource;
 use FluentCart\Api\StoreSettings;
-use FluentCart\App\Events\Subscription\SubscriptionActivated;
 use FluentCart\App\Events\Order\OrderCreated;
 use FluentCart\App\Events\Order\OrderDeleting;
 use FluentCart\App\Events\Order\OrderDeleted;
-use FluentCart\App\Events\Order\OrderPaid;
-use FluentCart\App\Events\Order\OrderStatusUpdated;
 use FluentCart\App\Events\Order\RenewalOrderDeleted;
 use FluentCart\App\Helpers\CartHelper;
 use FluentCart\App\Helpers\Helper;
@@ -40,10 +37,8 @@ use FluentCart\App\Models\OrderDownloadPermission;
 use FluentCart\App\Models\Subscription;
 use FluentCart\App\Models\SubscriptionMeta;
 use FluentCart\App\Services\Filter\OrderFilter;
-use FluentCart\App\Modules\Subscriptions\Services\SubscriptionService;
 use FluentCart\App\Services\Payments\PaymentHelper;
 use FluentCart\App\Services\Reminders\ReminderService;
-use FluentCart\App\Services\DateTime\DateTime;
 use FluentCart\App\Services\Payments\Refund;
 use FluentCart\App\Services\URL;
 use FluentCart\Framework\Http\Request\Request;
@@ -84,7 +79,7 @@ class OrderController extends Controller
         if ($hasSubscription) {
             $type = 'subscription';
             // right now we don't support subscription with manual order
-            $isSubscriptionAllowedInManualOrder = apply_filters('fluent_cart/order/is_subscription_allowed_in_manual_order', false, [
+            $isSubscriptionAllowedInManualOrder = apply_filters('fluent_cart/order/is_subscription_allowed_in_manual_order', true, [
                 'order_items' => Arr::get($data, 'order_items', [])
             ]);
 
@@ -711,8 +706,12 @@ class OrderController extends Controller
             ], 423);
         }
 
-        $transaction = $order->transactions->where('status', Status::TRANSACTION_PENDING)
-            ->where('payment_method', 'offline_payment')
+        // Reuse existing pending transaction without vendor_charge_id instead of creating a new one
+        $transaction = $order->transactions
+            ->where('status', Status::TRANSACTION_PENDING)
+            ->filter(function ($t) {
+                return empty($t->vendor_charge_id);
+            })
             ->first();
 
         $newTransactionData = [
@@ -723,70 +722,29 @@ class OrderController extends Controller
             'payment_mode'        => sanitize_text_field($order->mode),
             'payment_method_type' => sanitize_text_field($request->payment_method),
             'order_type'          => sanitize_text_field($order->type),
-            'transaction_type'    => sanitize_text_field($request->transaction_type),
             'currency'            => sanitize_text_field($order->currency),
         ];
 
         if ($transaction) {
+            // Don't include transaction_type in the update — the existing value is always 'charge'
+            // and overwriting it with the request value would break syncSubscriptionStates bill_count.
             $transaction->update($newTransactionData);
         } else {
             $transaction = OrderTransaction::query()->create(
                 array_merge($newTransactionData, [
-                    'order_id' => $order->id
+                    'order_id'         => $order->id,
+                    'transaction_type' => Status::TRANSACTION_TYPE_CHARGE,
                 ])
             );
         }
 
-        $order->note = sanitize_text_field($request->get('mark_paid_note', ''));
-
-        $oldStatus = $order->status;
-
-        if ($order->payment_status !== 'partially_refunded') {
-            $order->payment_status = Status::PAYMENT_PAID;
-        }
-
-        $order->status = Status::ORDER_PROCESSING;
-        $order->total_paid = $order->total_amount;
-        $order->save();
-
-        $actionActivity = [
-            'title'   => __('Order status updated', 'fluent-cart'),
-            'content' => sprintf(
-                /* translators: 1: old status, 2: new status */
-                __('Order status has been updated from %1$s to %2$s', 'fluent-cart'), $oldStatus, $order->status)
-        ];
-
-        // dispatching events related to order status update and payment paid
-        (new OrderPaid($order, $order->customer, $transaction))->dispatch();
-
-        (new OrderStatusUpdated($order, $oldStatus, $order->status, true, $actionActivity, 'order_status'))->dispatch();
-
-        if ($order->type === 'subscription') {
-            $subscription = Subscription::query()->where('parent_order_id', $order->id)->first();
-            if ($subscription) {
-                $oldSubStatus = $subscription->status;
-                $subscription = SubscriptionService::syncSubscriptionStates($subscription, ['status' => Status::SUBSCRIPTION_ACTIVE]);
-                if ($oldSubStatus !== Status::SUBSCRIPTION_ACTIVE && $subscription->status === Status::SUBSCRIPTION_ACTIVE) {
-                    (new SubscriptionActivated($subscription, $order, $order->customer))->dispatch();
-                }
-            }
-        }
-
-        // if digital
-        if ($order->fulfillment_type == 'digital' && $order->status === Status::ORDER_PROCESSING) {
-            $order->status = Status::ORDER_COMPLETED;
-            $order->completed_at = DateTime::gmtNow();
+        $note = sanitize_text_field($request->get('mark_paid_note', ''));
+        if ($note) {
+            $order->note = $note;
             $order->save();
-
-            $actionActivity = [
-                'title'   => __('Order status updated', 'fluent-cart'),
-                'content' => sprintf(
-                    /* translators: 1: old status, 2: new status */
-                    __('Order status has been updated from %1$s to %2$s', 'fluent-cart'), Status::ORDER_PROCESSING, $order->status)
-            ];
-
-            (new OrderStatusUpdated($order, Status::ORDER_PROCESSING, $order->status, true, $actionActivity, 'order_status'))->dispatch();
         }
+
+        (new StatusHelper($order))->syncOrderStatuses($transaction);
 
         return $this->response->sendSuccess([
             'message' => __('Order has been marked as paid', 'fluent-cart')
@@ -969,6 +927,30 @@ class OrderController extends Controller
             'transaction' => $transaction,
             'message'     => __('Payment status has been successfully updated', 'fluent-cart')
         ];
+    }
+
+    public function syncPendingTransaction(Request $request, $order, OrderTransaction $transaction)
+    {
+        $order = Order::query()->find($order);
+
+        if (!$order || $transaction->order_id != $order->id) {
+            return $this->sendError([
+                'message' => __('The selected transaction does not match with the provided order', 'fluent-cart')
+            ]);
+        }
+
+        $result = $transaction->syncPendingTransaction();
+
+        if (is_wp_error($result)) {
+            return $this->sendError([
+                'message' => $result->get_error_message()
+            ]);
+        }
+
+        return $this->sendSuccess([
+            'message'     => __('Transaction has been synced from the payment gateway successfully!', 'fluent-cart'),
+            'transaction' => $result
+        ]);
     }
 
     public function getStats($orderUuid): \WP_REST_Response

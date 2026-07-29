@@ -82,7 +82,7 @@ class EmailPreviewService
         $customer = $this->getDummyCustomer();
         $transaction = $this->getDummyTransaction();
 
-        return new class($customer, $transaction, new Collection()) {
+        $order = new class($customer, $transaction, new Collection()) {
             public $id = 1001;
             public $uuid = 'preview-order-uuid';
             public $invoice_no = 'FC-1001';
@@ -104,6 +104,7 @@ class EmailPreviewService
             public $total_paid = 0;
             public $total_refund = 0;
             public $payment_status = 'pending';
+            public $config = [];
             private $latestTransaction;
 
             public function __construct($customer, $transaction, $emptyCollection)
@@ -145,6 +146,24 @@ class EmailPreviewService
                 return '#';
             }
 
+            public function getMeta($metaKey, $defaultValue = false)
+            {
+                if ($metaKey === 'due_date') {
+                    return gmdate('Y-m-d H:i:s', strtotime('+7 days'));
+                }
+                return $defaultValue;
+            }
+
+            public function isReverseChargeTaxOrder()
+            {
+                return false;
+            }
+
+            public function getOrderRcMode()
+            {
+                return 'fixed';
+            }
+
             public function getLatestTransaction()
             {
                 return $this->latestTransaction;
@@ -160,6 +179,12 @@ class EmailPreviewService
                 return new Collection([]);
             }
         };
+
+        // Templates reach the order through the transaction too (e.g. the
+        // renewal admin email's $transaction->order->getViewUrl('admin')).
+        $transaction->order = $order;
+
+        return $order;
     }
 
     private function getDummySubscription($order): object
@@ -171,6 +196,7 @@ class EmailPreviewService
             public $id = 2001;
             public $uuid = 'preview-subscription-uuid';
             public $item_name = 'Sample Subscription';
+            public $display_item_name = 'Sample Subscription';
             public $billing_interval = 'yearly';
             public $next_billing_date;
             public $recurring_total = 4900;
@@ -185,6 +211,7 @@ class EmailPreviewService
                 $this->customer = $customer;
                 $this->latestTransaction = $transaction;
                 $this->order = $order;
+                $transaction->order = $order;
                 $this->next_billing_date = \FluentCart\App\Services\DateTime\DateTime::gmtNow()->addDays(30)->format('Y-m-d H:i:s');
                 $this->trial_ends_at = \FluentCart\App\Services\DateTime\DateTime::gmtNow()->addDays(3)->format('Y-m-d H:i:s');
             }
@@ -202,6 +229,11 @@ class EmailPreviewService
             public function getReactivateUrl()
             {
                 return '#';
+            }
+
+            public function getPaymentMethodText()
+            {
+                return 'Visa ***4242';
             }
         };
     }

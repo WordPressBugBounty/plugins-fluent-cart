@@ -196,9 +196,10 @@ class ShopController extends Controller
         $perPage = $request->get('per_page', 10);
         $products['total'] = $total;
         $products['last_page'] = max((int)ceil($total / $perPage), 1);
+        $hideExcerpt = filter_var($request->get('hide_excerpt', false), FILTER_VALIDATE_BOOLEAN);
         ob_start();
         if (($products['total'])) {
-            (new ProductListRenderer(Arr::get($products, 'products.products')))->renderProductList();
+            (new ProductListRenderer(Arr::get($products, 'products.products'), null, null, ['hide_excerpt' => $hideExcerpt]))->renderProductList();
         } else {
             ProductRenderer::renderNoProductFound();
         }

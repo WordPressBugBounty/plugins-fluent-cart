@@ -136,11 +136,17 @@ class ShopAppRenderer
             }
         }
 
-        if (Arr::get($this->customFilters, 'price_range', false)) {
+        $priceRange = Arr::get($this->customFilters, 'price_range', false);
+        if ($priceRange) {
+            // Accepts true (default "Price" label) or ['label' => '...'] so
+            // integrations can name the price filter the same way the
+            // taxonomies config names taxonomy filters.
             $this->filters['price_range'] = [
                 "filter_type" => "range",
                 "is_meta"     => false,
-                "label"       => "Price",
+                "label"       => is_array($priceRange) && !empty($priceRange['label'])
+                    ? $priceRange['label']
+                    : "Price",
                 "enabled"     => true,
             ];
         }
@@ -240,6 +246,11 @@ class ShopAppRenderer
         }
         if ($onSale) {
             $wrapperAttributes['data-on-sale'] = '1';
+        }
+        // Persist hide_excerpt so AJAX pagination/filtering renders cards the
+        // same way as the initial response (Paginator.js round-trips it).
+        if (Arr::get($this->config, 'hide_excerpt', false)) {
+            $wrapperAttributes['data-hide-excerpt'] = '1';
         }
         ?>
         <div class="fct-products-wrapper" data-fluent-cart-shop-app data-fluent-cart-product-wrapper role="main" aria-label="<?php esc_attr_e('Products', 'fluent-cart'); ?>">
@@ -524,7 +535,7 @@ class ShopAppRenderer
             $cursorAttr = Arr::get($cursor, 'cursor', '');
         }
 
-        (new \FluentCart\App\Services\Renderer\ProductCardRender($product, ['cursor' => $cursorAttr]))->render();
+        (new \FluentCart\App\Services\Renderer\ProductCardRender($product, ['cursor' => $cursorAttr, 'hide_excerpt' => Arr::get($this->config, 'hide_excerpt', false)]))->render();
         ?>
     <?php } ?>
         <?php

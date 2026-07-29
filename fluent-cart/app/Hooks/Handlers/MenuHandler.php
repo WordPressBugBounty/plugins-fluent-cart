@@ -504,13 +504,14 @@ class MenuHandler
             'light' => Vite::getAssetUrl('images/logo/logo-full.svg'),
         ];
         $appConfig['isModuleTabEnabled'] = $settings->isModuleTabEnabled();
-        $appConfig['upgrade_url'] = 'https://fluentcart.com/pricing/';
+        $appConfig['upgrade_url'] = Helper::getUpgradeUrl();
 
         $max_upload_size = wp_max_upload_size(); // Returns size in bytes
         $adminLocalizeData = apply_filters('fluent_cart/admin_app_data', [
             'app_config'                       => $appConfig,
             'slug'                             => $app->config->get('app.slug'),
             'admin_url'                        => admin_url('admin.php?page=fluent-cart#/'),
+            'wp_admin_url'                     => rtrim(admin_url(), '/'),
             'frontend_url'                     => URL::getFrontEndUrl(''),
             'nonce'                            => wp_create_nonce($slug),
             'rest'                             => $restVars,

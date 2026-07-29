@@ -334,6 +334,10 @@ class IPN
             ]
         ]);
 
+        // System subscription: persist the vault token from the captured order
+        // (idempotent — the AJAX confirmation may have done it already).
+        (new Processor())->maybePersistVaultToken($transaction, $paypalIntent);
+
     }
 
 

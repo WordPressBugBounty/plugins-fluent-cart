@@ -29,6 +29,7 @@ class Status
     public const PAYMENT_REFUNDED = 'refunded';
     public const PAYMENT_PARTIALLY_REFUNDED = 'partially_refunded';
     public const PAYMENT_AUTHORIZED = 'authorized';
+    public const PAYMENT_SCHEDULED = 'payment_scheduled';
 
     // Transaction Statuses
     public const TRANSACTION_SUCCEEDED = 'succeeded';
@@ -62,6 +63,10 @@ class Status
     public const SUBSCRIPTION_COMPLETED = 'completed';
     public const SUBSCRIPTION_AUTHENTICATED = 'authenticated';
     public const SUBSCRIPTION_CREATED = 'created';
+
+    public const SUBSCRIPTION_METHOD_MANUAL = 'manual';
+    public const SUBSCRIPTION_METHOD_AUTOMATIC = 'automatic';
+    public const SUBSCRIPTION_METHOD_SYSTEM = 'system';
 
     // billing interval
     public const BILLING_YEARLY = 'yearly';
@@ -192,6 +197,7 @@ class Status
             self::PAYMENT_REFUNDED           => __('Refunded', 'fluent-cart'),
             self::PAYMENT_PARTIALLY_REFUNDED => __('Partially Refunded', 'fluent-cart'),
             self::PAYMENT_AUTHORIZED         => __('Authorized', 'fluent-cart'),
+            self::PAYMENT_SCHEDULED          => __('Payment Scheduled', 'fluent-cart'),
         ], []);
     }
 

@@ -71,8 +71,10 @@ class PaymentHelper
     {
         $paymentMethod = Arr::get($orderData, 'others._fct_pay_method');
         $isZeroPayment = $cartCheckoutHelper->getItemsAmountTotal(false, false) + $extraCharge <= 0;
+        $zeroMethodForced = false;
         if ($isZeroPayment && $cartCheckoutHelper->getCart()->getEstimatedRecurringTotal() <= 0) {
             $paymentMethod = apply_filters('fluent_cart/default_payment_method_for_zero_payment', 'offline_payment', []);
+            $zeroMethodForced = true;
         }
 
         if (!GatewayManager::has($paymentMethod)) {
@@ -99,6 +101,31 @@ class PaymentHelper
                     'data'    => []
                 ], 423
             );
+        }
+
+        // The checkout gateway-visibility filters (manual-subscription admission,
+        // store-managed capability gate, renewal pre-due-date block, reactivation
+        // restriction) only hide gateways in the rendered UI. The POSTed method must
+        // pass the same gate, or a crafted request can start/convert a subscription
+        // through a gateway the store never offered. Only the forced-offline zero
+        // checkout (no recurring — the UI renders no method picker and the method is
+        // overridden above) is exempt; a zero-payable SUBSCRIPTION cart (free trial)
+        // keeps the customer-picked gateway and must pass the gate like any other.
+        $cart = $cartCheckoutHelper->getCart();
+        if ($cart && !$zeroMethodForced) {
+            $allowedGateways = apply_filters('fluent_cart/checkout_active_payment_methods', [$gateway], [
+                'cart' => $cart
+            ]);
+
+            if (!in_array($gateway, (array) $allowedGateways, true)) {
+                wp_send_json(
+                    [
+                        'status'  => 'failed',
+                        'message' => __('This payment method is not available for this order. Please choose another payment method!', 'fluent-cart'),
+                        'data'    => []
+                    ], 423
+                );
+            }
         }
 
         return $paymentMethod;

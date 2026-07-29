@@ -414,6 +414,7 @@ class IPN
             'checkout.session.completed',
             'customer.subscription.deleted',
             'customer.subscription.updated',
+            'setup_intent.succeeded', // recovers zero-payable system-subscription vaulting if the AJAX confirm is lost
         ];
 
         $eventType = $data->type;

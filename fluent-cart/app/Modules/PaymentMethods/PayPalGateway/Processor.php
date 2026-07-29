@@ -11,6 +11,7 @@ use FluentCart\App\Models\Order;
 use FluentCart\App\Models\OrderTransaction;
 use FluentCart\App\Models\Subscription;
 use FluentCart\App\Modules\Subscriptions\Services\SubscriptionService;
+use FluentCart\App\Modules\Subscriptions\Services\SystemChargeService;
 use FluentCart\App\Services\DateTime\DateTime;
 use FluentCart\App\Services\Payments\PaymentHelper;
 use FluentCart\App\Services\Payments\PaymentInstance;
@@ -144,11 +145,34 @@ class Processor
             $purchaseUnits['amount']['breakdown']['item_total']['value'] = number_format($adjustedItemTotal, 2, '.', '');
         }
 
-        // No PayPal-Request-Id on order-create: it reserves intent, it does not move money
-        // (capture runs client-side against one order id). A transaction-lifetime id
-        // outlives the 3h PayPal order and replays a reversed order id at the buyer.
-        // See .claude/skills/coding-rules/payment-idempotency.md.
-        $paypalOrder = API::createOrder($purchaseUnits);
+        // System (auto-charged, store-billed) subscription checkout: vault the
+        // buyer's PayPal account during this purchase (Vault v3 save-on-success)
+        // so future renewal invoices can be charged merchant-initiated. The buyer
+        // sees and approves the save agreement inside PayPal's own approval UI.
+        $extraBody = [];
+        if (!empty($args['vault_on_success'])) {
+            $vaultAttributes = apply_filters('fluent_cart/paypal/vault_attributes', [
+                'store_in_vault' => 'ON_SUCCESS',
+                'usage_type'     => 'MERCHANT',
+                'customer_type'  => 'CONSUMER',
+            ], [
+                'order'        => $order,
+                'subscription' => $paymentInstance->subscription,
+            ]);
+
+            $extraBody['payment_source'] = [
+                'paypal' => [
+                    'attributes'         => ['vault' => $vaultAttributes],
+                    'experience_context' => [
+                        'return_url'          => PaymentHelper::getCustomPaymentLink($order->uuid),
+                        'cancel_url'          => \FluentCart\App\Modules\PaymentMethods\Core\AbstractPaymentGateway::getCancelUrl(),
+                        'shipping_preference' => 'NO_SHIPPING',
+                    ],
+                ],
+            ];
+        }
+
+        $paypalOrder = API::createOrder($purchaseUnits, $extraBody);
 
         if (is_wp_error($paypalOrder)) {
             return $paypalOrder;
@@ -178,6 +202,187 @@ class Processor
                 'paypalOrderId' => $paypalOrderId,
             ]
         ];
+    }
+
+    /**
+     * Zero-payable system subscription checkout (free trial): a $0 PayPal order
+     * is invalid, so the buyer's PayPal account is vaulted via a Vault v3 setup
+     * token; confirmVaultSetup() exchanges it, completes the $0 order, and the
+     * trial-end invoice is charged off-session like any other system renewal.
+     * The save agreement is carried by PayPal's own approval popup; the checkout
+     * page shows the informational disclosure next to the buttons.
+     */
+    public function handleSetupOnlyPayment(PaymentInstance $paymentInstance)
+    {
+        $order = $paymentInstance->order;
+        $transaction = $paymentInstance->transaction;
+
+        $setupToken = API::makeRequest('vault/setup-tokens', 'v3', 'POST', [
+            'payment_source' => [
+                'paypal' => [
+                    'usage_type'         => 'MERCHANT',
+                    'customer_type'      => 'CONSUMER',
+                    'experience_context' => [
+                        'return_url'          => PaymentHelper::getCustomPaymentLink($order->uuid),
+                        'cancel_url'          => \FluentCart\App\Modules\PaymentMethods\Core\AbstractPaymentGateway::getCancelUrl(),
+                        'shipping_preference' => 'NO_SHIPPING',
+                    ],
+                ],
+            ],
+        ]);
+
+        if (is_wp_error($setupToken)) {
+            return $setupToken;
+        }
+
+        $setupTokenId = Arr::get($setupToken, 'id');
+
+        if (!$setupTokenId) {
+            return new \WP_Error('setup_token_failed', __('PayPal did not return a setup token.', 'fluent-cart'));
+        }
+
+        // confirmVaultSetup() binds the buyer's approval to this transaction by
+        // this id; the write takes the same lock as confirmation so a
+        // replacement can never interleave with an in-flight confirm.
+        if (!self::acquireVaultTransactionLock($transaction->uuid)) {
+            return new \WP_Error('setup_in_progress', __('Another payment confirmation is in progress. Please try again.', 'fluent-cart'));
+        }
+
+        try {
+            $transaction->update([
+                'meta' => array_merge($transaction->meta ?? [], ['paypal_setup_token_id' => $setupTokenId])
+            ]);
+        } finally {
+            self::releaseVaultTransactionLock($transaction->uuid);
+        }
+
+        return [
+            'nextAction'         => 'paypal',
+            'actionName'         => 'custom',
+            'status'             => 'success',
+            'data'               => [
+                'order'       => [
+                    'uuid' => $order->uuid,
+                ],
+                'transaction' => [
+                    'uuid' => $transaction->uuid,
+                ]
+            ],
+            'message'            => __('Order has been placed successfully', 'fluent-cart'),
+            'custom_payment_url' => PaymentHelper::getCustomPaymentLink($order->uuid),
+            'response'           => [
+                'setupTokenId' => $setupTokenId,
+            ]
+        ];
+    }
+
+    /**
+     * Vault-flow lock, keyed on the transaction uuid — shared by the setup-token
+     * binding write and the confirmation endpoint so token replacement and
+     * confirmation of one transaction always serialize.
+     */
+    public static function acquireVaultTransactionLock($transactionUuid)
+    {
+        global $wpdb;
+
+        $result = $wpdb->get_var($wpdb->prepare(
+            'SELECT GET_LOCK(%s, %d)',
+            'fluent_cart_paypal_vault_' . md5($transactionUuid),
+            10
+        ));
+
+        return (string) $result === '1';
+    }
+
+    public static function releaseVaultTransactionLock($transactionUuid)
+    {
+        global $wpdb;
+
+        $wpdb->get_var($wpdb->prepare(
+            'SELECT RELEASE_LOCK(%s)',
+            'fluent_cart_paypal_vault_' . md5($transactionUuid)
+        ));
+    }
+
+    /**
+     * Exchange an approved setup token for a durable payment token, persist it
+     * on the system subscription, and complete the $0 order — the trial then
+     * activates through the normal status-sync path.
+     *
+     * @param OrderTransaction $transaction
+     * @param string $setupTokenId
+     * @return true|\WP_Error
+     */
+    public function confirmVaultSetup(OrderTransaction $transaction, $setupTokenId)
+    {
+        // A prior confirmation may have died between marking the transaction
+        // succeeded and syncing the order — always re-run the idempotent sync.
+        if ($transaction->status === Status::TRANSACTION_SUCCEEDED) {
+            (new StatusHelper($transaction->order))->syncOrderStatuses($transaction);
+            return true;
+        }
+
+        /** @var Subscription|null $subscription */
+        $subscription = Subscription::query()->find($transaction->subscription_id);
+
+        if (!$subscription || !$subscription->isSystem()) {
+            return new \WP_Error('invalid_subscription', __('No auto-charged subscription is attached to this transaction.', 'fluent-cart'));
+        }
+
+        // Keyed on the setup token: a double-fired confirmation replays the
+        // original payment token instead of vaulting twice.
+        $paymentToken = API::makeRequest('vault/payment-tokens', 'v3', 'POST', [
+            'payment_source' => [
+                'token' => [
+                    'id'   => $setupTokenId,
+                    'type' => 'SETUP_TOKEN',
+                ],
+            ],
+        ], '', [
+            'PayPal-Request-Id' => 'fct_paypal_pt_' . md5($setupTokenId),
+        ]);
+
+        if (is_wp_error($paymentToken)) {
+            return $paymentToken;
+        }
+
+        $tokenId = Arr::get($paymentToken, 'id');
+
+        if (!$tokenId) {
+            return new \WP_Error('vault_failed', __('PayPal did not return a saved payment method.', 'fluent-cart'));
+        }
+
+        $vaultCustomerId = Arr::get($paymentToken, 'customer.id', '');
+        if ($vaultCustomerId && !$subscription->vendor_customer_id) {
+            $subscription->vendor_customer_id = $vaultCustomerId;
+            $subscription->save();
+        }
+
+        $paypalSource = Arr::get($paymentToken, 'payment_source.paypal', []);
+        $billingInfo = PaymentHelper::parsePaymentMethodDetails('paypal', [
+            'email'    => Arr::get($paypalSource, 'email_address', ''),
+            'payer_id' => Arr::get($paypalSource, 'account_id', ''),
+            'name'     => trim(Arr::get($paypalSource, 'name.given_name', '') . ' ' . Arr::get($paypalSource, 'name.surname', '')),
+        ]);
+        $billingInfo['vendor_method_id'] = $tokenId;
+
+        $subscription->updateMeta('active_payment_method', $billingInfo);
+
+        $subscription->addLog(
+            'PayPal account saved',
+            __('PayPal payment method vaulted for automatic renewal charges.', 'fluent-cart'),
+            'info'
+        );
+
+        $transaction->fill([
+            'status'         => Status::TRANSACTION_SUCCEEDED,
+            'payment_method' => 'paypal',
+        ]);
+        $transaction->save();
+
+        (new StatusHelper($transaction->order))->syncOrderStatuses($transaction);
+
+        return true;
     }
 
     public function handleSubscriptionPaymentFromPaymentInstance(PaymentInstance $paymentInstance, $args = [])
@@ -230,11 +435,18 @@ class Processor
             return $paypalPlan;
         }
 
-        $subscription->update([
+        $subscriptionUpdateFields = [
             'status'          => $status,
             'vendor_plan_id'  => Arr::get($paypalPlan, 'id'),
             'vendor_response' => json_encode($paypalPlan, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)
-        ]);
+        ];
+
+        if ($orderType == 'renewal' && !empty($data['trial_days'])) {
+            $config = $subscription->config ?: [];
+            $subscriptionUpdateFields['config'] = array_merge($config, ['is_trial_days_simulated' => 'yes']);
+        }
+
+        $subscription->update($subscriptionUpdateFields);
 
         return [
             'status'     => 'success',
@@ -328,8 +540,12 @@ class Processor
             $subscriptionModel = Subscription::query()->where('id', $transaction->subscription_id)->first();
         }
 
-        if (!$subscriptionModel || $subscriptionModel->status === Status::SUBSCRIPTION_ACTIVE) {
-            return $subscriptionModel; // already active or invalid
+        if (!$subscriptionModel) {
+            return null;
+        }
+
+        if ($order->type !== Status::ORDER_TYPE_RENEWAL && $subscriptionModel->status === Status::SUBSCRIPTION_ACTIVE) {
+            return $subscriptionModel;
         }
 
         // Verify the PayPal subscription's plan matches the expected plan
@@ -430,10 +646,19 @@ class Processor
                 'address'  => Arr::get($paypalSubscription, 'subscriber.shipping_address.address')
             ]);
 
-            SubscriptionService::recordManualRenewal($subscriptionModel, $transaction, [
-                'billing_info'      => $billingInfo,
-                'subscription_args' => $subscriptionUpdateData
-            ]);
+            if ($transaction->status === Status::TRANSACTION_SUCCEEDED) {
+                SubscriptionService::recordManualRenewal($subscriptionModel, $transaction, [
+                    'billing_info'      => $billingInfo,
+                    'subscription_args' => $subscriptionUpdateData
+                ]);
+            } else {
+                $subscriptionModel->fill($subscriptionUpdateData)->save();
+                $subscriptionModel->updateMeta('active_payment_method', $billingInfo);
+                do_action('fluent_cart/renewal/payment_scheduled', [
+                    'order'        => $order,
+                    'subscription' => $subscriptionModel,
+                ]);
+            }
 
         } else {
             // This can be a trialing subscription
@@ -487,6 +712,333 @@ class Processor
     private function toDecimal($cents)
     {
         return Helper::toDecimalWithoutComma($cents);
+    }
+
+    /**
+     * Persist the vaulted PayPal payment token from a captured order onto the
+     * system subscription — the token future renewal charges read (at fire time)
+     * from active_payment_method. Idempotent per token; shared by the AJAX
+     * confirmation and the PAYMENT.CAPTURE.COMPLETED webhook (whichever lands
+     * first wins).
+     *
+     * When the FIRST (initial) capture of a system subscription carries NO vault
+     * token — vaulting declined or unavailable on the merchant account — the
+     * subscription is demoted to plain manual invoicing immediately: a `system`
+     * subscription without a token would fail every scheduled charge forever.
+     *
+     * @param OrderTransaction $transaction
+     * @param array $paypalOrder The captured Orders-v2 order (full representation).
+     */
+    public function maybePersistVaultToken(OrderTransaction $transaction, $paypalOrder)
+    {
+        if (!$transaction->subscription_id || !is_array($paypalOrder)) {
+            return;
+        }
+
+        /** @var Subscription|null $subscription */
+        $subscription = Subscription::query()->find($transaction->subscription_id);
+
+        if (!$subscription || !$subscription->isSystem()) {
+            return;
+        }
+
+        $vault = Arr::get($paypalOrder, 'payment_source.paypal.attributes.vault', []);
+        $tokenId = Arr::get($vault, 'id', '');
+
+        $existing = $subscription->getMeta('active_payment_method', []) ?: [];
+
+        if ($tokenId) {
+            if (Arr::get($existing, 'vendor_method_id') === $tokenId) {
+                return; // already persisted (webhook/AJAX race)
+            }
+
+            $vaultCustomerId = Arr::get($vault, 'customer.id', '');
+            if ($vaultCustomerId && !$subscription->vendor_customer_id) {
+                $subscription->vendor_customer_id = $vaultCustomerId;
+                $subscription->save();
+            }
+
+            $payerEmail = Arr::get($paypalOrder, 'payment_source.paypal.email_address', '');
+            if (!$payerEmail) {
+                $payerEmail = Arr::get($paypalOrder, 'payer.email_address', '');
+            }
+
+            $payerName = trim(Arr::get($paypalOrder, 'payer.name.given_name', '') . ' ' . Arr::get($paypalOrder, 'payer.name.surname', ''));
+
+            $billingInfo = PaymentHelper::parsePaymentMethodDetails('paypal', [
+                'email'    => $payerEmail,
+                'payer_id' => Arr::get($paypalOrder, 'payer.payer_id', ''),
+                'name'     => $payerName,
+            ]);
+            $billingInfo['vendor_method_id'] = $tokenId;
+
+            $subscription->updateMeta('active_payment_method', $billingInfo);
+
+            $subscription->addLog(
+                'PayPal account saved',
+                __('PayPal payment method vaulted for automatic renewal charges.', 'fluent-cart'),
+                'info'
+            );
+
+            return;
+        }
+
+        // No token on the INITIAL capture and none stored yet — never leave a
+        // system subscription that can never be charged.
+        if ($transaction->order
+            && $transaction->order->type === Status::ORDER_TYPE_SUBSCRIPTION
+            && !Arr::get($existing, 'vendor_method_id')
+        ) {
+            SystemChargeService::demoteToManual(
+                $subscription,
+                __('PayPal did not return a saved payment method for automatic charging.', 'fluent-cart')
+            );
+        }
+    }
+
+    /**
+     * Merchant-initiated off-session charge of a renewal invoice against the
+     * vaulted PayPal token (Orders v2 create with payment_source.paypal.vault_id).
+     * Contract per dev-docs/system-subscriptions/gateway-implementation-guide.md:
+     * true = confirmed through the normal capture path; 'processing' = accepted
+     * but settling (eCheck); WP_Error = definitive failure.
+     */
+    public function chargeVaultedRenewal(PaymentInstance $paymentInstance, $args = [])
+    {
+        $order = $paymentInstance->order;
+        $transaction = $paymentInstance->transaction;
+        $subscription = $paymentInstance->subscription;
+
+        if (!$order || !$transaction || !$subscription) {
+            return new \WP_Error('invalid_instance', __('Renewal invoice is missing its order, transaction, or subscription.', 'fluent-cart'));
+        }
+
+        // Token read AT FIRE TIME — never snapshotted. Both meta shapes accepted.
+        $paymentMethodMeta = $subscription->getMeta('active_payment_method', []) ?: [];
+        $token = Arr::get($paymentMethodMeta, 'vendor_method_id');
+        if (!$token) {
+            $token = Arr::get($paymentMethodMeta, 'details.payment_method_id');
+        }
+
+        if (!$token) {
+            return new \WP_Error('missing_token', __('No saved PayPal payment method is available for this subscription.', 'fluent-cart'));
+        }
+
+        $attempt = max(1, (int) Arr::get($args, 'attempt', 1));
+
+        $purchaseUnit = [
+            'reference_id' => $transaction->uuid,
+            'custom_id'    => $transaction->uuid,
+            'amount'       => [
+                'currency_code' => strtoupper($transaction->currency),
+                'value'         => number_format($this->toDecimal((int) $transaction->total), 2, '.', ''),
+            ],
+        ];
+
+        $paypalOrder = API::createOrder($purchaseUnit, [
+            'payment_source' => ['paypal' => ['vault_id' => $token]],
+        ], [
+            // One vendor charge per (order, attempt) — a scheduler double-fire
+            // replays the original response instead of charging twice.
+            'PayPal-Request-Id' => 'fct_system_charge_' . $order->id . '_' . $attempt,
+        ]);
+
+        if (is_wp_error($paypalOrder)) {
+            return $paypalOrder;
+        }
+
+        return $this->settleVaultChargeResponse($transaction, $paypalOrder);
+    }
+
+    /**
+     * Re-check a processing vault charge (lost webhook / slow eCheck). A transient
+     * API error reports 'processing' — never fail a possibly-settled payment.
+     */
+    public function reconcileVaultedRenewal(PaymentInstance $paymentInstance)
+    {
+        $transaction = $paymentInstance->transaction;
+
+        if (!$transaction) {
+            return new \WP_Error('missing_intent', __('No transaction is recorded for this renewal order.', 'fluent-cart'));
+        }
+
+        // Preferred: the capture id recorded when the charge was accepted.
+        if ($transaction->vendor_charge_id) {
+            $capture = API::makeRequest('payments/captures/' . $transaction->vendor_charge_id, 'v2', 'GET');
+
+            if (is_wp_error($capture)) {
+                return 'processing';
+            }
+
+            $captureStatus = strtoupper((string) Arr::get($capture, 'status', ''));
+
+            if ($captureStatus === 'COMPLETED') {
+                $this->confirmPaymentSuccessByCharge(OrderTransaction::query()->find($transaction->id), [
+                    'vendor_charge_id'    => Arr::get($capture, 'id', $transaction->vendor_charge_id),
+                    'status'              => Status::TRANSACTION_SUCCEEDED,
+                    'total'               => Helper::toCent(Arr::get($capture, 'amount.value', 0)),
+                    'payment_method_type' => 'PayPal',
+                ]);
+                return true;
+            }
+
+            if ($captureStatus === 'PENDING') {
+                return 'processing';
+            }
+
+            return new \WP_Error('charge_failed', sprintf(
+            /* translators: %1$s: PayPal capture status */
+                __('The pending PayPal payment could not be completed (status: %1$s).', 'fluent-cart'),
+                $captureStatus !== '' ? $captureStatus : 'unknown'
+            ));
+        }
+
+        // Fallback: the vault order id stored at charge time.
+        $paypalOrderId = Arr::get($transaction->meta ?? [], 'paypal_vault_order_id', '');
+
+        if (!$paypalOrderId) {
+            return new \WP_Error('missing_intent', __('No PayPal charge is recorded for this renewal order.', 'fluent-cart'));
+        }
+
+        $paypalOrder = API::verifyPayment($paypalOrderId);
+
+        if (is_wp_error($paypalOrder)) {
+            return 'processing';
+        }
+
+        return $this->settleVaultChargeResponse(OrderTransaction::query()->find($transaction->id), $paypalOrder);
+    }
+
+    public function syncRemoteTransaction(OrderTransaction $transaction)
+    {
+        $mode = $transaction->payment_mode ?: '';
+
+        $capture = API::makeRequest('payments/captures/' . $transaction->vendor_charge_id, 'v2', 'GET', [], $mode);
+
+        if (is_wp_error($capture)) {
+            return $capture;
+        }
+
+        $captureStatus = strtoupper((string) Arr::get($capture, 'status', ''));
+
+        if ($captureStatus === 'COMPLETED') {
+            $captureCurrency = strtoupper((string) Arr::get($capture, 'amount.currency_code', ''));
+            if ($captureCurrency && $transaction->currency && strtoupper($transaction->currency) !== $captureCurrency) {
+                fluent_cart_warning_log(
+                    __('PayPal Currency Mismatch On Sync', 'fluent-cart'),
+                    sprintf(
+                        /* translators: %1$s: expected currency, %2$s: received currency */
+                        __('Capture currency mismatch detected during transaction sync. Expected: %1$s, Received: %2$s. Transaction was not confirmed.', 'fluent-cart'),
+                        $transaction->currency,
+                        $captureCurrency
+                    ),
+                    [
+                        'module_name' => 'order',
+                        'module_id'   => $transaction->order_id,
+                        'log_type'    => 'api'
+                    ]
+                );
+
+                return new \WP_Error('currency_mismatch', __('The PayPal payment currency does not match this transaction. Please verify the payment at PayPal.', 'fluent-cart'));
+            }
+
+            $captureAmount = Helper::toCent(Arr::get($capture, 'amount.value', 0));
+            if ($captureAmount !== (int) $transaction->total) {
+                fluent_cart_warning_log(
+                    __('PayPal Amount Mismatch On Sync', 'fluent-cart'),
+                    sprintf(
+                        /* translators: %1$s: expected amount, %2$s: received amount */
+                        __('Capture amount mismatch detected during transaction sync. Expected: %1$s, Received: %2$s. Transaction was not confirmed.', 'fluent-cart'),
+                        Helper::toDecimal($transaction->total),
+                        Helper::toDecimal($captureAmount)
+                    ),
+                    [
+                        'module_name' => 'order',
+                        'module_id'   => $transaction->order_id,
+                        'log_type'    => 'api'
+                    ]
+                );
+
+                return new \WP_Error('amount_mismatch', __('The PayPal payment amount does not match this transaction. Please verify the payment at PayPal.', 'fluent-cart'));
+            }
+
+            $this->confirmPaymentSuccessByCharge(OrderTransaction::query()->find($transaction->id), [
+                'vendor_charge_id'    => Arr::get($capture, 'id', $transaction->vendor_charge_id),
+                'status'              => Status::TRANSACTION_SUCCEEDED,
+                'total'               => Helper::toCent(Arr::get($capture, 'amount.value', 0)),
+                'payment_method_type' => 'PayPal',
+            ]);
+
+            return OrderTransaction::query()->find($transaction->id);
+        }
+
+        if ($captureStatus === 'PENDING') {
+            return new \WP_Error('still_pending', sprintf(
+            /* translators: %1$s: PayPal pending hold reason */
+                __('The payment is still pending at PayPal (reason: %1$s). Please try again later.', 'fluent-cart'),
+                Arr::get($capture, 'status_details.reason', '') ?: 'unknown'
+            ));
+        }
+
+        return new \WP_Error('charge_not_completed', sprintf(
+        /* translators: %1$s: PayPal capture status */
+            __('The PayPal payment could not be completed (status: %1$s).', 'fluent-cart'),
+            $captureStatus !== '' ? $captureStatus : 'unknown'
+        ));
+    }
+
+    /**
+     * Shared outcome derivation for a vault-charged Orders-v2 order: record the
+     * ids for reconciliation, confirm completed captures through the normal
+     * capture path, report settling captures as 'processing', everything else as
+     * a definitive failure with PayPal's reason.
+     *
+     * @return true|string|\WP_Error
+     */
+    private function settleVaultChargeResponse(OrderTransaction $transaction, $paypalOrder)
+    {
+        $orderStatus = strtoupper((string) Arr::get($paypalOrder, 'status', ''));
+        $capture = Arr::get($paypalOrder, 'purchase_units.0.payments.captures.0', []);
+        $captureId = Arr::get($capture, 'id', '');
+        $captureStatus = strtoupper((string) Arr::get($capture, 'status', ''));
+
+        // Persist ids FIRST — the reconciliation loop and webhook dedup key on them.
+        $transactionMeta = array_merge($transaction->meta ?? [], [
+            'paypal_vault_order_id' => Arr::get($paypalOrder, 'id', ''),
+        ]);
+        $transactionUpdate = ['meta' => $transactionMeta];
+        if ($captureId && !$transaction->vendor_charge_id) {
+            $transactionUpdate['vendor_charge_id'] = $captureId;
+        }
+        $transaction->update($transactionUpdate);
+
+        if ($captureId && $captureStatus === 'COMPLETED') {
+            $this->confirmPaymentSuccessByCharge(OrderTransaction::query()->find($transaction->id), [
+                'vendor_charge_id'    => $captureId,
+                'status'              => Status::TRANSACTION_SUCCEEDED,
+                'total'               => Helper::toCent(Arr::get($capture, 'amount.value', 0)),
+                'payment_method_type' => 'PayPal',
+                'payment_source'      => Arr::get($paypalOrder, 'payment_source', []),
+                'meta'                => ['payer' => Arr::get($paypalOrder, 'payer', [])],
+            ]);
+            return true;
+        }
+
+        if ($captureStatus === 'PENDING' || $orderStatus === 'PENDING') {
+            return 'processing';
+        }
+
+        $reason = Arr::get($capture, 'status_details.reason', '');
+
+        if ($reason) {
+            /* translators: %1$s: PayPal decline reason code */
+            $message = sprintf(__('Automatic PayPal charge failed: %1$s', 'fluent-cart'), $reason);
+        } else {
+            /* translators: %1$s: PayPal order status */
+            $message = sprintf(__('Automatic PayPal charge could not be completed (status: %1$s).', 'fluent-cart'), $orderStatus !== '' ? $orderStatus : 'unknown');
+        }
+
+        return new \WP_Error('charge_failed', $message);
     }
 
 }

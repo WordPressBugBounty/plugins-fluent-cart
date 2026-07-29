@@ -593,11 +593,21 @@ class DiscountService
 
         $conditions = $coupon->conditions;
 
+        // The spend limits below (min/max) are measured against either the cart subtotal
+        // (items only) or the full order total (shipping + fees included), per the coupon's
+        // min_amount_basis setting. Coupons created before this setting existed have no stored
+        // value and historically compared against the order total, so the fallback stays 'total'
+        // to preserve their behavior. New coupons default to 'subtotal' in the admin UI.
+        $amountBasis = Arr::get($conditions, 'min_amount_basis', 'total');
+
         // add check max_purchase_amount
         $maxPurchaseAmount = Arr::get($conditions, 'max_purchase_amount', 0);
         $getCartTotal = 0;
         if ($this->cart) {
-            $getCartTotal = ($this->cart->getEstimatedTotal() / 100);
+            $cartAmount = $amountBasis === 'total'
+                ? $this->cart->getEstimatedTotal()
+                : $this->cart->getItemsSubtotal();
+            $getCartTotal = ($cartAmount / 100);
         }
 
         if ($maxPurchaseAmount) {

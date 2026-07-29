@@ -175,6 +175,9 @@ class DBMigrator
             TaxRatesMigrator::fixPostcodeRangeSeparator();
             OrdersMigrator::addFeeTotalColumn();
 
+            // 2026-07-24
+            OrdersMigrator::addUuidIndex();
+
             // let's check the orders table sequence number
             global $wpdb;
 

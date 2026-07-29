@@ -16,6 +16,7 @@ use FluentCart\App\Http\Controllers\DataBackfillController;
 use FluentCart\App\Http\Controllers\EmailNotificationController;
 use FluentCart\App\Http\Controllers\FileUploadController;
 use FluentCart\App\Http\Controllers\IntegrationController;
+use FluentCart\App\Http\Controllers\RenewalController;
 use FluentCart\App\Http\Controllers\LabelController;
 use FluentCart\App\Http\Controllers\McpSettingsController;
 use FluentCart\App\Http\Controllers\ModuleSettingsController;
@@ -622,6 +623,10 @@ $router->prefix('orders')->withPolicy('OrderPolicy')->group(function (Router $ro
         'permissions' => 'orders/manage'
     ]);
 
+    $router->post('/{order}/transactions/{transaction}/sync', [OrderController::class, 'syncPendingTransaction'])->meta([
+        'permissions' => 'orders/manage'
+    ]);
+
     $router->post('/{order}/create-custom', [OrderController::class, 'createCustom'])->int('id')->meta([
         'permissions' => 'orders/create'
     ]);
@@ -636,6 +641,23 @@ $router->prefix('orders')->withPolicy('OrderPolicy')->group(function (Router $ro
 
 });
 
+$router->prefix('renewals')->withPolicy('OrderPolicy')->group(function (Router $router) {
+    $router->get('/', [RenewalController::class, 'index'])->meta([
+        'permissions' => 'orders/view'
+    ]);
+
+    $router->get('/{id}', [RenewalController::class, 'show'])->int('id')->meta([
+        'permissions' => 'orders/view'
+    ]);
+
+    $router->post('/{order}/void', [RenewalController::class, 'void'])->meta([
+        'permissions' => 'orders/manage'
+    ]);
+
+    $router->post('/{order}/resend', [RenewalController::class, 'resend'])->meta([
+        'permissions' => 'orders/manage'
+    ]);
+});
 
 $router->prefix('labels')->withPolicy('LabelPolicy')->group(function (Router $router) {
     $router->get('/', [LabelController::class, 'index'])->meta([
@@ -895,9 +917,6 @@ $router->prefix('tax')->withPolicy('StoreSettingsPolicy')->group(function (Route
         'permissions' => 'store/sensitive'
     ]);
     $router->delete('country/rate/{id}', [TaxRateController::class, 'delete'])->int('id')->meta([
-        'permissions' => 'store/sensitive'
-    ]);
-    $router->delete('country/{country_code}', [TaxRateController::class, 'deleteCountry'])->meta([
         'permissions' => 'store/sensitive'
     ]);
     $router->post('country-status/{country_code}', [TaxRateController::class, 'updateCountryStatus'])->meta([

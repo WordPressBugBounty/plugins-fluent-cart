@@ -120,6 +120,7 @@ class CustomerSubscriptionController extends BaseFrontendController
             'variation_id'              => $subscription->variation_id,
             'product_id'                => $subscription->product_id,
             'config'                    => $subscription->config,
+            'collection_method'         => $subscription->collection_method,
             'reactivate_url'            => $subscription->getReactivateUrl(),
             // item_name resolves to "<product> - <attributes>" (or the raw name),
             // so it carries the labeled combination on a single line.
@@ -129,6 +130,8 @@ class CustomerSubscriptionController extends BaseFrontendController
             'can_switch_payment_method' => $subscription->canSwitchPaymentMethod(),
             'switchable_payment_methods' => $subscription->switchablePaymentMethods(),
             'can_update_payment_method' => $subscription->canUpdatePaymentMethod(),
+            'can_pause'                 => $subscription->canPause(),
+            'can_resume'                => $subscription->canResume(),
             'order'                     => [
                 'uuid' => $subscription->order ? $subscription->order->uuid : ''
             ],
@@ -137,6 +140,11 @@ class CustomerSubscriptionController extends BaseFrontendController
             'can_early_pay'             => EarlyPaymentFeature::canPay($subscription),
             'remaining_installments'    => max(0, $subscription->bill_times - $subscription->bill_count),
             'card_update_url'           => $subscription->url,
+            // Auto-charged (system) subscriptions: the saved card is charged
+            // automatically on each renewal date — the portal says so, and surfaces
+            // the last failure so the customer knows to update the card.
+            'is_auto_charged'           => $subscription->isSystem(),
+            'auto_charge_error'         => Arr::get((array) $subscription->system_charge_state, 'last_error', ''),
         ];
 
 
@@ -155,7 +163,13 @@ class CustomerSubscriptionController extends BaseFrontendController
             ->get();
 
         $formattedData['transactions'] = $transactions->map(function ($transaction) {
-            return OrderService::transformTransaction($transaction);
+            $transformedTransaction = OrderService::transformTransaction($transaction);
+            if ($transaction->status === Status::TRANSACTION_PENDING
+                && !empty($transformedTransaction['custom_checkout_url'])
+            ) {
+                $transformedTransaction['show_pay_now'] = true;
+            }
+            return $transformedTransaction;
         });
 
         $formattedData = apply_filters('fluent_cart/customer_portal/subscription_data', $formattedData, [
@@ -307,6 +321,12 @@ class CustomerSubscriptionController extends BaseFrontendController
             ]);
         }
 
+        if (!$subscription->canSwitchPaymentMethod()) {
+            return $this->sendError([
+                'message' => __('This subscription cannot be moved to another payment gateway. Update the payment method on file instead.', 'fluent-cart')
+            ]);
+        }
+
         if (App::gateway()->has($newPaymentMethod)) {
             try {
                 App::gateway($newPaymentMethod)->subscriptions->switchPaymentMethod($data, $subscription->id);
@@ -354,6 +374,12 @@ class CustomerSubscriptionController extends BaseFrontendController
         if (empty($subscription)) {
             return $this->sendError([
                 'message' => __('Subscription not found', 'fluent-cart')
+            ]);
+        }
+
+        if (!$subscription->canSwitchPaymentMethod()) {
+            return $this->sendError([
+                'message' => __('This subscription cannot be moved to another payment gateway. Update the payment method on file instead.', 'fluent-cart')
             ]);
         }
 
@@ -463,6 +489,84 @@ class CustomerSubscriptionController extends BaseFrontendController
             && $subscription->bill_times > 0
             && $subscription->bill_count < $subscription->bill_times
             && in_array($subscription->status, [Status::SUBSCRIPTION_ACTIVE, Status::SUBSCRIPTION_TRIALING]);
+    }
+
+    public function pauseSubscription(Request $request, $subscription_uuid)
+    {
+        $errorResponse = $this->checkUserLoggedIn();
+        if ($errorResponse !== null) {
+            return $errorResponse;
+        }
+
+        $customer = CustomerResource::getCurrentCustomer();
+        if (!$customer) {
+            return $this->sendError([
+                'message' => __('Customer not found', 'fluent-cart')
+            ]);
+        }
+
+        $subscription = Subscription::query()
+            ->where('uuid', $subscription_uuid)
+            ->where('customer_id', $customer->id)
+            ->first();
+
+        if (empty($subscription)) {
+            return $this->sendError([
+                'message' => __('Subscription not found', 'fluent-cart')
+            ]);
+        }
+
+        $reason = __('Paused by customer from customer portal', 'fluent-cart');
+        $result = $subscription->pauseSubscription($reason);
+
+        if (is_wp_error($result)) {
+            return $this->sendError([
+                'message' => $result->get_error_message()
+            ]);
+        }
+
+        return [
+            'message' => __('Your subscription has been successfully paused', 'fluent-cart')
+        ];
+    }
+
+    public function resumeSubscription(Request $request, $subscription_uuid)
+    {
+        $errorResponse = $this->checkUserLoggedIn();
+        if ($errorResponse !== null) {
+            return $errorResponse;
+        }
+
+        $customer = CustomerResource::getCurrentCustomer();
+        if (!$customer) {
+            return $this->sendError([
+                'message' => __('Customer not found', 'fluent-cart')
+            ]);
+        }
+
+        $subscription = Subscription::query()
+            ->where('uuid', $subscription_uuid)
+            ->where('customer_id', $customer->id)
+            ->first();
+
+        if (empty($subscription)) {
+            return $this->sendError([
+                'message' => __('Subscription not found', 'fluent-cart')
+            ]);
+        }
+
+        $reason = __('Resumed by customer from customer portal', 'fluent-cart');
+        $result = $subscription->resumeSubscription($reason);
+
+        if (is_wp_error($result)) {
+            return $this->sendError([
+                'message' => $result->get_error_message()
+            ]);
+        }
+
+        return [
+            'message' => __('Your subscription has been successfully resumed', 'fluent-cart')
+        ];
     }
 
     public function getSetupIntentRemainingAttempts($subscription_uuid)

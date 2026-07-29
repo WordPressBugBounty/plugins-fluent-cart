@@ -267,7 +267,7 @@ class ModuleSettingsController extends Controller
                 'source_type' => 'cdn',
                 'source_link' => 'https://addons-cdn.fluentcart.com/fluent-cart-elementor-blocks.zip',
                 'upcoming' => false,
-                'repo_link' => 'https://github.com/WPManageNinja/fluent-cart-elementor-blocks'
+                'repo_link' => 'https://fluentcart.com/fluentcart-addons/'
             ],
             'fluent-cart-bricks-blocks' => [
                 'title'       => __('FluentCart Bricks Blocks', 'fluent-cart'),

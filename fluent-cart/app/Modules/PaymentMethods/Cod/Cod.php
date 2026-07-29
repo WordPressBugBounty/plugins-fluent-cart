@@ -16,7 +16,7 @@ use FluentCart\Framework\Support\Arr;
 
 class Cod extends AbstractPaymentGateway
 {
-    public array $supportedFeatures = ['payment', 'refund', 'subscriptions'];
+    public array $supportedFeatures = ['payment', 'refund', 'offline'];
 
     public BaseGatewaySettings $settings;
 
@@ -50,14 +50,13 @@ class Cod extends AbstractPaymentGateway
 
     public function __construct()
     {
-        parent::__construct(
-            new CodSettingsBase(),
-            new CodSubscriptions()
-        );
+        parent::__construct(new CodSettingsBase());
     }
 
     public function makePaymentFromPaymentInstance(PaymentInstance $paymentInstance)
     {
+        $this->maybeConvertToManualSubscription($paymentInstance);
+
         try {
             return [
                 'status'      => 'success',

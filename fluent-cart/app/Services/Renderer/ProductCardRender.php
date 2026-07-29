@@ -5,7 +5,6 @@ namespace FluentCart\App\Services\Renderer;
 use FluentCart\Api\ModuleSettings;
 use FluentCart\App\Helpers\Helper;
 use FluentCart\App\Models\Product;
-use FluentCart\App\Models\ProductVariation;
 use FluentCart\App\Modules\Templating\AssetLoader;
 use FluentCart\App\Vite;
 use FluentCart\Framework\Support\Arr;
@@ -75,7 +74,7 @@ class ProductCardRender
                  ?>">
             <?php $this->renderProductImage(); ?>
             <?php $this->renderTitle(); ?>
-            <?php $this->renderExcerpt(); ?>
+            <?php if (!Arr::get($this->config, 'hide_excerpt', false)) { $this->renderExcerpt(); } ?>
             <?php $this->renderPrices(); ?>
             <?php $this->showBuyButton(); ?>
         </article>
@@ -83,169 +82,40 @@ class ProductCardRender
     }
 
     /**
-     * Build package info string from snapshotted other_info fields.
+     * @deprecated Use PackageDescriptionRenderer::buildPackageInfoFromOtherInfo() directly.
+     * Kept as a compatibility shim for external callers (themes, extensions).
      *
      * @param array $otherInfo Order item's other_info array
      * @return string e.g. "Gift (Box) · 30 × 20 × 15 cm · Wt: 2 kg · Shipping: 2.5 kg"
      */
     public static function buildPackageInfoFromOtherInfo($otherInfo)
     {
-        $storeWeightUnit = Helper::shopConfig('weight_unit') ?: 'kg';
-        $parts = [];
-
-        // Package name
-        $name = Arr::get($otherInfo, 'package_name', '');
-        if ($name) {
-            $parts[] = $name;
-        }
-
-        // Dimensions
-        $length = Arr::get($otherInfo, 'package_length', '');
-        $width = Arr::get($otherInfo, 'package_width', '');
-        $height = Arr::get($otherInfo, 'package_height', '');
-        $dimensionUnit = Arr::get($otherInfo, 'package_dimension_unit', 'cm');
-        $dimParts = array_filter([$length, $width, $height], function ($val) {
-            return $val !== '' && $val !== null && $val != 0;
-        });
-        if ($dimParts) {
-            $parts[] = implode(' × ', $dimParts) . ' ' . $dimensionUnit;
-        }
-
-        // Product weight
-        $productWeight = floatval(Arr::get($otherInfo, 'weight', 0));
-        $productWeightUnit = Arr::get($otherInfo, 'weight_unit', $storeWeightUnit);
-        $convertedProductWeight = Helper::convertWeight($productWeight, $productWeightUnit, $storeWeightUnit);
-        if ($convertedProductWeight) {
-            $formatted = rtrim(rtrim(number_format($convertedProductWeight, 2), '0'), '.');
-            $parts[] = __('Wt:', 'fluent-cart') . ' ' . $formatted . ' ' . $storeWeightUnit;
-        }
-
-        // Shipping weight (product + package)
-        $packageWeight = floatval(Arr::get($otherInfo, 'package_weight', 0));
-        $packageWeightUnit = Arr::get($otherInfo, 'package_weight_unit', $storeWeightUnit);
-        $convertedPackageWeight = Helper::convertWeight($packageWeight, $packageWeightUnit, $storeWeightUnit);
-        $totalWeight = $convertedProductWeight + $convertedPackageWeight;
-        if ($totalWeight && $convertedPackageWeight) {
-            $formatted = rtrim(rtrim(number_format($totalWeight, 2), '0'), '.');
-            $parts[] = __('Shipping wt:', 'fluent-cart') . ' ' . $formatted . ' ' . $storeWeightUnit;
-        }
-
-        $info = implode(' · ', $parts);
-
-        return $info ? __('Package:', 'fluent-cart') . ' ' . $info : '';
+        return PackageDescriptionRenderer::buildPackageInfoFromOtherInfo($otherInfo);
     }
 
+    /**
+     * @deprecated Use PackageDescriptionRenderer::renderPackageDescription() directly.
+     * Kept as a compatibility shim for external callers (themes, extensions) —
+     * package-description rendering now lives in PackageDescriptionRenderer.
+     */
     public function renderPackageDescription(
         $wrapper_attributes = '',
         $showName = true,
         $showDimensions = true,
         $showProductWeight = true,
         $showTotalWeight = true,
-        $variant = null
+        $variant = null,
+        $defaultVariant = null
     ) {
-        $variant = $variant ?: $this->product->variants->first();
-
-        if (!$variant) {
-            return;
-        }
-
-        if (!$wrapper_attributes) {
-            $wrapper_attributes = 'class="fct-package-description" data-fluent-cart-package-description';
-        }
-
-        $this->renderPackageDescriptionForVariant($variant, $wrapper_attributes, $showName, $showDimensions, $showProductWeight, $showTotalWeight);
-    }
-
-    private function renderPackageDescriptionForVariant(
-        ProductVariation $variant,
-        $wrapper_attributes,
-        $showName,
-        $showDimensions,
-        $showProductWeight,
-        $showTotalWeight
-    ) {
-        if ($variant->fulfillment_type !== 'physical') {
-            return;
-        }
-
-        $packageSlug = Arr::get($variant->other_info, 'package_slug', '');
-        $package = Helper::getPackageBySlug($packageSlug);
-
-        if (!$package) {
-            return;
-        }
-
-        $name = Arr::get($package, 'name', '');
-        $length = Arr::get($package, 'length', '');
-        $width = Arr::get($package, 'width', '');
-        $height = Arr::get($package, 'height', '');
-        $dimensionUnit = Arr::get($package, 'dimension_unit', 'cm');
-        $packageWeight = floatval(Arr::get($package, 'weight', 0));
-        $packageWeightUnit = Arr::get($package, 'weight_unit', 'kg');
-
-        $storeWeightUnit = Helper::shopConfig('weight_unit') ?: 'kg';
-        $otherInfo = $variant->other_info ?: [];
-        $productWeight = floatval(Arr::get($otherInfo, 'weight', 0));
-        $productWeightUnit = Arr::get($otherInfo, 'weight_unit', $storeWeightUnit);
-
-        $convertedProductWeight = Helper::convertWeight($productWeight, $productWeightUnit, $storeWeightUnit);
-        $convertedPackageWeight = Helper::convertWeight($packageWeight, $packageWeightUnit, $storeWeightUnit);
-        $totalWeight = $convertedProductWeight + $convertedPackageWeight;
-
-        $hasVisibleContent = ($showName && $name)
-            || ($showDimensions && ($length || $width || $height))
-            || ($showProductWeight && $convertedProductWeight)
-            || ($showTotalWeight && $totalWeight);
-
-        if (!$hasVisibleContent) {
-            return;
-        }
-
-        echo sprintf('<div %s>', $wrapper_attributes); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
-        echo '<table class="fct-package-description__table" role="presentation"><tbody>';
-
-        if ($showName && $name) {
-            echo sprintf(
-                '<tr><th>%s</th><td>%s</td></tr>',
-                esc_html__('Package', 'fluent-cart'),
-                esc_html($name)
-            );
-        }
-
-        if ($showDimensions && ($length || $width || $height)) {
-            $dimensionParts = array_filter([$length, $width, $height], function ($val) {
-                return $val !== '' && $val !== null;
-            });
-            if ($dimensionParts) {
-                $formattedDimensions = implode(' × ', $dimensionParts) . ' ' . $dimensionUnit;
-                echo sprintf(
-                    '<tr><th>%s</th><td>%s</td></tr>',
-                    esc_html__('Dimensions', 'fluent-cart'),
-                    esc_html($formattedDimensions)
-                );
-            }
-        }
-
-        if ($showProductWeight && $convertedProductWeight) {
-            $formattedProductWeight = rtrim(rtrim(number_format($convertedProductWeight, 2), '0'), '.');
-            echo sprintf(
-                '<tr><th>%s</th><td>%s</td></tr>',
-                esc_html__('Weight', 'fluent-cart'),
-                esc_html($formattedProductWeight . ' ' . $storeWeightUnit)
-            );
-        }
-
-        if ($showTotalWeight && $totalWeight && $convertedPackageWeight) {
-            $formattedTotalWeight = rtrim(rtrim(number_format($totalWeight, 2), '0'), '.');
-            echo sprintf(
-                '<tr><th>%s</th><td>%s</td></tr>',
-                esc_html__('Shipping Weight', 'fluent-cart'),
-                esc_html($formattedTotalWeight . ' ' . $storeWeightUnit)
-            );
-        }
-
-        echo '</tbody></table>';
-        echo '</div>';
+        (new PackageDescriptionRenderer($this->product))->renderPackageDescription(
+            $wrapper_attributes,
+            $showName,
+            $showDimensions,
+            $showProductWeight,
+            $showTotalWeight,
+            $variant,
+            $defaultVariant
+        );
     }
 
     public function renderExcerpt($atts = '')

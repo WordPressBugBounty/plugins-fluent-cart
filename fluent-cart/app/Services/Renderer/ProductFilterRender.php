@@ -294,7 +294,9 @@ class ProductFilterRender
                 if (!empty(Arr::get($val, 'options'))) {
                     $formattedFilters[$key]['options'] = Arr::get($val, 'options');
                 } else {
-                    $formattedFilters[$key]['options'] = $this->getMetaFilterOptions($key, $prefilled);
+                    $showEmpty = Arr::get($val, 'show_empty', true);
+                    $hideEmpty = !$showEmpty;
+                    $formattedFilters[$key]['options'] = $this->getMetaFilterOptions($key, $prefilled, $hideEmpty);
                 }
             }
             if ($formattedFilters[$key]['filter_type'] === 'range') {
@@ -316,9 +318,9 @@ class ProductFilterRender
         $this->filters = $formattedFilters;
     }
 
-    private function getMetaFilterOptions($key, $prefilled = []): array
+    private function getMetaFilterOptions($key, $prefilled = [], $hideEmpty = false): array
     {
-        return Taxonomy::getFormattedTerms($key, false, null, 'value', 'label', $prefilled);
+        return Taxonomy::getFormattedTerms($key, $hideEmpty, null, 'value', 'label', $prefilled);
     }
 
     public static function renderResponsiveFilter()

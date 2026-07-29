@@ -279,22 +279,25 @@ class API
         return new \WP_Error($http_code, $message, $body);
     }
 
-    /**
-     * Two-step order: no payment_source in the body, so the buyer approves and the JS SDK
-     * captures. PayPal-Request-Id is optional here and deliberately omitted — see
-     * .claude/skills/coding-rules/payment-idempotency.md.
-     *
-     * Adding payment_source (card, vault_id, billing_agreement_id) makes this a single-step
-     * call that moves money on create. PayPal then REQUIRES PayPal-Request-Id (max 108 chars,
-     * keys stored 6h), and the idempotency design must be revisited before doing so.
-     */
-    public static function createOrder($purchaseUnit)
+    public static function createOrder($purchaseUnit, $extraBody = [], $extraHeaders = [])
     {
-        return self::makeRequest('checkout/orders', 'v2', 'POST', [
+        $body = [
             'intent'              => 'CAPTURE',
             'purchase_units'      => [$purchaseUnit],
             'application_context' => ['shipping_preference' => 'NO_SHIPPING'],
-        ]);
+        ];
+
+        if ($extraBody) {
+            // The legacy application_context cannot be combined with the
+            // payment_source object (vaulting / merchant-initiated charges) —
+            // shipping preference then rides experience_context instead.
+            if (isset($extraBody['payment_source'])) {
+                unset($body['application_context']);
+            }
+            $body = array_merge($body, $extraBody);
+        }
+
+        return self::makeRequest('checkout/orders', 'v2', 'POST', $body, '', $extraHeaders);
     }
 
     public static function verifyPayment($paymentId)
@@ -418,6 +421,50 @@ class API
             $errorMessage,
             $error
         );
+    }
+
+    /**
+     * Browser-safe id token for the JS SDK vault (save-without-purchase) flow —
+     * rendered as the SDK script's data-user-id-token attribute. Short-lived
+     * (~15 min), so it is generated per checkout page render and never cached.
+     *
+     * @param string $mode The PayPal mode (live/test).
+     * @return string|\WP_Error
+     */
+    public static function getUserIdToken($mode = '')
+    {
+        if (!$mode) {
+            $mode = self::getPayPalSettings()->getMode();
+        }
+
+        $headers = [
+            'Accept'                        => 'application/json',
+            'PayPal-Partner-Attribution-ID' => 'FLUENTCART_SP_PPCP',
+            'Authorization'                 => 'Basic ' . base64_encode(
+                self::getPayPalSettings()->getPublicKey($mode) . ':' . self::getPayPalSettings()->getApiKey($mode)
+            ),
+        ];
+
+        $response = wp_remote_post(self::getAuthAPI($mode), [
+            'headers' => $headers,
+            'body'    => [
+                'grant_type'    => 'client_credentials',
+                'response_type' => 'id_token'
+            ],
+            'timeout' => 30
+        ]);
+
+        if (is_wp_error($response)) {
+            return $response;
+        }
+
+        $body = json_decode(wp_remote_retrieve_body($response), true);
+
+        if (wp_remote_retrieve_response_code($response) !== 200 || empty($body['id_token'])) {
+            return new \WP_Error('id_token_error', __('Could not generate a PayPal id token.', 'fluent-cart'), $body);
+        }
+
+        return $body['id_token'];
     }
 
     /**

@@ -82,6 +82,15 @@ class CouponResource extends BaseResourceApi
 
     public static function create($data, $params = [])
     {
+        // New coupons default the spend basis to subtotal (the documented behavior) when a client
+        // omits it. Only applies on create — there is no prior behavior to preserve for a new row.
+        if (!is_array(Arr::get($data, 'conditions'))) {
+            $data['conditions'] = [];
+        }
+        if (empty($data['conditions']['min_amount_basis'])) {
+            $data['conditions']['min_amount_basis'] = 'subtotal';
+        }
+
         $data = self::formatAmount($data);
         $isCreated = static::getQuery()->create($data);
 
@@ -132,6 +141,17 @@ class CouponResource extends BaseResourceApi
             return static::makeErrorResponse([
                 ['code' => 404, 'message' => __('Coupon not found, please reload the page and try again!', 'fluent-cart')]
             ]);
+        }
+
+        // If the client sends conditions without a valid spend basis (e.g. an older REST client that
+        // predates the field), keep whatever is already stored so an unrelated edit never silently
+        // flips the coupon's spend basis. Legacy coupons with no stored basis stay absent and fall
+        // back to 'total' at validation.
+        if (is_array(Arr::get($data, 'conditions')) && empty($data['conditions']['min_amount_basis'])) {
+            $existingBasis = Arr::get($hasCoupon->conditions, 'min_amount_basis');
+            if (!empty($existingBasis)) {
+                $data['conditions']['min_amount_basis'] = $existingBasis;
+            }
         }
 
         $data = self::formatAmount($data);

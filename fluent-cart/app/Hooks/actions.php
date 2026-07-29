@@ -179,6 +179,7 @@ if (defined('WP_CLI') && WP_CLI) {
 
 \FluentCart\App\Modules\Subscriptions\SubscriptionModule::register();
 \FluentCart\App\Modules\Shipping\ShippingModule::register();
+\FluentCart\App\Modules\StoreManagedRenewal\RenewalModule::register();
 (new \FluentCart\App\Hooks\Handlers\AttributesHandler())->register();
 (new \FluentCart\App\Hooks\Handlers\AdvancedVariationHandler())->register();
 

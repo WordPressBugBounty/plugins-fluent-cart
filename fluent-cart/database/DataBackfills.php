@@ -44,6 +44,25 @@ class DataBackfills
             'installment_payments' => [
                 'title' => 'Installment Payments Backfill',
             ],
+            // 2026-07-22 — shipped with the completed-subscription guard in
+            // Subscription::cancelRemoteSubscription: the EOT flow used to stamp
+            // next_billing_date with the completion time on completed rows.
+            // Remove after one or two releases once affected installs have upgraded.
+            'completed_next_billing_date' => [
+                'title' => 'Completed Subscription Billing Date Cleanup',
+            ],
+            // 2026-07-25 — idx_order_addresses_order_id_type has been declared in
+            // OrderAddressesMigrator::migrated() since 2026-06-06, but migrated()
+            // only runs on ACTIVATION and a WordPress in-place update never fires
+            // the activation hook, so stores that updated rather than
+            // deactivated/reactivated still have fct_order_addresses with nothing
+            // but its PRIMARY key. Delivered here instead of behind a DB-version
+            // bump: an index is not a correctness change, so it does not warrant
+            // forcing the whole version-gated block to re-run on every install.
+            // Remove after one or two releases once affected installs have upgraded.
+            'order_address_index' => [
+                'title' => 'Order Address Index',
+            ],
         ];
     }
 
@@ -52,7 +71,7 @@ class DataBackfills
      */
     public static function getPending()
     {
-        $option = (array)fluent_cart_get_option('_db_migrations', []);
+        $option = (array)fluent_cart_get_option('_db_migrations', [], false);
         $doneSlugs = array_keys(array_filter((array)Arr::get($option, 'backfills', [])));
 
 
@@ -71,6 +90,13 @@ class DataBackfills
      *
      * @return array ['status' => completed|running|locked, 'completed' => [], 'pending' => []]
      */
+    /**
+     * How many times the order-address index DDL may be retried before the slug
+     * retires. Small on purpose: the only failures worth retrying are transient locks,
+     * and each retry is an immediate re-post from the browser driver, not a page load.
+     */
+    const ORDER_ADDRESS_INDEX_MAX_ATTEMPTS = 3;
+
     public static function processPending()
     {
         $pending = self::getPending();
@@ -117,6 +143,14 @@ class DataBackfills
             return self::repairInstallmentBillTimes();
         }
 
+        if ($slug === 'completed_next_billing_date') {
+            return self::clearCompletedNextBillingDates();
+        }
+
+        if ($slug === 'order_address_index') {
+            return self::ensureOrderAddressIndex();
+        }
+
         // registered slug without a runner — mark done so it can't wedge the
         // queue, but leave a trace since this is a programming error
         fluent_cart_add_log(
@@ -134,7 +168,7 @@ class DataBackfills
 
     private static function markCompleted($slug)
     {
-        $option = (array)fluent_cart_get_option('_db_migrations', []);
+        $option = (array)fluent_cart_get_option('_db_migrations', [], false);
         $backfills = (array)Arr::get($option, 'backfills', []);
         $backfills[$slug] = 'yes';
         $option['backfills'] = $backfills;
@@ -152,6 +186,81 @@ class DataBackfills
                 'module_id'   => 0
             ]
         );
+    }
+
+    /**
+     * Apply fct_order_addresses' declared indexes on installs that never ran the
+     * activation hook.
+     *
+     * The DDL itself is NOT written here — Migrators stay the single home for
+     * schema, so this delegates to OrderAddressesMigrator::migrated(), which owns
+     * idx_order_addresses_order_id_type and whose addIndexIfNotExists is a no-op
+     * where activation already applied it. This runner only supplies the delivery
+     * the activation hook missed.
+     *
+     * No cursor: this is one DDL statement, not a row scan. MySQL builds a
+     * secondary index online (5.6+), so it does not lock the table for writes.
+     *
+     * The outcome is CHECKED, not assumed. addIndexIfNotExists() returns void and
+     * routes through $wpdb->query(), which returns false on a failed DDL rather than
+     * throwing — so a lock timeout, or a denied ALTER on a restricted grant, would
+     * otherwise let this report success and retire the slug permanently with no index
+     * and no trace.
+     *
+     * Failure is retried a BOUNDED number of times rather than by returning false
+     * indefinitely. In this queue false means "budget spent, resume me", and the
+     * browser driver in resources/admin/bootstrap/app.js re-posts immediately while the
+     * status stays 'running' — up to 100 times per page load. An unfixable failure
+     * (no ALTER grant) returned as false would therefore fire 100 doomed ALTERs and
+     * write 100 log rows on every admin page load. A few attempts are enough to ride
+     * out a transient lock; past that the slug retires with one clear warning, and the
+     * index is still declared in the migrator so a later activation re-applies it.
+     *
+     * @return bool true when the index exists, the table does not, or the attempt
+     *              budget is spent; false only to earn one more retry
+     */
+    private static function ensureOrderAddressIndex()
+    {
+        $table = Migrations\OrderAddressesMigrator::$tableName;
+
+        // Nothing to index and nothing to retry — a fresh install creates the table
+        // with the index already in getSqlSchema().
+        if (!Schema::hasTable($table)) {
+            return true;
+        }
+
+        Migrations\OrderAddressesMigrator::migrated();
+
+        if (Migrations\OrderAddressesMigrator::hasOrderIdTypeIndex()) {
+            return true;
+        }
+
+        $cursorKey = '_fluent_cart_order_address_index_attempts';
+        $attempts  = (int) fluent_cart_get_option($cursorKey, 0, false) + 1;
+        fluent_cart_update_option($cursorKey, $attempts);
+
+        if ($attempts < self::ORDER_ADDRESS_INDEX_MAX_ATTEMPTS) {
+            return false;
+        }
+
+        fluent_cart_add_log(
+            'Order address index backfill gave up',
+            'Could not create ' . Migrations\OrderAddressesMigrator::ORDER_ID_TYPE_INDEX
+            . ' on ' . $table . ' after ' . $attempts . ' attempts. Check that the database'
+            . ' user has ALTER permission. Order address lookups will still work, only'
+            . ' slower; the index is re-applied on the next plugin activation. NOTE: the'
+            . ' "' . Arr::get(self::getRegistry(), 'order_address_index.title', 'Order Address Index')
+            . ' completed" entry logged straight after this one means this backfill'
+            . ' STOPPED RETRYING, not that the index was created — the shared queue logs'
+            . ' that line for every slug it retires. This warning is the real outcome.',
+            'warning',
+            [
+                'module_name' => 'activity',
+                'module_id'   => 0,
+            ]
+        );
+
+        return true;
     }
 
     /**
@@ -175,7 +284,7 @@ class DataBackfills
         $maxChunksPerRun = 5;
         $maxRepairsPerRun = 500;
         $chunksProcessed = 0;
-        $lastId = (int)fluent_cart_get_option('_fluent_cart_installment_repair_cursor', 0);
+        $lastId = (int)fluent_cart_get_option('_fluent_cart_installment_repair_cursor', 0, false);
         $offsetIds = [];
         $underCollectedIds = [];
         $anomalousIds = [];
@@ -410,6 +519,142 @@ class DataBackfills
     }
 
     /**
+     * Clear the stale next_billing_date the pre-guard EOT flow stamped onto
+     * completed subscriptions (cancelRemoteSubscription used to run its
+     * effective_from=immediately assignment on completed rows too). Completed
+     * subscriptions never bill again, so any non-null value here is the bug
+     * signature — which also makes re-runs idempotent: cleared rows no longer
+     * match the scan.
+     *
+     * @return bool true when the scan reached the end of the table
+     */
+    private static function clearCompletedNextBillingDates()
+    {
+        // Filterable so the chunk/budget boundary is testable with small
+        // tables; production keeps the defaults.
+        $budget = apply_filters('fluent_cart/data_backfills/chunk_budget', [
+            'chunk_size'         => 500,
+            'max_chunks_per_run' => 10,
+        ], ['slug' => 'completed_next_billing_date']);
+
+        $chunkSize = max(1, (int)Arr::get($budget, 'chunk_size', 500));
+        $maxChunksPerRun = max(1, (int)Arr::get($budget, 'max_chunks_per_run', 10));
+        $chunksProcessed = 0;
+        $lastId = (int)fluent_cart_get_option('_fluent_cart_completed_billing_date_cursor', 0, false);
+        $clearedIds = [];
+
+        do {
+            $rows = Subscription::query()
+                ->select(['id'])
+                ->where('id', '>', $lastId)
+                ->where('status', Status::SUBSCRIPTION_COMPLETED)
+                ->whereNotNull('next_billing_date')
+                ->orderBy('id', 'ASC')
+                ->limit($chunkSize)
+                ->get();
+
+            if ($rows->isEmpty()) {
+                break;
+            }
+
+            $ids = [];
+            foreach ($rows as $row) {
+                $lastId = $row->id;
+                $ids[] = $row->id;
+            }
+
+            // Fires between selection and write — a selected row CAN legitimately
+            // change state here (reactivation, gateway resync); the UPDATE below
+            // must re-check status so it never clears a live schedule.
+            do_action('fluent_cart/data_backfills/chunk_selected', [
+                'slug' => 'completed_next_billing_date',
+                'ids'  => $ids,
+            ]);
+
+            // status re-checked in the UPDATE so a row that changed between the
+            // scan and the write can't lose a legitimate billing date
+            Subscription::query()
+                ->whereIn('id', $ids)
+                ->where('status', Status::SUBSCRIPTION_COMPLETED)
+                ->update(['next_billing_date' => null]);
+
+            // Report only rows the guarded UPDATE actually cleared — every
+            // selected id had a non-null date, so post-update null + completed
+            // is the cleared signature; a row the guard skipped keeps its date.
+            $clearedRows = Subscription::query()
+                ->select(['id'])
+                ->whereIn('id', $ids)
+                ->where('status', Status::SUBSCRIPTION_COMPLETED)
+                ->whereNull('next_billing_date')
+                ->get();
+            foreach ($clearedRows as $clearedRow) {
+                $clearedIds[] = $clearedRow->id;
+            }
+
+            // cursor after every chunk — a timeout resumes here, never from id 0
+            fluent_cart_update_option('_fluent_cart_completed_billing_date_cursor', $lastId);
+            $chunksProcessed++;
+
+            if ($rows->count() >= $chunkSize && $chunksProcessed >= $maxChunksPerRun) {
+                self::mergeClearedBillingDateReport($clearedIds);
+
+                return false;
+            }
+        } while ($rows->count() >= $chunkSize);
+
+        $report = self::mergeClearedBillingDateReport($clearedIds);
+
+        if ($report) {
+            fluent_cart_add_log(
+                'Completed subscription billing date cleanup completed',
+                'Cleared the stale next_billing_date on ' . (int)Arr::get($report, 'cleared_count', 0)
+                . ' completed subscription(s).',
+                'info',
+                [
+                    'module_name' => 'subscription',
+                    'module_id'   => 0
+                ]
+            );
+        }
+
+        // done — the cursor has no further use
+        Meta::query()
+            ->where('object_type', 'option')
+            ->where('meta_key', '_fluent_cart_completed_billing_date_cursor')
+            ->delete();
+
+        return true;
+    }
+
+    /**
+     * Accumulate cleared ids into the report option across partial runs —
+     * id-keyed + deduped, so a replayed chunk can't double-count a subscription.
+     *
+     * @return array|null merged report, or null when nothing was ever cleared
+     */
+    private static function mergeClearedBillingDateReport($clearedIds)
+    {
+        $report = (array)fluent_cart_get_option('_fluent_cart_completed_billing_date_report', [], false);
+
+        if (!$clearedIds && !$report) {
+            return null;
+        }
+
+        $report = [
+            'repaired_at' => gmdate('Y-m-d H:i:s'),
+            'cleared_ids' => array_values(array_unique(array_merge(
+                (array)Arr::get($report, 'cleared_ids', []),
+                $clearedIds
+            ))),
+        ];
+        $report['cleared_count'] = count($report['cleared_ids']);
+
+        fluent_cart_update_option('_fluent_cart_completed_billing_date_report', $report);
+
+        return $report;
+    }
+
+    /**
      * Accumulate results into the report option across partial runs — rows are
      * keyed by subscription id, so a replayed chunk can't duplicate entries.
      *
@@ -417,7 +662,7 @@ class DataBackfills
      */
     private static function mergeRepairReport($repairedRows, $offsetIds, $underCollectedIds, $anomalousIds)
     {
-        $report = (array)fluent_cart_get_option('_fluent_cart_installment_repair_report', []);
+        $report = (array)fluent_cart_get_option('_fluent_cart_installment_repair_report', [], false);
 
         if (!$repairedRows && !$anomalousIds && !$report) {
             return null;

@@ -49,7 +49,8 @@ class SubscriptionsMigrator extends Migrator
 
                  INDEX `{$indexPrefix}_order_subscription_idx` (`parent_order_id` ASC),
                  INDEX `{$indexPrefix}vendor_subscription_id_idx` (`vendor_subscription_id` ASC),
-                 INDEX `{$indexPrefix}_expiry_scan_idx` (`status`, `next_billing_date`, `id`)";
+                 INDEX `{$indexPrefix}_expiry_scan_idx` (`status`, `next_billing_date`, `id`),
+                 INDEX `{$indexPrefix}collection_method_idx` (`collection_method`)";
     }
 
     public static function migrated()
@@ -59,6 +60,17 @@ class SubscriptionsMigrator extends Migrator
         static::backfillEmptyUuids();
         static::addVendorSubscriptionIdIndex();
         static::addExpiryScanIndex();
+        static::addCollectionMethodIndex();
+    }
+
+    // Serves the store-managed cron guard: whereIn(collection_method,[manual,system])->exists().
+    // Online DDL, builds over existing rows; column is NOT NULL so no legacy backfill.
+    public static function addCollectionMethodIndex()
+    {
+        static::addIndexIfNotExists(
+            static::getDbPrefix() . 'fct_index_collection_method_idx',
+            'collection_method'
+        );
     }
 
     public static function addVendorSubscriptionIdIndex()

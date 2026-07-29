@@ -308,7 +308,7 @@ class StoreDigestService
             'reports_url'     => admin_url('admin.php?page=fluent-cart#/reports'),
             'settings_url'    => admin_url('admin.php?page=fluent-cart#/settings/email_digest_settings'),
             'is_pro'          => App::isProActive(),
-            'pro_url'         => apply_filters('fluent_cart/store_digest/pro_url', 'https://fluentcart.com/pricing/'),
+            'pro_url'         => apply_filters('fluent_cart/store_digest/pro_url', 'https://fluentcart.com/discount-deal/'),
             'is_empty'        => $orderCount === 0,
             'subject'         => '',
             'metrics'         => [
@@ -743,10 +743,10 @@ class StoreDigestService
      */
     private static function proPromoUrl(array $payload, string $variant): string
     {
-        $base = (string) Arr::get($payload, 'pro_url', 'https://fluentcart.com/pricing/');
+        $base = (string) Arr::get($payload, 'pro_url', 'https://fluentcart.com/discount-deal/');
 
         return add_query_arg([
-            'utm_source'   => 'fluentcart',
+            'utm_source'   => 'fluent-cart',
             'utm_medium'   => 'email',
             'utm_campaign' => 'store_digest',
             'utm_content'  => (string) Arr::get($payload, 'frequency', 'daily') . '_' . $variant,

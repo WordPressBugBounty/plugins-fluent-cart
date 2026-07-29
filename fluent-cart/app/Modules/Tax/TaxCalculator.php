@@ -14,6 +14,25 @@ use FluentCart\App\Services\Localization\LocalizationManager;
 class TaxCalculator
 {
 
+    /**
+     * Per-request memos. In production every HTTP request runs in a fresh PHP
+     * process, so these live exactly one request. Long-running processes that
+     * simulate multiple requests (test suites, CLI) must clear them between
+     * simulated requests via resetCache() — as function-statics they
+     * were unreachable and leaked the first request's terms/overrides/tax-class
+     * lookups into every subsequent one.
+     */
+    private static $termsCache = null;
+    private static $overridesCache = null;
+    private static $taxClassCache = [];
+
+    public static function resetCache(): void
+    {
+        self::$termsCache = null;
+        self::$overridesCache = null;
+        self::$taxClassCache = [];
+    }
+
     protected $productIds = [];
 
     protected $taxMaps = [];
@@ -695,10 +714,8 @@ class TaxCalculator
         // Note: static scope is per-request, not per-instance — safe because each
         // HTTP request processes a single cart/address combination.
         // Each term_id stores an array of overrides (multiple location variants allowed).
-        static $overridesByTermId = null;
-
-        if ($overridesByTermId === null) {
-            $overridesByTermId = [];
+        if (self::$overridesCache === null) {
+            self::$overridesCache = [];
 
             $allTermIds = [];
             foreach ($this->productIds as $pid) {
@@ -714,7 +731,7 @@ class TaxCalculator
                     ->get();
 
                 foreach ($overrides as $override) {
-                    $overridesByTermId[(int) $override->object_id][] = is_array($override->meta_value)
+                    self::$overridesCache[(int) $override->object_id][] = is_array($override->meta_value)
                         ? $override->meta_value
                         : [];
                 }
@@ -729,11 +746,11 @@ class TaxCalculator
         $bestScore = -1;
 
         foreach ($termIds as $termId) {
-            if (!array_key_exists((int) $termId, $overridesByTermId)) {
+            if (!array_key_exists((int) $termId, self::$overridesCache)) {
                 continue;
             }
 
-            foreach ($overridesByTermId[(int) $termId] as $metaValue) {
+            foreach (self::$overridesCache[(int) $termId] as $metaValue) {
                 $score = $this->scoreOverrideMatch($metaValue, $lineItemClassId);
                 if ($score === null) {
                     continue;
@@ -946,7 +963,7 @@ class TaxCalculator
 
                 $variantTaxClassSlug = Arr::get($variantOtherInfo, 'tax_class');
                 if ($variantTaxClassSlug) {
-                    $class = TaxClass::query()->where('slug', sanitize_text_field($variantTaxClassSlug))->first();
+                    $class = $this->getTaxClassBySlug(sanitize_text_field($variantTaxClassSlug));
                     if ($class) {
                         return [$class];
                     }
@@ -963,35 +980,44 @@ class TaxCalculator
 
     protected function getTermsByProductId($productId)
     {
-        static $formattedTerms = null;
-
-        if ($formattedTerms === null) {
+        if (self::$termsCache === null) {
             $terms = App::make('db')->table('term_relationships')
                 ->whereIn('object_id', $this->productIds)
                 ->get();
 
-            $formattedTerms = [];
+            self::$termsCache = [];
 
             foreach ($terms as $term) {
-                if (!isset($formattedTerms[$term->object_id])) {
-                    $formattedTerms[$term->object_id] = [];
+                if (!isset(self::$termsCache[$term->object_id])) {
+                    self::$termsCache[$term->object_id] = [];
                 }
-                $formattedTerms[$term->object_id][] = $term->term_taxonomy_id;
+                self::$termsCache[$term->object_id][] = $term->term_taxonomy_id;
             }
         }
 
-        return Arr::get($formattedTerms, $productId, []);
+        return Arr::get(self::$termsCache, $productId, []);
     }
 
     protected function getStandardTaxClass()
     {
-        static $standardTaxClass = false;
+        return $this->getTaxClassBySlug('standard');
+    }
 
-        if ($standardTaxClass === false) {
-            $standardTaxClass = TaxClass::query()->where('slug', 'standard')->first() ?: null;
+    /**
+     * Lazily filled per-slug tax-class map — each slug is queried at most once
+     * per request, only when the app actually needs it (variant tax_class
+     * lookups and the standard-class fallback share the same cache).
+     *
+     * @return TaxClass|null
+     */
+    protected function getTaxClassBySlug($slug)
+    {
+        $slug = (string) $slug;
+        if (!array_key_exists($slug, self::$taxClassCache)) {
+            self::$taxClassCache[$slug] = TaxClass::query()->where('slug', $slug)->first() ?: null;
         }
 
-        return $standardTaxClass;
+        return self::$taxClassCache[$slug];
     }
 
     private function roundTax($amount)

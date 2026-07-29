@@ -17,9 +17,10 @@ class ProductVariationController extends Controller
 {
     public function index(Request $request): array
     {
-        // 
-
-        $parameters = $request->get('params');
+        // 'params' is optional in the query string; default to an empty array so
+        // ProductVariationResource::get() (which type-hints array) never receives
+        // null when the endpoint is called without params.
+        $parameters = $request->get('params') ?: [];
         $variants = ProductVariationResource::get($parameters);
 
         return [
@@ -503,6 +504,11 @@ class ProductVariationController extends Controller
             }
             $updatedProductId = (int) $distinctPostIds->first();
 
+            // Prepare pass: build and validate every row update BEFORE writing
+            // anything, so a validation failure returns early with no UPDATE
+            // executed (the rollbacks below only release the row locks).
+            $preparedUpdates = [];
+
             foreach ($ownedRows as $existingVariant) {
                 $vid       = (int) $existingVariant->id;
                 $rowUpdate = [];
@@ -555,6 +561,15 @@ class ProductVariationController extends Controller
                             unset($merged[$subKey]);
                         }
                     }
+
+                    // A subscription row without a billing interval is unusable —
+                    // reject the whole batch (an invalid interval is silently
+                    // dropped by sanitizeOtherInfoDelta, so it can be missing here).
+                    // Runs in the prepare pass: nothing has been written yet.
+                    if ($paymentType === 'subscription' && !Arr::get($merged, 'repeat_interval')) {
+                        $db->rollBack();
+                        return $this->sendError(['message' => __('A valid billing interval is required for subscription variants.', 'fluent-cart')], 422);
+                    }
                     if ($paymentType === 'subscription' && array_key_exists('signup_fee', $otherInfoDelta)) {
                         $merged['signup_fee'] = Helper::toCent(floatval($otherInfoDelta['signup_fee']));
                     }
@@ -573,6 +588,16 @@ class ProductVariationController extends Controller
                         }
                     }
 
+                    // billing_summary embeds the row's own price, so one client-sent
+                    // value can never fit a group of variants with different prices —
+                    // recompute per row from the effective price/interval/times.
+                    if ($paymentType === 'subscription') {
+                        $effectivePriceCents = isset($rowUpdate['item_price'])
+                            ? (int) $rowUpdate['item_price']
+                            : (int) $existingVariant->item_price;
+                        $merged['billing_summary'] = $this->buildBillingSummary($effectivePriceCents, $merged);
+                    }
+
                     $merged['is_bundle_product'] = Arr::get($existingOtherInfo, 'is_bundle_product', 'no');
                     $merged['bundle_child_ids']   = Arr::get($existingOtherInfo, 'bundle_child_ids', []);
 
@@ -583,13 +608,33 @@ class ProductVariationController extends Controller
                             ? 'subscription'
                             : 'onetime';
                     }
+                } elseif (isset($rowUpdate['item_price']) && $existingVariant->payment_type === 'subscription') {
+                    // Price-only bulk edit on a subscription row: the stored
+                    // summary embeds the old price — refresh it from the new one.
+                    // Write back the raw stored JSON, not the accessor output:
+                    // getOtherInfoAttribute() injects virtual defaults (and
+                    // downgrades installment to 'no' while Pro is inactive) that
+                    // an unrelated price edit must not persist.
+                    $rawOtherInfoJson = Arr::get($existingVariant->getAttributes(), 'other_info');
+                    $rawOtherInfo = (is_string($rawOtherInfoJson) && $rawOtherInfoJson !== '')
+                        ? json_decode($rawOtherInfoJson, true)
+                        : [];
+                    $rawOtherInfo = is_array($rawOtherInfo) ? $rawOtherInfo : [];
+                    $accessorOtherInfo = is_array($existingVariant->other_info) ? $existingVariant->other_info : [];
+                    $rawOtherInfo['billing_summary'] = $this->buildBillingSummary((int) $rowUpdate['item_price'], $accessorOtherInfo);
+                    $rowUpdate['other_info'] = $rawOtherInfo;
                 }
 
                 if (!empty($rowUpdate)) {
                     $rowUpdate['updated_at'] = $now;
-                    ProductVariation::query()->where('id', $vid)->update($rowUpdate);
-                    $batchData[] = array_merge(['id' => $vid], $rowUpdate);
+                    $preparedUpdates[$vid] = $rowUpdate;
                 }
+            }
+
+            // Write pass: every row validated above, apply the updates.
+            foreach ($preparedUpdates as $vid => $rowUpdate) {
+                ProductVariation::query()->where('id', $vid)->update($rowUpdate);
+                $batchData[] = array_merge(['id' => $vid], $rowUpdate);
             }
 
             $db->commit();
@@ -611,18 +656,44 @@ class ProductVariationController extends Controller
     }
 
     /**
+     * Build the per-variant billing summary string, mirroring the admin JS
+     * (ProductEditModel.onChangePricingPayment): "{price} {interval} {occurrence}".
+     */
+    private function buildBillingSummary($priceCents, array $otherInfo)
+    {
+        $interval = Arr::get($otherInfo, 'repeat_interval', '');
+        if (!$interval) {
+            return '';
+        }
+
+        // A valid installment count is always >= 2 (Helper::installmentTimesError);
+        // legacy garbage like 1 or -1 must not surface as "for -1 Times".
+        $times = (int) Arr::get($otherInfo, 'times', 0);
+        $occurrence = $times >= 2
+            /* translators: %1$s: number of installment payments */
+            ? sprintf(__('for %1$s Times', 'fluent-cart'), $times)
+            : __('Until Cancel', 'fluent-cart');
+
+        $price = 0 + round(((int) $priceCents) / 100, 2);
+
+        /* translators: %1$s: price, %2$s: billing interval (e.g. monthly), %3$s: occurrence (e.g. Until Cancel) */
+        return sprintf(__('%1$s %2$s %3$s', 'fluent-cart'), $price, $interval, $occurrence);
+    }
+
+    /**
      * Sanitize the other_info delta for group bulk update.
      * Only known sub-keys are allowed; unknown keys are dropped to prevent
      * arbitrary data injection into the JSON column.
      */
     private function sanitizeOtherInfoDelta(array $raw)
     {
+        // billing_summary is intentionally NOT accepted — it embeds each row's
+        // own price, so groupBulkUpdate() recomputes it server-side per variant.
         $allowed = [
             'description'      => 'sanitize_textarea_field',
             'tax_inclusion'    => 'sanitize_text_field',
             'package_slug'     => 'sanitize_text_field',
             'weight_unit'      => 'sanitize_text_field',
-            'billing_summary'  => 'sanitize_textarea_field',
             'manage_setup_fee' => 'sanitize_text_field',
             'signup_fee_name'  => 'sanitize_text_field',
             'times'            => 'sanitize_text_field',
@@ -640,6 +711,15 @@ class ProductVariationController extends Controller
                 continue;
             }
             $delta[$key] = $sanitizer($value);
+        }
+
+        // repeat_interval is an enum, not free text — an unknown value would be
+        // stored verbatim and surface in billing summaries ("9.99 garbage …").
+        if (isset($delta['repeat_interval'])) {
+            $validIntervals = array_column(Helper::getAvailableSubscriptionIntervalOptions(), 'value');
+            if (!in_array($delta['repeat_interval'], $validIntervals, true)) {
+                unset($delta['repeat_interval']);
+            }
         }
 
         // Enum-validated fields — unknown values are dropped rather than stored.

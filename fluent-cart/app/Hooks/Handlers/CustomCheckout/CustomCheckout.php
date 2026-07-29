@@ -115,6 +115,15 @@ class CustomCheckout
                 Arr::set($item, 'post_title', $orderItem->post_title);
                 Arr::set($item, 'variation_type', $itemData->variation->product_detail->variation_type);
 
+                // For renewal invoices, use the order item's unit_price (matches subscription's recurring_amount)
+                // and strip trial_days so CheckoutProcessor doesn't apply trial (0) pricing.
+                if ($order->type === Status::ORDER_TYPE_RENEWAL) {
+                    Arr::set($item, 'item_price', $orderItem->unit_price);
+                    $otherInfo = Arr::get($item, 'other_info', []);
+                    $otherInfo['trial_days'] = 0;
+                    Arr::set($item, 'other_info', $otherInfo);
+                }
+
                 if ($itemManualDiscountTotal) {
                     $subtotal = Arr::get($orderItem, 'subtotal');
                     $manualDiscount = ($subtotal * $itemManualDiscountTotal) / $order->subtotal;
@@ -183,6 +192,12 @@ class CustomCheckout
                 ]
             ]
         ];
+
+        if ($order->type === Status::ORDER_TYPE_RENEWAL) {
+            $checkoutData['renewal_order'] = [
+                'due_date' => $order->getMeta('due_date'),
+            ];
+        }
 
         if ($prorateCredit > 0) {
             $checkoutData['prorate_credit'] = [

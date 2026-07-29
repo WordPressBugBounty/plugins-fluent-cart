@@ -12,6 +12,7 @@ use FluentCart\App\Models\OrderTransaction;
 use FluentCart\App\Models\Subscription;
 use FluentCart\App\Modules\PaymentMethods\StripeGateway\API\API;
 use FluentCart\App\Modules\Subscriptions\Services\SubscriptionService;
+use FluentCart\App\Modules\Subscriptions\Services\SystemChargeService;
 use FluentCart\App\Services\DateTime\DateTime;
 use FluentCart\App\Services\Payments\PaymentHelper;
 use FluentCart\Framework\Support\Arr;
@@ -158,7 +159,16 @@ class Confirmations
             }
 
             (new StatusHelper($transaction->order))->syncOrderStatuses($transaction);
-            
+
+        } elseif ($mode === 'setup') {
+            // Zero-payable system-subscription hosted checkout — no payment_intent
+            // to confirm, just the vaulted setup_intent. confirmSetupIntent() also
+            // resolves the transaction by vendor_charge_id, so a stale/mismatched
+            // session for this transaction is harmless here.
+            $setupIntentId = Arr::get($session, 'setup_intent');
+            if ($setupIntentId) {
+                $this->confirmSetupIntent($setupIntentId);
+            }
         } else {
             if ($paymentStatus === 'paid') {
                 $paymentIntent = Arr::get($session, 'payment_intent');
@@ -455,11 +465,73 @@ class Confirmations
         $subscription = Subscription::query()->where('id', $transaction->subscription_id)->first();
 
         if ($subscription) {
-            (new SubscriptionsManager())->confirmSubscriptionAfterChargeSucceeded($subscription, $billingInfo);
+            if ($subscription->isSystem()) {
+                // Zero-payable free-trial checkout: no vendor subscription to confirm,
+                // just vault the Stripe customer + reusable payment method.
+                $stripeCustomerId = Arr::get($response, 'customer', '');
+                if ($stripeCustomerId && !$subscription->vendor_customer_id) {
+                    $subscription->vendor_customer_id = $stripeCustomerId;
+                    $subscription->save();
+                }
+
+                $vendorMethodId = Arr::get($response, 'payment_method', '');
+                if ($vendorMethodId) {
+                    $billingInfo['vendor_method_id'] = $vendorMethodId;
+                }
+
+                $this->maybePersistSystemVaultToken($subscription, $order, $billingInfo);
+            } else {
+                (new SubscriptionsManager())->confirmSubscriptionAfterChargeSucceeded($subscription, $billingInfo);
+            }
         }
 
         (new StatusHelper($order))->syncOrderStatuses($transaction);
 
+        // Notify that a renewal invoice has been deferred — the actual charge will fire
+        // later via the gateway's subscription_cycle webhook. Gateways that capture a card
+        // for a deferred renewal charge should fire this so the invoice status can be updated.
+        if ($order->type === Status::ORDER_TYPE_RENEWAL) {
+            do_action('fluent_cart/renewal/payment_scheduled', [
+                'order'        => $order,
+                'subscription' => $subscription,
+            ]);
+        }
+
+    }
+
+    /**
+     * Vault the token for a system subscription, or demote to manual when the
+     * initial checkout capture came back without one — mirrors PayPal's
+     * Processor::maybePersistVaultToken().
+     */
+    private function maybePersistSystemVaultToken($subscription, $order, $billingInfo)
+    {
+        $vendorMethodId = Arr::get($billingInfo, 'vendor_method_id', '');
+        $existing = $subscription->getMeta('active_payment_method', []) ?: [];
+        // Meta has two shapes in the wild: vendor_method_id (confirmation paths) and
+        // details.payment_method_id (card-update flow) — accept both, same as chargeRenewal().
+        $existingMethodId = Arr::get($existing, 'vendor_method_id') ?: Arr::get($existing, 'details.payment_method_id');
+
+        if ($vendorMethodId) {
+            if ($existingMethodId === $vendorMethodId) {
+                return; // already persisted (webhook/AJAX race)
+            }
+
+            $subscription->updateMeta('active_payment_method', $billingInfo);
+            return;
+        }
+
+        // No token on the initial capture and none stored yet — never leave a
+        // system subscription that can never be charged.
+        if ($order
+            && $order->type === Status::ORDER_TYPE_SUBSCRIPTION
+            && !$existingMethodId
+        ) {
+            SystemChargeService::demoteToManual(
+                $subscription,
+                __('Stripe did not return a saved payment method for automatic charging.', 'fluent-cart')
+            );
+        }
     }
 
     public function getPaymentMethodDetails($methodId)
@@ -475,6 +547,68 @@ class Confirmations
         return $billingInfo;
     }
 
+
+    public function syncRemoteTransaction(OrderTransaction $transaction)
+    {
+        $mode = $transaction->payment_mode;
+        if (!$mode) {
+            $mode = $transaction->order ? $transaction->order->mode : '';
+        }
+
+        $intent = (new API())->getStripeObject('payment_intents/' . $transaction->vendor_charge_id, [
+            'expand' => ['latest_charge']
+        ], $mode);
+
+        if (is_wp_error($intent)) {
+            return $intent;
+        }
+
+        $intentStatus = Arr::get($intent, 'status');
+
+        if ($intentStatus === 'succeeded') {
+            $chargeCurrency = strtoupper((string) Arr::get($intent, 'latest_charge.currency', ''));
+            if ($chargeCurrency && $transaction->currency && strtoupper($transaction->currency) !== $chargeCurrency) {
+                fluent_cart_warning_log(
+                    __('Stripe Currency Mismatch On Sync', 'fluent-cart'),
+                    sprintf(
+                        /* translators: %1$s: expected currency, %2$s: received currency */
+                        __('Charge currency mismatch detected during transaction sync. Expected: %1$s, Received: %2$s. Transaction was not confirmed.', 'fluent-cart'),
+                        $transaction->currency,
+                        $chargeCurrency
+                    ),
+                    [
+                        'module_name' => 'order',
+                        'module_id'   => $transaction->order_id,
+                        'log_type'    => 'api'
+                    ]
+                );
+
+                return new \WP_Error('currency_mismatch', __('The Stripe payment currency does not match this transaction. Please verify the payment at Stripe.', 'fluent-cart'));
+            }
+
+            $this->confirmPaymentSuccessByCharge($transaction, [
+                'charge'    => Arr::get($intent, 'latest_charge', []),
+                'intent_id' => Arr::get($intent, 'id'),
+            ]);
+
+            return OrderTransaction::query()->find($transaction->id);
+        }
+
+        if ($intentStatus === 'processing') {
+            return new \WP_Error('still_processing', __('The payment is still processing at Stripe. Please try again later.', 'fluent-cart'));
+        }
+
+        $failureMessage = Arr::get($intent, 'last_payment_error.message');
+        if (!$failureMessage) {
+            $failureMessage = sprintf(
+            /* translators: %1$s: Stripe payment intent status */
+                __('The payment has not completed at Stripe (status: %1$s).', 'fluent-cart'),
+                $intentStatus ?: 'unknown'
+            );
+        }
+
+        return new \WP_Error('charge_not_completed', $failureMessage);
+    }
 
     /**
      * Confirm payment success by charge.
@@ -503,7 +637,8 @@ class Confirmations
         if ($transaction->status === Status::TRANSACTION_SUCCEEDED) {
             if ($transaction->subscription_id) {
                 $subscription = Subscription::query()->where('id', $transaction->subscription_id)->first();
-                if ($subscription) {
+                // Only automatic subs have a remote to resync; store-managed (system/manual) have none.
+                if ($subscription && $subscription->vendor_subscription_id) {
                     $subscription->reSyncFromRemote();
                 }
             }
@@ -617,19 +752,21 @@ class Confirmations
                 return $order; // No subscription found for this renewal order. Something is wrong.
             }
 
-            $api = new API();
-            $response = $api->getStripeObject('subscriptions/' . $subscription->vendor_subscription_id, [], $transaction->payment_mode);
-
             $subscriptionArgs = [
                 'status'                 => Status::SUBSCRIPTION_ACTIVE,
                 'canceled_at'            => null,
                 'current_payment_method' => 'stripe'
             ];
 
-            if (!is_wp_error($response)) {
-                $nextBillingDate = Arr::get($response, 'current_period_end') ?? null;
-                if ($nextBillingDate) {
-                    $subscriptionArgs['next_billing_date'] = gmdate('Y-m-d H:i:s', (int)$nextBillingDate);
+            // Only automatic subs expose a Stripe subscription to read the period end from;
+            // store-managed (system/manual) advance next_billing_date via handleRenewalPaid.
+            if ($subscription->vendor_subscription_id) {
+                $response = (new API())->getStripeObject('subscriptions/' . $subscription->vendor_subscription_id, [], $transaction->payment_mode);
+                if (!is_wp_error($response)) {
+                    $nextBillingDate = Arr::get($response, 'current_period_end') ?? null;
+                    if ($nextBillingDate) {
+                        $subscriptionArgs['next_billing_date'] = gmdate('Y-m-d H:i:s', (int)$nextBillingDate);
+                    }
                 }
             }
 
@@ -645,6 +782,19 @@ class Confirmations
                 (new SubscriptionsManager())->confirmSubscriptionAfterChargeSucceeded($subscription, $billingInfo);
             }
 
+            // System (auto-charged, store-billed) subscription: persist the token from
+            // the first charge — the only write path for it, since
+            // confirmSubscriptionAfterChargeSucceeded() early-returns without a vendor subscription.
+            if ($subscription && $subscription->isSystem()) {
+                $stripeCustomerId = Arr::get($charge, 'customer', '');
+                if ($stripeCustomerId && !$subscription->vendor_customer_id) {
+                    $subscription->vendor_customer_id = $stripeCustomerId;
+                    $subscription->save();
+                }
+
+                $this->maybePersistSystemVaultToken($subscription, $order, $billingInfo);
+            }
+
             (new StatusHelper($order))->syncOrderStatuses($transaction);
         }
 
@@ -652,4 +802,3 @@ class Confirmations
     }
 
 }
-

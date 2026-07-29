@@ -563,6 +563,7 @@ class AdminOrderProcessor
             'quantity'               => 1,
             'variation_id'           => Arr::get($item, 'object_id', 0),
             'status'                 => Status::SUBSCRIPTION_PENDING,
+            'collection_method'      => Status::SUBSCRIPTION_METHOD_MANUAL,
             'config'                 => [
                 'currency' => $this->orderData['currency'],
                 'is_trial_days_simulated' => Arr::get($subscriptionPricing, 'is_trial_days_simulated', 'no'),

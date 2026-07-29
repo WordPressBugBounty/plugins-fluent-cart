@@ -13,14 +13,16 @@ class SubscriptionReactivated extends EventDispatcher
     protected array $listeners = [];
 
     public Subscription $subscription;
-    public ?Order $order;
     public ?Customer $customer;
+    public ?Order $order;
+    public ?string $oldStatus;
 
-    public function __construct(Subscription $subscription, ?Order $order = null, ?Customer $customer = null)
+    public function __construct(Subscription $subscription, ?Order $order = null, ?Customer $customer = null, ?string $oldStatus = null)
     {
         $this->subscription = $subscription;
         $this->order = $order;
         $this->customer = $customer;
+        $this->oldStatus = $oldStatus;
     }
 
     public function toArray(): array
@@ -28,7 +30,8 @@ class SubscriptionReactivated extends EventDispatcher
         return [
             'subscription' => $this->subscription,
             'order'        => $this->order,
-            'customer'     => $this->customer,
+            'customer'     => $this->customer ?? [],
+            'old_status'   => $this->oldStatus,
         ];
     }
 

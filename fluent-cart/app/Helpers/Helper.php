@@ -68,6 +68,44 @@ class Helper
 
     }
 
+    /**
+     * Build a spec-compliant "Upgrade to Pro" URL.
+     *
+     * Follows the shared Fluent* UTM spec:
+     *   utm_source  = fluent-cart (fixed vocabulary, never the wp.org slug)
+     *   utm_medium  = free_plugin | pro_plugin (acquisition vs cross-sell)
+     *   utm_campaign= upgrade_pro (override for xsell_<target> / license_*)
+     *   utm_content = the exact placement, e.g. feature_lock_advanced_inventory
+     *   utm_term    = plugin version that generated the link
+     *   utm_id      = promo id, blank normally (omit unless passed)
+     *
+     * @param string $content   The utm_content placement.
+     * @param array  $overrides Override any utm_* param (e.g. utm_campaign for cross-sell).
+     * @return string
+     */
+    public static function getUpgradeUrl($content = 'upgrade_page', $overrides = []): string
+    {
+        $baseUrl = (string) apply_filters(
+            'fluent_cart/pro_upgrade_base_url',
+            'https://fluentcart.com/discount-deal/'
+        );
+
+        $params = wp_parse_args($overrides, [
+            'utm_source'   => 'fluent-cart',
+            'utm_medium'   => App::isProActive() ? 'pro_plugin' : 'free_plugin',
+            'utm_campaign' => 'upgrade_pro',
+            'utm_content'  => $content,
+            'utm_term'     => defined('FLUENTCART_VERSION') ? FLUENTCART_VERSION : '',
+        ]);
+
+        // Drop any blank params (e.g. an unset utm_id) so they never hit the URL.
+        $params = array_filter($params, function ($value) {
+            return $value !== '' && $value !== null;
+        });
+
+        return add_query_arg($params, $baseUrl);
+    }
+
     public static function getRestInfo()
     {
         $app = App::getInstance();

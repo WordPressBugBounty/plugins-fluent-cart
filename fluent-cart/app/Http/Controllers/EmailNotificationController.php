@@ -139,6 +139,20 @@ class EmailNotificationController extends Controller
     public function previewDefaultTemplate(Request $request)
     {
         $template = sanitize_text_field($request->get('template'));
+
+        // Validate the template against the known notification template paths so an
+        // invalid or missing value returns a clean REST error instead of an uncaught
+        // "view not found" fatal from the template renderer.
+        $validTemplates = array_filter(array_column(
+            EmailNotifications::getNotifications(), 'template_path'
+        ));
+
+        if (!$template || !in_array($template, $validTemplates, true)) {
+            return $this->sendError([
+                'message' => __('Invalid or missing "template" parameter.', 'fluent-cart')
+            ], 422);
+        }
+
         $previewService = new EmailPreviewService();
         $data = $previewService->getPreviewData($template);
 

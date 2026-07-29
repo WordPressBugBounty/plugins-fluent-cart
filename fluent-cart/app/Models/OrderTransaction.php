@@ -5,6 +5,7 @@ namespace FluentCart\App\Models;
 use FluentCart\Api\StoreSettings;
 use FluentCart\App\Helpers\Status;
 use FluentCart\App\Models\Concerns\CanSearch;
+use FluentCart\App\Modules\PaymentMethods\Core\AbstractPaymentGateway;
 use FluentCart\App\Modules\PaymentMethods\Core\GatewayManager;
 use FluentCart\Framework\Database\Orm\Relations\HasOne;
 use FluentCart\Framework\Support\Arr;
@@ -196,6 +197,28 @@ class OrderTransaction extends Model
         }
 
         return $url;
+    }
+
+    public function syncPendingTransaction()
+    {
+        if ($this->transaction_type !== Status::TRANSACTION_TYPE_CHARGE) {
+            return new \WP_Error('invalid_transaction_type', __('Only charge transactions can be synced from the payment gateway.', 'fluent-cart'));
+        }
+
+        if ($this->status !== Status::TRANSACTION_PENDING) {
+            return new \WP_Error('invalid_transaction_status', __('Only pending transactions can be synced from the payment gateway.', 'fluent-cart'));
+        }
+
+        if (!$this->vendor_charge_id) {
+            return new \WP_Error('missing_vendor_charge_id', __('This transaction has no gateway charge ID to sync against.', 'fluent-cart'));
+        }
+
+        $gateway = GatewayManager::getInstance($this->payment_method);
+        if ($gateway instanceof AbstractPaymentGateway) {
+            return $gateway->syncRemoteTransaction($this);
+        }
+
+        return new \WP_Error('invalid_payment_method', __('This payment method does not support remote transaction sync', 'fluent-cart'));
     }
 
     public function acceptDispute($args = [])

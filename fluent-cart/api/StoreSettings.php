@@ -8,6 +8,9 @@ use FluentCart\App\CPT\Pages;
 use FluentCart\App\Helpers\AddressHelper;
 use FluentCart\App\Helpers\CurrenciesHelper;
 use FluentCart\App\Services\OrderService;
+use FluentCart\App\Modules\PaymentMethods\Core\GatewayManager;
+use FluentCart\App\Modules\StoreManagedRenewal\Services\RenewalService;
+use FluentCart\App\Modules\Subscriptions\Services\SubscriptionManagementMode;
 use FluentCart\Framework\Support\Arr;
 use FluentCart\Framework\Support\ArrayableInterface;
 use FluentCart\Framework\Support\Str;
@@ -91,6 +94,8 @@ class StoreSettings implements ArrayableInterface
             'variation_view'                       => 'both',
             'variation_columns'                    => 'masonry',
             'enable_early_payment_for_installment' => 'yes',
+            'subscription_management_mode'         => 'gateway_managed',
+            'subscription_system_charge'           => 'no',
             'modules_settings'                     => [],
             'min_receipt_number'                   => '1',
             'inv_prefix'                           => 'INV-',
@@ -121,6 +126,51 @@ class StoreSettings implements ArrayableInterface
         $isProActive = App::isProActive();
         $proFeatureIcon = Vite::getAssetUrl('images/crown.svg');
 
+        // Read-only schedule for store-managed subscription renewals. Pulled live
+        // from the same map the scheduler uses, so it stays accurate under the
+        // fluent_cart/renewal/advance_creation_days filter. No editable knob — the timing is
+        // deliberately built-in; developers tune it via that filter.
+        $invoiceScheduleMap = RenewalService::getAdvanceCreationDaysMap();
+        $invoiceScheduleLabels = [
+            'daily'       => __('Daily', 'fluent-cart'),
+            'weekly'      => __('Weekly', 'fluent-cart'),
+            'monthly'     => __('Monthly', 'fluent-cart'),
+            'quarterly'   => __('Quarterly', 'fluent-cart'),
+            'half_yearly' => __('Half-yearly', 'fluent-cart'),
+            'yearly'      => __('Yearly', 'fluent-cart'),
+        ];
+        // Structured renewal-order schedule for the SubscriptionModeManager
+        // component (status card + guarded edit dialog).
+        $invoiceScheduleList = [];
+        foreach ($invoiceScheduleLabels as $invoiceScheduleKey => $invoiceScheduleLabel) {
+            if (!isset($invoiceScheduleMap[$invoiceScheduleKey])) {
+                continue;
+            }
+            $invoiceScheduleDays = (int) $invoiceScheduleMap[$invoiceScheduleKey];
+            $invoiceScheduleList[] = [
+                'label' => $invoiceScheduleLabel,
+                'when'  => $invoiceScheduleDays <= 0
+                    ? __('on the due date', 'fluent-cart')
+                    /* translators: %d: number of days before the due date */
+                    : sprintf(_n('%d day before due date', '%d days before due date', $invoiceScheduleDays, 'fluent-cart'), $invoiceScheduleDays),
+            ];
+        }
+
+        // Gateways declaring `system_subscription` — the only ones
+        // subscription_system_charge can ever auto-charge.
+        $systemChargeGateways = [];
+        foreach (GatewayManager::getInstance()->all() as $systemChargeGateway) {
+            if (!$systemChargeGateway->has('system_subscription') || $systemChargeGateway->isUpcoming()) {
+                continue;
+            }
+            $systemChargeGatewayMeta = $systemChargeGateway->getMeta();
+            $systemChargeGateways[] = [
+                'label'  => Arr::get($systemChargeGatewayMeta, 'admin_title')
+                    ?: Arr::get($systemChargeGatewayMeta, 'label')
+                        ?: Arr::get($systemChargeGatewayMeta, 'title'),
+                'active' => $systemChargeGateway->isEnabled(),
+            ];
+        }
 
         $fields = [
             'setting_tabs' => [
@@ -130,6 +180,7 @@ class StoreSettings implements ArrayableInterface
                 'hide_tab_switch' => true,
                 'schema'          => [
                     'store_setup'          => [
+                        'id'              => '',
                         'title'           => __('Store Setup', 'fluent-cart'),
                         'show_title'      => false,
                         'type'            => 'section',
@@ -595,6 +646,7 @@ class StoreSettings implements ArrayableInterface
 //                        ]
 //                    ],
                     'pages_setup'          => [
+                        'id'              => '',
                         'title'           => __('Pages Setup', 'fluent-cart'),
                         'show_title'      => false,
                         'type'            => 'section',
@@ -1161,8 +1213,9 @@ class StoreSettings implements ArrayableInterface
                             'md'      => 1
                         ],
                         'schema'          => [
-                            'subscription_settings_grid' => [
+                            'subscription_early_payment_grid' => [
                                 'type'            => 'grid',
+                                'wrapperClass'    => 'items-start mb-6',
                                 'columns'         => [
                                     'default' => 1,
                                     'md'      => 3
@@ -1171,8 +1224,8 @@ class StoreSettings implements ArrayableInterface
                                 'schema'          => [
                                     'label'  => [
                                         'type'  => 'html',
-                                        'value' => '<span class="setting-label">' . __('Subscription Settings', 'fluent-cart') . (!$isProActive ? ' <img src="' . esc_url($proFeatureIcon) . '" alt="' . esc_attr__('Pro feature', 'fluent-cart') . '" class="pro-feature-icon" style="margin-left: 6px; width: 14px; height: 14px; display: inline-block; vertical-align: text-top;" />' : '') . '</span>
-                                                            <div class="form-note">' . __('Configure how installment subscriptions can be paid early.', 'fluent-cart') . '</div>'
+                                        'value' => '<span class="setting-label">' . __('Early Payment', 'fluent-cart') . (!$isProActive ? ' <img src="' . esc_url($proFeatureIcon) . '" alt="' . esc_attr__('Pro feature', 'fluent-cart') . '" class="pro-feature-icon" style="margin-left: 6px; width: 14px; height: 14px; display: inline-block; vertical-align: text-top;" />' : '') . '</span>
+                                                            <div class="form-note">' . __('Let customers pay remaining installments before their due date.', 'fluent-cart') . '</div>'
                                     ],
                                     'fields' => [
                                         'type'            => 'grid',
@@ -1193,6 +1246,64 @@ class StoreSettings implements ArrayableInterface
                                                     ? "<div class='pl-6'>" . __('This is a FluentCart Pro feature.', 'fluent-cart') . "</div>"
                                                     : "<div class='pl-6'>" . __('Allow customers to pay remaining installments early from subscription screens.', 'fluent-cart') . "</div>"
                                             ]
+                                        ]
+                                    ]
+                                ]
+                            ],
+                            'subscription_management_mode_grid' => [
+                                'type'            => 'grid',
+                                'wrapperClass'    => 'items-start',
+                                'columns'         => [
+                                    'default' => 1,
+                                    'md'      => 3
+                                ],
+                                'disable_nesting' => true,
+                                'schema'          => [
+                                    'label'  => [
+                                        'type'  => 'html',
+                                        'value' => sprintf(
+                                        /* translators: 1: setting label, 2: setting description */
+                                            '<span class="setting-label">%1$s</span>
+                                                            <div class="form-note">%2$s</div>',
+                                            __('Renewal Billing', 'fluent-cart'),
+                                            __('Choose how recurring subscription payments are collected.', 'fluent-cart')
+                                        )
+                                    ],
+                                    'fields' => [
+                                        'type'            => 'grid',
+                                        'columns'         => [
+                                            'default' => 1,
+                                            'md'      => 1
+                                        ],
+                                        'disable_nesting' => true,
+                                        'class'           => 'col-span-2',
+                                        'schema'          => [
+                                            // Compact, guarded control: shows only the CURRENT mode with a
+                                            // short how-it-works summary and a Change button. Editing goes
+                                            // through a disclaimer confirm + dialog so the store-wide
+                                            // billing decision can never be flipped by a stray click.
+                                            'subscription_management_mode' => [
+                                                'label'           => false,
+                                                'component'       => 'StoreSettings/SubscriptionModeManager',
+                                                'disable_nesting' => true,
+                                                'value'           => 'gateway_managed',
+                                                // Read-only renewal-order schedule, built live from the
+                                                // same map the scheduler uses (filterable).
+                                                'schedule_items'  => $invoiceScheduleList,
+                                                // Which gateways auto-charge is actually possible on.
+                                                'system_charge_gateways' => $systemChargeGateways,
+                                            ],
+                                            // Keep these in the form payload — the component above writes
+                                            // them; without a schema entry the keys would drop out of the
+                                            // saved values.
+                                            'subscription_system_charge'   => [
+                                                'type'  => 'hidden',
+                                                'value' => 'no',
+                                            ],
+                                            'subscription_manual_fallback' => [
+                                                'type'  => 'hidden',
+                                                'value' => 'no',
+                                            ],
                                         ]
                                     ]
                                 ]
@@ -1628,4 +1739,5 @@ class StoreSettings implements ArrayableInterface
         }
         return '';
     }
+
 }

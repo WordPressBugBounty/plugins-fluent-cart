@@ -228,6 +228,12 @@ class SubscriptionReminderService extends ReminderService
 
     protected function queueForSubscription(Subscription $subscription): int
     {
+        // Store-billed (manual/system) subscriptions use the renewal order email +
+        // renewal reminders instead — queueing these too would double-remind
+        if ($subscription->usesRenewalEngine()) {
+            return 0;
+        }
+
         if (!$this->isEligible($subscription)) {
             return 0;
         }

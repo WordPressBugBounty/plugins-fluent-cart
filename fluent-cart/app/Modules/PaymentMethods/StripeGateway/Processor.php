@@ -2,6 +2,7 @@
 
 namespace FluentCart\App\Modules\PaymentMethods\StripeGateway;
 
+use FluentCart\App\App;
 use FluentCart\App\Helpers\CurrenciesHelper;
 use FluentCart\App\Models\Cart;
 use FluentCart\App\Modules\PaymentMethods\StripeGateway\API\API;
@@ -31,6 +32,10 @@ class Processor
 
         if (!$subscriptionModel) {
             return new \WP_Error('no_subscription', __('No subscription found.', 'fluent-cart'));
+        }
+
+        if ($guardError = $this->guardExistingRemoteSubscription($subscriptionModel)) {
+            return $guardError;
         }
 
         $stripeCustomer = StripeHelper::createOrGetStripeCustomer($paymentInstance->order->customer);
@@ -164,7 +169,9 @@ class Processor
             ? 'fct_stripe_sub_' . md5($idempotencySeed . '|' . wp_json_encode($idempotencyFingerprint))
             : null;
 
-        $stripeSubscription = (new API())->createStripeObject('subscriptions', $stripeSubscriptionData, 'current', $idempotencyKey);
+        $stripeSubscription = (new API())->createStripeObject('subscriptions', $stripeSubscriptionData, 'current', [
+            'Idempotency-Key' => $idempotencyKey
+        ]);
 
         if (is_wp_error($stripeSubscription)) {
             return $stripeSubscription;
@@ -181,10 +188,17 @@ class Processor
 
         $vendorSubscriptionId = Arr::get($stripeSubscription, 'id');
 
-        $subscriptionModel->update([
+        $subscriptionUpdateFields = [
             'vendor_subscription_id' => $vendorSubscriptionId,
             'vendor_customer_id'     => $stripeSubscription['customer']
-        ]);
+        ];
+
+        if ($orderType == 'renewal' && Arr::get($stripePlan, 'trial_period_days', 0) > 0) {
+            $config = $subscriptionModel->config ?: [];
+            $subscriptionUpdateFields['config'] = array_merge($config, ['is_trial_days_simulated' => 'yes']);
+        }
+
+        $subscriptionModel->update($subscriptionUpdateFields);
 
         if ($stripeSubscription['pending_setup_intent'] != null) {
             $paymentArgs['vendor_subscription_info'] = [
@@ -221,12 +235,225 @@ class Processor
         ];
     }
 
+    /**
+     * A retryable checkout can arrive with a live Stripe subscription already
+     * attached — the previous create succeeded but its confirm/webhook never
+     * landed, and a changed cart mints a fresh idempotency key, so the key alone
+     * cannot stop a second create. A second create bills the customer on a
+     * subscription the store cannot see or cancel. Billing-active remote: block
+     * the create and re-sync local state from Stripe. Unconfirmed incomplete
+     * remote: cancel it so the fresh create is the only confirmable one.
+     */
+    private function guardExistingRemoteSubscription($subscriptionModel)
+    {
+        $existingVendorSubId = $subscriptionModel->vendor_subscription_id;
+        if (!$existingVendorSubId) {
+            return null;
+        }
+
+        $remoteSub = (new API())->getStripeObject('subscriptions/' . $existingVendorSubId, [], 'current');
+        if (is_wp_error($remoteSub)) {
+            return null;
+        }
+
+        $remoteStatus = Arr::get($remoteSub, 'status');
+
+        if (in_array($remoteStatus, ['active', 'trialing', 'past_due', 'unpaid'], true)) {
+            (new StripeSubscriptions())->reSyncSubscriptionFromRemote($subscriptionModel);
+            return new \WP_Error(
+                'stripe_subscription_already_active',
+                __('Your subscription payment has already been processed. Please refresh this page to see your order status instead of paying again.', 'fluent-cart')
+            );
+        }
+
+        if ('incomplete' === $remoteStatus) {
+            $cancelResponse = (new API())->deleteStripeObject('subscriptions/' . $existingVendorSubId, [], 'current');
+            if (is_wp_error($cancelResponse)) {
+                fluent_cart_error_log('Stripe stale incomplete subscription cancel failed. Subscription ID: ' . $subscriptionModel->id, $cancelResponse->get_error_message());
+            }
+        }
+
+        return null;
+    }
+
 
     /**
      * Handle single payment for stripe (onsite or hosted)
      *
      * @return \WP_Error|array
      */
+    /**
+     * Zero-payable system (auto-charged) subscription checkout — a free trial with
+     * nothing to pay today. A $0 PaymentIntent is invalid, so the card is vaulted
+     * via a SetupIntent instead; confirmation (Confirmations::confirmSetupIntent)
+     * persists the token, completes the $0 order, and activates the trial. The
+     * trial-end invoice is then charged off-session like any other system renewal.
+     *
+     * Consent is REQUIRED here (not just disclosed): without a saved card the
+     * trial can never bill, so a checkout without the consent flag is rejected.
+     */
+    public function handleSetupOnlyPayment(PaymentInstance $paymentInstance, $paymentArgs = [])
+    {
+        $order = $paymentInstance->order;
+        $transaction = $paymentInstance->transaction;
+        $fcCustomer = $order->customer;
+        $billingAddress = $order->billing_address;
+
+        $consent = sanitize_text_field(App::request()->get('_fct_system_consent', ''));
+        if ($consent !== 'yes') {
+            return new \WP_Error(
+                'consent_required',
+                __('Please agree to save your payment method for automatic renewal charges to start this subscription.', 'fluent-cart')
+            );
+        }
+
+        $stripeCustomer = StripeHelper::createOrGetStripeCustomer($fcCustomer);
+        if (is_wp_error($stripeCustomer)) {
+            return $stripeCustomer;
+        }
+
+        $intentData = [
+            'customer' => $stripeCustomer['id'],
+            'usage'    => 'off_session',
+            'automatic_payment_methods' => ['enabled' => 'true'],
+            'metadata' => apply_filters('fluent_cart/payments/stripe_metadata_onetime', [
+                'fct_ref_id'      => $order->uuid,
+                'Name'            => $fcCustomer->full_name,
+                'Email'           => $fcCustomer->email,
+                'order_reference' => 'fct_order_id_' . $order->id,
+            ], [
+                'order'       => $order,
+                'transaction' => $transaction
+            ]),
+        ];
+
+        $intent = (new API())->createStripeObject('setup_intents', $intentData);
+
+        if (is_wp_error($intent)) {
+            return $intent;
+        }
+
+        // confirmSetupIntent() resolves the transaction by this id (and clears it
+        // after confirmation — a setup intent id is not a charge id).
+        $transaction->update([
+            'vendor_charge_id' => $intent['id']
+        ]);
+
+        $paymentArgs['public_key'] = (new StripeSettingsBase())->getPublicKey();
+        // The AJAX confirm endpoint requires the transaction hash for seti_ ids.
+        $paymentArgs['trx_hash'] = $transaction->uuid;
+
+        $customerData = [
+            'name'      => $fcCustomer->first_name . ' ' . $fcCustomer->last_name,
+            'email'     => $fcCustomer->email,
+            'address_1' => $billingAddress ? $billingAddress->address_1 : '',
+            'address_2' => $billingAddress ? $billingAddress->address_2 : '',
+            'city'      => $billingAddress ? $billingAddress->city : '',
+            'state'     => $billingAddress ? $billingAddress->state : '',
+            'postcode'  => $billingAddress ? $billingAddress->postcode : '',
+            'country'   => $billingAddress ? $billingAddress->country : ''
+        ];
+
+        return [
+            'status'       => 'success',
+            'nextAction'   => 'stripe',
+            'actionName'   => 'custom',
+            'message'      => __('Order has been placed successfully', 'fluent-cart'),
+            'response'     => $intent,
+            'payment_args' => $paymentArgs,
+            'fc_customer'  => $customerData
+        ];
+    }
+
+    /**
+     * Hosted-checkout counterpart to handleSetupOnlyPayment() — hosted mode never
+     * loads Stripe.js/Elements, so a zero-payable system-subscription checkout
+     * redirects to a Checkout Session in `mode: setup` instead of a client-side
+     * SetupIntent. The session's auto-created setup_intent id is stored as
+     * vendor_charge_id so setup_intent.succeeded / confirmByCheckoutSession
+     * resolve the transaction exactly like the onsite path.
+     */
+    public function handleHostedSetupOnlyCheckout(PaymentInstance $paymentInstance, $paymentArgs = [])
+    {
+        $order = $paymentInstance->order;
+        $transaction = $paymentInstance->transaction;
+        $fcCustomer = $order->customer;
+
+        $consent = sanitize_text_field(App::request()->get('_fct_system_consent', ''));
+        if ($consent !== 'yes') {
+            return new \WP_Error(
+                'consent_required',
+                __('Please agree to save your payment method for automatic renewal charges to start this subscription.', 'fluent-cart')
+            );
+        }
+
+        $stripeCustomer = StripeHelper::createOrGetStripeCustomer($fcCustomer);
+        if (is_wp_error($stripeCustomer)) {
+            return $stripeCustomer;
+        }
+
+        $transactionCurrency = $transaction->currency;
+
+        $sessionData = [
+            'customer'            => $stripeCustomer['id'],
+            'client_reference_id' => $order->uuid,
+            'mode'                => 'setup',
+            'currency'            => strtolower($transactionCurrency),
+            'success_url'         => Arr::get($paymentArgs, 'success_url') . '&fct_stripe_hosted=1&trx_hash=' . $transaction->uuid,
+            'cancel_url'          => StripeHelper::getCancelUrl(),
+            'metadata'            => [
+                'fct_ref_id'       => $order->uuid,
+                'transaction_hash' => $transaction->uuid,
+                'order_reference'  => 'fct_order_id_' . $order->id,
+            ],
+        ];
+
+        $sessionData = apply_filters('fluent_cart/payments/stripe_checkout_session_args', $sessionData, [
+            'order'       => $order,
+            'transaction' => $transaction
+        ]);
+
+        // Same duplicate-charge defense as every other Stripe create path.
+        $idempotencyFingerprint = [
+            'customer' => Arr::get($sessionData, 'customer'),
+            'mode'     => Arr::get($sessionData, 'mode'),
+            'currency' => Arr::get($sessionData, 'currency'),
+        ];
+        $idempotencySeed = $paymentInstance->getIdempotencySeed();
+        $idempotencyKey = $idempotencySeed
+            ? 'fct_stripe_cs_' . md5($idempotencySeed . '|' . wp_json_encode($idempotencyFingerprint))
+            : null;
+
+        $session = (new API())->createStripeObject('checkout/sessions', $sessionData, 'current', [
+            'Idempotency-Key' => $idempotencyKey
+        ]);
+
+        if (is_wp_error($session)) {
+            return $session;
+        }
+
+        // confirmSetupIntent() resolves the transaction by this id (and clears it
+        // after confirmation — a setup intent id is not a charge id).
+        $transaction->update([
+            'vendor_charge_id' => Arr::get($session, 'setup_intent'),
+            'meta'             => array_merge($transaction->meta ?? [], [
+                'session_id' => $session['id']
+            ])
+        ]);
+
+        return [
+            'status'       => 'success',
+            'nextAction'   => 'stripe',
+            'actionName'   => 'redirect',
+            'message'      => __('Redirecting to Stripe checkout...', 'fluent-cart'),
+            'response'     => $session,
+            'payment_args' => array_merge($paymentArgs, [
+                'checkout_url' => $session['url'],
+                'session_id'   => $session['id']
+            ])
+        ];
+    }
+
     public function handleSinglePayment(PaymentInstance $paymentInstance, $paymentArgs = [])
     {
         $stripeSettings = new StripeSettingsBase();
@@ -309,7 +536,9 @@ class Processor
             ? 'fct_stripe_pi_' . md5($idempotencySeed . '|' . wp_json_encode($idempotencyFingerprint))
             : null;
 
-        $intent = (new API())->createStripeObject('payment_intents', $intentData, 'current', $idempotencyKey);
+        $intent = (new API())->createStripeObject('payment_intents', $intentData, 'current', [
+            'Idempotency-Key' => $idempotencyKey
+        ]);
 
         if (is_wp_error($intent)) {
             return $intent;
@@ -393,6 +622,15 @@ class Processor
             ],
         ];
 
+        // Same vaulting contract as the onsite intent path (see setup_future_usage
+        // above) — a mode: payment Checkout Session only saves the card when this
+        // is set on payment_intent_data.
+        if (!empty($paymentArgs['setup_future_usage'])) {
+            $sessionData['payment_intent_data'] = [
+                'setup_future_usage' => $paymentArgs['setup_future_usage'],
+            ];
+        }
+
         $itemCount = 1;
         foreach($order->order_items as $item) {
             $sessionData['metadata']['item ' . $itemCount] = 'Name: ' . $item->title . ', ' . 'Qty: ' . $item->quantity . ', Price: ' . Helper::toDecimal($item->line_total, false, null, true, true, false);
@@ -421,7 +659,9 @@ class Processor
             ? 'fct_stripe_cs_' . md5($idempotencySeed . '|' . wp_json_encode($idempotencyFingerprint))
             : null;
 
-        $session = (new API())->createStripeObject('checkout/sessions', $sessionData, 'current', $idempotencyKey);
+        $session = (new API())->createStripeObject('checkout/sessions', $sessionData, 'current', [
+            'Idempotency-Key' => $idempotencyKey
+        ]);
 
         if (is_wp_error($session)) {
             return $session;
@@ -456,6 +696,10 @@ class Processor
 
         if (!$subscriptionModel) {
             return new \WP_Error('no_subscription', __('No subscription found.', 'fluent-cart'));
+        }
+
+        if ($guardError = $this->guardExistingRemoteSubscription($subscriptionModel)) {
+            return $guardError;
         }
 
         $transactionCurrency = $transaction->currency;
@@ -590,7 +834,9 @@ class Processor
             ? 'fct_stripe_sub_cs_' . md5($idempotencySeed . '|' . wp_json_encode($idempotencyFingerprint))
             : null;
 
-        $session = (new API())->createStripeObject('checkout/sessions', $sessionData, 'current', $idempotencyKey);
+        $session = (new API())->createStripeObject('checkout/sessions', $sessionData, 'current', [
+            'Idempotency-Key' => $idempotencyKey
+        ]);
 
         if (is_wp_error($session)) {
             return $session;

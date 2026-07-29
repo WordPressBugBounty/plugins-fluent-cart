@@ -124,6 +124,12 @@ class CustomerAddressResource extends BaseResourceApi
         // Assign the customer ID to the data array
         $data['customer_id'] = $id;
 
+        // Request::getSafe() null-fills sanitize-map keys the client omitted;
+        // label is nullable at validation but NOT NULL DEFAULT '' at the column.
+        if (!isset($data['label'])) {
+            $data['label'] = '';
+        }
+
         $data = static::normalizeBusinessFields($data);
         $data = static::mergeAddressMetaFields($data);
 

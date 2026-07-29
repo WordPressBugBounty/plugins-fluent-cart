@@ -25,8 +25,9 @@ class SubscriptionTools
 {
     public static function definitions()
     {
-        $statuses  = ContextTools::ENUMS['subscription_statuses'];
-        $intervals = ContextTools::ENUMS['billing_intervals'];
+        $enums     = ContextTools::enums();
+        $statuses  = $enums['subscription_statuses'];
+        $intervals = $enums['billing_intervals'];
 
         return [
             'fluent-cart/list-subscriptions' => [
@@ -50,7 +51,7 @@ class SubscriptionTools
                         'advanced_filters'    => ['type' => 'array', 'items' => ['type' => ['object', 'array']], 'description' => 'Pro: condition groups {property, operator, value} — outer array = OR groups, inner = AND. Call get-search-schema entity=subscriptions FIRST for properties/operators/format. AND-combines with the other filters here (summary_only included). An empty array means no advanced filter.'],
                         'sort_by'             => ['type' => 'string', 'enum' => ['id', 'next_billing_date', 'created_at', 'canceled_at', 'recurring_total'], 'default' => 'id'],
                         'sort_type'           => ['type' => 'string', 'enum' => ['ASC', 'DESC'], 'default' => 'DESC'],
-                        'fields'              => ['type' => 'array', 'items' => ['type' => 'string'], 'description' => 'Optional: return only these row keys to shrink the payload (subscription_id is always kept). Available: status, item_name, customer, recurring_total, billing_interval, next_billing_date, created_at, canceled_at, bill_count, bill_times, is_installment, installments_paid, installments_remaining, total_contract_value, currency, label. Omit for the full row.'],
+                        'fields'              => ['type' => 'array', 'items' => ['type' => 'string'], 'description' => 'Optional: return only these row keys to shrink the payload (subscription_id is always kept). Available: status, item_name, customer, recurring_total, billing_interval, next_billing_date, created_at, canceled_at, bill_count, bill_times, plan_type, is_installment, installments_paid, installments_remaining, total_contract_value, currency, label. Omit for the full row.'],
                         'summary_only'        => ['type' => 'boolean', 'description' => 'When true, return ONLY aggregates across all matching subscriptions — count_by_status, summed recurring_total, and total remaining installments — with no per-record array. Answers "how many active subs and how much is committed" with a tiny payload. Honors all the filters above.'],
                         'page'                => ['type' => 'integer', 'default' => 1],
                         'per_page'            => ['type' => 'integer', 'default' => 15, 'description' => 'Max 200.'],
@@ -290,6 +291,9 @@ class SubscriptionTools
             'bill_times'             => (int) $sub->bill_times,
             // Derived installment view (bill_times > 0). total_contract_value is
             // null for open-ended plans, which have no fixed committed total.
+            // plan_type names the same distinction using the plan_types enum from
+            // get-store-context, so the enum, the filter and the row all agree.
+            'plan_type'              => $isInstallment ? 'installment' : 'recurring',
             'is_installment'         => $isInstallment,
             'installments_paid'      => (int) $sub->bill_count,
             'installments_remaining' => $sub->installmentsRemaining(),
@@ -347,6 +351,7 @@ class SubscriptionTools
                 'bill_times'       => (int) $sub->bill_times,
                 'bill_count'       => (int) $sub->bill_count,
                 'collection_method' => $sub->collection_method,
+                'plan_type'              => $sub->isInstallment() ? 'installment' : 'recurring',
                 'is_installment'         => $sub->isInstallment(),
                 'installments_paid'      => (int) $sub->bill_count,
                 'installments_remaining' => $sub->installmentsRemaining(),

@@ -777,13 +777,16 @@ class CheckoutRenderer
 
         $selectedPaymentMethod = Arr::get($this->cart->checkout_data, 'form_data._fct_pay_method', '');
         $activePaymentMethods = PaymentMethods::getActiveMethodInstance($this->cart);
+        $hadActiveMethods = !empty($activePaymentMethods);
 
         $activePaymentMethods = apply_filters('fluent_cart/checkout_active_payment_methods', $activePaymentMethods, [
             'cart' => $this->cart
         ]);
 
         if (!$selectedPaymentMethod && !empty($activePaymentMethods)) {
-            $selectedPaymentMethod = $activePaymentMethods[0] ? $activePaymentMethods[0]->getMeta('route') : '';
+            // reset() not [0] — the filter above may return a non-zero-indexed array.
+            $firstMethod = reset($activePaymentMethods);
+            $selectedPaymentMethod = $firstMethod ? $firstMethod->getMeta('route') : '';
         }
 
         $checkoutMethodStyle = $this->storeSettings->get('checkout_method_style', 'logo');
@@ -814,7 +817,11 @@ class CheckoutRenderer
                                 <?php endforeach; ?>
                             <?php else: ?>
                                 <?php
-                                $emptyText = esc_html__('No Payment method is activated for this site yet.', 'fluent-cart');
+                                if ($hadActiveMethods) {
+                                    $emptyText = esc_html__('None of the available payment methods can process this order. Please contact the store.', 'fluent-cart');
+                                } else {
+                                    $emptyText = esc_html__('No Payment method is activated for this site yet.', 'fluent-cart');
+                                }
                                 if (current_user_can('manage_options')) {
                                     $emptyText .= '<a href="' . esc_url(URL::getDashboardUrl('settings/payments')) . '" target="_blank">' . esc_html__('Activate from settings.', 'fluent-cart') . '</a>';
                                 }

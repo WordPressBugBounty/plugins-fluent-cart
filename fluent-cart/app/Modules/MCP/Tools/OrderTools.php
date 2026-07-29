@@ -36,16 +36,17 @@ class OrderTools
 {
     public static function definitions()
     {
-        $orderStatuses    = ContextTools::ENUMS['order_statuses'];
-        $paymentStatuses  = ContextTools::ENUMS['payment_statuses'];
-        $shippingStatuses = ContextTools::ENUMS['shipping_statuses'];
+        $enums            = ContextTools::enums();
+        $orderStatuses    = $enums['order_statuses'];
+        $paymentStatuses  = $enums['payment_statuses'];
+        $shippingStatuses = $enums['shipping_statuses'];
         // change-order-status cannot set an order back to "no shipping required".
         $shippingWritable = array_values(array_diff($shippingStatuses, ['none']));
-        // Only the statuses core actually accepts for a manual change — a subset
-        // of the full order_statuses enum used for filtering (no draft/pending/
-        // refunded/partial-refund: those are reached via payment/refund flows).
+        // Only the statuses core accepts for a manual change — a subset of the
+        // order_statuses enum used for filtering ('failed' is reached through a
+        // payment flow, not a manual set).
         $orderWritable    = array_keys(Status::getEditableOrderStatuses());
-        $orderTypes       = ContextTools::ENUMS['order_types'];
+        $orderTypes       = $enums['order_types'];
 
         return [
             'fluent-cart/list-orders' => [
@@ -54,8 +55,8 @@ class OrderTools
                 'input_schema' => [
                     'type'       => 'object',
                     'properties' => [
-                        'status'          => ['type' => 'string', 'enum' => $orderStatuses, 'description' => 'Order fulfillment/lifecycle status.'],
-                        'payment_status'  => ['type' => 'string', 'enum' => $paymentStatuses],
+                        'status'          => ['type' => 'string', 'enum' => $orderStatuses, 'description' => 'Order fulfillment/lifecycle status. To find refunded orders use payment_status (refunded / partially_refunded), NOT this field: refunds are recorded as payment state, and status=refunded only ever appears on stores migrated from WooCommerce. pending here means an unpaid store-managed renewal invoice, which is not the same as payment_status=pending; a COD order sits at status=on-hold with payment_status=pending.'],
+                        'payment_status'  => ['type' => 'string', 'enum' => $paymentStatuses, 'description' => 'Money state of the order — this is where refunded, partially_refunded, authorized and payment_scheduled live.'],
                         'shipping_status' => ['type' => 'string', 'enum' => $shippingStatuses],
                         'type'            => ['type' => 'string', 'enum' => $orderTypes, 'description' => 'payment = first purchase, renewal = subscription renewal.'],
                         'customer_id'     => ['type' => 'integer'],
@@ -87,7 +88,11 @@ class OrderTools
 
             'fluent-cart/get-order' => [
                 'label'       => __('Get Order', 'fluent-cart'),
-                'description' => __('Full detail for one order: money breakdown, line items, and customer by default. Add include[] for transactions, refunds, addresses, coupons, subscriptions. Identify the order by order_id (numeric, from list-orders) OR uuid OR invoice_no.', 'fluent-cart'),
+                'description' => sprintf(
+                    /* translators: %1$s: comma-separated include[] section names */
+                    __('Full detail for one order: money breakdown, line items, and customer by default. Add include[] for any of: %1$s. Identify the order by order_id (numeric, from list-orders) OR uuid OR invoice_no.', 'fluent-cart'),
+                    implode(', ', self::includeSections())
+                ),
                 'input_schema' => [
                     'type'       => 'object',
                     'properties' => [
@@ -97,7 +102,7 @@ class OrderTools
                         'include'    => [
                             'type'        => 'array',
                             'description' => 'Optional heavier sections. items + customer are always included.',
-                            'items'       => ['type' => 'string', 'enum' => ['transactions', 'refunds', 'addresses', 'coupons', 'subscriptions']],
+                            'items'       => ['type' => 'string', 'enum' => self::includeSections()],
                         ],
                         'fields'     => ['type' => 'array', 'items' => ['type' => 'string'], 'description' => 'Optional: return only these top-level keys to shrink the payload (order_id is always kept). e.g. status, payment_status, totals, items, customer. Applies after include[]. Omit for the full record.'],
                     ],
@@ -397,7 +402,12 @@ class OrderTools
 
         return [
             'order_id'        => (int) $order->id,
-            'number'          => $order->invoice_no ? $order->invoice_no : (string) $order->id,
+            // null, not the raw id: an invoice number is only assigned once the
+            // order is paid, and echoing the id here made unpaid orders look like
+            // they had a number in a different format from every other row (and
+            // disagreed with get-order, which already returns null). order_id is
+            // right above it for referencing the record.
+            'number'          => $order->invoice_no ? $order->invoice_no : null,
             'label'           => self::label($order, $customer),
             'status'          => $order->status,
             'payment_status'  => $order->payment_status,
@@ -474,8 +484,11 @@ class OrderTools
         $data = [
             'order_id'        => (int) $order->id,
             'uuid'            => $order->uuid,
-            'number'          => $order->invoice_no,
-            'receipt_number'  => $order->receipt_number,
+            // Normalized to null when unassigned — the column stores '' for an
+            // order that has not been invoiced yet, and an empty string reads as
+            // "the number is blank" rather than "there is no number".
+            'number'          => $order->invoice_no ? $order->invoice_no : null,
+            'receipt_number'  => $order->receipt_number ? $order->receipt_number : null,
             'status'          => $order->status,
             'payment_status'  => $order->payment_status,
             'shipping_status' => self::shippingStatusOut($order),
@@ -506,11 +519,54 @@ class OrderTools
             $data['subscriptions'] = self::subscriptionsBlock($order);
         }
 
+        /**
+         * The assembled get-order payload, for add-on sections registered through
+         * fluent_cart/mcp_order_include_sections. Listeners should add their key
+         * only when it is present in $context['include'].
+         *
+         * @since 1.0.0
+         *
+         * @param array $data    the order payload
+         * @param array $context { order: Order, include: string[] }
+         */
+        $data = apply_filters('fluent_cart/mcp_order_data', $data, [
+            'order'   => $order,
+            'include' => $include,
+        ]);
+
         // fields projection runs last, so it can trim both the base record and any
         // include[] sections; order_id is always kept.
         $fields = isset($params['fields']) ? $params['fields'] : null;
 
         return MCPHelper::envelope(self::label($order, $order->customer), MCPHelper::pickFields($data, $fields, ['order_id']));
+    }
+
+    /**
+     * The sections get-order's include[] accepts. Filterable so an integration
+     * that owns order-adjacent context (the CRM contact behind the buyer, for
+     * one) can offer it as an include rather than leaving the agent to guess
+     * which other tool holds it.
+     *
+     * A section added here MUST be populated by a listener on
+     * fluent_cart/mcp_order_data — an include the schema advertises but nothing
+     * fills is worse than no include at all.
+     *
+     * @return array
+     */
+    private static function includeSections()
+    {
+        $sections = ['transactions', 'refunds', 'addresses', 'coupons', 'subscriptions'];
+
+        /**
+         * Extra include[] section names for get-order.
+         *
+         * @since 1.0.0
+         *
+         * @param array $sections section names offered in the include[] enum
+         */
+        $sections = apply_filters('fluent_cart/mcp_order_include_sections', $sections);
+
+        return array_values(array_unique(array_map('strval', (array) $sections)));
     }
 
     private static function resolveOrder($params)

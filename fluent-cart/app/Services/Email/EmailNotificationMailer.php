@@ -66,13 +66,44 @@ class EmailNotificationMailer
             $this->mailEmailsOfEvent('shipping_status_changed_to_delivered', $data);
         }, 999, 1);
 
-        // @todo uncomment when invoice feature is deployed
-        // add_action('fluent_cart/invoice_reminder_due', function ($data) {
-        //     $this->mailEmailsOfEvent('invoice_reminder_due', $data);
-        // }, 999, 1);
+        add_action('fluent_cart/renewal_created', function ($data) {
+            $this->mailEmailsOfEvent('renewal_created', $data);
+        }, 999, 1);
 
-        add_action('fluent_cart/invoice_reminder_overdue', function ($data) {
-            $this->mailEmailsOfEvent('invoice_reminder_overdue', $data);
+        add_action('fluent_cart/renewal_payment_reminder', function ($data) {
+            $this->mailEmailsOfEvent('renewal_payment_reminder', $data);
+        }, 999, 1);
+
+        // Fired by RenewalService when a system renewal order is created ahead of
+        // its automatic charge — the customer's advance notice of amount and date.
+        add_action('fluent_cart/subscriptions/system_renewal_scheduled', function ($data) {
+            $shouldSend = apply_filters('fluent_cart/subscriptions/upcoming_charge_notification', true, $data);
+
+            if ($shouldSend) {
+                $this->mailEmailsOfEvent('system_upcoming_charge', $data);
+            }
+        }, 999, 1);
+
+        // Fired by SystemChargeService when an automatic (system) renewal charge
+        // fails and the customer should be notified (first failure by default).
+        add_action('fluent_cart/subscriptions/system_charge_failed_notification', function ($data) {
+            $this->mailEmailsOfEvent('system_charge_failed', $data);
+        }, 999, 1);
+
+        add_action('fluent_cart/subscription_period_skipped', function ($data) {
+            $this->mailEmailsOfEvent('subscription_period_skipped', $data);
+        }, 999, 1);
+
+        add_action('fluent_cart/subscription_past_due', function ($data) {
+            $this->mailEmailsOfEvent('subscription_past_due', $data);
+        }, 999, 1);
+
+        add_action('fluent_cart/renewal_reminder_due', function ($data) {
+            $this->mailEmailsOfEvent('renewal_reminder_due', $data);
+        }, 999, 1);
+
+        add_action('fluent_cart/renewal_reminder_overdue', function ($data) {
+            $this->mailEmailsOfEvent('renewal_reminder_overdue', $data);
         }, 999, 1);
 
         add_action('fluent_cart/subscription_renewal_reminder', function ($data) {
@@ -205,10 +236,11 @@ class EmailNotificationMailer
 
     public function mailByEmailName($emailName, $data)
     {
-        // Extract Order model before formatParsable converts it to array
+        // $data keeps its Models: parseEmailContent renders emails.parts.order_header,
+        // which reads $order->invoice_no / $order->orderTaxRates — an array here
+        // warns and then fatals inside the view (regression of 201a14885 via 44a39aa1d)
         $orderModel = Arr::get($data, 'order');
 
-        $data = $this->formatParsable($data);
         $notification = EmailNotifications::getNotification($emailName);
         $notification = EmailNotifications::formatNotification($notification, $data);
         list($body, $subject, $to) = $this->parseEmailContent($notification, $data);
@@ -275,7 +307,16 @@ class EmailNotificationMailer
         }
 
         if (empty($body)) {
-            $header = App::make('view')->make('emails.parts.order_header', $data);
+            // order_header reads $order->invoice_no and $order->orderTaxRates, so
+            // anything that is not an Order model fatals inside the view — an
+            // array warns and then dies on ->first(). Render it only for a real
+            // model: notifications that legitimately have no order still get a
+            // body, they just get no order header.
+            $orderModel = Arr::get($data, 'order');
+            $header = ($orderModel instanceof Order)
+                ? (string)App::make('view')->make('emails.parts.order_header', $data)
+                : '';
+
             $body = (string)App::make('view')->make('emails.general_template', [
                 'emailBody'   => $rawBody,
                 'preheader'   => Arr::get($notification, 'pre_header', ''),
@@ -287,8 +328,29 @@ class EmailNotificationMailer
         $body = ShortcodeTemplateBuilder::make($body, $data);
 
         $subject = ShortcodeTemplateBuilder::make(Arr::get($notification, 'subject', ''), $data);
+        // A notification may declare an array of recipients — wp_mail() accepts
+        // one — so expand element by element rather than flattening to a string.
         $to = Arr::get($notification, 'to', '');
-        $to = ShortcodeTemplateBuilder::make($to, $data);
+        if (is_array($to)) {
+            foreach ($to as $index => $address) {
+                $to[$index] = ShortcodeTemplateBuilder::make((string)$address, $data);
+            }
+        } else {
+            $to = ShortcodeTemplateBuilder::make((string)$to, $data);
+        }
+
+        // Admin-bound notifications only — stores route these to a helpdesk or
+        // accounting inbox. Customer-bound mail must keep going to the customer,
+        // so it is deliberately not filterable here. Applied after shortcode
+        // resolution, so listeners see the address the notification resolved to.
+        if (Arr::get($notification, 'recipient') === 'admin') {
+            $to = apply_filters('fluent_cart/admin_email/notification_recipient', $to, [
+                'event'        => Arr::get($notification, 'event', ''),
+                'mail_name'    => Arr::get($notification, 'name', ''),
+                'notification' => $notification,
+                'data'         => $data,
+            ]);
+        }
 
         return [
             0 => $body,

@@ -4,6 +4,7 @@ namespace FluentCart\App\Modules\MCP\Support;
 
 use FluentCart\Api\ModuleSettings;
 use FluentCart\App\App;
+use FluentCart\App\Modules\MCP\Tools\ContextTools;
 use FluentCart\App\Modules\Subscriptions\Services\Filter\SubscriptionFilter;
 use FluentCart\App\Services\Filter\CustomerFilter;
 use FluentCart\App\Services\Filter\LicenseFilter;
@@ -134,7 +135,7 @@ class AdvancedSearch
         }
 
         $filterClass = Arr::get($spec, 'filter');
-        $catalog     = self::catalog($filterClass);
+        $catalog     = self::catalog($filterClass, $entity);
         if (!$catalog) {
             return MCPHelper::error(
                 'no_advanced_options',
@@ -279,11 +280,34 @@ class AdvancedSearch
     // -----------------------------------------------------------------
 
     /**
+     * Status properties whose admin dropdown is a curated subset of the values
+     * the column can actually hold, mapped to the canonical enum that completes
+     * them. The admin UI ships the short list on purpose (those are the statuses
+     * a merchant filters by day to day); an agent needs the full set, because
+     * "find the failed orders" is a normal question and the engine executes
+     * WHERE status IN (...) against the raw column either way.
+     *
+     * MCP-side only — the shared fluent_cart/{name}_filter_options hook is left
+     * untouched so the admin dropdowns keep their curated lists.
+     */
+    const CANONICAL_OPTIONS = [
+        'orders.order.status'                 => 'order_statuses',
+        'orders.order.payment_status'         => 'payment_statuses',
+        'orders.order.type'                   => 'order_types',
+        'subscriptions.subscription.status'   => 'subscription_statuses',
+        'subscriptions.subscription.billing_interval' => 'billing_intervals',
+    ];
+
+    /**
      * provider.property => { provider, property, def } for one filter class,
      * through the same fluent_cart/{name}_filter_options hook the engine
      * applies, so Pro/add-on providers appear here exactly as they execute.
+     *
+     * $entity is used only to complete curated status option lists from the
+     * canonical enums (see CANONICAL_OPTIONS); pass it so the schema the agent
+     * reads and the values normalize() accepts stay the same list.
      */
-    private static function catalog($filterClass): array
+    private static function catalog($filterClass, $entity = ''): array
     {
         if (!$filterClass || !class_exists($filterClass) || !is_callable([$filterClass, 'advanceFilterOptions'])) {
             return [];
@@ -317,12 +341,44 @@ class AdvancedSearch
                 $map[$key] = [
                     'provider' => (string) $providerKey,
                     'property' => $property,
-                    'def'      => $child,
+                    'def'      => self::completeOptions($entity, $key, $child),
                 ];
             }
         }
 
         return $map;
+    }
+
+    /**
+     * Union a curated status dropdown with its canonical enum, preserving the
+     * catalog's labels for the values it already had. Returns the definition
+     * unchanged for every property without a canonical counterpart.
+     */
+    private static function completeOptions($entity, $key, array $def): array
+    {
+        $enumKey = Arr::get(self::CANONICAL_OPTIONS, $entity . '.' . $key);
+        if (!$enumKey) {
+            return $def;
+        }
+        // Only selection widgets carry an options map; leave anything else alone.
+        if (Arr::get($def, 'type') !== 'selections') {
+            return $def;
+        }
+
+        $enums = ContextTools::enums();
+        if (empty($enums[$enumKey])) {
+            return $def;
+        }
+
+        $options = (array) Arr::get($def, 'options', []);
+        foreach ($enums[$enumKey] as $value) {
+            if (!array_key_exists($value, $options)) {
+                $options[$value] = $value;
+            }
+        }
+        $def['options'] = $options;
+
+        return $def;
     }
 
     /** Money columns for the entity, so values can be documented/validated as store-currency decimals. */
@@ -443,7 +499,7 @@ class AdvancedSearch
             return self::limitError($entity);
         }
 
-        $catalog     = self::catalog($filterClass);
+        $catalog     = self::catalog($filterClass, $entity);
         $centColumns = self::centColumnsFor($filterClass);
 
         $groups   = [];

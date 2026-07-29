@@ -77,7 +77,7 @@ use FluentCart\App\Services\Renderer\Receipt\TaxSummaryHelper;
                     $otherInfo = is_array($item['other_info'] ?? null) ? $item['other_info'] : [];
                     $packageInfo = Arr::get($item, 'package_info', '');
                     if (!$packageInfo && Arr::get($otherInfo, 'package_name')) {
-                        $packageInfo = \FluentCart\App\Services\Renderer\ProductCardRender::buildPackageInfoFromOtherInfo($otherInfo);
+                        $packageInfo = \FluentCart\App\Services\Renderer\PackageDescriptionRenderer::buildPackageInfoFromOtherInfo($otherInfo);
                     }
                     if ($packageInfo):
                 ?>

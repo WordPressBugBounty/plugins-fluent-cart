@@ -16,6 +16,8 @@ class ProductListRenderer
 
     protected $columns = 4;
 
+    protected $hideExcerpt = false;
+
     public function __construct($products, $listTitle = null, $wrapperClass = null, $config = [])
     {
         $this->products = $products;
@@ -23,6 +25,7 @@ class ProductListRenderer
         $this->wrapperClass = $wrapperClass;
         $columns = Arr::get($config, 'columns', 4);
         $this->columns = max(1, min(6, intval($columns)));
+        $this->hideExcerpt = Arr::get($config, 'hide_excerpt', false);
 
         if($products instanceof \FluentCart\Framework\Pagination\CursorPaginator){
             $this->cursor = wp_parse_args(wp_parse_url($products->nextPageUrl(), PHP_URL_QUERY));
@@ -64,7 +67,7 @@ class ProductListRenderer
     {
 
         foreach ($this->products as $index => $product) {
-            $config = [];
+            $config = ['hide_excerpt' => $this->hideExcerpt];
             if($index == 0 && $this->cursor){
                 $config['cursor'] = $this->cursor;
             }

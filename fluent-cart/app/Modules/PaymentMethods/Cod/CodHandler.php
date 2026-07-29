@@ -54,7 +54,11 @@ class CodHandler {
                 'transaction' => $paymentInstance->transaction ?? []
             ];
             
-            do_action('fluent_cart/order_placed_offline', $data);
+            // Renewal invoices are not new orders — skip placement emails.
+            // SubscriptionRenewed fires separately once the invoice is paid.
+            if ($paymentInstance->order->type !== Status::ORDER_TYPE_RENEWAL) {
+                do_action('fluent_cart/order_placed_offline', $data);
+            }
         }
 
         $paymentHelper = new PaymentHelper('offline_payment');

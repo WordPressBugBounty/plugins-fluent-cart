@@ -74,10 +74,10 @@
       "_vue.esm-bundler.js",
       "_Translator.js",
       "_Rest.js",
+      "_common.js",
       "_index.js",
       "_Notify.js",
       "_DynamicIcon.js",
-      "_common.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -87,7 +87,7 @@
     "imports": [
       "_Model.js",
       "_vue.esm-bundler.js",
-      "_Storage.js",
+      "_common.js",
       "_Rest.js",
       "_vue-router.js",
       "_Url.js",
@@ -434,7 +434,6 @@
       "_Rest.js",
       "_Notify.js",
       "_Translator.js",
-      "_Storage.js",
       "_Model.js"
     ]
   },
@@ -591,14 +590,6 @@
     "file": "chunks/SingleProductContext.js",
     "name": "SingleProductContext"
   },
-  "_Storage.js": {
-    "file": "chunks/Storage.js",
-    "name": "Storage",
-    "imports": [
-      "_Str.js",
-      "_Arr.js"
-    ]
-  },
   "_Str.js": {
     "file": "chunks/Str.js",
     "name": "Str"
@@ -668,7 +659,7 @@
       "_Translator.js",
       "_Str.js",
       "_timezone.js",
-      "_Storage.js",
+      "_Arr.js",
       "_index.js"
     ]
   },
@@ -701,7 +692,7 @@
       "_Rest.js",
       "_Arr.js",
       "_Badge.js",
-      "_Storage.js",
+      "_common.js",
       "_dayjs.min.js"
     ]
   },
@@ -825,7 +816,6 @@
       "_dayjs.min.js",
       "_Str.js",
       "_timezone.js",
-      "_Storage.js",
       "_Arr.js",
       "_index.js",
       "_IconButton.js",
@@ -922,21 +912,20 @@
       "_OrderCustomerInformation.js",
       "_Arr.js",
       "_Model.js",
-      "_Storage.js",
+      "_common.js",
+      "_dayjs.min.js",
       "_Str.js",
+      "_timezone.js",
+      "_index.js",
       "_vue-router.js",
       "_Url.js",
-      "_dayjs.min.js",
-      "_timezone.js",
       "_DynamicIcon.js",
       "__plugin-vue_export-helper.js",
       "_index3.js",
-      "_index.js",
       "_IconButton.js",
       "_Utils.js",
       "_TransitionAccordion.js",
       "_Empty.js",
-      "_common.js",
       "_CardBody.js",
       "_UserCan.js",
       "_Asset.js",
@@ -955,19 +944,19 @@
     "imports": [
       "_vue.esm-bundler.js",
       "_Translator.js",
+      "_common.js",
       "_Badge.js",
       "_Animation.js",
       "_Arr.js",
+      "_dayjs.min.js",
+      "_Str.js",
+      "_timezone.js",
+      "_index.js",
       "_Model.js",
       "_Rest.js",
-      "_Storage.js",
-      "_Str.js",
       "_vue-router.js",
       "_Url.js",
-      "_dayjs.min.js",
-      "_timezone.js",
       "_Notify.js",
-      "_index.js",
       "_DynamicIcon.js",
       "__plugin-vue_export-helper.js",
       "_index3.js",
@@ -1041,6 +1030,34 @@
       "__plugin-vue_export-helper.js"
     ]
   },
+  "resources/admin/Bits/Components/Form/Components/StoreSettings/SubscriptionModeManager.vue": {
+    "file": "chunks/SubscriptionModeManager.js",
+    "name": "SubscriptionModeManager",
+    "src": "resources/admin/Bits/Components/Form/Components/StoreSettings/SubscriptionModeManager.vue",
+    "isDynamicEntry": true,
+    "imports": [
+      "_vue.esm-bundler.js",
+      "_Translator.js",
+      "_Badge.js",
+      "_TransitionAccordion.js",
+      "_Rest.js",
+      "_Notify.js",
+      "_Arr.js",
+      "_Model.js",
+      "_common.js",
+      "_dayjs.min.js",
+      "_Str.js",
+      "_timezone.js",
+      "_index.js",
+      "_vue-router.js",
+      "_Url.js",
+      "_DynamicIcon.js",
+      "__plugin-vue_export-helper.js",
+      "_index3.js",
+      "_IconButton.js",
+      "_Utils.js"
+    ]
+  },
   "resources/admin/Bits/Components/Form/Components/TurnstileSettings.vue": {
     "file": "chunks/TurnstileSettings.js",
     "name": "TurnstileSettings",
@@ -1053,14 +1070,14 @@
       "_Rest.js",
       "_Arr.js",
       "_Model.js",
-      "_Storage.js",
+      "_common.js",
+      "_dayjs.min.js",
       "_Str.js",
+      "_timezone.js",
+      "_index.js",
       "_vue-router.js",
       "_Url.js",
-      "_dayjs.min.js",
-      "_timezone.js",
       "_Notify.js",
-      "_index.js",
       "_DynamicIcon.js",
       "__plugin-vue_export-helper.js",
       "_index3.js",
@@ -3833,9 +3850,8 @@
       "_dayjs.min.js",
       "_Badge.js",
       "_Model.js",
-      "_Storage.js",
-      "_Str.js",
       "_Url.js",
+      "_Str.js",
       "_timezone.js",
       "_Notify.js",
       "_index.js",
@@ -3888,11 +3904,11 @@
       "_NotFound.js",
       "_Animation.js",
       "_Model.js",
-      "_Storage.js",
-      "_Str.js",
-      "_Url.js",
+      "_common.js",
       "_dayjs.min.js",
+      "_Str.js",
       "_timezone.js",
+      "_Url.js",
       "_index3.js",
       "_Utils.js",
       "_TransitionAccordion.js",
@@ -3918,6 +3934,7 @@
       "_CardBody.js",
       "_OrderCustomerInformation.js",
       "_Str.js",
+      "_UserCan.js",
       "_DynamicIcon.js",
       "_NotFound.js",
       "_Arr.js",
@@ -3925,7 +3942,6 @@
       "_Notify.js",
       "_Model.js",
       "_Rest.js",
-      "_Storage.js",
       "_vue-router.js",
       "_Url.js",
       "_dayjs.min.js",
@@ -3936,11 +3952,13 @@
       "_TransitionAccordion.js",
       "_CurrencyFormatter.js",
       "_BundleProducts.js",
-      "_UserCan.js",
       "_Asset.js",
       "_AddressComponent2.js",
       "_Animation.js",
       "_productService.js"
+    ],
+    "css": [
+      "assets/subscription.css"
     ]
   },
   "resources/admin/admin_hooks.js": {
@@ -3967,7 +3985,6 @@
       "_CancelSubscription.js",
       "_CardBody.js",
       "__plugin-vue_export-helper.js",
-      "_Storage.js",
       "_common.js",
       "_IconButton.js",
       "_Model.js",
@@ -4014,6 +4031,7 @@
       "resources/admin/Bits/Components/Form/Components/StoreSettings/AddressComponent.vue",
       "resources/admin/Bits/Components/Form/Components/StoreSettings/CreatePageButton.vue",
       "resources/admin/Bits/Components/Form/Components/StoreSettings/PageSelector.vue",
+      "resources/admin/Bits/Components/Form/Components/StoreSettings/SubscriptionModeManager.vue",
       "resources/admin/Bits/Components/Form/Components/TurnstileSettings.vue",
       "resources/admin/Modules/Reports/Subscription/Cohort.vue"
     ],
@@ -4225,14 +4243,13 @@
       "_Translator.js",
       "_Arr.js",
       "_Rest.js",
-      "_index.js",
-      "_Notify.js",
-      "_Str.js",
-      "_DynamicIcon.js",
       "_common.js",
       "_dayjs.min.js",
+      "_Str.js",
       "_timezone.js",
-      "_Storage.js"
+      "_index.js",
+      "_Notify.js",
+      "_DynamicIcon.js"
     ]
   },
   "resources/images/pro-feature-pattern.png": {
@@ -4255,7 +4272,7 @@
       "_DynamicIcon.js",
       "_Translator.js",
       "_Badge.js",
-      "_Storage.js",
+      "_common.js",
       "_index.js",
       "_OrderCustomerInformation.js",
       "__plugin-vue_export-helper.js",
@@ -4264,7 +4281,6 @@
       "_Rest.js",
       "_IconButton.js",
       "_UserCan.js",
-      "_common.js",
       "_Str.js",
       "_Arr.js",
       "_vue-router.js",
@@ -4307,9 +4323,8 @@
       "__plugin-vue_export-helper.js",
       "_Arr.js",
       "_Model.js",
-      "_Storage.js",
-      "_Str.js",
       "_Url.js",
+      "_Str.js",
       "_dayjs.min.js",
       "_timezone.js",
       "_index3.js",
@@ -4456,7 +4471,6 @@
       "_index.js",
       "_vue-router.js",
       "_Translator.js",
-      "_Storage.js",
       "resources/admin/Bits/Components/Icons/ArrowDown.vue",
       "resources/admin/Bits/Components/Icons/ArrowUp.vue",
       "_AddressComponent2.js",
@@ -4717,15 +4731,15 @@
       "_DynamicIcon.js",
       "__plugin-vue_export-helper.js",
       "_Model.js",
-      "_Storage.js",
+      "_common.js",
+      "_dayjs.min.js",
       "_Str.js",
+      "_timezone.js",
       "_Arr.js",
+      "_index.js",
       "_vue-router.js",
       "_Url.js",
-      "_dayjs.min.js",
-      "_timezone.js",
       "_index3.js",
-      "_index.js",
       "_Utils.js",
       "_TransitionAccordion.js"
     ],
@@ -4809,6 +4823,18 @@
     "file": "images/crown.svg",
     "name": "crown",
     "src": "resources/images/crown.svg",
+    "isEntry": true
+  },
+  "resources/images/divi/black.svg": {
+    "file": "images/divi/black.svg",
+    "name": "black",
+    "src": "resources/images/divi/black.svg",
+    "isEntry": true
+  },
+  "resources/images/divi/white.svg": {
+    "file": "images/divi/white.svg",
+    "name": "white",
+    "src": "resources/images/divi/white.svg",
     "isEntry": true
   },
   "resources/images/elementor/black.svg": {
@@ -5091,6 +5117,12 @@
     "file": "images/payment-methods/cod-icon.svg",
     "name": "cod-icon",
     "src": "resources/images/payment-methods/cod-icon.svg",
+    "isEntry": true
+  },
+  "resources/images/payment-methods/flutterwave-logo-light.svg": {
+    "file": "images/payment-methods/flutterwave-logo-light.svg",
+    "name": "flutterwave-logo-light",
+    "src": "resources/images/payment-methods/flutterwave-logo-light.svg",
     "isEntry": true
   },
   "resources/images/payment-methods/flutterwave-logo.svg": {

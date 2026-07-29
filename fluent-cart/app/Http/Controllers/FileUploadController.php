@@ -3,6 +3,7 @@
 namespace FluentCart\App\Http\Controllers;
 
 use FluentCart\Api\Resource\UserResource;
+use FluentCart\Api\StorageDrivers;
 use FluentCart\App\Hooks\Handlers\GlobalStorageHandler;
 use FluentCart\App\Http\Requests\UserRequest;
 use FluentCart\App\Services\FileSystem\FileManager;
@@ -16,7 +17,12 @@ class FileUploadController extends Controller
 
     public function index(Request $request)
     {
-        $driver = sanitize_text_field($request->get('driver', 'local'));
+        $driver = sanitize_text_field($request->get('driver', 'local')) ?: 'local';
+
+        if ($error = $this->invalidDriverResponse($driver)) {
+            return $error;
+        }
+
         return [
             'files' => (new FileManager($driver))->listFiles($request->all())
         ];
@@ -24,7 +30,12 @@ class FileUploadController extends Controller
 
     public function getBucketList(Request $request)
     {
-        $driver = sanitize_text_field($request->get('driver', ''));
+        $driver = sanitize_text_field($request->get('driver', 'local')) ?: 'local';
+
+        if ($error = $this->invalidDriverResponse($driver)) {
+            return $error;
+        }
+
         $bucketList = (new FileManager($driver))->bucketLists();
         $buckets = [];
         foreach ($bucketList as $bucket) {
@@ -40,6 +51,27 @@ class FileUploadController extends Controller
             "default_bucket" => Arr::get($buckets, '0.value', ''),
             "buckets"        => $buckets
         ];
+    }
+
+    private function invalidDriverResponse($driver)
+    {
+        $availableDrivers = array_keys((new StorageDrivers())->getActive());
+
+        if (in_array($driver, $availableDrivers, true)) {
+            return null;
+        }
+
+        if (empty($availableDrivers)) {
+            $message = __('No storage drivers are enabled. Please enable a storage driver from the storage settings.', 'fluent-cart');
+        } else {
+            /* translators: %1$s: comma separated list of available storage drivers */
+            $message = sprintf(__('Invalid driver. Available drivers: %1$s', 'fluent-cart'), implode(', ', $availableDrivers));
+        }
+
+        return $this->sendError([
+            'message'           => $message,
+            'available_drivers' => $availableDrivers
+        ], 422);
     }
 
     public function upload(Request $request)

@@ -122,6 +122,11 @@ trait CanValidateCoupon
         if (empty($min_purchase_amount)) {
             return true;
         } else {
+            // The coupon's min_amount_basis ('subtotal' | 'total') governs whether shipping counts
+            // toward this gate. This admin order-editing path operates on line items only and has no
+            // live shipping context, so the check is always against the items subtotal here — the
+            // 'total' (shipping-inclusive) basis takes effect on the storefront checkout path
+            // (see DiscountService::isCouponValid).
             $orderTotal = OrderService::getItemsAmountTotal($this->lineItems, false, false);
             return $min_purchase_amount <= $orderTotal;
         }

@@ -20,6 +20,27 @@ use WP_Error;
 class CartResource extends BaseResourceApi
 {
 
+    /**
+     * Per-request memo for get(). In production every HTTP request runs in a
+     * fresh PHP process, so this lives exactly one request. Long-running
+     * processes that simulate multiple requests (test suites, CLI) must clear
+     * it between simulated requests via resetCartCache() — as a
+     * function-static it was unreachable and leaked the first request's cart
+     * into every subsequent one.
+     *
+     * Only a resolved Cart is memoized; a null ("no cart") result is
+     * deliberately re-queried on the next call — matching the original
+     * function-static behavior, where isset(null) === false.
+     *
+     * @var Cart|null|false false = not resolved yet
+     */
+    private static $cartCache = false;
+
+    public static function resetCartCache(): void
+    {
+        static::$cartCache = false;
+    }
+
     public static function getQuery(): Builder
     {
         return Cart::query();
@@ -141,9 +162,8 @@ class CartResource extends BaseResourceApi
      */
     public static function get(array $params = [])
     {
-        static $cart;
-        if (isset($cart)) {
-            return $cart;
+        if (static::$cartCache !== false && static::$cartCache !== null) {
+            return static::$cartCache;
         }
 
         $autoCreate = Arr::get($params, 'create', false);
@@ -160,16 +180,16 @@ class CartResource extends BaseResourceApi
 
             $tempCart = $cartQuery->first();
 
-            $cart = $tempCart;
+            static::$cartCache = $tempCart;
 
             if (!$autoCreate) {
                 return $tempCart;
             }
         }
 
-        $cart = static::getOrSetCartForThisDevice($autoCreate);
+        static::$cartCache = static::getOrSetCartForThisDevice($autoCreate);
 
-        return $cart;
+        return static::$cartCache;
     }
 
     public static function find($id, $params = [])

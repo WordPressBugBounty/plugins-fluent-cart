@@ -280,6 +280,12 @@ class OrderResource extends BaseResourceApi
 
                 if ($gateway = App::gateway($paymentMethod)) {
                     $paymentInstance = new PaymentInstance($order);
+
+                    if ($paymentInstance->subscription && $paymentInstance->subscription->status === Status::SUBSCRIPTION_PENDING) {
+                        $paymentInstance->subscription->status = Status::SUBSCRIPTION_INTENDED;
+                        $paymentInstance->subscription->save();
+                    }
+
                     $gateway->makePaymentFromPaymentInstance($paymentInstance);
                 }
 

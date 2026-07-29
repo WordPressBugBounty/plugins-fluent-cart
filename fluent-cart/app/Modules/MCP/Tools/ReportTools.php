@@ -92,7 +92,7 @@ class ReportTools
             ],
         ], ['date_basis' => ['type' => 'string'], 'mode' => ['type' => 'string'], 'page' => ['type' => 'object'], 'truncated' => ['type' => 'boolean']]);
 
-        $subStatuses = ContextTools::ENUMS['subscription_statuses'];
+        $subStatuses = ContextTools::enums()['subscription_statuses'];
 
         $defs = [
             'fluent-cart/get-sales-report' => [
@@ -239,7 +239,7 @@ class ReportTools
 
             'fluent-cart/query-orders' => [
                 'label'       => __('Query Orders (flexible aggregate)', 'fluent-cart'),
-                'description' => __('Flexible order analytics: pick metrics, group by dimensions with filters, when a fixed report does not fit — e.g. revenue by payment_status, orders by month, or revenue by order_type (one-time payment vs new subscription vs renewal). product_id or variation_id limits to orders containing that product. One currency; window filters on created_at, echoed as meta.date_basis.', 'fluent-cart'),
+                'description' => __('Flexible order analytics: pick metrics, group by dimensions with filters, when a fixed report does not fit — e.g. revenue by payment_status, orders by month, revenue by order_type (one-time payment vs new subscription vs renewal), or revenue by country. product_id or variation_id limits to orders containing that product. This is the tool for revenue BY GEOGRAPHY: group by country/state, which read each order\'s own billing address, falling back to the buyer\'s primary billing address. One currency; window filters on created_at, echoed as meta.date_basis.', 'fluent-cart'),
                 'input_schema' => [
                     'type'       => 'object',
                     'properties' => [
@@ -250,9 +250,10 @@ class ReportTools
                         ],
                         'dimensions' => [
                             'type'        => 'array',
-                            'description' => 'Group by these. Empty means a single total row. order_type splits sales by payment (one-time purchase), subscription (first subscription order) and renewal (recurring charge); combine with a time dimension for e.g. order_type x month.',
-                            'items'       => ['type' => 'string', 'enum' => ['day', 'week', 'month', 'status', 'payment_status', 'order_type']],
+                            'description' => 'Group by these. Empty means a single total row. order_type splits sales by payment (one-time purchase), subscription (first subscription order) and renewal (recurring charge); combine with a time dimension for e.g. order_type x month. country/state come from each order\'s own billing address, falling back to the buyer\'s primary billing address when the order has no address row of its own (common for digital goods) — this is the right basis for revenue by geography. Orders neither source can place land in an explicit "unknown" bucket so the rows still sum to total revenue; see meta.geo_source.',
+                            'items'       => ['type' => 'string', 'enum' => ['day', 'week', 'month', 'status', 'payment_status', 'order_type', 'country', 'state']],
                         ],
+                        'country'      => ['type' => 'string', 'description' => 'ISO-2 code. Limit to orders billed to this country, resolved the same way as the country dimension (order address, then the buyer\'s primary billing address).'],
                         'product_id'   => ['type' => 'integer', 'description' => 'Limit to orders CONTAINING this product. Order-level metrics (revenue, count) reflect the whole order, not just this product\'s lines — for per-product line revenue use query-products.'],
                         'variation_id' => ['type' => 'integer', 'description' => 'Limit to orders containing this variation.'],
                         'range'      => $rangeProp,
@@ -300,14 +301,14 @@ class ReportTools
 
             'fluent-cart/query-customers' => [
                 'label'       => __('Query Customers (flexible aggregate)', 'fluent-cart'),
-                'description' => __('Flexible customer analytics: pick metrics and group by country, state, status, or first/last purchase month, with optional filters. LTV is in store currency. Returns up to 200 rows.', 'fluent-cart'),
+                'description' => __('Flexible customer analytics: pick metrics and group by country, state, status, or first/last purchase month, with optional filters. LTV is in store currency. Returns up to 200 rows. country/state resolve from the customer\'s primary billing address, falling back to their profile location, then "unknown" — this is where a customer is REGISTERED, captured at their first purchase and not refreshed since. To attribute revenue to where each order was actually billed, group query-orders by country instead.', 'fluent-cart'),
                 'input_schema' => [
                     'type'       => 'object',
                     'properties' => [
                         'metrics'            => ['type' => 'array', 'description' => 'Defaults to customer_count and total_ltv.', 'items' => ['type' => 'string', 'enum' => ['customer_count', 'total_ltv', 'avg_ltv', 'avg_purchase_count', 'repeat_customers']]],
                         'dimensions'         => ['type' => 'array', 'items' => ['type' => 'string', 'enum' => ['country', 'state', 'status', 'first_purchase_month', 'last_purchase_month']]],
-                        'country'            => ['type' => 'string'],
-                        'status'             => ['type' => 'string', 'enum' => ['active', 'archived']],
+                        'country'            => ['type' => 'string', 'description' => 'ISO-2 code, matched against the customer profile country (same caveat as the country dimension).'],
+                        'status'             => ['type' => 'string', 'enum' => ['active', 'archived'], 'description' => 'Not every customer has one set — customers with no status appear under the status dimension as "unknown" and are excluded by this filter. Omit it to count all customers.'],
                         'min_ltv'            => ['type' => 'number', 'description' => 'Minimum LTV in store currency.'],
                         'min_purchase_count' => ['type' => 'integer'],
                     ],
@@ -840,7 +841,7 @@ class ReportTools
         $range      = self::resolveRange($params);
         $mode       = self::orderMode($params);
         $metrics    = self::pickList($params, 'metrics', ['order_count', 'gross_revenue', 'paid_revenue', 'refunded_amount', 'aov', 'unique_customers'], ['order_count', 'gross_revenue']);
-        $dimensions = self::pickList($params, 'dimensions', ['day', 'week', 'month', 'status', 'payment_status', 'order_type'], []);
+        $dimensions = self::pickList($params, 'dimensions', ['day', 'week', 'month', 'status', 'payment_status', 'order_type', 'country', 'state'], []);
 
         $query = Order::query()
             ->whereIn('payment_status', self::PAID)
@@ -854,11 +855,107 @@ class ReportTools
         // order); it never fans out rows the way a raw join would.
         self::applyOrderItemFilter($query, $params);
 
+        // Geography comes from the order's OWN billing address first, so each
+        // order's revenue is attributed to where that order was actually billed —
+        // not to wherever the customer is registered now. Joined only when asked
+        // for, so every other dimension keeps its current cost.
+        //
+        // Grouped subqueries, not raw joins: neither fct_order_addresses nor
+        // fct_customer_addresses has a UNIQUE constraint on its (parent, type)
+        // pair — fct_order_addresses actually holds 208 duplicate billing groups on
+        // the reference store — and a duplicate would fan out and double-count
+        // that order's revenue in every SUM.
+        //
+        // Within a duplicate group the LATEST row wins (highest id), picked as one
+        // whole row. Taking MAX(country) and MAX(state) independently would let the
+        // two columns come from DIFFERENT rows and synthesize a place that does not
+        // exist: order 259 on the reference store has billing rows (BD, BD-60) and
+        // (AT, BD-60), so independent MAX()es resolve it to Bangladesh even though
+        // its latest address is Austrian. (That order is payment_status=pending and
+        // so outside self::PAID — it demonstrates the mechanism, not a revenue error
+        // this report was making.) Five duplicate groups there disagree on country or
+        // state. latestRowPick() does the one-row pick inside the GROUP BY.
+        //
+        // The customer's primary billing address is the SECOND source, and the
+        // choice between the two is made PER ORDER, not per column — see
+        // dimensionExpr(). Most orders here carry no address row of their own
+        // (digital goods skip the billing step), so order-address-only attribution
+        // left 976 of 4,905 paid orders — 19.9% of orders and 9.0% of revenue — in
+        // the 'unknown' bucket, which makes "revenue by country" unusable for the
+        // question it exists to answer. Falling back to the buyer's own primary
+        // billing address recovers 878 of those 976 and cuts 'unknown' to 2.0%;
+        // 98 orders are then genuinely unattributable. (Figures over all four
+        // self::PAID statuses, which is what this method actually queries.)
+        // geo_source in meta names the precedence so an agent never has to guess.
+        $geoDims  = array_values(array_intersect(['country', 'state'], $dimensions));
+        $wantsGeo = $geoDims || !empty($params['country']);
+        if ($wantsGeo) {
+            // Columns aliased oaddr_*/caddr_* so raw select expressions stay
+            // unambiguous without table prefixes (same note as queryCustomers).
+            $addrSub = App::db()->table('fct_order_addresses')
+                ->select('order_id')
+                ->selectRaw(
+                    self::latestRowPick('country') . ' as oaddr_country, '
+                    . self::latestRowPick('state') . ' as oaddr_state'
+                )
+                ->where('type', 'billing')
+                ->groupBy('order_id');
+
+            $query->leftJoinSub($addrSub, 'fc_oaddr', 'fct_orders.id', '=', 'fc_oaddr.order_id');
+
+            // LEFT JOIN on customer_id, so a guest order simply has no fallback and
+            // still lands in 'unknown' rather than dropping: fct_orders.customer_id
+            // is nullable and NULL never matches a join predicate. The customer_id > 0
+            // guard covers the other shape of missing buyer — an order carrying 0
+            // instead of NULL would otherwise join to an orphaned address row filed
+            // under customer 0 and inherit a stranger's country.
+            //
+            // customer_id is aliased caddr_customer_id for the same reason the value
+            // columns are aliased: fct_orders has a customer_id too, and exposing a
+            // second one made the existing COUNT(DISTINCT customer_id) behind the
+            // unique_customers metric ambiguous — a hard SQL error, not a wrong
+            // number. Nothing joined here may share a name with an orders column.
+            $custAddrSub = App::db()->table('fct_customer_addresses')
+                ->selectRaw('customer_id as caddr_customer_id')
+                ->selectRaw(
+                    self::latestRowPick('country') . ' as caddr_country, '
+                    . self::latestRowPick('state') . ' as caddr_state'
+                )
+                ->where('type', 'billing')
+                ->where('is_primary', 1)
+                ->where('customer_id', '>', 0)
+                ->groupBy('customer_id');
+
+            $query->leftJoinSub($custAddrSub, 'fc_caddr', 'fct_orders.customer_id', '=', 'fc_caddr.caddr_customer_id');
+
+            if (!empty($params['country'])) {
+                // Built from dimensionExpr() itself, so the filter and the country
+                // dimension resolve a country identically BY CONSTRUCTION — including
+                // the 'unknown' bucket, which a hand-written COALESCE here omitted,
+                // making country=unknown return zero rows while the dimension
+                // reported 98 such orders.
+                $query->whereRaw(
+                    self::dimensionExpr('country') . ' = ?',
+                    [sanitize_text_field($params['country'])]
+                );
+            }
+        }
+
         $selects   = [];
         $groupCols = [];
+        $groupRaws = [];
         foreach ($dimensions as $dim) {
-            $selects[]   = self::dimensionExpr($dim) . ' as ' . $dim;
-            $groupCols[] = $dim;
+            $expr      = self::dimensionExpr($dim);
+            $selects[] = $expr . ' as ' . $dim;
+            if (in_array($dim, ['country', 'state'], true)) {
+                // Group by the EXPRESSION, not the alias: the alias collides with
+                // the real fc_oaddr.country column, and MySQL resolves a GROUP BY
+                // name to the column first — which would split NULL from '' and
+                // scatter the unknowns across two rows instead of one bucket.
+                $groupRaws[] = $expr;
+            } else {
+                $groupCols[] = $dim;
+            }
         }
 
         $metricSql = [
@@ -886,6 +983,9 @@ class ReportTools
         foreach ($groupCols as $g) {
             $query->groupBy($g);
         }
+        foreach ($groupRaws as $g) {
+            $query->groupByRaw($g);
+        }
 
         $sortDesc    = !isset($params['sort_desc']) || !empty($params['sort_desc']);
         $firstMetric = isset($metrics[0]) ? $metrics[0] : 'order_count';
@@ -903,7 +1003,7 @@ class ReportTools
         }
 
         $paging = self::queryPaging($params);
-        if ($groupCols) {
+        if ($groupCols || $groupRaws) {
             if ($timeDim !== null && !isset($params['sort_desc'])) {
                 // A time series reads chronologically by default; ranking a
                 // calendar by metric is rarely what's wanted. An explicit
@@ -916,6 +1016,10 @@ class ReportTools
             // reshuffles equal-metric rows across pages.
             foreach ($groupCols as $g) {
                 $query->orderBy($g, 'ASC');
+            }
+            foreach ($groupRaws as $g) {
+                // Raw, for the same alias/column collision reason as the GROUP BY.
+                $query->orderByRaw($g . ' ASC');
             }
         }
         // One extra row peeks past the page boundary → meta.page.has_more.
@@ -956,10 +1060,17 @@ class ReportTools
             $dimensions ? implode(', ', $dimensions) : __('total', 'fluent-cart')
         );
 
+        $meta = ['currency' => $currency, 'date_basis' => 'created_at', 'mode' => $mode];
+        // Only when geography was actually asked for — an agent grouping by month
+        // should not have to read a note about addresses.
+        if ($wantsGeo) {
+            $meta['geo_source'] = 'the order\'s own billing address, falling back to the buyer\'s primary billing address, then "unknown" for orders neither source can place. Rows always sum to the period total, so the "unknown" bucket shows exactly how much revenue is unattributed.';
+        }
+
         return MCPHelper::envelope(
             $summary,
             ['metrics' => $metrics, 'dimensions' => $dimensions, 'range' => self::rangeBlock($range, $currency), 'rows' => $out],
-            array_merge(['currency' => $currency, 'date_basis' => 'created_at', 'mode' => $mode], self::pageMeta($paging, $fetched))
+            array_merge($meta, self::pageMeta($paging, $fetched))
         );
     }
 
@@ -1148,9 +1259,67 @@ class ReportTools
         $dimensions = self::pickList($params, 'dimensions', ['country', 'state', 'status', 'first_purchase_month', 'last_purchase_month'], []);
 
         $query = Customer::query();
+
+        // Geography resolves through the customer's primary BILLING ADDRESS,
+        // falling back to the fct_customers profile columns.
+        //
+        // Neither source is complete on its own, which is the whole reason for the
+        // coalesce. Measured on the 2,320-customer reference store: 2,176 customers
+        // have both and the two NEVER disagree (zero rows where both are set and
+        // differ), 96 have only the profile column, 7 have only an address row, and
+        // 41 have neither. So reading either source alone silently drops customers
+        // the other could place — profile-only would lose 7, address-only would lose
+        // 96 — while the coalesce leaves just the 41 genuinely unplaceable.
+        //
+        // Billing address is ordered first because it is the value the buyer actually
+        // typed, whereas the profile column is written once when the customer row is
+        // created and never refreshed (and at checkout the seeded value can be a
+        // country the frontend guessed from the browser timezone). On this store that
+        // ordering changes no result; it is the correct precedence for the case where
+        // a profile snapshot has gone stale.
+        //
+        // LEFT JOIN, so a customer with no address row is still counted (on the
+        // profile value, or 'unknown'); an INNER JOIN would silently drop them
+        // and quietly shrink every total. The join rides the existing
+        // (customer_id, is_primary) index — measured at no material cost.
+        //
+        // Grouped subquery rather than a raw leftJoin: fct_customer_addresses has
+        // no UNIQUE constraint on (customer_id, type, is_primary), so a second
+        // primary billing row would fan the join out and double-count that
+        // customer in COUNT(*) and SUM(ltv). Same guard the source report applies
+        // to fct_order_operations above. MAX() is ONLY_FULL_GROUP_BY-safe and
+        // returns the row's own value in the normal one-row case.
+        // The subquery's columns are aliased addr_* on purpose: raw SQL fragments
+        // are not table-prefixed by the builder, so a bare `country` in a
+        // selectRaw would be ambiguous across the two tables and a qualified
+        // `fct_customers.country` would miss the wp_ prefix. Distinct names keep
+        // every raw expression unambiguous with no prefix handling at all.
+        // latestRowPick, not MAX() per column: with more than one primary billing row
+        // independent MAX()es can take country from one row and state from another and
+        // report a place that does not exist. See the note in queryOrders.
+        $addrSub = App::db()->table('fct_customer_addresses')
+            ->select('customer_id')
+            ->selectRaw(
+                self::latestRowPick('country') . ' as addr_country, '
+                . self::latestRowPick('state') . ' as addr_state'
+            )
+            ->where('type', 'billing')
+            ->where('is_primary', 1)
+            ->groupBy('customer_id');
+
+        $query->leftJoinSub($addrSub, 'fc_addr', 'fct_customers.id', '=', 'fc_addr.customer_id');
+
         if (!empty($params['country'])) {
-            $query->where('country', sanitize_text_field($params['country']));
+            $country = sanitize_text_field($params['country']);
+            // Match on the resolved value, not the raw column, so the filter and
+            // the grouping can never disagree about which country a customer is in.
+            $query->whereRaw(
+                "COALESCE(NULLIF(fc_addr.addr_country, ''), NULLIF(country, '')) = ?",
+                [$country]
+            );
         }
+        // Unambiguous without qualification: the joined subquery exposes only
+        // customer_id / addr_country / addr_state.
         if (!empty($params['status'])) {
             $query->where('status', sanitize_text_field($params['status']));
         }
@@ -1165,15 +1334,24 @@ class ReportTools
         $groupCols = [];
         foreach ($dimensions as $dim) {
             if ($dim === 'country' || $dim === 'state') {
-                // Coalesce NULL and '' into a single 'unknown' bucket. Group by the
-                // expression (not the alias, which would resolve to the raw column
-                // and keep null/'' split).
-                $expr        = "COALESCE(NULLIF($dim, ''), 'unknown')";
+                // Billing address first, profile column second, 'unknown' last.
+                // Coalesce NULL and '' into the single 'unknown' bucket. Group by
+                // the expression (not the alias, which would resolve to the raw
+                // column and keep null/'' split).
+                $expr        = "COALESCE(NULLIF(fc_addr.addr_$dim, ''), NULLIF($dim, ''), 'unknown')";
                 $selects[]   = "$expr as $dim";
                 $groupCols[] = $expr;
             } elseif ($dim === 'status') {
-                $selects[]   = $dim;
-                $groupCols[] = $dim;
+                // Same 'unknown' coalescing as country/state, for the same reason.
+                // fct_customers.status is nullable with no default and 77 of the
+                // 2,320 customers on the reference store have NULL or '' — so a bare
+                // GROUP BY status answered "how many customers per status" with two
+                // buckets the agent was never told about (null AND '', split apart),
+                // neither of them in the status enum. One labelled bucket keeps the
+                // rows summing to the customer total and makes the gap legible.
+                $expr        = "COALESCE(NULLIF(status, ''), 'unknown')";
+                $selects[]   = "$expr as status";
+                $groupCols[] = $expr;
             } elseif ($dim === 'first_purchase_month') {
                 $selects[]   = "DATE_FORMAT(first_purchase_date, '%Y-%m') as first_purchase_month";
                 $groupCols[] = "DATE_FORMAT(first_purchase_date, '%Y-%m')";
@@ -1246,7 +1424,14 @@ class ReportTools
                 implode(', ', $metrics)
             ),
             ['metrics' => $metrics, 'dimensions' => $dimensions, 'rows' => $out],
-            array_merge(['currency' => MCPHelper::currencyCode(), 'note' => 'LTV is in store currency; customers are not currency-scoped.'], self::pageMeta($paging, $fetched))
+            array_merge(
+                [
+                    'currency'       => MCPHelper::currencyCode(),
+                    'note'           => 'LTV is in store currency; customers are not currency-scoped.',
+                    'country_source' => 'primary billing address, falling back to the customer profile location, then "unknown". Registration geography, captured at first purchase — for per-order billing geography use query-orders grouped by country.',
+                ],
+                self::pageMeta($paging, $fetched)
+            )
         );
     }
 
@@ -1392,6 +1577,37 @@ class ReportTools
         }
     }
 
+    /**
+     * Aggregate expression returning $column from the HIGHEST-id row in the group.
+     *
+     * Address tables have no UNIQUE constraint on (parent, type), so a group can hold
+     * several rows and the newest is the one the buyer last entered. Two columns each
+     * aggregated with a bare MAX() can come from two different rows and describe a
+     * place that never existed (a real case: country from one row, state from another).
+     *
+     * Prefixing each value with its zero-padded id makes lexicographic MAX() agree
+     * with numeric id order, so every column built this way resolves to the SAME row;
+     * SUBSTRING then drops the prefix. The width is 20 because that is exactly the
+     * digit count of the largest BIGINT UNSIGNED (18446744073709551615) — no id can
+     * overflow the padding, so all prefixes are equal-length and compare numerically.
+     * Ids are unique within a group (id is the PK), so the prefix alone always decides
+     * the winner and the collation of the value suffix can never influence it.
+     *
+     * COALESCE(...,'') matters — CONCAT with NULL is NULL and MAX() skips NULLs, which
+     * would let a NULL column fall back to a different row and reintroduce the mixing
+     * this exists to prevent.
+     *
+     * Portable to MySQL 5.6+ (no window functions) and needs no nested join, unlike
+     * ORDER BY ... LIMIT 1 or ROW_NUMBER().
+     *
+     * @param string $column trusted column name — never interpolate caller input here
+     * @return string
+     */
+    private static function latestRowPick($column)
+    {
+        return "SUBSTRING(MAX(CONCAT(LPAD(id, 20, '0'), COALESCE($column, ''))), 21)";
+    }
+
     private static function dimensionExpr($dim)
     {
         if ($dim === 'day') {
@@ -1409,6 +1625,31 @@ class ReportTools
             // dimension name and response key read naturally and don't collide
             // with the unrelated payment_type on line items.
             return 'type';
+        }
+        if ($dim === 'country' || $dim === 'state') {
+            // ONE source per order, decided by whether the order has a billing
+            // address row at all (fc_oaddr.order_id IS NULL) — never per column.
+            //
+            // Coalescing each column independently mixes provenance inside a single
+            // order and invents places: order 16 on the reference store has its own
+            // billing row (BG, '') while its buyer's address says (BG, BG-22), so a
+            // per-column COALESCE reported that order's state as BG-22 — a value
+            // from a mutable customer record, for an order that carries its own
+            // address. 38 paid orders were affected. It is the same row-mixing
+            // latestRowPick() prevents inside a table, reappearing across tables.
+            //
+            // Consequence, deliberately: an order whose own address has a country
+            // but a blank state reports state 'unknown' rather than borrowing one.
+            // That is the honest answer — that order's address genuinely has no
+            // state — and it keeps historical attribution stable when a customer
+            // later edits their address.
+            //
+            // Orders neither source can place get the 'unknown' bucket rather than
+            // being dropped, so rows still sum to the period's total revenue and the
+            // size of the gap stays visible.
+            $pick = "CASE WHEN fc_oaddr.order_id IS NULL THEN fc_caddr.caddr_$dim ELSE fc_oaddr.oaddr_$dim END";
+
+            return "COALESCE(NULLIF($pick, ''), 'unknown')";
         }
         return $dim;
     }

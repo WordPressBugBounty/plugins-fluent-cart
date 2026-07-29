@@ -2,6 +2,8 @@
 
 namespace FluentCart\App\Modules\MCP\Tools;
 
+use FluentCart\App\App;
+use FluentCart\App\Helpers\Status;
 use FluentCart\App\Models\Order;
 use FluentCart\App\Models\Customer;
 use FluentCart\App\Models\Subscription;
@@ -34,20 +36,26 @@ class ContextTools
 
     const CACHE_PREFIX = 'fluent_cart_mcp_context_';
 
-    // The verified FluentCart domain enums. Hardcoded (with a filter override)
-    // rather than scraped, so the agent always gets the complete valid set even
-    // if a status currently has zero rows.
+    // Baseline domain enums. The status families are re-read from the canonical
+    // Status helper at runtime by enums() — this literal is only the fallback for
+    // a family Status cannot answer for. Do not hand-maintain the status lists
+    // here: an enum the agent trusts but the column can never hold turns every
+    // filter built from it into a silent zero-row result.
     const ENUMS = [
-        'order_statuses'        => ['draft', 'pending', 'on-hold', 'processing', 'completed', 'canceled', 'failed', 'refunded', 'partial-refund'],
-        // Kept in sync with Status::getPaymentStatuses(); 'authorized' is a valid
-        // persisted status (card authorized, not yet captured) and must be listed
-        // so clients can filter authorized orders through list-orders.
-        'payment_statuses'      => ['paid', 'pending', 'failed', 'refunded', 'partially_refunded', 'partially_paid', 'authorized'],
+        // Status::getOrderStatuses() plus PERSISTED_ONLY_ORDER_STATUSES — see that
+        // constant for why the canonical helper is not the whole set.
+        // 'partial-refund' is deliberately absent: unlike the others below, no code
+        // path writes it (the column COMMENT lists it, but nothing persists it).
+        'order_statuses'        => ['draft', 'pending', 'processing', 'completed', 'on-hold', 'canceled', 'failed', 'refunded'],
+        // Kept in sync with Status::getPaymentStatuses(); 'authorized' (card
+        // authorized, not yet captured) and 'payment_scheduled' are valid
+        // persisted statuses and must be listed so clients can filter them.
+        'payment_statuses'      => ['pending', 'paid', 'partially_paid', 'failed', 'refunded', 'partially_refunded', 'authorized', 'payment_scheduled'],
         // 'none' = no shipping required (e.g. digital orders); reported when the
         // stored value is empty. It is read-only — change-order-status won't set it.
         'shipping_statuses'     => ['none', 'unshipped', 'shipped', 'delivered', 'unshippable'],
         'order_types'           => ['payment', 'renewal', 'subscription'],
-        'subscription_statuses' => ['active', 'trialing', 'paused', 'canceled', 'failing', 'expired', 'expiring', 'past_due', 'intended', 'pending', 'completed'],
+        'subscription_statuses' => ['pending', 'active', 'failing', 'paused', 'expired', 'expiring', 'canceled', 'trialing', 'intended', 'past_due', 'completed'],
         // installment = fixed-term split-pay plan (a lifetime license paid off in
         // a finite number of charges, bill_times > 0); recurring = open-ended
         // subscription (bill_times = 0). Derived from bill_times, never the title.
@@ -57,6 +65,85 @@ class ContextTools
         'coupon_types'          => ['fixed', 'percentage'],
         'order_modes'           => ['live', 'test'],
     ];
+
+    /**
+     * Order statuses fct_orders.status genuinely holds that Status::getOrderStatuses()
+     * does NOT list, because that helper answers "what may an admin SET an order to",
+     * not "what can this column contain".
+     *
+     * An enum is wrong in two directions, and only one of them is loud. Listing a
+     * value the column can never hold gives the agent a filter that silently returns
+     * zero rows. OMITTING a value the column does hold is worse: those rows become
+     * unreachable, and because the value is missing from the input_schema enum the
+     * call is rejected outright, so the agent cannot even discover the rows exist.
+     *
+     * Each of these is written by a core path, verified in source:
+     *  - draft:    the column DEFAULT (database/Migrations/OrdersMigrator.php).
+     *  - pending:  every store-managed renewal invoice
+     *              (StoreManagedRenewal/Services/RenewalService.php:113).
+     *  - refunded: the WooCommerce migrator maps wc-refunded to it
+     *              (WooCommerceMigrator/Services/OrderMigrationService.php).
+     *
+     * So a store using store-managed renewals, or migrated from WooCommerce, has rows
+     * the five-value helper cannot describe. Keep this list in step with the writers,
+     * not with the admin dropdown.
+     *
+     * Note COD is NOT one of them: a COD checkout creates the order as 'on-hold' and
+     * only its payment_status is pending. Cod::maybeUpdatePayments() looks like an
+     * order-status writer but has no callers.
+     */
+    const PERSISTED_ONLY_ORDER_STATUSES = ['draft', 'pending', 'refunded'];
+
+    /**
+     * The enums the agent is told to trust, with every status family re-read from
+     * the canonical Status helper so this payload can never drift from what the
+     * columns actually hold (a drifted enum is worse than a missing one — the
+     * agent builds a valid-looking filter that always returns zero rows).
+     *
+     * Status::get*Statuses() are themselves filtered, so a Pro/add-on status
+     * registered through those hooks shows up here automatically.
+     *
+     * @return array
+     */
+    public static function enums()
+    {
+        $enums = self::ENUMS;
+
+        $live = [
+            'order_statuses'        => [Status::class, 'getOrderStatuses'],
+            'payment_statuses'      => [Status::class, 'getPaymentStatuses'],
+            'shipping_statuses'     => [Status::class, 'getShippingStatuses'],
+            'subscription_statuses' => [Status::class, 'getSubscriptionStatuses'],
+        ];
+
+        foreach ($live as $key => $callable) {
+            try {
+                $values = array_values(array_map('strval', array_keys((array) call_user_func($callable))));
+            } catch (\Throwable $e) {
+                // Keep the baseline rather than shipping an empty enum: an empty
+                // list reads as "no valid values" and blocks every filter.
+                continue;
+            }
+            if (!$values) {
+                continue;
+            }
+            // 'none' is an MCP-only reported value (empty stored shipping status)
+            // that Status has no constant for — re-add it after the live overlay.
+            if ($key === 'shipping_statuses') {
+                array_unshift($values, 'none');
+            }
+            // Statuses the column holds that the helper does not list. Unioned, not
+            // overwritten: getOrderStatuses() is the settable list, so overwriting
+            // would drop 'pending'/'draft'/'refunded' and make those real rows
+            // unfilterable. See PERSISTED_ONLY_ORDER_STATUSES.
+            if ($key === 'order_statuses') {
+                $values = array_merge($values, self::PERSISTED_ONLY_ORDER_STATUSES);
+            }
+            $enums[$key] = array_values(array_unique($values));
+        }
+
+        return $enums;
+    }
 
     // Payment statuses that count as realized revenue. Centralized so every
     // tool (context, reports, aggregates) agrees on what "paid" means.
@@ -139,10 +226,17 @@ class ContextTools
             'name'         => get_bloginfo('name'),
             'url'          => site_url(),
             'version'      => defined('FLUENTCART_VERSION') ? FLUENTCART_VERSION : null,
-            'pro_active'   => defined('FLUENT_CART_PRO') || defined('FLUENTCART_PRO_VERSION'),
+            // Must agree with the App::isProActive() check the Pro-gated paths
+            // (advanced_filters, get-search-schema) actually run — a false here on
+            // a Pro store makes an agent skip the whole advanced-search surface.
+            'pro_active'   => App::isProActive(),
             'currency'     => MCPHelper::currencyContext(),
             'timezone'     => wp_timezone_string(),
             'current_time' => MCPHelper::toIso8601(DateTime::gmtNow()),
+            // Named for the capability rather than the licence, so an agent does
+            // not have to infer what pro_active buys it before spending a call on
+            // get-search-schema (which rejects outright without Pro).
+            'advanced_search' => App::isProActive() ? 'available' : 'unavailable',
         ];
 
         // Headline stats are dashboard data: gate them on dashboard_stats/view so
@@ -157,7 +251,7 @@ class ContextTools
                 'you'              => $you,
                 'store'            => $store,
                 'stats'            => $stats,
-                'enums'            => apply_filters('fluent_cart/mcp_enums', self::ENUMS),
+                'enums'            => apply_filters('fluent_cart/mcp_enums', self::enums()),
                 'reference_kinds'  => self::referenceKinds(),
                 'tool_index'       => self::toolIndex(),
                 'guidelines'       => self::guidelines(),
@@ -321,7 +415,12 @@ class ContextTools
             . 'Dates are ISO-8601 UTC; pass a relative range (e.g. last_30_days) or explicit start_date/end_date to report tools. '
             . 'Use the exact enum values from this payload — never invent a status. '
             . 'Reports never sum across currencies; filter by one currency if the store has several. '
-            . 'When a list tool\'s named filters cannot express a segmentation (OR groups, relative dates, per-property operators, relation properties like transactions/UTM/labels), call get-search-schema for the entity and pass advanced_filters to its list tool (requires Pro). '
+            // Stated as a fact about THIS store, not a generic "requires Pro":
+            // an agent that reads the generic form still builds the filter and
+            // only discovers the gate when the call is rejected.
+            . (App::isProActive()
+                ? 'When a list tool\'s named filters cannot express a segmentation (OR groups, relative dates, per-property operators, relation properties like transactions/UTM/labels), call get-search-schema for the entity and pass advanced_filters to its list tool. '
+                : 'Advanced search is UNAVAILABLE on this store (store.advanced_search = unavailable): FluentCart Pro is not active, so get-search-schema and the advanced_filters parameter will be rejected. Do not build advanced_filters — use the named filters on the list-* tools and the query-* tools for aggregation. ')
             . 'Writes (refund-order, change-subscription-status:cancel) require a dry_run preview first.';
 
         return apply_filters('fluent_cart/mcp_guidelines', $default);

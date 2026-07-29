@@ -11,7 +11,9 @@ use FluentCart\App\Modules\Templating\AssetLoader;
 use FluentCart\App\Modules\Templating\Bricks\BricksHelper;
 use FluentCart\App\Services\Renderer\RenderHelper;
 use FluentCart\App\Services\Renderer\ShopAppRenderer;
+use FluentCart\Api\Taxonomy;
 use FluentCart\Framework\Support\Arr;
+use FluentCart\Framework\Support\Str;
 use FluentCart\App\Services\Renderer\ProductFilterRender;
 
 if (!defined('ABSPATH')) exit; // Exit if accessed directly
@@ -290,47 +292,47 @@ class ProductsCollection extends Custom_Render_Element
             'required' => ['enableFilter', '=', true],
         ];
 
-        $this->controls['productCategories'] = [
-            'tab'      => 'content',
-            'group'    => 'filter',
-            'label'    => esc_html__( 'Product Categories', 'fluent-cart' ),
-            'type'     => 'checkbox',
-            'inline'   => true,
-            'required' => ['enableFilter', '=', true],
-        ];
+        $taxonomies = Taxonomy::getTaxonomies();
+        foreach ($taxonomies as $taxonomy) {
+            $controlKey = sanitize_key(str_replace('-', '_', $taxonomy));
+            $label = esc_html(Str::headline($taxonomy));
+            $taxonomyName = esc_html(str_replace('product-', '', $taxonomy));
 
-        $this->controls['displayNameCategories'] = [
-            'tab'      => 'content',
-            'group'    => 'filter',
-            'label'    => esc_html__('Display Name', 'fluent-cart'),
-            'type'     => 'text',
-            'placeholder' => esc_html__('Custom filter label', 'fluent-cart'),
-            'required' => [
-                ['enableFilter', '=', true],
-                ['productCategories', '=', true],
-            ],
-        ];
+            $this->controls['taxonomy_' . $controlKey] = [
+                'tab'      => 'content',
+                'group'    => 'filter',
+                'label'    => $label,
+                'type'     => 'checkbox',
+                'inline'   => true,
+                'required' => ['enableFilter', '=', true],
+            ];
 
-        $this->controls['productBrands'] = [
-            'tab'      => 'content',
-            'group'    => 'filter',
-            'label'    => esc_html__( 'Product Brands', 'fluent-cart' ),
-            'type'     => 'checkbox',
-            'inline'   => true,
-            'required' => ['enableFilter', '=', true],
-        ];
+            $this->controls['displayName_' . $controlKey] = [
+                'tab'         => 'content',
+                'group'       => 'filter',
+                'label'       => esc_html__('Display Name', 'fluent-cart'),
+                'type'        => 'text',
+                'placeholder' => esc_html__('Custom filter label', 'fluent-cart'),
+                'required'    => [
+                    ['enableFilter', '=', true],
+                    ['taxonomy_' . $controlKey, '=', true],
+                ],
+            ];
 
-        $this->controls['displayNameBrands'] = [
-            'tab'      => 'content',
-            'group'    => 'filter',
-            'label'    => esc_html__('Display Name', 'fluent-cart'),
-            'type'     => 'text',
-            'placeholder' => esc_html__('Custom filter label', 'fluent-cart'),
-            'required' => [
-                ['enableFilter', '=', true],
-                ['productBrands', '=', true],
-            ],
-        ];
+            /* translators: %1$s: taxonomy name (e.g. "categories", "brands") */
+            $this->controls['showEmpty_' . $controlKey] = [
+                'tab'         => 'content',
+                'group'       => 'filter',
+                'label'       => esc_html__('Show empty', 'fluent-cart'),
+                'type'        => 'checkbox',
+                'inline'      => true,
+                'description' => sprintf(esc_html__('Display %1$s even if they have no products.', 'fluent-cart'), $taxonomyName),
+                'required'    => [
+                    ['enableFilter', '=', true],
+                    ['taxonomy_' . $controlKey, '=', true],
+                ],
+            ];
+        }
 
         $this->controls['priceRange'] = [
             'tab'      => 'content',
@@ -673,34 +675,76 @@ class ProductsCollection extends Custom_Render_Element
      */
     private function getFilters(array $settings): array
     {
-        $categoriesLabel = !empty($settings['displayNameCategories']) ? $settings['displayNameCategories'] : __('Product Categories', 'fluent-cart');
-        $brandsLabel = !empty($settings['displayNameBrands']) ? $settings['displayNameBrands'] : __('Product Brands', 'fluent-cart');
-        $priceRangeLabel = !empty($settings['displayNamePriceRange']) ? $settings['displayNamePriceRange'] : __('Price', 'fluent-cart');
+        $filters = [];
+        $taxonomies = Taxonomy::getTaxonomies();
 
-        $filters = [
-            'product-categories' => [
+        foreach ($taxonomies as $taxonomy) {
+            $controlKey = sanitize_key(str_replace('-', '_', $taxonomy));
+            $defaultLabel = Str::headline($taxonomy);
+
+            $enabledKey = 'taxonomy_' . $controlKey;
+            $enabled = array_key_exists($enabledKey, $settings)
+                ? !empty($settings[$enabledKey])
+                : !empty($settings[$this->legacyControlKey($taxonomy)]);
+
+            $labelKey = 'displayName_' . $controlKey;
+            $label = array_key_exists($labelKey, $settings)
+                ? ($settings[$labelKey] !== '' ? $settings[$labelKey] : $defaultLabel)
+                : (!empty($settings[$this->legacyDisplayNameKey($taxonomy)])
+                    ? $settings[$this->legacyDisplayNameKey($taxonomy)]
+                    : $defaultLabel);
+
+            $showEmptyKey = 'showEmpty_' . $controlKey;
+            $showEmpty = array_key_exists($showEmptyKey, $settings)
+                ? !empty($settings[$showEmptyKey])
+                : !empty($settings[$this->legacyShowEmptyKey($taxonomy)]);
+
+            $filters[$taxonomy] = [
                 'filter_type' => 'options',
                 'is_meta'     => true,
-                'label'       => $categoriesLabel,
-                'enabled'     => !empty($settings['productCategories']),
+                'label'       => $label,
+                'enabled'     => $enabled,
                 'multiple'    => false,
-            ],
-            'product-brands' => [
-                'filter_type' => 'options',
-                'is_meta'     => true,
-                'label'       => $brandsLabel,
-                'enabled'     => !empty($settings['productBrands']),
-                'multiple'    => false,
-            ],
-            'price_range' => [
-                'filter_type' => 'range',
-                'is_meta'     => false,
-                'label'       => $priceRangeLabel,
-                'enabled'     => !empty($settings['priceRange'])
-            ],
+                'show_empty'  => $showEmpty,
+            ];
+        }
+
+        $priceRangeLabel = !empty($settings['displayNamePriceRange']) ? $settings['displayNamePriceRange'] : __('Price', 'fluent-cart');
+        $filters['price_range'] = [
+            'filter_type' => 'range',
+            'is_meta'     => false,
+            'label'       => $priceRangeLabel,
+            'enabled'     => !empty($settings['priceRange']),
         ];
 
         return $filters;
+    }
+
+    private function legacyControlKey($taxonomy)
+    {
+        $map = [
+            'product-categories' => 'productCategories',
+            'product-brands'     => 'productBrands',
+        ];
+        return Arr::get($map, $taxonomy, '');
+    }
+
+    private function legacyDisplayNameKey($taxonomy)
+    {
+        $map = [
+            'product-categories' => 'displayNameCategories',
+            'product-brands'     => 'displayNameBrands',
+        ];
+        return Arr::get($map, $taxonomy, '');
+    }
+
+    private function legacyShowEmptyKey($taxonomy)
+    {
+        $map = [
+            'product-categories' => 'showEmptyCategories',
+            'product-brands'     => 'showEmptyBrands',
+        ];
+        return Arr::get($map, $taxonomy, '');
     }
 
     private function setBricksQuery()

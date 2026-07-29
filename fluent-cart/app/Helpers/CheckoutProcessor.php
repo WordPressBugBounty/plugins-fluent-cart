@@ -14,6 +14,8 @@ use FluentCart\App\Models\Subscription;
 use FluentCart\App\Modules\Tax\TaxCalculator;
 use FluentCart\Framework\Support\Arr;
 use FluentCart\App\Helpers\Helper;
+use FluentCart\App\Modules\PaymentMethods\Core\GatewayManager;
+use FluentCart\App\Modules\Subscriptions\Services\SubscriptionManagementMode;
 
 class CheckoutProcessor
 {
@@ -307,6 +309,13 @@ class CheckoutProcessor
         if ($isLocked && $taxEnabled !== 'yes') {
             // Locked orders skip full item sync, but fee items must stay in sync with fee_total
             $this->syncFeeItems();
+
+            // Load existing subscription so the transaction gets the correct subscription_id
+            if ($this->orderModel->type === Status::ORDER_TYPE_SUBSCRIPTION) {
+                $this->subscriptionModel = Subscription::query()
+                    ->where('parent_order_id', $this->orderModel->id)
+                    ->first();
+            }
         }
 
         if (!$isLocked || $taxEnabled === 'yes') {
@@ -938,7 +947,49 @@ class CheckoutProcessor
             $subscriptionItem['recurring_total'] -= $discountTotal;
         }
 
-        $this->subscriptionData = wp_parse_args($subscriptionPricing, $subscriptionItem);
+        $subscriptionData = wp_parse_args($subscriptionPricing, $subscriptionItem);
+        $paymentMethod = Arr::get($this->orderData, 'payment_method', '');
+
+        $collectionMethod = apply_filters('fluent_cart/subscription_collection_method_' . $paymentMethod, $this->determineCollectionMethod());
+
+        // A filter can hand back anything, but `system` only means something on a
+        // gateway that can charge a saved payment method.
+        $subscriptionData['collection_method'] = SubscriptionManagementMode::sanitizeCollectionMethod(
+            $collectionMethod,
+            GatewayManager::getInstance()->get($paymentMethod)
+        );
+
+        // Stamp store-managed origin durably on the subscription. Gateways consult
+        // the stamp (not the current store setting) before converting a manual
+        // subscription to automatic, so switching the mode back to gateway-managed
+        // later never flips subscriptions born under store-managed.
+        if (in_array($subscriptionData['collection_method'], ['manual', 'system'], true) && SubscriptionManagementMode::isStoreManaged()) {
+            $subscriptionConfig = Arr::get($subscriptionData, 'config', []);
+            $subscriptionConfig[SubscriptionManagementMode::CONFIG_KEY] = SubscriptionManagementMode::STORE_MANAGED;
+            $subscriptionData['config'] = $subscriptionConfig;
+        }
+
+        $this->subscriptionData = $subscriptionData;
+    }
+
+    private function determineCollectionMethod(): string
+    {
+        if (SubscriptionManagementMode::isStoreManaged()) {
+            $paymentMethod = Arr::get($this->orderData, 'payment_method', '');
+
+            return SubscriptionManagementMode::resolveCollectionMethodFor(
+                GatewayManager::getInstance()->get($paymentMethod)
+            );
+        }
+
+        $paymentMethod = Arr::get($this->orderData, 'payment_method', '');
+        $gateway = GatewayManager::getInstance()->get($paymentMethod);
+
+        if ($gateway && $gateway->has('subscriptions')) {
+            return 'automatic';
+        }
+
+        return 'manual';
     }
 
     private function prepareOrderData()

@@ -181,6 +181,53 @@ class PayPalSubscriptions extends AbstractSubscriptionModule
         ];
     }
 
+    /**
+     * Resume (activate) a suspended PayPal subscription.
+     *
+     * Called by SubscriptionService::resumeSubscription for automatic subscriptions.
+     * Remote first: activates the subscription at PayPal, and only on success flips
+     * the local status and fires the SubscriptionResumed event.
+     *
+     * @param Subscription $subscription
+     * @param string $reason
+     * @return true|\WP_Error
+     */
+    public function resume(Subscription $subscription, $reason = '')
+    {
+        $vendorSubscriptionId = $subscription->vendor_subscription_id;
+
+        if (!$vendorSubscriptionId) {
+            return new \WP_Error('invalid_subscription', __('Invalid vendor subscription ID.', 'fluent-cart'));
+        }
+
+        $order = $subscription->order;
+
+        $response = API::createResource('billing/subscriptions/' . $vendorSubscriptionId . '/activate', [
+            'reason' => $reason ?: __('Subscription resumed.', 'fluent-cart'),
+        ], $order ? $order->mode : '');
+
+        if (is_wp_error($response)) {
+            return $response;
+        }
+
+        $oldStatus = $subscription->status;
+        $subscription->status = Status::SUBSCRIPTION_ACTIVE;
+        $subscription->save();
+
+        $subscription->addLog(
+            'Subscription resumed',
+            $reason ?: __('Subscription resumed via PayPal', 'fluent-cart'),
+            'info'
+        );
+
+        SubscriptionService::dispatchStatusEvent($subscription, 'resumed', [
+            'old_status' => $oldStatus,
+            'reason'     => $reason,
+        ]);
+
+        return true;
+    }
+
     public function getOrCreateNewPlan($subscriptionId, $reason)
     {
         (new SubscriptionManager())->getOrCreateNewPlan($subscriptionId, $reason);

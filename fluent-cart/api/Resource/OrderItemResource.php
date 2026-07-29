@@ -337,6 +337,8 @@ class OrderItemResource extends BaseResourceApi
      */
     public static function topProductsSold($params = [])
     {
+        $params = is_array($params) ? $params : [];
+
         return OrderItem::search(Arr::only($params, ['created_at']))
             ->select('post_id')
             ->selectRaw('SUM(quantity) as total_sold')

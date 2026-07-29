@@ -21,6 +21,7 @@ class DashboardController extends Controller
                 'text'      => __("Customers to find what they're looking for by organising.", 'fluent-cart'),
                 'icon'      => 'Cart',
                 'completed' => false,
+                'hash_id'   => '',
                 'url'       => $baseUrl . "settings/store-settings/pages_setup"
             ],
             'store_info'   => [
@@ -28,13 +29,15 @@ class DashboardController extends Controller
                 'text'      => __('Store details such as addresses, company info etc.', 'fluent-cart'),
                 'icon'      => 'StoreIcon',
                 'completed' => false,
-                'url'       => $baseUrl . "settings/store-settings/"
+                'hash_id'   => '',
+                'url'       => $baseUrl . "settings/store-settings"
             ],
             'product_info' => [
                 'title'     => __('Add Your First Product', 'fluent-cart'),
                 'text'      => __('Share your brand story and build trust with customers.', 'fluent-cart'),
                 'icon'      => 'ShoppingCartIcon',
                 'completed' => false,
+                'hash_id'   => '',
                 'url'       => $baseUrl . "products"
             ],
 
@@ -44,6 +47,7 @@ class DashboardController extends Controller
                 'text'      => __("Choose from fast & secure online and offline payment.", 'fluent-cart'),
                 'icon'      => 'PaymentIcon',
                 'completed' => true,
+                'hash_id'   => '',
                 'url'       => $baseUrl . "settings/payments"
             ],
         ];
@@ -77,6 +81,7 @@ class DashboardController extends Controller
                 'text'      => __('Design your store pages with FluentCart elements in Bricks.', 'fluent-cart'),
                 'icon'      => 'AppsLine',
                 'completed' => false,
+                'hash_id'   => 'fluent-cart-bricks-blocks',
                 'url'       => $baseUrl . "settings/addons"
             ];
 
@@ -92,11 +97,28 @@ class DashboardController extends Controller
                 'text'      => __('Design your store pages with FluentCart widgets in Elementor.', 'fluent-cart'),
                 'icon'      => 'AppsLine',
                 'completed' => false,
+                'hash_id'   => 'fluent-cart-elementor-blocks',
                 'url'       => $baseUrl . "settings/addons"
             ];
 
             if (defined('FLUENTCART_ELEMENTOR_BLOCKS_VERSION')) {
                 $steps['install_elementor_addon']['completed'] = true;
+                $completed++;
+            }
+        }
+
+        if (strpos(get_template(), 'Divi') !== false) {
+            $steps['install_divi_addon'] = [
+                'title'     => __('Install Divi Addon', 'fluent-cart'),
+                'text'      => __('Design your store pages with FluentCart modules in Divi.', 'fluent-cart'),
+                'icon'      => 'AppsLine',
+                'completed' => false,
+                'hash_id'   => 'fluent-cart-divi-blocks',
+                'url'       => $baseUrl . "settings/addons"
+            ];
+
+            if (defined('FLUENTCART_DIVI_BLOCKS_VERSION')) {
+                $steps['install_divi_addon']['completed'] = true;
                 $completed++;
             }
         }

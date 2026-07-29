@@ -27,10 +27,10 @@ class API
         return $this->remoteRequest($path, $data, $apiKey, 'GET');
     }
 
-    public function createStripeObject($path, $data = [], $mode = 'current', $idempotencyKey = null)
+    public function createStripeObject($path, $data = [], $mode = 'current', $headers = [])
     {
         $apiKey = (new StripeSettingsBase())->getApiKey($mode);
-        return $this->remoteRequest($path, $data, $apiKey, 'POST', $idempotencyKey);
+        return $this->remoteRequest($path, $data, $apiKey, 'POST', $headers);
     }
 
     public function deleteStripeObject($path, $data = [], $mode = 'current')
@@ -39,9 +39,22 @@ class API
         return $this->remoteRequest($path, $data, $apiKey, 'DELETE');
     }
 
-    public function remoteRequest($path, $data, $apiKey, $method, $idempotencyKey = null)
+    public function remoteRequest($path, $data, $apiKey, $method, $extraHeaders = [])
     {
         $stripeApiKey = $apiKey;
+
+        // Never fire a request with an empty Authorization header — Stripe replies
+        // with the cryptic "You did not provide an API key" error. This happens when
+        // the secret key for the requested mode is not configured (e.g. a store in
+        // test mode charging a live-mode order, or unconfigured keys). Fail early
+        // with an actionable message instead.
+        if (empty($stripeApiKey)) {
+            return new \WP_Error(
+                'stripe_missing_api_key',
+                __('Stripe API key is not configured for this payment mode. Please add your Stripe keys in Payment Settings.', 'fluent-cart')
+            );
+        }
+
         $apiVersion = '2025-02-24.acacia';
         $sessionHeaders = array(
             'Authorization'  => 'Bearer ' . $stripeApiKey,
@@ -49,11 +62,9 @@ class API
             'Stripe-Version' => $apiVersion
         );
 
-        // Stripe dedupes any POST carrying the same Idempotency-Key (valid 24h),
-        // so a duplicate/retried create request returns the original object instead
-        // of charging the customer or creating a second subscription again.
-        if ($idempotencyKey && $method === 'POST') {
-            $sessionHeaders['Idempotency-Key'] = $idempotencyKey;
+        // Per-request headers (e.g. Idempotency-Key for off-session renewal charges)
+        if ($extraHeaders && is_array($extraHeaders)) {
+            $sessionHeaders = array_merge($sessionHeaders, $extraHeaders);
         }
 
         $url = $this->apiUrl . $path;

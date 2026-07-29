@@ -21,6 +21,7 @@ use FluentCart\App\Models\OrderTransaction;
 use FluentCart\App\Models\ProductDownload;
 use FluentCart\App\Models\ProductVariation;
 use FluentCart\App\Models\Subscription;
+use FluentCart\App\Modules\Subscriptions\Services\SystemChargeService;
 use FluentCart\App\Services\FileSystem\FileManager;
 use FluentCart\App\Services\Localization\LocalizationManager;
 use FluentCart\App\Services\OrderService;
@@ -315,14 +316,22 @@ class CustomerOrderController extends BaseFrontendController
             ->whereIn('order_id', $orderIds)
             ->whereIn('status', [
                 Status::TRANSACTION_SUCCEEDED,
-                Status::TRANSACTION_REFUNDED
+                Status::TRANSACTION_REFUNDED,
+                Status::TRANSACTION_FAILED,
+                Status::TRANSACTION_PENDING,
             ])
             ->orderBy('id', 'DESC')
             ->with(['order'])
             ->get();
 
         $formattedOrderData['transactions'] = $transactions->map(function ($transaction) {
-            return OrderService::transformTransaction($transaction);
+            $transformedTransaction = OrderService::transformTransaction($transaction);
+            if ($transaction->status === Status::TRANSACTION_PENDING
+                && !empty($transformedTransaction['custom_checkout_url'])
+            ) {
+                $transformedTransaction['show_pay_now'] = true;
+            }
+            return $transformedTransaction;
         });
 
         $formattedOrderData = apply_filters('fluent_cart/customer/order_data', $formattedOrderData, [
@@ -398,6 +407,14 @@ class CustomerOrderController extends BaseFrontendController
         if (!intval($order->total_amount - $order->total_paid)) {
             return false;
         }
+
+        if ($order->parent_id) {
+            $subscription = Subscription::query()->where('parent_order_id', $order->parent_id)->first();
+            if ($subscription && $subscription->isSystem() && !SystemChargeService::isExhausted($subscription, $order)) {
+                return false;
+            }
+        }
+
         return PaymentHelper::getCustomPaymentLink($order->uuid);
     }
 

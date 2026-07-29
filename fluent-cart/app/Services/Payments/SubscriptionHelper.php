@@ -199,4 +199,21 @@ class SubscriptionHelper
         return array_intersect_key($gracePeriods, $defaults);
     }
 
+    /**
+     * Grace period (days past due before expiry) for a billing interval, resolved
+     * from the per-interval grace map. Defaults to 7 for unknown intervals.
+     */
+    public static function getGracePeriodDaysForInterval(string $interval): int
+    {
+        $map = self::getSubscriptionsGracePeriodDays();
+
+        foreach ($map as $key => $days) {
+            if (strpos($interval, $key) !== false) {
+                return (int) $days;
+            }
+        }
+
+        return 7;
+    }
+
 }

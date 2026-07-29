@@ -4,10 +4,14 @@ namespace FluentCart\App\Helpers;
 
 use FluentCart\App\Events\Order\OrderPaid;
 use FluentCart\App\Events\Order\OrderStatusUpdated;
+use FluentCart\App\Events\Subscription\SubscriptionActivated;
 use FluentCart\App\Models\Cart;
 use FluentCart\App\Models\Order;
 use FluentCart\App\Models\OrderTransaction;
+use FluentCart\App\Models\Subscription;
+use FluentCart\App\Modules\Subscriptions\Services\SubscriptionService;
 use FluentCart\App\Services\DateTime\DateTime;
+use FluentCart\App\Services\Payments\PaymentHelper;
 use FluentCart\Framework\Support\Arr;
 
 
@@ -98,7 +102,12 @@ class StatusHelper
 
     public function triggerPaymentStatusActions($order, $paymentStatus)
     {
-        if (Status::PAYMENT_PAID === $paymentStatus) {
+        // Initial orders only (payment / subscription). Renewal invoices are owned by
+        // fluent_cart/renewal_paid — dispatching OrderPaid here would also fire the
+        // async fluent_cart/order_paid_done on every renewal cycle, re-running the
+        // new-order emails and integration feeds. Mirrors the same guard in
+        // syncOrderStatuses().
+        if (Status::PAYMENT_PAID === $paymentStatus && Status::ORDER_TYPE_RENEWAL !== $order->type) {
             $transaction = OrderTransaction::query()->where('order_id', $order->id)
                 ->where('status', Status::TRANSACTION_SUCCEEDED)
                 ->first();
@@ -195,6 +204,27 @@ class StatusHelper
             $this->order->save();
         }
 
+        // Store-managed renewal invoice paid. Reached by every payment path for an
+        // invoice that was created unpaid (customer pays the invoice, system auto-charge
+        // settles, admin mark-as-paid, gateway confirmation) — they all converge on
+        // recordManualRenewal() → syncOrderStatuses(), and the pending → paid transition
+        // below is what the store-managed renewal engine listens for.
+        //
+        // NOT fired for gateway-managed (automatic) renewals: those go through
+        // SubscriptionService::recordRenewalPayment(), which creates the child order
+        // already paid and never reaches here. Both listeners on this hook
+        // (RenewalService::handleRenewalPaid, SystemChargeService::cancelPendingCharge)
+        // are scoped to manual/system collection, so that is by design — but it does mean
+        // this is not an "any renewal was paid" hook. Use SubscriptionRenewed for that.
+        //
+        // Scoped to renewal+paid so initial order flow is unaffected.
+        if ($this->order->type === Status::ORDER_TYPE_RENEWAL
+            && $oldPaymentStatus !== $this->order->payment_status
+            && $this->order->payment_status === Status::PAYMENT_PAID
+        ) {
+            do_action('fluent_cart/renewal_paid', ['order' => $this->order]);
+        }
+
         if (($this->order->type === 'renewal') || ($oldPaymentStatus != $this->order->payment_status && $this->order->payment_status == Status::PAYMENT_PAID)) {
             if (!$latestTransaction) {
                 $latestTransaction = OrderTransaction::query()
@@ -272,6 +302,71 @@ class StatusHelper
             (new OrderStatusUpdated($this->order, $oldOrderStatus, $this->order->status, true, $actionActivity, 'order_status'))->dispatch();
         }
 
+        $this->maybeActivateManualSubscription();
+
         return $this->order;
+    }
+
+    private function maybeActivateManualSubscription()
+    {
+        // Initial subscription activation only. Renewal payments are owned by
+        // RenewalService::handleRenewalPaid (hooked on fluent_cart/renewal_paid),
+        // which sets the cadence-preserving next_billing_date (anchored to due_date).
+        // Running this on renewals would overwrite that with guessNextBillingDate()
+        // (order created_at + interval), pulling the date earlier by the advance window
+        // every cycle, and could flip a paused/canceled subscription back to active.
+        if ($this->order->type !== 'subscription') {
+            return;
+        }
+
+        if ($this->order->payment_status !== Status::PAYMENT_PAID) {
+            return;
+        }
+
+        $subscription = Subscription::query()
+            ->where('parent_order_id', $this->order->id)
+            ->whereIn('collection_method', ['manual', 'system'])
+            ->first();
+
+        if (!$subscription) {
+            return;
+        }
+
+        $oldStatus = $subscription->status;
+
+        // Initial activation only: syncOrderStatuses can run again on an already-paid
+        // parent order (admin "Sync statuses", webhook redelivery). Without this guard
+        // a paused/canceled/completed subscription would be forced back to active and
+        // its next_billing_date/trial window reset.
+        if (!in_array($oldStatus, [Status::SUBSCRIPTION_PENDING, Status::SUBSCRIPTION_INTENDED])) {
+            return;
+        }
+
+        $isTrialDaysSimulated = Arr::get($subscription->config, 'is_trial_days_simulated', 'no') === 'yes';
+        $hasActualTrial = $subscription->trial_days > 0 && !$isTrialDaysSimulated;
+
+        if ($hasActualTrial) {
+            // Trial runs from activation, not order placement — a delayed payment
+            // (COD, bank transfer) must not consume the trial before it starts.
+            $trialEndsAt = gmdate('Y-m-d H:i:s', time() + ((int) $subscription->trial_days * DAY_IN_SECONDS));
+            $updateData = [
+                'status'            => Status::SUBSCRIPTION_TRIALING,
+                'trial_ends_at'     => $trialEndsAt,
+                'next_billing_date' => $trialEndsAt,
+            ];
+        } else {
+            $updateData = [
+                'status'            => Status::SUBSCRIPTION_ACTIVE,
+                'next_billing_date' => $subscription->guessNextBillingDate(true),
+            ];
+        }
+
+        $subscription = SubscriptionService::syncSubscriptionStates($subscription, $updateData);
+
+        if (in_array($oldStatus, [Status::SUBSCRIPTION_PENDING, Status::SUBSCRIPTION_INTENDED])
+            && in_array($subscription->status, [Status::SUBSCRIPTION_ACTIVE, Status::SUBSCRIPTION_TRIALING])
+        ) {
+            (new SubscriptionActivated($subscription, $this->order, $this->order->customer))->dispatch();
+        }
     }
 }

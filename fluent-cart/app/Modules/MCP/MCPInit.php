@@ -2,6 +2,7 @@
 
 namespace FluentCart\App\Modules\MCP;
 
+use FluentCart\App\Modules\MCP\Support\CrmContact;
 use FluentCart\App\Modules\MCP\Support\PermissionGate;
 use FluentCart\App\Modules\MCP\Tools\ContextTools;
 
@@ -71,6 +72,11 @@ class MCPInit
         ] as $hook) {
             add_action($hook, $invalidate);
         }
+
+        // FluentCRM contact context on get-customer / get-order, mirroring the
+        // contact widget FluentCRM already renders on those admin screens.
+        // No-op unless FluentCRM is active.
+        CrmContact::register();
 
         // Warn the operator if they enabled MCP but no adapter is installed.
         add_action('admin_notices', [$this, 'maybeShowAdapterNotice']);

@@ -822,21 +822,22 @@ class ProductRenderer
         }
     }
 
+    /**
+     * @deprecated Use PackageDescriptionRenderer::renderPackageDescription() directly.
+     * Kept as a compatibility shim for external callers (themes, extensions) —
+     * package-description rendering now lives in PackageDescriptionRenderer.
+     */
     public function renderPackageDescription($wrapper_attributes = '', $showName = true, $showDimensions = true, $showProductWeight = true, $showTotalWeight = true, $variant = null)
     {
-        if ($variant) {
-            if (!$wrapper_attributes) {
-                $wrapper_attributes = 'class="fct-package-description" data-fluent-cart-package-description';
-            }
-            (new ProductCardRender($this->product))->renderPackageDescription($wrapper_attributes, $showName, $showDimensions, $showProductWeight, $showTotalWeight, $variant);
-            return;
-        }
-
-        foreach ($this->product->variants as $v) {
-            $isHidden = ($this->defaultVariant && $this->defaultVariant->id != $v->id) ? ' is-hidden' : '';
-            $variantWrapper = 'class="fct-package-description fluent-cart-product-variation-content' . $isHidden . '" data-fluent-cart-package-description data-variation-id="' . esc_attr($v->id) . '"';
-            (new ProductCardRender($this->product))->renderPackageDescription($variantWrapper, $showName, $showDimensions, $showProductWeight, $showTotalWeight, $v);
-        }
+        (new PackageDescriptionRenderer($this->product))->renderPackageDescription(
+            $wrapper_attributes,
+            $showName,
+            $showDimensions,
+            $showProductWeight,
+            $showTotalWeight,
+            $variant,
+            $this->defaultVariant
+        );
     }
 
     /**

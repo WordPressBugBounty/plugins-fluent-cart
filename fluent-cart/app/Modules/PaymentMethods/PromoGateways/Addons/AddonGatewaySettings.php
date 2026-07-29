@@ -2,6 +2,7 @@
 
 namespace FluentCart\App\Modules\PaymentMethods\PromoGateways\Addons;
 
+use FluentCart\App\Helpers\Helper;
 use FluentCart\App\Modules\PaymentMethods\Core\BaseGatewaySettings;
 use FluentCart\App\Services\PluginInstaller\PaymentAddonManager;
 use FluentCart\Framework\Support\Arr;
@@ -248,7 +249,7 @@ class AddonGatewaySettings extends BaseGatewaySettings
             if ($proRequired) {
                 $statusMessage = __('Requires Pro', 'fluent-cart');
                 $statusColor = $styles['status_warning'];
-                $upgradeUrl = esc_url($config['repo_link'] ?? 'https://fluentcart.com/pricing/');
+                $upgradeUrl = esc_url($config['repo_link'] ?? Helper::getUpgradeUrl('feature_lock_gateway_' . $this->gatewaySlug));
                 $actionButton = '<a href="' . $upgradeUrl . '" target="_blank" rel="noopener noreferrer" '
                     . 'style="display: inline-flex; align-items: center; background: ' . $styles['button_primary_bg'] . '; color: ' . $styles['button_primary_text'] . '; padding: 10px 24px; border-radius: 6px; font-weight: 500; font-size: 14px; text-decoration: none; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">'
                     . $this->renderIcon('M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 4l5 2.18V11c0 3.5-2.33 6.79-5 7.93-2.67-1.14-5-4.43-5-7.93V7.18L12 5z', 'width: 16px; height: 16px; margin-right: 6px; fill: ' . $styles['button_primary_text'] . ';')

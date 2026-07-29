@@ -460,6 +460,12 @@ class CheckoutApi
 
         $paymentInstance = new PaymentInstance($order);
 
+        // Transition subscription from pending → intended before submitting to the gateway
+        if ($paymentInstance->subscription && $paymentInstance->subscription->status === Status::SUBSCRIPTION_PENDING) {
+            $paymentInstance->subscription->status = Status::SUBSCRIPTION_INTENDED;
+            $paymentInstance->subscription->save();
+        }
+
         $data = $gateway->makePaymentFromPaymentInstance($paymentInstance);
 
         if (is_wp_error($data)) {

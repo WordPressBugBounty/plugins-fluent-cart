@@ -47,6 +47,7 @@ class CouponRequest extends RequestGuard
             'type'                           => 'required|in:fixed,percentage,free_shipping,buy_x_get_y',
             'conditions'                     => 'nullable|array',
             'conditions.min_purchase_amount' => 'nullable|numeric|min:0',
+            'conditions.min_amount_basis'    => 'nullable|in:subtotal,total',
             'conditions.max_discount_amount' => 'nullable|numeric|min:0',
             'conditions.apply_to_whole_cart' => 'nullable|sanitizeText',
             'conditions.apply_to_quantity'   => 'nullable|sanitizeText',
@@ -140,6 +141,12 @@ class CouponRequest extends RequestGuard
                 $sanitizedData['min_purchase_amount'] = floatval(Arr::get($value, 'min_purchase_amount') ?? 0);
                 $sanitizedData['max_discount_amount'] = floatval(Arr::get($value, 'max_discount_amount') ?? 0);
                 $sanitizedData['max_purchase_amount'] = floatval(Arr::get($value, 'max_purchase_amount') ?? 0);
+                // Only carry the basis when a valid value is supplied. When it is omitted the key is
+                // left absent so create() can default it and update() can preserve the stored value —
+                // never force 'subtotal' onto a legacy coupon whose client simply doesn't send the field.
+                if (in_array(Arr::get($value, 'min_amount_basis'), ['subtotal', 'total'], true)) {
+                    $sanitizedData['min_amount_basis'] = Arr::get($value, 'min_amount_basis');
+                }
                 $sanitizedData['apply_to_whole_cart'] = sanitize_text_field(Arr::get($value, 'apply_to_whole_cart') ?? 'no');
                 $sanitizedData['apply_to_quantity'] = sanitize_text_field(Arr::get($value, 'apply_to_quantity') ?? 'no');
                 $sanitizedData['max_uses'] = intval(Arr::get($value, 'max_uses') ?? 0);

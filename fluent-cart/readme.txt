@@ -4,7 +4,7 @@ Tags: ecommerce, cart, checkout, subscriptions, payments
 Requires at least: 6.7
 Tested up to: 7.0
 Requires PHP: 7.4
-Stable tag: 1.5.5
+Stable tag: 1.6.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -312,6 +312,29 @@ This service is provided by PayPal: [Terms of Service](https://www.paypal.com/le
 
 
 == Changelog ==
+
+= 1.6.0 (Jul 29, 2026) =
+- Adds Subscription engine with store-managed subscription support.
+- Adds Store-managed renewal orders with payment links for all supported gateways.
+- Adds Optional automatic renewal charging with saved payment methods on supported gateways (stripe, paypal).
+- Adds Full subscription lifecycle management, including pause, resume, skip, schedule, amount, status, and billing date controls.
+- Adds Subscription emails for renewals, reminders, upcoming charges, payment failures, and past-due notices.
+- Adds Bricks Products controls for empty categories, tags, and category visibility.
+- Improves Onboarding with clearer step descriptions and a prominent "Generate All Pages" action.
+- Improves Elementor blocks availability for FluentCart Free as an add-on.
+- Improves Storefront styling across checkout, customer profile, shop, and product pages.
+- Improves Admin tables with better column layouts and loading states.
+- Improves The subscription admin page with richer payment history and renewal details.
+- Fixes Advanced Variation galleries syncing correctly on single product pages.
+- Fixes The content editor dialog toolbar and multisite editing issues.
+- Fixes Email preview and background email rendering.
+- Fixes Onboarding redirecting to the dashboard after completion.
+- Fixes File storage connection errors displaying proper error messages.
+- Fixes Reports page layout on iPad.
+- Fixes Product variant lists opening without filters.
+- Fixes Completed subscriptions showing stale next billing dates.
+- Fixes Bricks Products category filter controls updating dynamically.
+- Fixes Paddle price/product reuse to sync product/variation custom_data instead of creating duplicate catalog entries.
 
 = 1.5.5 (Jul 17, 2026) =
 - Improves PayPal payment and subscription confirmation flow against unverified payment states.

@@ -35,9 +35,9 @@ class CustomerTools
                     'properties' => [
                         'search'               => ['type' => 'string', 'description' => 'Matches name or email.'],
                         'status'               => ['type' => 'string', 'enum' => ['active', 'archived']],
-                        'country'              => ['type' => 'string', 'description' => 'ISO-2 country code.'],
-                        'state'                => ['type' => 'string'],
-                        'city'                 => ['type' => 'string'],
+                        'country'              => ['type' => 'string', 'description' => 'ISO-2 country code. Matches the customer PROFILE country, which is captured once when the customer record is created and never refreshed — it can differ from the billing address (see location_source on each row). For geography taken from the address on the order, filter list-orders by country instead.'],
+                        'state'                => ['type' => 'string', 'description' => 'Customer profile state — same caveat as country.'],
+                        'city'                 => ['type' => 'string', 'description' => 'Customer profile city — same caveat as country.'],
                         'min_ltv'              => ['type' => 'number', 'description' => 'Minimum lifetime value in store currency.'],
                         'min_purchase_count'   => ['type' => 'integer'],
                         'first_purchase_after' => ['type' => 'string', 'description' => 'YYYY-MM-DD or ISO 8601, UTC.'],
@@ -59,7 +59,11 @@ class CustomerTools
 
             'fluent-cart/get-customer' => [
                 'label'       => __('Get Customer', 'fluent-cart'),
-                'description' => __('Full profile + metrics for one customer. Identify by customer_id OR email. Add include[] for orders (each order row carries its line items: product id, title, quantity), subscriptions, addresses, labels, notes. Use with_orders_limit to bound order history.', 'fluent-cart'),
+                'description' => sprintf(
+                    /* translators: %1$s: comma-separated include[] section names */
+                    __('Full profile + metrics for one customer. Identify by customer_id OR email. Add include[] for any of: %1$s (orders carry their line items: product id, title, quantity; subscriptions carry plan_type so installment plans are distinguishable from recurring ones). Use with_orders_limit to bound order history.', 'fluent-cart'),
+                    implode(', ', self::includeSections())
+                ),
                 'input_schema' => [
                     'type'       => 'object',
                     'properties' => [
@@ -67,7 +71,7 @@ class CustomerTools
                         'email'             => ['type' => 'string'],
                         'include'           => [
                             'type'        => 'array',
-                            'items'       => ['type' => 'string', 'enum' => ['orders', 'subscriptions', 'addresses', 'labels', 'notes']],
+                            'items'       => ['type' => 'string', 'enum' => self::includeSections()],
                             'description' => 'Optional sections. Profile + metrics are always returned.',
                         ],
                         'with_orders_limit' => ['type' => 'integer', 'default' => 10, 'description' => 'Cap on orders when include has orders. Max 50.'],
@@ -109,6 +113,34 @@ class CustomerTools
                 'annotations' => ['readonly' => false, 'destructive' => false, 'idempotent' => true],
             ],
         ];
+    }
+
+    /**
+     * The sections get-customer's include[] accepts. Filterable so an add-on that
+     * owns its own customer-scoped entity (Pro's licences, for one) can offer it
+     * as an include instead of forcing the agent into a second list-* call and a
+     * manual join by customer.
+     *
+     * A section added here MUST be populated by a listener on
+     * fluent_cart/mcp_customer_data — an include the schema advertises but
+     * nothing fills is worse than no include at all.
+     *
+     * @return array
+     */
+    private static function includeSections()
+    {
+        $sections = ['orders', 'subscriptions', 'addresses', 'labels', 'notes'];
+
+        /**
+         * Extra include[] section names for get-customer.
+         *
+         * @since 1.0.0
+         *
+         * @param array $sections section names offered in the include[] enum
+         */
+        $sections = apply_filters('fluent_cart/mcp_customer_include_sections', $sections);
+
+        return array_values(array_unique(array_map('strval', (array) $sections)));
     }
 
     public static function upsertCustomer($params = [])
@@ -278,6 +310,10 @@ class CustomerTools
             $query->orderBy('id', 'DESC');
         }
 
+        // Eager-load both address relations the location string reads, so a page
+        // of rows costs two extra queries instead of two per row.
+        $query->with(['primary_billing_address', 'billing_address']);
+
         $paginator = $query->paginate($paging['per_page'], ['*'], 'page', $paging['page']);
         $total     = self::total($paginator);
 
@@ -304,8 +340,9 @@ class CustomerTools
 
     private static function formatRow($customer)
     {
-        $ltv   = (int) $customer->ltv;
-        $count = (int) $customer->purchase_count;
+        $ltv      = (int) $customer->ltv;
+        $count    = (int) $customer->purchase_count;
+        $location = self::locationBlock($customer);
 
         return [
             'customer_id'        => (int) $customer->id,
@@ -316,7 +353,8 @@ class CustomerTools
             'ltv'                => MCPHelper::moneyCompact($ltv),
             'purchase_count'     => $count,
             'aov'                => MCPHelper::moneyCompact(self::aovCents($ltv, $count)),
-            'location'           => self::location($customer),
+            'location'           => $location['location'],
+            'location_source'    => $location['location_source'],
             'last_purchase_date' => MCPHelper::toIso8601($customer->last_purchase_date),
         ];
     }
@@ -344,17 +382,19 @@ class CustomerTools
             return $customer;
         }
 
-        $include = isset($params['include']) ? (array) $params['include'] : [];
-        $ltv     = (int) $customer->ltv;
-        $count   = (int) $customer->purchase_count;
+        $include  = isset($params['include']) ? (array) $params['include'] : [];
+        $ltv      = (int) $customer->ltv;
+        $count    = (int) $customer->purchase_count;
+        $location = self::locationBlock($customer);
 
         $data = [
-            'customer_id' => (int) $customer->id,
-            'name'        => MCPHelper::personName($customer),
-            'email'       => $customer->email,
-            'status'      => $customer->status,
-            'wp_user_id'  => $customer->user_id ? (int) $customer->user_id : null,
-            'location'    => self::location($customer),
+            'customer_id'     => (int) $customer->id,
+            'name'            => MCPHelper::personName($customer),
+            'email'           => $customer->email,
+            'status'          => $customer->status,
+            'wp_user_id'      => $customer->user_id ? (int) $customer->user_id : null,
+            'location'        => $location['location'],
+            'location_source' => $location['location_source'],
             'metrics'     => [
                 'ltv'                 => MCPHelper::money($ltv),
                 'purchase_count'      => $count,
@@ -381,6 +421,21 @@ class CustomerTools
         if (in_array('notes', $include, true)) {
             $data['notes'] = MCPHelper::htmlToText($customer->notes);
         }
+
+        /**
+         * The assembled get-customer payload, for add-on sections registered
+         * through fluent_cart/mcp_customer_include_sections. Listeners should add
+         * their key only when it is present in $context['include'].
+         *
+         * @since 1.0.0
+         *
+         * @param array $data    the customer payload
+         * @param array $context { customer: Customer, include: string[] }
+         */
+        $data = apply_filters('fluent_cart/mcp_customer_data', $data, [
+            'customer' => $customer,
+            'include'  => $include,
+        ]);
 
         return MCPHelper::envelope(self::label($customer, $ltv), $data);
     }
@@ -457,7 +512,9 @@ class CustomerTools
             }
             $out[] = [
                 'order_id'       => (int) $order->id,
-                'number'         => $order->invoice_no ? $order->invoice_no : (string) $order->id,
+                // null until an invoice number is assigned — same contract as
+                // list-orders and get-order.
+                'number'         => $order->invoice_no ? $order->invoice_no : null,
                 'status'         => $order->status,
                 'payment_status' => $order->payment_status,
                 'total'          => MCPHelper::moneyCompact($order->total_amount),
@@ -468,18 +525,32 @@ class CustomerTools
         return $out;
     }
 
+    /**
+     * Nested subscription rows. plan_type and the installment counters are the
+     * same derivation list-subscriptions / get-subscription use (bill_times > 0),
+     * carried here because otherwise the only way to tell a lifetime licence paid
+     * in N installments from a genuine recurring plan on this payload was to
+     * string-match "(Split Pay)" in item_name — the two are structurally
+     * identical without it, and they are opposite kinds of revenue.
+     */
     private static function subscriptions($customer)
     {
         $subs = $customer->subscriptions()->orderBy('id', 'DESC')->get();
         $out = [];
         foreach ($subs as $sub) {
+            $isInstallment = $sub->isInstallment();
             $out[] = [
-                'id'                => (int) $sub->id,
-                'status'            => $sub->status,
-                'item_name'         => $sub->item_name,
-                'recurring_total'   => MCPHelper::moneyCompact($sub->recurring_total),
-                'billing_interval'  => $sub->billing_interval,
-                'next_billing_date' => MCPHelper::toIso8601($sub->next_billing_date),
+                'id'                     => (int) $sub->id,
+                'status'                 => $sub->status,
+                'item_name'              => $sub->item_name,
+                'plan_type'              => $isInstallment ? 'installment' : 'recurring',
+                'recurring_total'        => MCPHelper::moneyCompact($sub->recurring_total),
+                'billing_interval'       => $sub->billing_interval,
+                'next_billing_date'      => MCPHelper::toIso8601($sub->next_billing_date),
+                'bill_times'             => (int) $sub->bill_times,
+                'installments_paid'      => (int) $sub->bill_count,
+                'installments_remaining' => $sub->installmentsRemaining(),
+                'total_contract_value'   => $isInstallment ? MCPHelper::moneyCompact($sub->totalContractValue()) : null,
             ];
         }
         return $out;
@@ -498,10 +569,67 @@ class CustomerTools
         return $out;
     }
 
-    private static function location($customer)
+    /**
+     * The convenience location string, derived from the customer's primary
+     * billing address rather than the fct_customers city/state/country columns.
+     *
+     * Those columns are a WRITE-ONCE snapshot: CustomerResource::create() seeds
+     * them when the customer row is first inserted and nothing refreshes them
+     * afterwards (CheckoutApi::updateExistingCustomer() deliberately touches only
+     * user_id), and the value seeded at checkout can be the country the frontend
+     * GUESSED from the browser timezone before the buyer typed anything. The
+     * billing address is the value the buyer actually entered, so it wins; the
+     * profile columns are the fallback for a customer with no address row.
+     *
+     * In practice the two rarely conflict — on the 2,320-customer reference store
+     * they never do (zero rows where both are set and differ). What this ordering
+     * buys is correctness when a stale snapshot DOES diverge, plus coverage: 7
+     * customers there have an address but no profile value, so reading the profile
+     * alone would report no location for a customer whose address is on file.
+     * location_source names which source produced the string, so an agent seeing
+     * `location` next to an `addresses` include can tell whether they should agree.
+     *
+     * @return array { location: string|null, location_source: string|null }
+     */
+    private static function locationBlock($customer)
     {
+        $address = self::billingAddress($customer);
+        if ($address) {
+            $parts = array_filter([$address->city, $address->state, $address->country]);
+            if ($parts) {
+                return ['location' => implode(', ', $parts), 'location_source' => 'billing_address'];
+            }
+        }
+
         $parts = array_filter([$customer->city, $customer->state, $customer->country]);
-        return $parts ? implode(', ', $parts) : null;
+        if ($parts) {
+            return ['location' => implode(', ', $parts), 'location_source' => 'customer_profile'];
+        }
+
+        return ['location' => null, 'location_source' => null];
+    }
+
+    /**
+     * The customer's primary billing address, falling back to any billing address
+     * when none is flagged primary (real stores have both). Relations are checked
+     * before loading so a caller that eager-loaded them (list-customers) pays no
+     * per-row query.
+     */
+    private static function billingAddress($customer)
+    {
+        if (!$customer->relationLoaded('primary_billing_address')) {
+            $customer->load('primary_billing_address');
+        }
+        if ($customer->primary_billing_address) {
+            return $customer->primary_billing_address;
+        }
+
+        if (!$customer->relationLoaded('billing_address')) {
+            $customer->load('billing_address');
+        }
+        $addresses = $customer->billing_address;
+
+        return ($addresses && count($addresses)) ? $addresses[0] : null;
     }
 
     private static function aovCents($ltvCents, $count)

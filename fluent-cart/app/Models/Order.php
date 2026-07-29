@@ -43,7 +43,7 @@ class Order extends Model
         parent::boot();
         static::creating(function ($model) {
             if (empty($model->uuid)) {
-                $model->uuid = md5(time() . wp_generate_uuid4());
+                $model->uuid = static::generateOrderUuid();
             }
 
             if (!isset($model->config)) {
@@ -63,6 +63,57 @@ class Order extends Model
                 ]);
             }
         });
+    }
+
+    /**
+     * Generate a short, human-usable order handle: 12 uppercase alphanumeric
+     * characters (e.g. A7K2P9X4M1Q8), stored in the `uuid` column and shown as
+     * "#A7K2P9X4M1Q8" on the UI. Existing orders keep their legacy md5 uuids.
+     *
+     * Uniqueness is best-effort at the application level: a chunk of
+     * candidates is generated and filtered against the table with a single
+     * whereIn query (no per-candidate round-trips). There is intentionally no
+     * DB unique constraint on `fct_orders.uuid`, so this check is NOT atomic —
+     * two concurrent inserts could theoretically race on the same candidate.
+     * Given the 36^12 (~4.7x10^18) space, a real collision is astronomically
+     * unlikely, but not cryptographically guaranteed. If a hard guarantee is
+     * ever required, add a unique index on the column and retry creation on a
+     * duplicate-key error.
+     *
+     * @return string
+     */
+    public static function generateOrderUuid()
+    {
+        $chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+        $maxIndex = strlen($chars) - 1;
+        $chunkSize = 20;
+
+        do {
+            // Generate a chunk of candidates, then resolve collisions with a
+            // single query (whereIn) instead of one query per candidate. The
+            // code is used as the array key so the chunk is self-deduplicated.
+            $candidates = [];
+            for ($i = 0; $i < $chunkSize; $i++) {
+                $code = '';
+                for ($j = 0; $j < 12; $j++) {
+                    $code .= $chars[wp_rand(0, $maxIndex)];
+                }
+                $candidates[$code] = true;
+            }
+
+            $taken = static::whereIn('uuid', array_keys($candidates))
+                ->get(['uuid'])
+                ->pluck('uuid')
+                ->toArray();
+
+            foreach ($taken as $existing) {
+                unset($candidates[$existing]);
+            }
+            // Loops again only if every candidate in the chunk collided, which
+            // is astronomically unlikely for a 36^12 (~4.7x10^18) space.
+        } while (empty($candidates));
+
+        return array_key_first($candidates);
     }
 
     protected $fillable = [

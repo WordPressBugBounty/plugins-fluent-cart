@@ -8,6 +8,7 @@ use FluentCart\App\Models\Order;
 use FluentCart\App\Models\OrderTransaction;
 use FluentCart\App\Models\Subscription;
 use FluentCart\App\Modules\PaymentMethods\StripeGateway\API\API;
+use FluentCart\App\Modules\PaymentMethods\StripeGateway\Confirmations;
 use FluentCart\App\Modules\PaymentMethods\StripeGateway\StripeHelper;
 use FluentCart\App\Modules\Subscriptions\Services\SubscriptionService;
 use FluentCart\Framework\Support\Arr;
@@ -31,13 +32,14 @@ class Webhook
             'invoice.paid',
             'customer.subscription.deleted',
             'customer.subscription.updated',
-            'invoice.payment_failed'
+            'invoice.payment_failed',
+            'setup_intent.succeeded'
         ];
     }
 
     public static function webhookInstruction(): array
     {
-        $events = 'checkout.session.completed%2Ccharge.refunded%2Ccharge.refund.updated%2Ccharge.succeeded%2Cinvoice.paid%2Ccustomer.subscription.deleted%2Ccustomer.subscription.updated%2Cinvoice.payment_failed%2Ccharge.captured%2Ccharge.dispute.closed%2Ccharge.dispute.created%2Cinvoice_payment.paid%2Cpayment_intent.succeeded';
+        $events = 'checkout.session.completed%2Ccharge.refunded%2Ccharge.refund.updated%2Ccharge.succeeded%2Cinvoice.paid%2Ccustomer.subscription.deleted%2Ccustomer.subscription.updated%2Cinvoice.payment_failed%2Ccharge.captured%2Ccharge.dispute.closed%2Ccharge.dispute.created%2Cinvoice_payment.paid%2Cpayment_intent.succeeded%2Csetup_intent.succeeded';
         
         $svg    = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M10 6V8H5V19H16V14H18V20C18 20.5523 17.5523 21 17 21H4C3.44772 21 3 20.5523 3 20V7C3 6.44772 3.44772 6 4 6H10ZM21 3V11H19L18.9999 6.413L11.2071 14.2071L9.79289 12.7929L17.5849 5H13V3H21Z"></path></svg>';
 
@@ -79,6 +81,7 @@ class Webhook
                     'invoice.payment_failed',
                     'customer.subscription.deleted',
                     'customer.subscription.updated',
+                    'setup_intent.succeeded',
                 ],
             ],
         ];
@@ -97,6 +100,7 @@ class Webhook
             'checkout.session.completed',
             'customer.subscription.deleted',
             'customer.subscription.updated',
+            'setup_intent.succeeded', // recovers zero-payable system-subscription vaulting if the AJAX confirm is lost
         ];
 
         if (!in_array($eventType, $metaDataEvents)) {
@@ -104,6 +108,20 @@ class Webhook
         }
 
         $vendorDataObject = $event->data->object;
+
+        if ($eventType === 'setup_intent.succeeded') {
+            $setupIntentId = Arr::get((array)$vendorDataObject, 'id');
+            if ($setupIntentId) {
+                $result = (new Confirmations())->confirmSetupIntent($setupIntentId);
+                if (!is_wp_error($result)) {
+                    wp_send_json([
+                        'message' => 'Setup intent confirmed successfully.',
+                    ], 200);
+                }
+            }
+
+            return false;
+        }
 
         if ($eventType == 'invoice.paid') {
             //check if subscription billing_cycle invoice paid or failed

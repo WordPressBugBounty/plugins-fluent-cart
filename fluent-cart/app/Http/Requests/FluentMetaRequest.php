@@ -116,6 +116,19 @@ class FluentMetaRequest extends RequestGuard
             'show_relevant_product_in_single_page' => 'sanitize_text_field',
             'show_relevant_product_in_modal'       => 'sanitize_text_field',
             'enable_early_payment_for_installment' => 'sanitize_text_field',
+            'subscription_management_mode'         => function ($value) {
+                $value = sanitize_text_field($value);
+                $allowed = ['gateway_managed', 'store_managed'];
+                return in_array($value, $allowed, true) ? $value : 'gateway_managed';
+            },
+            'subscription_system_charge'           => function ($value) {
+                $value = sanitize_text_field($value);
+                return in_array($value, ['yes', 'no'], true) ? $value : 'no';
+            },
+            'subscription_manual_fallback'         => function ($value) {
+                $value = sanitize_text_field($value);
+                return in_array($value, ['yes', 'no'], true) ? $value : 'no';
+            },
             'order_mode'                           => 'sanitize_text_field',
             'variation_view'                       => 'sanitize_text_field',
             'variation_columns'                    => 'sanitize_text_field',

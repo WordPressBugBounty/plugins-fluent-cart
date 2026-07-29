@@ -11,6 +11,21 @@ use FluentCart\Framework\Support\Arr;
 
 class CheckoutFieldsSchema
 {
+    /**
+     * Per-request memo for getFieldsSettings(). In production every HTTP
+     * request runs in a fresh PHP process, so this lives exactly one request.
+     * Long-running processes that simulate multiple requests (test suites,
+     * CLI) must clear it between simulated requests via
+     * resetFieldsCache() — as a function-static it was
+     * unreachable and leaked the first request's field settings into every
+     * subsequent one.
+     */
+    private static $fieldsCache = null;
+
+    public static function resetFieldsCache(): void
+    {
+        self::$fieldsCache = null;
+    }
 
     public static function titleMap(): array
     {
@@ -589,9 +604,8 @@ class CheckoutFieldsSchema
 
     public static function getFieldsSettings()
     {
-        static $cached = null;
-        if ($cached !== null) {
-            return $cached;
+        if (self::$fieldsCache !== null) {
+            return self::$fieldsCache;
         }
 
         $defaults = [
@@ -736,7 +750,7 @@ class CheckoutFieldsSchema
             $defaults[$key] = wp_parse_args($savedValues, $default);
         }
 
-        return ($cached = $defaults);
+        return (self::$fieldsCache = $defaults);
     }
 
     public static function isTermsRequired(): bool

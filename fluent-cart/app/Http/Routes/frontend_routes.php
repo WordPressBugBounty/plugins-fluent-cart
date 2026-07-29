@@ -93,5 +93,7 @@ $router->prefix('customer-profile')->withPolicy('CustomerFrontendPolicy')->group
     $router->post('subscriptions/{subscription_uuid}/confirm-subscription-switch', [CustomerSubscriptionController::class, 'confirmSubscriptionSwitch'])->alphaNumDash('subscription_uuid');
     $router->post('subscriptions/{subscription_uuid}/cancel-auto-renew', [CustomerSubscriptionController::class, 'cancelAutoRenew'])->alphaNumDash('subscription_uuid');
     $router->post('subscriptions/{subscription_uuid}/initiate-early-payment', [CustomerSubscriptionController::class, 'initiateEarlyPayment'])->alphaNumDash('subscription_uuid');
+    $router->post('subscriptions/{subscription_uuid}/pause', [CustomerSubscriptionController::class, 'pauseSubscription'])->alphaNumDash('subscription_uuid');
+    $router->post('subscriptions/{subscription_uuid}/resume', [CustomerSubscriptionController::class, 'resumeSubscription'])->alphaNumDash('subscription_uuid');
 
 });
