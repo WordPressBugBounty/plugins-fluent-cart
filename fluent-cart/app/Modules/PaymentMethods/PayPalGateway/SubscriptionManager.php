@@ -186,8 +186,6 @@ class SubscriptionManager
             $nextBillingDate = gmdate('Y-m-d H:i:s', strtotime($nextBillingDate));
         }
 
-        $config = $subscription->config ?: [];
-
         // update subscription in table
         $data = array_filter([
             'vendor_subscription_id' => $vendorSubscriptionId,
@@ -196,10 +194,11 @@ class SubscriptionManager
             'vendor_customer_id'     => $vendorCustomerId,
             'next_billing_date'      => $nextBillingDate,
             'status'                 => $this->getCorrectSubscriptionStatus(Arr::get($paypalSubscription, 'status')),
-            'config'                 => array_merge($config, ['is_trial_days_simulated' => 'yes'])
         ]);
 
         Subscription::query()->where('id', $subscriptionId)->update($data);
+
+        $subscription->mergeConfig(['is_trial_days_simulated' => 'yes']);
 
         $billingInfo = PaymentHelper::parsePaymentMethodDetails('paypal', [
             'email'    => Arr::get($paypalSubscription, 'subscriber.email_address'),

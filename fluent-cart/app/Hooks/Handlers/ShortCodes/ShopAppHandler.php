@@ -105,8 +105,6 @@ class ShopAppHandler
             'exclude_ids'                      => '',
             'category'                         => '',
             'category_id'                      => '',
-            'tag'                              => '',
-            'tag_id'                           => '',
             'fulfillment_type'                 => '',
             'product_type'                     => '',
             'on_sale'                          => '',
@@ -358,19 +356,10 @@ class ShopAppHandler
             $mergedTerms['product-categories'] = array_unique(array_merge($existing, $categoryTermIds));
         }
 
-        // --- Shortcode attribute: tag (by slug) and tag_id ---
-        $tagTermIds = [];
-        if (!empty($this->shortcodeAttributes['tag'])) {
-            $tagTermIds = Taxonomy::getTermIdsBySlugs($this->shortcodeAttributes['tag'], 'product-tags');
-        }
-        if (!empty($this->shortcodeAttributes['tag_id'])) {
-            $tIds = array_values(array_filter(array_map('intval', array_map('trim', explode(',', $this->shortcodeAttributes['tag_id'])))));
-            $tagTermIds = array_unique(array_merge($tagTermIds, $tIds));
-        }
-        if (!empty($tagTermIds)) {
-            $existing = Arr::get($mergedTerms, 'product-tags', []);
-            $mergedTerms['product-tags'] = array_unique(array_merge($existing, $tagTermIds));
-        }
+        // The former tag= / tag_id= attributes filtered on the product-tags
+        // taxonomy, which FluentCart does not register (won't-ship decision
+        // 2026-08-06). They never matched anything — worse, tag_id= filtered
+        // every product out. Unknown attributes are now simply ignored.
 
         // --- Shortcode attribute: sort_by ---
         if (!empty($this->shortcodeAttributes['sort_by'])) {

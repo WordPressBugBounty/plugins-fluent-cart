@@ -30,9 +30,17 @@ class WebRoutes
     public static function register()
     {
 
+        // Late on init, deliberately. These routes do not merely register — they
+        // TAKE OVER the request, render a full page and die(). At the default
+        // priority this callback is queued at plugin-include time, so it runs
+        // before anything that registers on init from `fluentcart_loaded` (every
+        // add-on, including FluentCart Pro). A route that renders and dies before
+        // those listeners exist silently drops whatever they would have rendered
+        // — which is why the saved-payment-method picker and the save-my-card
+        // consent box appeared on the checkout page but never in modal checkout.
         add_action('init', function () {
             self::registerRoutes();
-        });
+        }, 99);
     }
 
     public static function renderModalCheckout() {

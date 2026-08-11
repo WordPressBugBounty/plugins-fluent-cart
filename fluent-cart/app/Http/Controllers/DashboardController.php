@@ -113,11 +113,12 @@ class DashboardController extends Controller
                 'text'      => __('Design your store pages with FluentCart modules in Divi.', 'fluent-cart'),
                 'icon'      => 'AppsLine',
                 'completed' => false,
-                'hash_id'   => 'fluent-cart-divi-blocks',
+                'hash_id'   => 'fluent-cart-divi-modules',
                 'url'       => $baseUrl . "settings/addons"
             ];
 
-            if (defined('FLUENTCART_DIVI_BLOCKS_VERSION')) {
+            // FLUENTCART_DIVI_BLOCKS_VERSION covers installs from before the slug rename
+            if (defined('FLUENTCART_DIVI_MODULES_VERSION') || defined('FLUENTCART_DIVI_BLOCKS_VERSION')) {
                 $steps['install_divi_addon']['completed'] = true;
                 $completed++;
             }

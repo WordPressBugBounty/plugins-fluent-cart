@@ -279,6 +279,18 @@ class ModuleSettingsController extends Controller
                 'upcoming'    => false,
                 'repo_link' => 'https://fluentcart.com/fluentcart-addons/'
             ],
+            'fluent-cart-divi-modules' => [
+                'title'       => __('FluentCart Divi Modules', 'fluent-cart'),
+                'description' => __('Native Divi 5 modules for FluentCart products, cart, and checkout. Requires Divi 5.0+ and FluentCart 1.3.4+.', 'fluent-cart'),
+                'logo'        => Vite::getAssetUrl('images/divi/black.svg'),
+                'dark_logo'   => Vite::getAssetUrl('images/divi/white.svg'),
+                'plugin_slug' => 'fluent-cart-divi-modules',
+                'plugin_file' => 'fluent-cart-divi-modules/fluent-cart-divi-modules.php',
+                'source_type' => 'cdn',
+                'source_link' => 'https://addons-cdn.fluentcart.com/fluent-cart-divi-modules.zip',
+                'upcoming'    => false,
+                'repo_link' => 'https://fluentcart.com/fluentcart-addons/'
+            ],
             'fluent-pdf' => [
                 'title'       => __('Fluent PDF', 'fluent-cart'),
                 'description' => __('Generate PDF receipts and attach them to email notifications.', 'fluent-cart'),

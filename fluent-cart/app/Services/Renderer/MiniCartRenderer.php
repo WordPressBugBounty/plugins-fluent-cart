@@ -32,7 +32,7 @@ class MiniCartRenderer
         $iconColor = Arr::get($atts, 'icon_color', '');
         $priceColor = Arr::get($atts, 'price_color', '');
         $productCountColor = Arr::get($atts, 'product_count_color', '');
-        $buttonClass = Arr::get($atts, 'button_class', '');
+        $buttonClass = (string) Arr::get($atts, 'button_class', '');
 
 
         // Build style attribute
@@ -65,7 +65,7 @@ class MiniCartRenderer
 
         ?>
         <div <?php echo $wrapperAttributes; ?>>
-            <button class="fct-mini-cart-button <?php echo $buttonClass ?>" data-fluent-cart-cart-expand-button
+            <button class="fct-mini-cart-button <?php echo esc_attr($buttonClass); ?>" data-fluent-cart-cart-expand-button
                     aria-label="<?php esc_attr_e('Open Shopping Cart', 'fluent-cart'); ?>">
                     <span class="fct-mini-cart-wrap" <?php echo $iconStyle; ?>>
                         <?php $this->renderCartIcon($cartIcon); ?>

@@ -522,6 +522,7 @@ class Commands
         delete_option('fluent_cart_store_settings');
         delete_option('fluent_cart_tax_configuration_settings');
         delete_option('fluent_cart_has_tax_configure');
+        \FluentCart\Api\StoreSettings::clearCache();
 
         delete_option('__fluent_cart_edd2_migration_steps');
         delete_option('_fluent_edd_failed_payment_logs');

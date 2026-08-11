@@ -39,6 +39,13 @@ use FluentCartPro\App\Modules\Licensing\Services\LicenseHelper;
 
 class CustomerProfileController extends BaseFrontendController
 {
+    /**
+     * Portal surfaces an add-on may attach a section to. Each value maps to the
+     * hook `fluent_cart/customer_portal/{value}`.
+     */
+    const PORTAL_SECTION_FILTERS = [
+        'profile_sections'
+    ];
 
     /**
      * Handle the request to retrieve the customer's orders.
@@ -177,6 +184,96 @@ class CustomerProfileController extends BaseFrontendController
             'message' => __('Success', 'fluent-cart'),
             'data'    => $userData
         ]);
+    }
+
+    /**
+     * Return the add-on sections registered for one customer-portal surface.
+     *
+     * Each entry carries an UNCOMPILED Vue component string plus its payload;
+     * the portal SPA compiles it in the browser (see the shared
+     * DynamicTemplateParser). This is how an add-on renders inside the SPA at
+     * all — the router's route table is static and cannot be extended.
+     *
+     * @param Request $request
+     * @return \WP_REST_Response
+     */
+    public function getSections(Request $request): \WP_REST_Response
+    {
+        // `?filter[]=x` makes this an array, and casting one to string emits a
+        // warning a caller could raise at will.
+        $requestedFilter = $request->get('filter', '');
+        $filter = is_string($requestedFilter) ? sanitize_text_field($requestedFilter) : '';
+
+        // Allowlisted, never interpolated from the raw request value: building
+        // a hook name out of caller input would let anyone fire arbitrary
+        // filters through this endpoint.
+        if (!in_array($filter, self::PORTAL_SECTION_FILTERS, true)) {
+            return $this->sendError([
+                'message' => __('Unknown portal section group.', 'fluent-cart')
+            ], 422);
+        }
+
+        $customer = CustomerResource::getCurrentCustomer();
+
+        // A logged-in WP user who has never bought anything is not a customer.
+        // Short-circuit rather than firing the filter with a null customer,
+        // so no add-on has to remember to handle that case correctly.
+        if (!$customer) {
+            return $this->sendSuccess([
+                'message'  => __('Success', 'fluent-cart'),
+                'sections' => []
+            ]);
+        }
+
+        $sections = apply_filters('fluent_cart/customer_portal/' . $filter, [], [
+            'customer' => $customer
+        ]);
+
+        return $this->sendSuccess([
+            'message'  => __('Success', 'fluent-cart'),
+            'sections' => $this->formatPortalSections($sections)
+        ]);
+    }
+
+    /**
+     * Normalise whatever add-ons returned into the shape the SPA renders, and
+     * drop entries with nothing to compile.
+     *
+     * @param mixed $sections
+     * @return array
+     */
+    private function formatPortalSections($sections): array
+    {
+        if (!is_array($sections)) {
+            return [];
+        }
+
+        $formatted = [];
+
+        foreach ($sections as $sectionKey => $section) {
+            if (!is_array($section) || empty($section['component'])) {
+                continue;
+            }
+
+            $key = Arr::get($section, 'key', $sectionKey);
+            $type = Arr::get($section, 'type', 'vue-template');
+
+            // sanitize_key()/sanitize_text_field() are scalar-only and throw on
+            // an array in PHP 8. A malformed add-on entry should drop out here,
+            // not 500 the whole endpoint.
+            if (!is_scalar($section['component']) || !is_scalar($key) || !is_scalar($type)) {
+                continue;
+            }
+
+            $formatted[] = [
+                'key'       => sanitize_key($key),
+                'type'      => sanitize_text_field($type),
+                'component' => (string)$section['component'],
+                'payload'   => Arr::get($section, 'payload', [])
+            ];
+        }
+
+        return $formatted;
     }
 
     public function updateCustomerProfileDetails(CustomerProfileAccountDetailsRequest $request): \WP_REST_Response

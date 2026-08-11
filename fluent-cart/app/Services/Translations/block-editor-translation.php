@@ -441,7 +441,7 @@ return [
     'Upload Logo' => __('Upload Logo', 'fluent-cart'),
     'Upload a logo or select one from your media library. You can also set your store logo in Settings.' => __('Upload a logo or select one from your media library. You can also set your store logo in Settings.', 'fluent-cart'),
     'Use Enter to add line breaks for a list format' => __('Use Enter to add line breaks for a list format', 'fluent-cart'),
-    'Use {percent} as placeholder. E.g., \"-{percent}% OFF\"' => __('Use {percent} as placeholder. E.g., \"-{percent}% OFF\"', 'fluent-cart'),
+    'Use {percent} as placeholder. E.g., "-{percent}% OFF"' => __('Use {percent} as placeholder. E.g., "-{percent}% OFF"', 'fluent-cart'),
     'Value to compare against' => __('Value to compare against', 'fluent-cart'),
     'Variants features...' => __('Variants features...', 'fluent-cart'),
     'View' => __('View', 'fluent-cart'),

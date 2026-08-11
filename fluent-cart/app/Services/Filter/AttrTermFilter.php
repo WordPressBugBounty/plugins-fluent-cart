@@ -66,6 +66,18 @@ class AttrTermFilter extends BaseFilter
         return 'attr_terms';
     }
 
+    /**
+     * Intentionally empty, and verified so: AttrTermsTable.js sends no `with`
+     * at all, so there is nothing to allow. Add an entry only when a caller
+     * actually needs it — do not pre-open relations.
+     *
+     * @return array<string, callable>
+     */
+    protected function allowedWiths(): array
+    {
+        return [];
+    }
+
     public function applyActiveViewFilter(?string $activeView = null): void
     {
         // Terms have no tab views; this hook is intentionally a no-op.

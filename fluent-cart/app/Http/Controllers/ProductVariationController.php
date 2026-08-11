@@ -480,6 +480,17 @@ class ProductVariationController extends Controller
             return $this->sendError(['message' => __('No valid updates provided.', 'fluent-cart')], 422);
         }
 
+        // Setting variants to subscription requires a billing interval in the
+        // same request — a subscription without one can never bill. Checked
+        // before the transaction so bad input fails fast with no rollback.
+        // (An invalid interval was already dropped by sanitizeOtherInfoDelta.)
+        if (is_array($otherInfoDelta)
+            && Arr::get($otherInfoDelta, 'payment_type') === 'subscription'
+            && empty($otherInfoDelta['repeat_interval'])
+        ) {
+            return $this->sendError(['message' => __('A valid billing interval is required for subscription variants.', 'fluent-cart')], 422);
+        }
+
         $db               = ProductVariation::query()->getConnection();
         $now              = gmdate('Y-m-d H:i:s');
         $updatedProductId = 0;
@@ -562,14 +573,6 @@ class ProductVariationController extends Controller
                         }
                     }
 
-                    // A subscription row without a billing interval is unusable —
-                    // reject the whole batch (an invalid interval is silently
-                    // dropped by sanitizeOtherInfoDelta, so it can be missing here).
-                    // Runs in the prepare pass: nothing has been written yet.
-                    if ($paymentType === 'subscription' && !Arr::get($merged, 'repeat_interval')) {
-                        $db->rollBack();
-                        return $this->sendError(['message' => __('A valid billing interval is required for subscription variants.', 'fluent-cart')], 422);
-                    }
                     if ($paymentType === 'subscription' && array_key_exists('signup_fee', $otherInfoDelta)) {
                         $merged['signup_fee'] = Helper::toCent(floatval($otherInfoDelta['signup_fee']));
                     }

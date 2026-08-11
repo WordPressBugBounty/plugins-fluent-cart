@@ -611,9 +611,11 @@ $router->prefix('orders')->withPolicy('OrderPolicy')->group(function (Router $ro
         'permissions' => 'orders/manage'
     ]);
 
-    $router->get('/{id}/transactions/{transaction_id}', [OrderController::class, 'getDetails'])->meta([
-        'permissions' => 'orders/view'
-    ]);
+    $router->get('/{id}/transactions/{transaction_id}', [OrderController::class, 'getTransactionDetails'])
+        ->int('id', 'transaction_id')
+        ->meta([
+            'permissions' => 'orders/view'
+        ]);
 
     $router->put('/{order}/address/{id}', [OrderController::class, 'updateOrderAddress'])->meta([
         'permissions' => 'orders/manage'

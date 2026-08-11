@@ -18,6 +18,9 @@ use FluentCart\App\Services\Permission\PermissionManager;
 
 class StoreSettings implements ArrayableInterface
 {
+    const CACHE_KEY = 'store_settings';
+    const CACHE_GROUP = 'fluentcart';
+
     /**
      * @var string
      *
@@ -33,6 +36,12 @@ class StoreSettings implements ArrayableInterface
     protected array $storeSettings;
 
     protected static $cachedStoreSettings = null;
+
+    public static function clearCache(): void
+    {
+        self::$cachedStoreSettings = null;
+        wp_cache_delete(self::CACHE_KEY, self::CACHE_GROUP);
+    }
 
     public function __construct()
     {
@@ -1426,6 +1435,7 @@ class StoreSettings implements ArrayableInterface
         update_option($this->optionKey, $settings, true);
         $this->storeSettings = $settings;
         self::$cachedStoreSettings = $this->storeSettings;
+        wp_cache_delete(self::CACHE_KEY, self::CACHE_GROUP);
 
         $isSlugChanged = Arr::get($prevSettings, 'product_slug') !== Arr::get($settings, 'product_slug');
         $isAccountPageChanged = Arr::get($prevSettings, 'customer_profile_page_slug') !== Arr::get($settings, 'customer_profile_page_slug');

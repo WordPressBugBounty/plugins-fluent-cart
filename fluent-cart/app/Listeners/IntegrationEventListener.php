@@ -3,6 +3,7 @@
 namespace FluentCart\App\Listeners;
 
 use FluentCart\App\App;
+use FluentCart\App\Helpers\Status;
 use FluentCart\App\Models\Meta;
 use FluentCart\App\Models\Order;
 use FluentCart\App\Models\ProductMeta;
@@ -83,13 +84,15 @@ class IntegrationEventListener
         $productIds = array_filter(array_unique($productIds));
         $variantIds = array_filter(array_unique($variantIds));
 
+        $orderNeverPaid = $this->orderNeverReceivedPayment($order);
+
         if (!empty($productIds)) {
             $productBasedFeeds = ProductMeta::query()->whereIn('object_id', $productIds)
                 ->where('object_type', 'product_integration')
                 ->get();
 
             foreach ($productBasedFeeds as $feed) {
-                $formatted = $this->formatIntegrationFeed($feed, $hook, $addOns, 'product', $order->id);
+                $formatted = $this->formatIntegrationFeed($feed, $hook, $addOns, 'product', $order->id, $orderNeverPaid);
                 if ($formatted) {
                     $targetVariationIds = array_filter((array)Arr::get($formatted, 'feed.conditional_variation_ids', []));
                     if ($targetVariationIds && !array_intersect($targetVariationIds, $variantIds)) {
@@ -114,7 +117,7 @@ class IntegrationEventListener
 
         $globalValidFeeds = [];
         foreach ($globalIntegrations as $feed) {
-            $formatted = $this->formatIntegrationFeed($feed, $hook, $addOns, 'global', $order->id);
+            $formatted = $this->formatIntegrationFeed($feed, $hook, $addOns, 'global', $order->id, $orderNeverPaid);
             if (!$formatted) {
                 continue;
             }
@@ -253,6 +256,15 @@ class IntegrationEventListener
             return Arr::get($action, 'integration_id');
         }, $integrationActions);
 
+        $order = Order::with(['order_items', 'customer', 'shipping_address', 'billing_address'])
+            ->find($action->object_id);
+
+        if (!$order) {
+            return;
+        }
+
+        $orderNeverPaid = $this->orderNeverReceivedPayment($order);
+
         $formattedIntegrationActions = [];
         $addOns = apply_filters('fluent_cart/integration/order_integrations', []);
         $addOns = array_filter($addOns, function ($addon) {
@@ -266,7 +278,7 @@ class IntegrationEventListener
                 ->get();
 
             foreach ($productActions as $productAction) {
-                $formatted = $this->formatIntegrationFeed($productAction, $srcHook, $addOns, 'product', $action->object_id);
+                $formatted = $this->formatIntegrationFeed($productAction, $srcHook, $addOns, 'product', $action->object_id, $orderNeverPaid);
                 if ($formatted) {
                     $formattedIntegrationActions[] = $formatted;
                 }
@@ -280,7 +292,7 @@ class IntegrationEventListener
                 ->get();
 
             foreach ($globalActions as $globalAction) {
-                $formatted = $this->formatIntegrationFeed($globalAction, $srcHook, $addOns, 'global');
+                $formatted = $this->formatIntegrationFeed($globalAction, $srcHook, $addOns, 'global', $action->object_id, $orderNeverPaid);
                 if ($formatted) {
                     $formattedIntegrationActions[] = $formatted;
                 }
@@ -288,13 +300,6 @@ class IntegrationEventListener
         }
 
         if (!$formattedIntegrationActions) {
-            return;
-        }
-
-        $order = Order::with(['order_items', 'customer', 'shipping_address', 'billing_address'])
-            ->find($action->object_id);
-        
-        if (!$order) {
             return;
         }
 
@@ -395,7 +400,7 @@ class IntegrationEventListener
         ]);
     }
 
-    private function formatIntegrationFeed($feed, $hook, $addOns = null, $scope = 'product', $orderId = null)
+    private function formatIntegrationFeed($feed, $hook, $addOns = null, $scope = 'product', $orderId = null, $orderNeverPaid = false)
     {
         if (!$addOns) {
             $addOns = apply_filters('fluent_cart/integration/order_integrations', []);
@@ -421,6 +426,11 @@ class IntegrationEventListener
         $watchingOnRevoke = Arr::get($integration, 'watch_on_access_revoke', '') === 'yes';
         $willFireRevokeHook = $watchingOnRevoke && $isRevokeHook;
 
+        // an order that never received a payment never ran its grant feeds, so there is nothing to revoke
+        if ($willFireRevokeHook && $hook === 'order_status_changed_to_canceled' && $orderNeverPaid) {
+            $willFireRevokeHook = false;
+        }
+
         if (!$willFireRevokeHook && !in_array($hook, $watchingEvents)) {
             return null;
         }
@@ -438,4 +448,10 @@ class IntegrationEventListener
         ];
     }
 
+    private function orderNeverReceivedPayment($order)
+    {
+        return !$order->completed_at
+            && !((float)$order->total_paid > 0)
+            && !in_array($order->payment_status, Status::getOrderPaymentSuccessStatuses(), true);
+    }
 }

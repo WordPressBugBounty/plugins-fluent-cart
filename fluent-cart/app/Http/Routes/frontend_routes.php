@@ -47,16 +47,16 @@ $router->prefix('user')->withPolicy('PublicPolicy')->group(function (Router $rou
 });
 
 $router->prefix('customers')
-    ->withPolicy('CustomerFrontendPolicy')->group(function (Router $router) {
-        //$router->post('/', [CustomerController::class, 'store']);
-        $router->get('/{customerId}', [CustomerController::class, 'getDetails']);
-        $router->put('/{customerId}', [CustomerController::class, 'updateDetails']);
-        $router->get('/{customerId}/orders', [CustomerController::class, 'getCustomerOrders']);
+    ->withPolicy('PublicPolicy')->group(function (Router $router) {
+        // Customer self-service (details/orders/address CRUD) lives under the
+        // customer-profile group — the duplicates that used to sit here shadowed
+        // the admin customers group and were unreachable dead code (audit #5).
+        // Only these checkout-context routes, with no admin counterpart, remain.
+        // PublicPolicy rather than a login gate (audit #6): guests reach these
+        // from checkout, and both controllers fully self-guard (current-customer
+        // resolution + ownership), answering guests with their own envelopes.
         $router->get('/{customerAddressId}/update-address-select', [CustomerController::class, 'updateAddressSelect']);
-        $router->put('/{customerId}/address', [CustomerController::class, 'updateAddress']);
         $router->post('/add-address', [CustomerController::class, 'createAddress']);
-        $router->delete('/{customerId}/address', [CustomerController::class, 'removeAddress']);
-        $router->post('/{customerId}/address/make-primary', [CustomerController::class, 'setAddressPrimary']);
     });
 
 $router->prefix('customer-profile')->withPolicy('CustomerFrontendPolicy')->group(function (Router $router) {
@@ -64,6 +64,7 @@ $router->prefix('customer-profile')->withPolicy('CustomerFrontendPolicy')->group
     $router->get('/downloads', [CustomerProfileController::class, 'getDownloads']);
 
     $router->get('/profile', [CustomerProfileController::class, 'getCustomerProfileDetails']);
+    $router->get('/sections', [CustomerProfileController::class, 'getSections']);
     $router->post('/create-address', [CustomerProfileController::class, 'createCustomerProfileAddress']);
 
     $router->post('/edit-address', [CustomerProfileController::class, 'updateCustomerProfileAddress']);

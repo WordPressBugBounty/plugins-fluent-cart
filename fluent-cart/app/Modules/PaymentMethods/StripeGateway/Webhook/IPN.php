@@ -430,11 +430,14 @@ class IPN
         }
 
         // get the order from the event, in case of renewal create one
-        $order = (new Webhook())->processAndInsertOrderByEvent($event);
+        $webhook = new Webhook();
+        $order = $webhook->processAndInsertOrderByEvent($event);
 
         if (!$order) {
-            // This is already handled or not our event
-            $this->sendResponse(200, 'Event not handled or not related to an order.');
+            // Either we have no resolver for this event type, or the resolver ran and
+            // nothing local matched. Both are a 200 — neither is retryable — but they
+            // mean different things when reading the Stripe delivery log.
+            $this->sendResponse(200, $webhook->getUnresolvedReason() ?: __('Event resolved to no order.', 'fluent-cart'));
         }
 
         if (is_wp_error($order)) {

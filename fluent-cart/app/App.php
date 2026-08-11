@@ -5,7 +5,6 @@ namespace FluentCart\App;
 use FluentCart\Api\StoreSettings;
 use FluentCart\App\Modules\PaymentMethods\Core\GatewayManager;
 use FluentCart\App\Modules\PaymentMethods\Core\PaymentGatewayInterface;
-use FluentCart\Framework\Support\Once;
 use FluentCart\Framework\Foundation\App as AppFacade;
 
 /**
@@ -45,9 +44,15 @@ class App extends AppFacade
 
     public static function storeSettings(): StoreSettings
     {
-        return Once::call(function () {
-            return new StoreSettings();
-        });
+        $cached = wp_cache_get(StoreSettings::CACHE_KEY, StoreSettings::CACHE_GROUP);
+        if ($cached instanceof StoreSettings) {
+            return $cached;
+        }
+
+        $storeSettings = new StoreSettings();
+        wp_cache_set(StoreSettings::CACHE_KEY, $storeSettings, StoreSettings::CACHE_GROUP);
+
+        return $storeSettings;
     }
 
     /**

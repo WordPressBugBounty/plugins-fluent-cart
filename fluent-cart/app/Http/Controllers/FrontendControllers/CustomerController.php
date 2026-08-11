@@ -61,7 +61,22 @@ class CustomerController extends Controller
                 'message' => __('You are not authorized to view this customer', 'fluent-cart')
             ]);
         }
-        return CustomerResource::find($customerId, ['with' => $request->get('with', [])]);
+        // The customer never chooses its own eager loads. Forwarding the request's
+        // `with` here let a logged-in customer walk relations off their own record
+        // — `wpUser` for the WordPress user row, or `orders`/`subscriptions` for
+        // gateway identifiers the account pages never show. The ownership check
+        // above limits it to their own data, which is not the same as safe.
+        //
+        // These four are the customer's own addresses, which is what a profile
+        // detail view is for. Anything wider belongs to the admin endpoint.
+        return CustomerResource::find($customerId, [
+            'with' => [
+                'billing_address',
+                'shipping_address',
+                'primary_billing_address',
+                'primary_shipping_address',
+            ],
+        ]);
     }
 
     public function getAddress(Request $request, $customerId)
@@ -74,7 +89,11 @@ class CustomerController extends Controller
 
     public function updateAddressSelect(Request $request, $customerAddressId)
     {
-        $customer = CustomerResource::getCurrentCustomer();
+        // The imported CustomerResource is the FrontendResource variant, which has
+        // no getCurrentCustomer — calling it there hits BaseResourceApi::__callStatic
+        // and 500s for every caller. The current-customer resolver lives on the
+        // core resource, same as getDetails/createAddress above.
+        $customer = \FluentCart\Api\Resource\CustomerResource::getCurrentCustomer();
         if (!$customer) {
             return $this->sendError([
                 'message' => __('Address not found', 'fluent-cart')

@@ -82,6 +82,10 @@ class AdminOrderTaxService
             $qty           = (int) Arr::get($item, 'qty', Arr::get($item, 'quantity', 1));
 
             $lineItems[] = [
+                // Order-item id, when the caller has one. Custom lines all share
+                // post_id/object_id 0:0, so the id is the only per-line identity
+                // the patch step can match on.
+                'id'              => $isFee ? 0 : (int) Arr::get($item, 'id', 0),
                 'post_id'         => $isFee ? 0 : (int) Arr::get($item, 'post_id', Arr::get($item, 'product_id', 0)),
                 'object_id'       => $isFee ? 0 : (int) Arr::get($item, 'object_id', Arr::get($item, 'variation_id', 0)),
                 'subtotal'        => $subtotal,
@@ -138,6 +142,7 @@ class AdminOrderTaxService
 
             $lineItemsResult = array_values(array_map(function ($lineItem) {
                 return [
+                    'id'                    => (int) Arr::get($lineItem, 'id', 0),
                     'post_id'               => (int) Arr::get($lineItem, 'post_id', 0),
                     'object_id'             => (int) Arr::get($lineItem, 'object_id', 0),
                     'tax_amount'            => (int) Arr::get($lineItem, 'tax_amount', 0),

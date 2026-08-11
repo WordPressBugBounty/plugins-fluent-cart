@@ -309,6 +309,11 @@ class FluentProducts
                 'not_found'     => __('No Brand found', 'fluent-cart'),
             ],
         ]);
+
+        // product-tags is deliberately NOT registered: FluentCart ships
+        // categories and brands only (product decision 2026-08-06). The former
+        // dead consumers (Product tag getters, shop shortcode tag= filter)
+        // were removed with that decision.
     }
 
     private function enqueueCustomEditorStyles()

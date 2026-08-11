@@ -68,6 +68,18 @@ class AttrGroupFilter extends BaseFilter
         return 'attr_groups';
     }
 
+    /**
+     * Intentionally empty, and verified so: AttrGroupsTable.js sends no `with`
+     * at all, so there is nothing to allow. Add an entry only when a caller
+     * actually needs it — do not pre-open relations.
+     *
+     * @return array<string, callable>
+     */
+    protected function allowedWiths(): array
+    {
+        return [];
+    }
+
     public function applyActiveViewFilter(?string $activeView = null): void
     {
         $activeView = $activeView ?? $this->activeView;

@@ -87,9 +87,25 @@ class Webhook
         ];
     }
 
+    /**
+     * Why the last processAndInsertOrderByEvent() call resolved no order. The
+     * caller answers the webhook with it, so "we have no resolver for this type"
+     * is distinguishable from "resolved fine, but nothing local matches".
+     *
+     * @var string
+     */
+    protected $unresolvedReason = '';
+
+    public function getUnresolvedReason()
+    {
+        return $this->unresolvedReason;
+    }
+
     public function processAndInsertOrderByEvent($event)
     {
         $eventType = $event->type;
+
+        $this->unresolvedReason = '';
 
         $metaDataEvents = [
             'invoice.paid', // Reviewed for subscription cycle
@@ -104,6 +120,7 @@ class Webhook
         ];
 
         if (!in_array($eventType, $metaDataEvents)) {
+            $this->unresolvedReason = __('Event type has no order resolver.', 'fluent-cart');
             return false;
         }
 
@@ -120,6 +137,7 @@ class Webhook
                 }
             }
 
+            $this->unresolvedReason = __('Setup intent could not be confirmed.', 'fluent-cart');
             return false;
         }
 
@@ -137,6 +155,7 @@ class Webhook
                     }
                 }
 
+                $this->unresolvedReason = __('Subscription renewal invoice resolved to no order.', 'fluent-cart');
                 return false;
             }
         }
@@ -173,6 +192,8 @@ class Webhook
                 $order = Order::where('id', $subscription->parent_order_id)->first();
                 if ($order) {
                     $order->current_subscription = $subscription;
+                } else {
+                    $this->unresolvedReason = __('Subscription matched but its parent order is missing.', 'fluent-cart');
                 }
                 return $order;
             }
@@ -186,22 +207,37 @@ class Webhook
             if ($orderTransaction) {
                 return $orderTransaction->order;
             }
+
+            $this->unresolvedReason = __('No local transaction matches the disputed charge.', 'fluent-cart');
             return null;
         }
 
         // Handle checkout.session.completed for hosted checkout
         if ($eventType === 'checkout.session.completed') {
             $sessionId = $vendorDataObject->id;
-            return StripeHelper::validateBySession($sessionId);
+            $sessionOrder = StripeHelper::validateBySession($sessionId);
+
+            if (!$sessionOrder) {
+                $this->unresolvedReason = __('Checkout session does not match a local order.', 'fluent-cart');
+            }
+
+            return $sessionOrder;
         }
 
         $metaData = (array)$vendorDataObject->metadata;
         $orderHash = Arr::get($metaData, 'fct_ref_id', false);
 
         if ($orderHash) {
-            return Order::query()->where('uuid', $orderHash)->first();
+            $referencedOrder = Order::query()->where('uuid', $orderHash)->first();
+
+            if (!$referencedOrder) {
+                $this->unresolvedReason = __('Event references an order that does not exist here.', 'fluent-cart');
+            }
+
+            return $referencedOrder;
         }
 
+        $this->unresolvedReason = __('Event carries no reference to a local order.', 'fluent-cart');
         return null;
     }
 
@@ -253,6 +289,7 @@ class Webhook
             $alreadyRecorded = OrderTransaction::query()
                 ->where('subscription_id', $subscription->id)
                 ->where('vendor_charge_id', $paymentIntentId)
+                ->where('status', '!=', Status::TRANSACTION_FAILED)
                 ->exists();
 
             if ($alreadyRecorded) {

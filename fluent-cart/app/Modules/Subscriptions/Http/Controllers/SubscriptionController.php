@@ -31,6 +31,10 @@ class SubscriptionController extends Controller
         $subscription = Subscription::with([
             'labels',
             'activities.user',
+            // Served by the fct_order_transactions subscription_id index
+            // (OrderTransactionsMigrator base schema + migrated(), delivered to
+            // existing stores via DBMigrator::maybeMigrateDBChanges at 1.0.49).
+            'transactions',
             'customer.shipping_address' => function ($query) {
                 $query->where('is_primary', 1);
             },
@@ -55,6 +59,12 @@ class SubscriptionController extends Controller
         $subscription->billing_address = $subscription->order->billing_address ?? null;
         $subscription->shipping_address = $subscription->order->shipping_address ?? null;
         $subscription->business_info = $subscription->order ? $subscription->order->getBusinessInfo() : [];
+        // Upgrade eligibility, same flag the customer portal exposes
+        // (CustomerSubscriptionController) — gateway-free: an upgrade-path meta
+        // existence check plus a status check.
+        if ($subscription instanceof Subscription) {
+            $subscription->can_upgrade = $subscription->canUpgrade();
+        }
 
         $subscription->related_orders = Order::query()
             ->with(['order_items' => function ($query) {
@@ -87,9 +97,11 @@ class SubscriptionController extends Controller
 
     private function validateOrderBinding(Order $order, Subscription $subscription)
     {
-        if ((int) $subscription->parent_order_id !== (int) $order->id) {
+        $rootOrderId = $order->parent_id ? $order->parent_id : $order->id;
+        if ((int) $subscription->parent_order_id !== (int) $rootOrderId) {
             return $this->sendError(['message' => __('Subscription does not belong to this order.', 'fluent-cart')], 403);
         }
+
         return null;
     }
 
@@ -148,6 +160,10 @@ class SubscriptionController extends Controller
                 'status'      => Status::SUBSCRIPTION_CANCELED,
                 'canceled_at' => gmdate('Y-m-d H:i:s'),
             ])->save();
+
+            // Same record the vendor branch keeps via cancelRemoteSubscription — merged
+            // after save() so the write is not undone by the fill above.
+            $subscription->mergeConfig(['cancellation_reason' => $reason]);
 
             // Single cancel chokepoint — void renewals, clear reminders, email once.
             SubscriptionService::finalizeCancellation($subscription, $reason ?: 'Subscription canceled by admin');
@@ -285,7 +301,11 @@ class SubscriptionController extends Controller
         }
 
         $subscriptionOrderId = null;
-        if (property_exists($subscription, 'parent_order_id') && $subscription->parent_order_id) {
+        // property_exists() cannot see Eloquent attributes (they live in the
+        // model's attributes array behind __get), so it returned false even for
+        // populated rows and every request died on the mismatch guard below.
+        // isset() routes through __isset and sees the real attribute.
+        if (isset($subscription->parent_order_id) && $subscription->parent_order_id) {
             $subscriptionOrderId = (int) $subscription->parent_order_id;
         }
         

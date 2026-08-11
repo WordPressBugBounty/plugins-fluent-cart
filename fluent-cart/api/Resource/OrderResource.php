@@ -233,6 +233,42 @@ class OrderResource extends BaseResourceApi
     /**
      * @throws \Exception
      */
+    /**
+     * Validate a shipping cents value for the DIRECT Resource API boundary.
+     * REST callers can reach neither branch (OrderRequest's numeric/min:0 rules
+     * 422 them first); both exist purely for direct callers.
+     *
+     * - Only absent/null may default to zero — that is the omitted-key shape
+     *   REST produces (pickKeys null-fill). A present non-numeric is a caller
+     *   bug, and coercing it to 0 would silently grant free shipping.
+     * - The sign is checked on the RAW value, BEFORE rounding: roundCent(-0.4)
+     *   is 0, so a post-rounding check would wave fractional negatives through
+     *   as free shipping instead of rejecting them.
+     *
+     * @param mixed $value
+     * @return mixed the value, unchanged, when null or a non-negative numeric
+     */
+    protected static function assertShippingCents($value)
+    {
+        if ($value === null) {
+            return null;
+        }
+
+        if (!is_numeric($value)) {
+            throw new \InvalidArgumentException(
+                'Shipping total must be a numeric cents amount or omitted, got: ' . gettype($value)
+            );
+        }
+
+        if ((float) $value < 0) {
+            throw new \InvalidArgumentException(
+                'Shipping total cannot be a negative cents amount: ' . var_export($value, true)
+            );
+        }
+
+        return $value;
+    }
+
     public static function updatedPlaceOrder($data, $params = [])
     {
         $order = $data;
@@ -255,7 +291,13 @@ class OrderResource extends BaseResourceApi
             'customer_id'               => $customer->id,
             'payment_method'            => $paymentMethod,
             'applied_coupons'           => Arr::get($data, 'applied_coupon', []),
-            'shipping_total'            => Arr::get($data, 'shipping_total', []),
+            // Normalized here as well as in OrderRequest::sanitize(): this is a public
+            // Resource API, and a direct caller never passes through the request layer. The
+            // shared helper also absorbs the null that pickKeys() injects for an omitted key
+            // AFTER Sanitizer::sanitize() has run, which no sanitizer can reach. Negative
+            // and PRESENT-but-malformed shipping are rejected here too, on the RAW value
+            // and BEFORE rounding — see assertShippingCents().
+            'shipping_total'            => Helper::roundCent(static::assertShippingCents(Arr::get($data, 'shipping_total'))),
             'billing_address'           => Arr::get($customer, 'billing_address', []),
             'shipping_address'          => Arr::get($customer, 'shipping_address', []),
             'user_tz'                   => Arr::get($data, 'user_tz', ''),
@@ -398,6 +440,7 @@ class OrderResource extends BaseResourceApi
                 // Include manual_discount (set by distributeManualDiscount) so tax is
                 // calculated on the after-discount amount, not the full subtotal.
                 $taxItems[] = [
+                    'id'             => (int) Arr::get($item, 'id', 0),
                     'post_id'        => (int) Arr::get($item, 'post_id', 0),
                     'object_id'      => (int) Arr::get($item, 'object_id', 0),
                     'subtotal'       => $subtotal,
@@ -515,10 +558,92 @@ class OrderResource extends BaseResourceApi
     }
 
     /**
+     * Rebuild an order's item-derived totals from the rows actually in
+     * fct_order_items, then let the tax pass derive total_amount from the new
+     * subtotal.
+     *
+     * The whole-order save posts client-computed totals alongside the items, so
+     * it does not need this. A caller that writes a single line item on its own
+     * does — without it the order keeps the subtotal it had before the line
+     * existed. Same aggregation as AdminOrderProcessor: fee lines live in
+     * fee_total, and trial lines are not billed now.
+     */
+    public static function syncItemDerivedTotals(Order $order)
+    {
+        $order->load('order_items');
+
+        // The tax pass early-returns for these before reaching the pending
+        // charge transaction sync, so a total written here would go stale
+        // against the recorded charge. Refuse instead of desynchronizing.
+        if ($order->isSubscription() || $order->type === 'refund') {
+            throw new \Exception(esc_html__('Order Not valid!', 'fluent-cart'));
+        }
+
+        $subtotal = 0;
+
+        foreach ($order->order_items as $item) {
+            if (in_array($item->payment_type, ['fee', 'signup_fee'], true)) {
+                continue;
+            }
+
+            if (Arr::get($item->other_info, 'trial_days', 0) > 0) {
+                continue;
+            }
+
+            $subtotal += (int) $item->subtotal;
+        }
+
+        $order->subtotal = $subtotal;
+
+        // The parent's fulfillment fields are item-derived too — creation sets
+        // them from whether any line is physical (AdminOrderProcessor). A
+        // physical line added to a digital order must pull the order into the
+        // shipping workflow. Upgrade only: a rebuild must never downgrade the
+        // type or reset shipping progress already recorded.
+        $hasPhysical = $order->order_items
+            ->where('fulfillment_type', Status::FULFILLMENT_TYPE_PHYSICAL)
+            ->isNotEmpty();
+
+        if ($hasPhysical) {
+            if ($order->fulfillment_type !== Status::FULFILLMENT_TYPE_PHYSICAL) {
+                $order->fulfillment_type = Status::FULFILLMENT_TYPE_PHYSICAL;
+            }
+            if (!$order->shipping_status) {
+                $order->shipping_status = 'unshipped';
+            }
+        }
+
+        // Tax-free baseline; the tax pass recomputes it with tax on every path
+        // it completes.
+        $order->total_amount = max(0, $subtotal
+            + (int) $order->shipping_total
+            + (int) $order->fee_total
+            - (int) $order->coupon_discount_total
+            - (int) $order->manual_discount_total);
+
+        $order->save();
+
+        // The tax pass swallows its own failures so a whole-order save is never
+        // blocked, but this caller has nothing else persisting the order — a
+        // swallowed failure here would commit the new subtotal beside stale tax
+        // fields and rate rows. Escalate so the caller's transaction rolls the
+        // item and totals back together.
+        if (!static::reapplyTaxAfterUpdate($order->id, $order->refresh())) {
+            throw new \Exception(esc_html__('Order totals could not be recalculated. Please try again.', 'fluent-cart'));
+        }
+
+        return $order->refresh();
+    }
+
+    /**
      * Recalculate and persist tax for an existing order after create or update.
      * Reads saved items + billing address from the DB, runs AdminOrderTaxService,
      * recomputes total_amount from scratch, and rewrites fct_order_tax_rate rows.
      * Never throws — tax failure must not block the save.
+     *
+     * @return bool false when the order was left carrying tax data the current
+     *              items no longer justify (transient calculator failure or a
+     *              rolled-back write); true when it reached a coherent state.
      */
     private static function reapplyTaxAfterUpdate($orderId, $order)
     {
@@ -528,11 +653,11 @@ class OrderResource extends BaseResourceApi
             }
 
             if ($order->isSubscription()) {
-                return;
+                return true;
             }
 
             if ($order->type === 'refund') {
-                return;
+                return true;
             }
 
             // Query addresses directly — ORM relation load() does not reliably apply
@@ -565,8 +690,7 @@ class OrderResource extends BaseResourceApi
             $taxAddress  = AdminOrderTaxService::resolveAddressForBasis($basis, $billingAddress, $shippingAddress);
 
             if (empty($taxAddress['country'])) {
-                static::clearOrderTax($orderId, $order);
-                return;
+                return static::clearOrderTax($orderId, $order);
             }
 
             $productItems = $order->order_items->filter(function ($item) {
@@ -578,6 +702,7 @@ class OrderResource extends BaseResourceApi
                 $unitPrice = (int) Arr::get($item, 'unit_price', 0);
                 $qty       = max(1, (int) Arr::get($item, 'quantity', 1));
                 $taxItems[] = [
+                    'id'              => (int) Arr::get($item, 'id', 0),
                     'post_id'         => (int) Arr::get($item, 'post_id', 0),
                     'object_id'       => (int) Arr::get($item, 'object_id', 0),
                     'subtotal'        => $unitPrice * $qty,
@@ -589,8 +714,7 @@ class OrderResource extends BaseResourceApi
             }
 
             if (empty($taxItems)) {
-                static::clearOrderTax($orderId, $order);
-                return;
+                return static::clearOrderTax($orderId, $order);
             }
 
             // Fee items only exist on checkout-created orders that are edited in
@@ -637,10 +761,10 @@ class OrderResource extends BaseResourceApi
             if ($taxResult === null) {
                 if (!TaxModule::isTaxEnabled()) {
                     // Deterministic: tax was turned off — clear stale tax instead of leaving it.
-                    static::clearOrderTax($orderId, $order);
+                    return static::clearOrderTax($orderId, $order);
                 }
                 // Transient calculation failure: keep existing tax untouched.
-                return;
+                return false;
             }
 
             $taxTotal          = (int) Arr::get($taxResult, 'tax_total', 0);
@@ -789,6 +913,7 @@ class OrderResource extends BaseResourceApi
 
             $DB->commit();
 
+            return true;
         } catch (\Exception $e) {
             if (isset($DB)) {
                 $DB->rollBack();
@@ -798,6 +923,8 @@ class OrderResource extends BaseResourceApi
                 get_class($e) . ': ' . wp_strip_all_tags($e->getMessage()),
                 ['module_name' => 'tax', 'module_id' => $orderId, 'log_type' => 'api']
             );
+
+            return false;
         }
     }
 
@@ -943,6 +1070,8 @@ class OrderResource extends BaseResourceApi
      * Zero out all tax fields, rate rows, and per-item tax amounts for an order
      * that has become definitively non-taxable (no address, no taxable items).
      * Only called for deterministic states — not on transient calculation failures.
+     *
+     * @return bool false when the clear rolled back and the stale tax data remains.
      */
     private static function clearOrderTax($orderId, $order)
     {
@@ -1034,6 +1163,8 @@ class OrderResource extends BaseResourceApi
             static::syncPaymentStatusWithTotals($order);
 
             $DB->commit();
+
+            return true;
         } catch (\Exception $e) {
             if (isset($DB)) {
                 $DB->rollBack();
@@ -1043,13 +1174,20 @@ class OrderResource extends BaseResourceApi
                 get_class($e) . ': ' . wp_strip_all_tags($e->getMessage()),
                 ['module_name' => 'tax', 'module_id' => $orderId, 'log_type' => 'api']
             );
+
+            return false;
         }
     }
 
     private static function patchOrderItemTaxMeta(array $savedItems, array $lineItemsFromTax)
     {
+        // Custom lines all carry post_id/object_id 0:0, so the composite key
+        // cannot tell two of them apart — match by order-item id first and only
+        // fall back to the key for tax results that did not carry one.
+        $savedById  = [];
         $savedByKey = [];
         foreach ($savedItems as $item) {
+            $savedById[(int) $item['id']] = $item;
             $key = $item['post_id'] . ':' . $item['object_id'];
             $savedByKey[$key] = $item;
         }
@@ -1057,12 +1195,18 @@ class OrderResource extends BaseResourceApi
         $updateData = [];
 
         foreach ($lineItemsFromTax as $taxLineItem) {
-            $key = Arr::get($taxLineItem, 'post_id', 0) . ':' . Arr::get($taxLineItem, 'object_id', 0);
-            if (!isset($savedByKey[$key])) {
-                continue;
+            $itemId = (int) Arr::get($taxLineItem, 'id', 0);
+
+            if ($itemId && isset($savedById[$itemId])) {
+                $savedItem = $savedById[$itemId];
+            } else {
+                $key = Arr::get($taxLineItem, 'post_id', 0) . ':' . Arr::get($taxLineItem, 'object_id', 0);
+                if (!isset($savedByKey[$key])) {
+                    continue;
+                }
+                $savedItem = $savedByKey[$key];
             }
 
-            $savedItem    = $savedByKey[$key];
             $taxAmount    = (int) Arr::get($taxLineItem, 'tax_amount', 0);
             $taxLineMeta  = Arr::get($taxLineItem, 'line_meta', []);
             $existingMeta = isset($savedItem['line_meta']) ? $savedItem['line_meta'] : [];
@@ -2055,6 +2199,17 @@ class OrderResource extends BaseResourceApi
         $order = static::getQuery()->with("order_items.variants.product_detail")->where('id', $orderId)->first();
 
         $action = Arr::get($params, 'action');
+
+        // This endpoint's contract is order/shipping status only — payment-status
+        // transitions flow through their dedicated surfaces (mark-as-paid,
+        // transaction status updates, refunds, gateway webhooks) so money state
+        // stays consistent with transactions. Rejecting unknown actions up front
+        // also keeps them out of the order_status fallback below.
+        if (!in_array($action, ['change_order_status', 'change_shipping_status'], true)) {
+            return static::makeErrorResponse([
+                ['code' => 400, 'message' => __('Unsupported action — this endpoint changes order or shipping status only.', 'fluent-cart')]
+            ], 400);
+        }
 
         $changeType = $action === 'change_shipping_status' ? 'shipping_status' : 'order_status';
         $actionActivity = [];

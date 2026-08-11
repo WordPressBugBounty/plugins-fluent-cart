@@ -19,6 +19,62 @@ use FluentCart\Framework\Support\Arr;
 
 class Processor
 {
+    /**
+     * Does this order-create error actually implicate the vault attributes?
+     *
+     * PayPal reports the offending field path in details[].field, which is the
+     * structural signal — it points straight at attributes/vault when the vault
+     * block is the problem, and elsewhere when it is not. details[].issue is
+     * matched too, against a deliberately small list: guessing broadly here would
+     * recreate the bug this method exists to prevent, so anything unrecognised is
+     * treated as unrelated and the error is returned untouched.
+     *
+     * The issue list is filterable because PayPal can introduce codes faster than
+     * a core release can follow, and a missing code should be correctable without
+     * one.
+     *
+     * @param mixed $error
+     * @return bool
+     */
+    public static function isVaultRejection($error): bool
+    {
+        if (!is_wp_error($error)) {
+            return false;
+        }
+
+        $body = $error->get_error_data();
+        if (!is_array($body)) {
+            return false;
+        }
+
+        $vaultIssues = apply_filters('fluent_cart/payments/paypal_vault_rejection_issues', [
+            'PAYMENT_SOURCE_CANNOT_BE_USED',
+            'PAYMENT_SOURCE_NOT_VAULTABLE',
+            'VAULTING_NOT_ENABLED',
+            'MERCHANT_NOT_ENABLED_FOR_VAULTING',
+            'VAULT_ID_NOT_SUPPORTED',
+        ]);
+
+        foreach ((array) Arr::get($body, 'details', []) as $detail) {
+            if (!is_array($detail)) {
+                continue;
+            }
+
+            // Structural: PayPal names the field it rejected.
+            $field = strtolower((string) Arr::get($detail, 'field', ''));
+            if ($field !== '' && strpos($field, 'vault') !== false) {
+                return true;
+            }
+
+            $issue = strtoupper((string) Arr::get($detail, 'issue', ''));
+            if ($issue !== '' && in_array($issue, $vaultIssues, true)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     public function handleSinglePayment(PaymentInstance $paymentInstance, $args = [])
     {
         $transaction = $paymentInstance->transaction;
@@ -149,8 +205,24 @@ class Processor
         // buyer's PayPal account during this purchase (Vault v3 save-on-success)
         // so future renewal invoices can be charged merchant-initiated. The buyer
         // sees and approves the save agreement inside PayPal's own approval UI.
+        // Vaulting on a plain one-time order cannot be requested from outside core:
+        // the vault_attributes filter below fires only once this branch is already
+        // taken, so it can shape a vault but never ask for one. This filter is the
+        // PayPal counterpart of fluent_cart/payments/stripe_onetime_intent_args, and
+        // it is what lets the saved-payment-methods module vault on buyer consent.
+        // Defaults to the existing value, so with no listener behaviour is unchanged.
+        $vaultOnSuccess = apply_filters(
+            'fluent_cart/payments/paypal_vault_one_time',
+            !empty($args['vault_on_success']),
+            [
+                'order'        => $order,
+                'transaction'  => $transaction,
+                'subscription' => $paymentInstance->subscription,
+            ]
+        );
+
         $extraBody = [];
-        if (!empty($args['vault_on_success'])) {
+        if ($vaultOnSuccess) {
             $vaultAttributes = apply_filters('fluent_cart/paypal/vault_attributes', [
                 'store_in_vault' => 'ON_SUCCESS',
                 'usage_type'     => 'MERCHANT',
@@ -173,6 +245,30 @@ class Processor
         }
 
         $paypalOrder = API::createOrder($purchaseUnits, $extraBody);
+
+        // Vaulting is a convenience; the purchase is the point. A merchant account
+        // not approved for vaulting can reject the order outright because of the
+        // vault attributes, and failing the sale over a save the buyer merely
+        // opted into would be the wrong trade. Retry once without them and let
+        // listeners record that this account cannot vault, so the saving UI can
+        // stop being offered instead of failing silently on every order.
+        //
+        // ONLY for an error that actually implicates the vault attributes. An auth
+        // failure, rate limit, malformed amount or transport error is not evidence
+        // that this account cannot vault: retrying would not fix it, and telling a
+        // listener otherwise would switch saving off for a perfectly capable
+        // account on the strength of an unrelated outage.
+        if (is_wp_error($paypalOrder) && $vaultOnSuccess && self::isVaultRejection($paypalOrder)) {
+            do_action('fluent_cart/payments/paypal_vault_rejected', [
+                'order'       => $order,
+                'transaction' => $transaction,
+                'error'       => $paypalOrder,
+            ]);
+
+            unset($extraBody['payment_source']['paypal']['attributes']);
+
+            $paypalOrder = API::createOrder($purchaseUnits, $extraBody);
+        }
 
         if (is_wp_error($paypalOrder)) {
             return $paypalOrder;
@@ -441,12 +537,11 @@ class Processor
             'vendor_response' => json_encode($paypalPlan, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)
         ];
 
-        if ($orderType == 'renewal' && !empty($data['trial_days'])) {
-            $config = $subscription->config ?: [];
-            $subscriptionUpdateFields['config'] = array_merge($config, ['is_trial_days_simulated' => 'yes']);
-        }
-
         $subscription->update($subscriptionUpdateFields);
+
+        if ($orderType == 'renewal' && !empty($data['trial_days'])) {
+            $subscription->mergeConfig(['is_trial_days_simulated' => 'yes']);
+        }
 
         return [
             'status'     => 'success',
@@ -993,9 +1088,15 @@ class Processor
      * capture path, report settling captures as 'processing', everything else as
      * a definitive failure with PayPal's reason.
      *
-     * @return true|string|\WP_Error
+     * Public so an extension charging a vaulted token outside the renewal engine
+     * (saved payment methods) settles through this exact contract rather than
+     * reimplementing it. The PENDING branch in particular is money-critical: a
+     * settling eCheck is neither paid nor failed, and a duplicate of this logic
+     * would eventually drift and mis-report one.
+     *
+     * @return true|string|\WP_Error true = captured, 'processing' = settling
      */
-    private function settleVaultChargeResponse(OrderTransaction $transaction, $paypalOrder)
+    public function settleVaultChargeResponse(OrderTransaction $transaction, $paypalOrder)
     {
         $orderStatus = strtoupper((string) Arr::get($paypalOrder, 'status', ''));
         $capture = Arr::get($paypalOrder, 'purchase_units.0.payments.captures.0', []);

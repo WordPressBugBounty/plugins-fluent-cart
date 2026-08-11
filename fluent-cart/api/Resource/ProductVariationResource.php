@@ -232,8 +232,6 @@ class ProductVariationResource extends BaseResourceApi
      *      'product_terms' => (array) Optional. Terms of the product.
      *          'product-categories' => (array) Required if categories. Product categories.
      *              [0]       => (int) Optional. The category ID.
-     *          'product-tags'       => (array) Required if tags. Product tags.
-     *              [0]       => (int) Optional. The tag ID.
      *          'product-types'      => (array) Required if types. Product types.
      *              [0]       => (int) Optional. The type ID.
      * ];

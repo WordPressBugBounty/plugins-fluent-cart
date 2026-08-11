@@ -349,7 +349,12 @@ class AssetLoader
             []
         )->with(CustomerProfileHandler::getLocalizationData());
 
-        //will add script here/ skipping for now
+        /**
+         * Enqueue additional customer-dashboard assets — the hook an add-on
+         * uses to ship the JS backing a portal section it registers through
+         * `fluent_cart/customer_portal/profile_sections`.
+         */
+        do_action('fluent_cart/customer_dashboard/enqueue_assets');
     }
 
     public static function loadCartAssets()

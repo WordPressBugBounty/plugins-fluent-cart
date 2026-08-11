@@ -352,7 +352,19 @@ class CartResource extends BaseResourceApi
         }
 
         if (!$variation) {
-            return $cart->removeItem($itemId);
+            // An item already in the cart whose variation row has since
+            // disappeared (product/variation deleted) is dropped gracefully.
+            // An id that was never in the cart and resolves to nothing is a
+            // client error — silently answering "Cart updated successfully"
+            // hid typos and probing as a 200 no-op.
+            if ($existingItem !== null) {
+                return $cart->removeItem($itemId);
+            }
+
+            return new WP_Error(
+                'invalid_item',
+                __('Invalid item.', 'fluent-cart')
+            );
         }
 
         $soldIndividually = $isCustom

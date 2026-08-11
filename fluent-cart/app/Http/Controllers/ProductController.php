@@ -29,6 +29,7 @@ use FluentCart\App\Helpers\AttributeHelper;
 use FluentCart\App\Services\BulkProductInsertService;
 use FluentCart\App\Services\BulkProductUpdateService;
 use FluentCart\App\Services\Filter\ProductFilter;
+use FluentCart\App\Services\Permission\PermissionManager;
 use FluentCart\App\Services\PlanUpgradeService;
 use FluentCart\Framework\Database\Orm\Builder;
 use FluentCart\Framework\Http\Request\Request;
@@ -64,8 +65,10 @@ class ProductController extends Controller
 
     public function find(Request $request, Product $product): array
     {
-        if ($request->get('with')) {
-            $product->load($request->get('with'));
+        $with = $this->resolveEagerLoads($request->get('with', []));
+
+        if ($with) {
+            $product->load($with);
         }
         $data = [
             'product' => $product,
@@ -76,6 +79,170 @@ class ProductController extends Controller
         }
 
         return $data;
+    }
+
+    /**
+     * What the `with` parameter on `GET products/{id}` may eager-load.
+     *
+     * ## The entry form
+     *
+     * Every entry is a LITERAL request key mapped to a CALLABLE. The key is never
+     * decomposed, prefix-matched or suffix-stripped, so what the client sends is
+     * either a key in this map or it is dropped. That is what keeps the dotted
+     * `orderItems.order.customer`, the column-select
+     * `orderItems.order.customer:id,email` and the nested array
+     * `with[orderItems][]=order.customer` out — none of them is a key.
+     *
+     * The callback owns the whole path AND its own permission bar, and returns the
+     * relation paths to eager-load, or an empty array when it refuses.
+     *
+     * ## Two tiers of key
+     *
+     * A SCREEN key names a calling screen and loads exactly what that screen
+     * renders. A PUBLIC key is a plain relation name an external consumer of a
+     * product endpoint can reasonably ask for.
+     *
+     * ## What stays off the map
+     *
+     * `Product::orderItems()` is a real relation keyed on `post_id`, so before the
+     * request value was constrained an actor holding nothing but products/view
+     * could walk `?with[]=orderItems.order.customer` from a catalogue product to
+     * order and customer data — a probe pulled 104 KB of it off one product. It
+     * must stay unreachable, along with `downloadable_files` (protected file
+     * paths), `licensesMeta`, `postmeta` and `wpTerms`.
+     *
+     * `product_menu` is NOT on this map and does not belong on it: it is a
+     * controller sentinel, not a relation. find() reads it straight off the raw
+     * request and answers it with AdminHelper::getProductMenu(); it never reaches
+     * load(), so it is unaffected by anything here.
+     *
+     * No entry declares a select. `Product::$appends` carries `thumbnail`, which
+     * resolves through `detail->featured_media` — itself a ProductDetail append
+     * backed by the `galleryImage` relation — and `ProductVariation::$appends`
+     * lazy-loads `media` keyed on the variant `id`. A select would have to go
+     * INSIDE the relation closure in any case; on the main query it would narrow
+     * the product row itself.
+     *
+     * @return array<string, callable>
+     */
+    private function allowedWiths(): array
+    {
+        return [
+            'block_product_detail' => [$this, 'blockProductDetail'],
+
+            // The public entry points. These are the two relations an external
+            // consumer can reasonably ask a product endpoint for: the catalogue
+            // detail row and the variation rows. Both are catalogue data already
+            // covered by the route's own products/view, and neither chains toward
+            // orders, customers or protected downloads, so they carry no risk the
+            // route does not already carry.
+            //
+            // The screen key above exists because the block editors want both in
+            // one request; these two give either one on its own to a consumer
+            // that is not that screen.
+            'detail'               => [$this, 'publicDetail'],
+            'variants'             => [$this, 'publicVariants'],
+        ];
+    }
+
+    /**
+     * The Gutenberg block editors' single-product fetch. Fourteen block editors
+     * under `resources/admin/BlockEditor/` hit this endpoint —  BuySection,
+     * Excerpt, MediaCarousel, PriceRange, ProductCard, ProductDescription,
+     * ProductGallery, ProductImage, ProductInfo, ProductSku, ProductTitle,
+     * RelatedProduct, SaleBadge and Stock — and between them they render the
+     * detail row (price range, stock availability, gallery) and the variation
+     * rows (SKU, per-variant price, buy section), so the key loads both.
+     *
+     * `products/view` is the route's own bar, restated here so the entry still
+     * refuses if this map is ever reached from somewhere the route did not guard.
+     *
+     * @return array relation paths
+     */
+    private function blockProductDetail(): array
+    {
+        if (!PermissionManager::hasPermission('products/view')) {
+            return [];
+        }
+
+        return ['detail', 'variants'];
+    }
+
+    /**
+     * The catalogue detail row on its own — price range, stock availability,
+     * variation type, featured media.
+     *
+     * @return array relation paths
+     */
+    private function publicDetail(): array
+    {
+        if (!PermissionManager::hasPermission('products/view')) {
+            return [];
+        }
+
+        return ['detail'];
+    }
+
+    /**
+     * The variation rows on their own — SKU, per-variant price, stock.
+     *
+     * @return array relation paths
+     */
+    private function publicVariants(): array
+    {
+        if (!PermissionManager::hasPermission('products/view')) {
+            return [];
+        }
+
+        return ['variants'];
+    }
+
+    /**
+     * Reduce a client-supplied `with` payload to the relation paths this endpoint
+     * is allowed to eager-load.
+     *
+     * Anything that is not a literal key of allowedWiths() is dropped SILENTLY —
+     * an unknown relation otherwise reaches Builder::getRelation() and becomes a
+     * RelationNotFoundException, i.e. a 500, where a stale block build should
+     * simply render without its data.
+     *
+     * Only STRING request entries are considered, which is what drops the nested
+     * array shape `with[orderItems][]=order.customer`: its value is an array and
+     * its key is never read.
+     *
+     * Kept local to this controller rather than folded into
+     * `Services/Filter/BaseFilter::allowedWiths()`: that map adopts a Builder
+     * returned by each callback, while this endpoint eager-loads onto a
+     * route-model-bound instance, and the two maps share no entry.
+     *
+     * @param mixed $with raw request value
+     * @return array relation names safe to pass to Product::load()
+     */
+    private function resolveEagerLoads($with): array
+    {
+        $map = $this->allowedWiths();
+
+        $resolved = [];
+
+        foreach (Arr::wrap($with) as $requestKey) {
+            if (!is_string($requestKey) || !array_key_exists($requestKey, $map)) {
+                continue;
+            }
+
+            $entry = $map[$requestKey];
+
+            if (!is_callable($entry)) {
+                continue;
+            }
+
+            foreach ((array) $entry() as $relation) {
+                if (is_string($relation) && $relation !== '') {
+                    $resolved[$relation] = true;
+                }
+            }
+        }
+
+        return array_keys($resolved);
     }
 
     public function getRelatedProducts(Request $request, $productId): WP_REST_Response
@@ -290,7 +457,7 @@ class ProductController extends Controller
                 if ((int)$e->getCode() === 404) {
                     return $this->sendError([
                         'message' => __('Product not found', 'fluent-cart')
-                    ]);
+                    ], 404);
                 }
                 return $this->sendError([
                     'message' => __('Failed to duplicate product: ', 'fluent-cart') . $e->getMessage()
@@ -872,17 +1039,22 @@ class ProductController extends Controller
         $termNames = explode(',', $name);
         $ids = Taxonomy::addTaxonomyTerms($taxonomy, $termNames, $args);
 
-        if (count($ids)) {
-            $this->response->json([
+        // response->json() delegates to wp_send_json(), which prints and exits —
+        // bypassing the REST server (and killing in-process dispatch). send()
+        // returns the identical JSON body and status through WP_REST_Response.
+        // addTaxonomyTerms returns false (not an array) for a taxonomy outside
+        // the registered catalog, e.g. the unshipped product-tags — that must
+        // fall into the 423 branch, not raise a count-on-bool warning.
+        if (is_array($ids) && count($ids)) {
+            return $this->response->send([
                 'term_ids' => $ids,
                 'names'    => $termNames
             ]);
-        } else {
-            $this->response->json([
-                'message' => __('Unable To Create Term/s', 'fluent-cart'),
-            ], 423);
         }
 
+        return $this->response->sendError([
+            'message' => __('Unable To Create Term/s', 'fluent-cart'),
+        ], 423);
     }
 
     public function getProductTermsList(): array
@@ -994,37 +1166,45 @@ class ProductController extends Controller
         }
         $ids = Arr::get($data, 'ids', []);
         $productVariations = [];
-        $query = [];
-        if (!empty($name) || count($ids) > 0) {
-            $query = [
-                "ID"          =>
-                    [
-                        "column"   => "ID",
-                        "operator" => "in",
-                        "value"    => Arr::get($data, 'ids', [])
-                    ]
-                ,
-                "post_title"  =>
-                    [
-                        "column"   => "post_title",
-                        "operator" => "like",
-                        "value"    => '%' . Arr::get($data, 'name') . '%'
-                    ],
-                "post_status" =>
-                    [
-                        "column"   => "post_status",
-                        "operator" => "=",
-                        "value"    => 'publish'
-                    ]
-            ];
-        }
 
         $products = Product::query()
-            ->with('variants')
-            ->when(count($query), function (Builder $q) use ($query) {
-                return $q->search($query, function (Builder $query) {
-                    return $query;
-                }, true);
+            ->with(['variants' => function ($variantQuery) use ($name) {
+                if (!empty($name)) {
+                    // Emit only variants the term actually hit: the variant's own
+                    // title, or every variant of a product whose title matched.
+                    // Without this, a product matched through one variant leaked
+                    // all its non-matching siblings into the picker.
+                    $variantQuery->where(function ($vq) use ($name) {
+                        $vq->where('variation_title', 'like', '%' . $name . '%')
+                            ->orWhereHas('product', function ($pq) use ($name) {
+                                $pq->where('post_title', 'like', '%' . $name . '%');
+                            });
+                    });
+                }
+                // The relation query is shared across all matched parents, so this
+                // caps total child rows serialized per request for this
+                // remote-search picker.
+                $variantQuery->orderBy('id')->limit(100);
+            }])
+            ->when(!empty($name) || count($ids) > 0, function (Builder $q) use ($name, $ids) {
+                $q->where('post_status', 'publish');
+
+                if (count($ids) > 0) {
+                    $q->whereIn('ID', $ids);
+                }
+
+                if (!empty($name)) {
+                    // The endpoint's name is searchVariantByName: a term must match
+                    // the product title OR any of its variants' variation_title.
+                    // The previous search-helper query matched post_title only, so
+                    // typing a variant's own title returned nothing.
+                    $q->where(function (Builder $titleQuery) use ($name) {
+                        $titleQuery->where('post_title', 'like', '%' . $name . '%')
+                            ->orWhereHas('variants', function ($variantQuery) use ($name) {
+                                $variantQuery->where('variation_title', 'like', '%' . $name . '%');
+                            });
+                    });
+                }
             })
             ->when(empty($name), function (Builder $q) {
                 return $q->limit(10);
@@ -1366,7 +1546,7 @@ class ProductController extends Controller
         if (!$variant) {
             return $this->response->sendError([
                 'message' => __('Variant not found', 'fluent-cart')
-            ]);
+            ], 404);
         }
 
         // Capture old stock state before update

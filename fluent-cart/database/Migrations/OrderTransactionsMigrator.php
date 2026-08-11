@@ -36,6 +36,21 @@ class OrderTransactionsMigrator extends Migrator
             INDEX `{$indexPrefix}_ven_charge_id` (`vendor_charge_id`(64) ASC),
             INDEX `{$indexPrefix}_payment_method_idx` (`payment_method` ASC),
             INDEX `{$indexPrefix}_status_idx` (`status` ASC),
-            INDEX `{$indexPrefix}_order_id_idx` (`order_id` ASC)";
+            INDEX `{$indexPrefix}_order_id_idx` (`order_id` ASC),
+            INDEX `{$indexPrefix}_subscription_id_idx` (`subscription_id` ASC)";
+    }
+
+    /**
+     * Runs on activation via Migrator::migrate() AND on in-place plugin
+     * updates via the version-gated block in
+     * DBMigrator::maybeMigrateDBChanges(). addIndexIfNotExists() is
+     * idempotent, so double delivery is harmless.
+     */
+    public static function migrated()
+    {
+        // Subscription views eager-load transactions filtered by
+        // subscription_id (SubscriptionController, customer portal) — without
+        // this, every detail view scans the transactions table.
+        static::addIndexIfNotExists(static::getDbPrefix() . 'fct_ot__subscription_id_idx', 'subscription_id');
     }
 }

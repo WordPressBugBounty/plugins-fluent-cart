@@ -481,6 +481,12 @@ class DBMigrator
             \FluentCart\Database\Migrations\ShippingClassesMigrator::migrated();
             \FluentCart\Database\Migrations\SubscriptionsMigrator::migrated();
 
+            // 2026-08-06
+            // fct_order_transactions subscription_id index — also run here so
+            // in-place plugin updates deliver it; migrate() only covers the
+            // activation path.
+            \FluentCart\Database\Migrations\OrderTransactionsMigrator::migrated();
+
 
             // 2026-05-06
             // Backfill, dedup, then add unique index — must run in this order

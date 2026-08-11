@@ -180,6 +180,7 @@ class ReportHelper
             'filterMode'       => 'sanitize_text_field',
             'storeMode'        => 'sanitize_text_field',
             'variation_ids.*'  => 'intval',
+            'customDays'       => 'intval',
             'subscriptionType' => 'sanitize_text_field',
             'orderStatus.*'    => 'sanitize_text_field',
             'orderTypes.*'     => 'sanitize_text_field',

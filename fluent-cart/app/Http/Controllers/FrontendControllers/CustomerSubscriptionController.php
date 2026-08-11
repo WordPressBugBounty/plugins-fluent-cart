@@ -234,6 +234,11 @@ class CustomerSubscriptionController extends BaseFrontendController
                     'message' => $e->getMessage()
                 ]);
             }
+
+            return $this->sendSuccess([
+                'status'  => 'success',
+                'message' => __('Payment method updated successfully', 'fluent-cart')
+            ]);
         }
 
         return $this->sendError([
@@ -281,6 +286,11 @@ class CustomerSubscriptionController extends BaseFrontendController
                     'message' => $e->getMessage()
                 ]);
             }
+
+            return $this->sendSuccess([
+                'status'  => 'success',
+                'message' => __('Plan created successfully', 'fluent-cart')
+            ]);
         }
 
         return $this->sendError([
@@ -335,6 +345,11 @@ class CustomerSubscriptionController extends BaseFrontendController
                     'message' => $e->getMessage()
                 ]);
             }
+
+            return $this->sendSuccess([
+                'status'  => 'success',
+                'message' => __('Payment method switched successfully', 'fluent-cart')
+            ]);
         }
 
         return $this->sendError([
@@ -391,6 +406,11 @@ class CustomerSubscriptionController extends BaseFrontendController
                     'message' => $e->getMessage()
                 ]);
             }
+
+            return $this->sendSuccess([
+                'status'  => 'success',
+                'message' => __('Subscription switch confirmed successfully', 'fluent-cart')
+            ]);
         }
 
         return $this->sendError([

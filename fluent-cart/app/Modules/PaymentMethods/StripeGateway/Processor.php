@@ -193,12 +193,11 @@ class Processor
             'vendor_customer_id'     => $stripeSubscription['customer']
         ];
 
-        if ($orderType == 'renewal' && Arr::get($stripePlan, 'trial_period_days', 0) > 0) {
-            $config = $subscriptionModel->config ?: [];
-            $subscriptionUpdateFields['config'] = array_merge($config, ['is_trial_days_simulated' => 'yes']);
-        }
-
         $subscriptionModel->update($subscriptionUpdateFields);
+
+        if ($orderType == 'renewal' && Arr::get($stripePlan, 'trial_period_days', 0) > 0) {
+            $subscriptionModel->mergeConfig(['is_trial_days_simulated' => 'yes']);
+        }
 
         if ($stripeSubscription['pending_setup_intent'] != null) {
             $paymentArgs['vendor_subscription_info'] = [
@@ -258,18 +257,131 @@ class Processor
 
         $remoteStatus = Arr::get($remoteSub, 'status');
 
-        if (in_array($remoteStatus, ['active', 'trialing', 'past_due', 'unpaid'], true)) {
+        if (in_array($remoteStatus, ['active', 'trialing'], true)) {
             (new StripeSubscriptions())->reSyncSubscriptionFromRemote($subscriptionModel);
             return new \WP_Error(
                 'stripe_subscription_already_active',
-                __('Your subscription payment has already been processed. Please refresh this page to see your order status instead of paying again.', 'fluent-cart')
+                __('Subscription is already active. Please refresh this page to see the status instead of trying again.', 'fluent-cart')
             );
         }
 
-        if ('incomplete' === $remoteStatus) {
+        if (in_array($remoteStatus, ['incomplete', 'unpaid'], true)) {
             $cancelResponse = (new API())->deleteStripeObject('subscriptions/' . $existingVendorSubId, [], 'current');
             if (is_wp_error($cancelResponse)) {
-                fluent_cart_error_log('Stripe stale incomplete subscription cancel failed. Subscription ID: ' . $subscriptionModel->id, $cancelResponse->get_error_message());
+                fluent_cart_warning_log(
+                    'Stripe stale ' . $remoteStatus . ' subscription cancel failed',
+                    $cancelResponse->get_error_message() . ' (' . $existingVendorSubId . ')',
+                    [
+                        'module_type' => 'FluentCart\App\Models\Subscription',
+                        'module_id'   => $subscriptionModel->id,
+                        'module_name' => 'subscription',
+                        'log_type'    => 'api'
+                    ]
+                );
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * One-time analogue of guardExistingRemoteSubscription(). A resubmit whose
+     * charge-material params changed (or whose key aged past Stripe's 24h window)
+     * would mint a second PaymentIntent while the first stays confirmable in any
+     * stale tab — and a charge on that orphan is dropped by the webhook with no
+     * local record. Succeeded remote: record the payment and stop the re-charge.
+     * In-flight (processing / requires_capture): stop and let it settle.
+     * Confirmable with matching charge-material params: reuse it. Mismatched:
+     * cancel it so exactly one confirmable intent exists. Lookup/cancel failures
+     * fail CLOSED (WP_Error, retryable) rather than falling through to create —
+     * otherwise a transient Stripe error would let a second intent get created
+     * while the first stays confirmable, reopening the orphan path this guards.
+     *
+     * Returns null (create fresh), the reusable intent array, a redirect response
+     * array (already-succeeded — checkout's GET render has no order-status check,
+     * so the caller must push the browser to the receipt page itself rather than
+     * ask the customer to refresh), or WP_Error (stop, retryable).
+     */
+    private function guardExistingPaymentIntent(PaymentInstance $paymentInstance, $intentData)
+    {
+        $transaction = $paymentInstance->transaction;
+        $existingIntentId = $transaction->vendor_charge_id;
+
+        if (!$existingIntentId || strpos($existingIntentId, 'pi_') !== 0) {
+            return null;
+        }
+
+        $existingIntent = (new API())->getStripeObject('payment_intents/' . $existingIntentId, [
+            'expand' => ['latest_charge']
+        ], 'current');
+
+        if (is_wp_error($existingIntent)) {
+            fluent_cart_warning_log(
+                'Stripe existing payment intent lookup failed',
+                $existingIntent->get_error_message() . ' (' . $existingIntentId . ')',
+                [
+                    'module_name' => 'order',
+                    'module_id'   => $transaction->order_id,
+                    'log_type'    => 'api'
+                ]
+            );
+            return new \WP_Error(
+                'stripe_payment_intent_lookup_failed',
+                __('We could not verify your previous payment attempt. Please wait a moment and try again.', 'fluent-cart')
+            );
+        }
+
+        $intentStatus = Arr::get($existingIntent, 'status');
+
+        if ('succeeded' === $intentStatus) {
+            $charge = Arr::get($existingIntent, 'latest_charge', []);
+            (new Confirmations())->confirmPaymentSuccessByCharge($transaction, [
+                'charge'    => is_array($charge) ? $charge : [],
+                'intent_id' => $existingIntentId
+            ]);
+
+            // Local state is already synced to success — send the browser straight
+            // to the receipt instead of erroring and telling the customer to refresh
+            // a page that has no idea their order is paid.
+            return [
+                'fct_redirect' => true,
+                'status'       => 'success',
+                'redirect_to'  => $transaction->getReceiptPageUrl(),
+                'message'      => __('Your payment has already been processed. Redirecting to your order...', 'fluent-cart')
+            ];
+        }
+
+        if (in_array($intentStatus, ['processing', 'requires_capture'], true)) {
+            return new \WP_Error(
+                'stripe_payment_in_flight',
+                __('Your previous payment attempt is still being processed. Please wait a moment before trying again — do not resubmit.', 'fluent-cart')
+            );
+        }
+
+        if (in_array($intentStatus, ['requires_payment_method', 'requires_confirmation', 'requires_action'], true)) {
+            $chargeMaterialMatches = (int)Arr::get($existingIntent, 'amount') === (int)Arr::get($intentData, 'amount')
+                && strtolower((string)Arr::get($existingIntent, 'currency')) === strtolower((string)Arr::get($intentData, 'currency'))
+                && Arr::get($existingIntent, 'customer') === Arr::get($intentData, 'customer');
+
+            if ($chargeMaterialMatches) {
+                return $existingIntent;
+            }
+
+            $cancelResponse = (new API())->createStripeObject('payment_intents/' . $existingIntentId . '/cancel', [], 'current');
+            if (is_wp_error($cancelResponse)) {
+                fluent_cart_warning_log(
+                    'Stripe stale payment intent cancel failed',
+                    $cancelResponse->get_error_message() . ' (' . $existingIntentId . ')',
+                    [
+                        'module_name' => 'order',
+                        'module_id'   => $transaction->order_id,
+                        'log_type'    => 'api'
+                    ]
+                );
+                return new \WP_Error(
+                    'stripe_payment_intent_cancel_failed',
+                    __('We could not update your previous payment attempt. Please wait a moment and try again.', 'fluent-cart')
+                );
             }
         }
 
@@ -521,32 +633,46 @@ class Processor
             'transaction' => $transaction
         ]);
 
-        // Same duplicate-charge defense for one-time onsite payments. Customer is in
-        // the fingerprint because a guest editing their email between attempts maps to
-        // a different Stripe customer — same key there would 400 for the key's 24h
-        // lifetime. Built AFTER the intent-args filter so filtered amounts are what
-        // get fingerprinted.
-        $idempotencyFingerprint = [
-            'amount'   => Arr::get($intentData, 'amount'),
-            'currency' => Arr::get($intentData, 'currency'),
-            'customer' => Arr::get($intentData, 'customer'),
-        ];
-        $idempotencySeed = $paymentInstance->getIdempotencySeed();
-        $idempotencyKey = $idempotencySeed
-            ? 'fct_stripe_pi_' . md5($idempotencySeed . '|' . wp_json_encode($idempotencyFingerprint))
-            : null;
-
-        $intent = (new API())->createStripeObject('payment_intents', $intentData, 'current', [
-            'Idempotency-Key' => $idempotencyKey
-        ]);
-
+        // Reuse or retire any intent this transaction already holds — the idempotency
+        // key alone cannot cover a resubmit whose charge-material params changed or
+        // whose key aged out of Stripe's 24h window.
+        $intent = $this->guardExistingPaymentIntent($paymentInstance, $intentData);
         if (is_wp_error($intent)) {
             return $intent;
         }
 
-        $transaction->update([
-            'vendor_charge_id' => $intent['id']
-        ]);
+        if (!empty($intent['fct_redirect'])) {
+            return $intent;
+        }
+
+        if (!$intent) {
+            // Same duplicate-charge defense for one-time onsite payments. Customer is in
+            // the fingerprint because a guest editing their email between attempts maps to
+            // a different Stripe customer — same key there would 400 for the key's 24h
+            // lifetime. Built AFTER the intent-args filter so filtered amounts are what
+            // get fingerprinted.
+            $idempotencyFingerprint = [
+                'amount'   => Arr::get($intentData, 'amount'),
+                'currency' => Arr::get($intentData, 'currency'),
+                'customer' => Arr::get($intentData, 'customer'),
+            ];
+            $idempotencySeed = $paymentInstance->getIdempotencySeed();
+            $idempotencyKey = $idempotencySeed
+                ? 'fct_stripe_pi_' . md5($idempotencySeed . '|' . wp_json_encode($idempotencyFingerprint))
+                : null;
+
+            $intent = (new API())->createStripeObject('payment_intents', $intentData, 'current', [
+                'Idempotency-Key' => $idempotencyKey
+            ]);
+
+            if (is_wp_error($intent)) {
+                return $intent;
+            }
+
+            $transaction->update([
+                'vendor_charge_id' => $intent['id']
+            ]);
+        }
 
         $customerData = [
             'name'      => $fcCustomer->first_name . ' ' . $fcCustomer->last_name,

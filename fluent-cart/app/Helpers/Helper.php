@@ -579,6 +579,39 @@ class Helper
         return $amount;
     }
 
+    /**
+     * Normalize a value that is ALREADY in cents to a whole-cent int.
+     *
+     * Unlike toCent(), this does not scale — use it when the incoming value is a
+     * cents amount that may have arrived as a float. Clients computing cents in
+     * JavaScript send artifacts like 1998.9999999999998 for 1999, and a bare
+     * (int) cast truncates those, silently undercharging by a cent. Non-numeric
+     * input (including the null the request pipeline injects for omitted keys)
+     * normalizes to 0.
+     *
+     * Magnitudes beyond float's exact-integer range (2^53) are REJECTED, not
+     * coerced: is_numeric() accepts exponential notation like 1e19, and casting
+     * that float to int wraps to -8446744073709551616 — a VALID signed BIGINT —
+     * so the corrupt value would persist silently where an un-normalized float
+     * used to fail loudly at MySQL. No real cents amount approaches this bound.
+     */
+    public static function roundCent($amount): int
+    {
+        if (!is_numeric($amount)) {
+            return 0;
+        }
+
+        $amount = (float) $amount;
+
+        if (!is_finite($amount) || $amount > 9.0e15 || $amount < -9.0e15) {
+            throw new \InvalidArgumentException(
+                'Value is out of the representable cents range: ' . var_export($amount, true)
+            );
+        }
+
+        return (int) round($amount);
+    }
+
     public static function toDecimalWithoutComma($amount)
     {
 

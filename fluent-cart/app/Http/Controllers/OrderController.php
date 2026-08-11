@@ -75,12 +75,25 @@ class OrderController extends Controller
     {
         $data = $request->getSafe($request->sanitize());
         $type = 'payment';
-        $hasSubscription = static::hasSubscription(Arr::get($data, 'order_items', []));
+        $orderItems = Arr::get($data, 'order_items', []);
+
+        $variationPaymentTypes = static::getVariationPaymentTypes($orderItems);
+
+        foreach ($orderItems as $item) {
+            $paymentTypeError = static::getPaymentTypeConflict($item, $variationPaymentTypes);
+            if ($paymentTypeError) {
+                return $this->sendError([
+                    'message' => $paymentTypeError
+                ], 400);
+            }
+        }
+
+        $hasSubscription = static::hasSubscription($orderItems);
         if ($hasSubscription) {
             $type = 'subscription';
             // right now we don't support subscription with manual order
             $isSubscriptionAllowedInManualOrder = apply_filters('fluent_cart/order/is_subscription_allowed_in_manual_order', true, [
-                'order_items' => Arr::get($data, 'order_items', [])
+                'order_items' => $orderItems
             ]);
 
             if (!$isSubscriptionAllowedInManualOrder) {
@@ -110,16 +123,82 @@ class OrderController extends Controller
         ]);
     }
 
-
     public static function hasSubscription($orderItems): bool
     {
-        // check order items for subscription, payment_type == subscription
         foreach ($orderItems as $item) {
             if (Arr::get($item, 'payment_type') == 'subscription' || Arr::get($item, 'other_info.payment_type') == 'subscription') {
                 return true;
             }
         }
+
         return false;
+    }
+
+    /**
+     * The variation row decides whether a line is recurring, so every label the payload
+     * carries has to agree with it. A recurring line must additionally be labelled in
+     * other_info: that is the only copy AdminOrderProcessor reads, and the interval and
+     * installment count travel beside it.
+     *
+     * @return string empty when the line is consistent, else the rejection message
+     */
+    protected static function getPaymentTypeConflict($item, $variationPaymentTypes): string
+    {
+        $variationId = (int)Arr::get($item, 'object_id', 0);
+
+        if (!isset($variationPaymentTypes[$variationId])) {
+            return '';
+        }
+
+        $isSubscriptionVariation = $variationPaymentTypes[$variationId] === 'subscription';
+
+        foreach (['payment_type', 'other_info.payment_type'] as $labelKey) {
+            $label = Arr::get($item, $labelKey);
+            if (is_null($label) || $label === '') {
+                continue;
+            }
+
+            if (($label === 'subscription') !== $isSubscriptionVariation) {
+                return $isSubscriptionVariation
+                    ? __('Subscription product cannot be placed as a one time item.', 'fluent-cart')
+                    : __('One time product cannot be placed as a subscription item.', 'fluent-cart');
+            }
+        }
+
+        if ($isSubscriptionVariation && Arr::get($item, 'other_info.payment_type') !== 'subscription') {
+            return __('Subscription product must be placed as a subscription item.', 'fluent-cart');
+        }
+
+        return '';
+    }
+
+    /**
+     * @return array variation id => stored payment_type, for the lines that resolve
+     */
+    protected static function getVariationPaymentTypes($orderItems): array
+    {
+        $variationIds = [];
+        foreach ($orderItems as $item) {
+            $variationId = (int)Arr::get($item, 'object_id', 0);
+            if ($variationId > 0) {
+                $variationIds[$variationId] = $variationId;
+            }
+        }
+
+        if (!$variationIds) {
+            return [];
+        }
+
+        $variations = ProductVariation::query()
+            ->whereIn('id', $variationIds)
+            ->get(['id', 'payment_type']);
+
+        $paymentTypes = [];
+        foreach ($variations as $variation) {
+            $paymentTypes[(int)$variation->id] = $variation->payment_type;
+        }
+
+        return $paymentTypes;
     }
 
     public function updateOrder(OrderRequest $request, $order_id)
@@ -259,15 +338,24 @@ class OrderController extends Controller
             ], 400);
         }
 
-        $refundInfo = $request->get('refund_info', []);
+        $refundInfo = (array)$request->get('refund_info', []);
 
-        $this->validate($refundInfo, [
+        // $this->validate() reports failures only by exception, and outside a
+        // REST_REQUEST context the framework swallows that exception (no
+        // handle_exception listener) — execution would continue and crash on
+        // $refundInfo['transaction_id'] below. Fail closed: run the validator
+        // directly and return the per-field 422 payload in every context.
+        $validator = $this->app->validator->make($refundInfo, [
             'transaction_id' => 'required',
             'amount'         => 'required',
         ], [
             'transaction_id.required' => __('Transaction ID is required', 'fluent-cart'),
             'amount.required'         => __('Refund amount is required', 'fluent-cart'),
         ]);
+
+        if ($validator->validate()->fails()) {
+            return $this->sendError($validator->errors(), 422);
+        }
 
         $transaction = OrderTransaction::query()->where('order_id', $orderId)->findOrFail($refundInfo['transaction_id']);
         $refundAmount = Helper::toCent($refundInfo['amount']);
@@ -638,13 +726,54 @@ class OrderController extends Controller
         return $data;
     }
 
+    public function getTransactionDetails($orderId, $transactionId)
+    {
+        $orderId = (int)$orderId;
+        $transactionId = (int)$transactionId;
+
+        $belongsToOrder = OrderTransaction::query()
+            ->where('id', $transactionId)
+            ->where('order_id', $orderId)
+            ->exists();
+
+        if (!$belongsToOrder) {
+            return $this->entityNotFoundError(
+                __('Transaction not found', 'fluent-cart'),
+                __('Back to orders', 'fluent-cart'),
+                '/orders'
+            );
+        }
+
+        $data = $this->getDetails($orderId);
+
+        if (!is_array($data) || empty($data['order'])) {
+            return $data;
+        }
+
+        // The path names one transaction, so the sibling rows on the same order
+        // are not part of this response.
+        $data['order']['transactions'] = array_values(array_filter(
+            (array)Arr::get($data, 'order.transactions', []),
+            function ($transaction) use ($transactionId) {
+                return (int)Arr::get($transaction, 'id') === $transactionId;
+            }
+        ));
+
+        return $data;
+    }
+
     public function createCustom(Request $request, OrderItemHelper $orderItemHelper, Order $order)
     {
         try {
-            return $orderItemHelper->processCustom(
+            $orderItem = $orderItemHelper->processCustom(
                 $request->product,
                 $order->id
             );
+
+            return $this->sendSuccess([
+                'message'    => __('Custom item has been added to the order!', 'fluent-cart'),
+                'order_item' => $orderItem
+            ]);
 
         } catch (\Exception $e) {
             return $this->sendError([
@@ -773,9 +902,6 @@ class OrderController extends Controller
             ]);
         }
 
-        $orders = Order::query()->whereIn('id', $orderIds)->get();
-
-
         if ($action == 'delete_orders') {
 
             $isDeleted = OrderResource::bulkDeleteByOrderIds($orderIds);
@@ -809,15 +935,14 @@ class OrderController extends Controller
 
 
         }
-        if ($action == 'capture_payments') {
-            foreach ($orders as $order) {
-                $order->capturePayments();
-            }
 
-            return [
-                'message' => __('Selected payments has been successfully captured', 'fluent-cart')
-            ];
-        }
+        // The capture_payments branch was removed: it called
+        // $order->capturePayments(), a method that has never existed anywhere
+        // in the codebase, so the action fataled on the first order (audit
+        // item #43). No UI sends it — the orders bulk bar submits
+        // delete_test_orders only. Bulk payment capture, if wanted, is a
+        // gateway feature to design (authorize/capture per gateway), not a
+        // branch to resurrect as-is.
 
         return $this->sendError([
             'message' => __('Selected action is invalid', 'fluent-cart')

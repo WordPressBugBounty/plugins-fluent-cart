@@ -16,6 +16,18 @@ class LicenseSiteFilter extends BaseFilter
         return 'license_sites';
     }
 
+    /**
+     * Intentionally empty, and verified so: LicenseSiteTable.js sends no `with`
+     * at all. In particular `LicenseSite::activations()` must stay denied — it
+     * walks back to the licence keys this list deliberately does not show.
+     *
+     * @return array<string, callable>
+     */
+    protected function allowedWiths(): array
+    {
+        return [];
+    }
+
     public function tabsMap(): array
     {
         return [];

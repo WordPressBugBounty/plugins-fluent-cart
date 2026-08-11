@@ -205,7 +205,6 @@ class SwitchCustomerMethod
     private function updateSubscription($subscriptionId, $newSub, $plan, $customerId)
     {
         $subscriptionModel = Subscription::query()->where('id', $subscriptionId)->first();
-        $config = $subscriptionModel->config ?: [];
 
         $subscriptionModel->update([
             'vendor_subscription_id' => Arr::get($newSub, 'id'),
@@ -213,10 +212,9 @@ class SwitchCustomerMethod
             'current_payment_method' => 'stripe',
             'vendor_customer_id'     => $customerId,
             'status'                 => StripeHelper::transformSubscriptionStatus($newSub),
-            'config'                 => array_merge($config, [
-                'is_trial_days_simulated' => 'yes'
-            ])
         ]);
+
+        $subscriptionModel->mergeConfig(['is_trial_days_simulated' => 'yes']);
     }
 
     private function updateBillingInfo($subscriptionId, $pm)

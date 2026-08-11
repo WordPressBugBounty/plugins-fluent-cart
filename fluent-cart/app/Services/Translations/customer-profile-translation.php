@@ -149,6 +149,7 @@ return [
     'MM/YY' => __('MM/YY', 'fluent-cart'),
     'Manage' => __('Manage', 'fluent-cart'),
     'Manage and update your personal information.' => __('Manage and update your personal information.', 'fluent-cart'),
+    'Manage License' => __('Manage License', 'fluent-cart'),
     'Manage subscription' => __('Manage subscription', 'fluent-cart'),
     'More Actions' => __('More Actions', 'fluent-cart'),
     'Name' => __('Name', 'fluent-cart'),
@@ -229,6 +230,10 @@ return [
     /* translators: %s is the license title */
     'Renew license: %s' => __('Renew license: %s', 'fluent-cart'),
     'Renewal' => __('Renewal', 'fluent-cart'),
+    /* translators: %s is the number of renewals */
+    '%s Renewal' => __('%s Renewal', 'fluent-cart'),
+    /* translators: %s is the number of renewals */
+    '%s Renewals' => __('%s Renewals', 'fluent-cart'),
     'Save Profile' => __('Save Profile', 'fluent-cart'),
     'Scheduled' => __('Scheduled', 'fluent-cart'),
     'Search and hit enter...' => __('Search and hit enter...', 'fluent-cart'),
@@ -311,6 +316,7 @@ return [
     'Vat Tax ID' => __('Vat Tax ID', 'fluent-cart'),
     'View List' => __('View List', 'fluent-cart'),
     'View Order' => __('View Order', 'fluent-cart'),
+    'View Subscription' => __('View Subscription', 'fluent-cart'),
     'View Receipt' => __('View Receipt', 'fluent-cart'),
     'View all' => __('View all', 'fluent-cart'),
     'View all downloads' => __('View all downloads', 'fluent-cart'),

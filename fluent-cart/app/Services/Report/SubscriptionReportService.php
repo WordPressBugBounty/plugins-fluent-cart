@@ -4,6 +4,7 @@ namespace FluentCart\App\Services\Report;
 
 use FluentCart\App\App;
 use FluentCart\App\Helpers\Status;
+use FluentCart\Framework\Support\Arr;
 use FluentCart\App\Services\Report\Concerns\Subscription\FutureRenewals;
 
 class SubscriptionReportService extends ReportService
@@ -12,19 +13,24 @@ class SubscriptionReportService extends ReportService
 
     public function getRetentionChart($params = [])
     {
+        $customDays   = max(0, (int) Arr::get($params, 'customDays', 0));
+        $variationIds = Arr::get($params, 'variationIds', []);
+        $startDate    = Arr::get($params, 'startDate');
+        $endDate      = Arr::get($params, 'endDate');
+
         $baseQuery = App::db()->query()
             ->from('fct_subscriptions as s')
-            ->whereBetween('s.created_at', [$params['startDate'], $params['endDate']])
-            ->when($params['variationIds'], fn ($q) => $q->whereIn('s.variation_id', $params['variationIds']));
+            ->whereBetween('s.created_at', [$startDate, $endDate])
+            ->when($variationIds, fn ($q) => $q->whereIn('s.variation_id', $variationIds));
 
-        if ($params['customDays']) {
-            $query = $baseQuery->selectRaw("COUNT(*) AS day_{$params['customDays']}")
+        if ($customDays) {
+            $query = $baseQuery->selectRaw("COUNT(*) AS day_{$customDays}")
                 ->whereRaw('
                     DATEDIFF(
                         COALESCE(s.canceled_at, NOW()),
                         s.created_at
                     ) <= ?
-                ', $params['customDays']);
+                ', [$customDays]);
         } else {
             $baseQuery->selectRaw('DATEDIFF(COALESCE(s.canceled_at, NOW()), s.created_at) AS lifespan');
 

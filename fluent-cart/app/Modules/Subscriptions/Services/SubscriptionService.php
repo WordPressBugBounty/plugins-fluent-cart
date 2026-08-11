@@ -74,7 +74,10 @@ class SubscriptionService
             if (!$acquired) {
                 return new \WP_Error('lock_failed', __('Duplicate webhook processing in progress.', 'fluent-cart'));
             }
-            if (OrderTransaction::query()->where('vendor_charge_id', $vendorTransactionId)->exists()) {
+            if (OrderTransaction::query()
+                ->where('vendor_charge_id', $vendorTransactionId)
+                ->where('status', '!=', Status::TRANSACTION_FAILED)
+                ->exists()) {
                 $wpdb->query($wpdb->prepare("SELECT RELEASE_LOCK(%s)", $lockName));
                 return new \WP_Error('transaction_exists', __('This transaction already exists for this subscription.', 'fluent-cart'));
             }
@@ -99,7 +102,15 @@ class SubscriptionService
         if ($existingInvoice) {
             $existingTransaction = OrderTransaction::query()
                 ->where('order_id', $existingInvoice->id)
-                ->where('status', Status::TRANSACTION_PENDING)
+                ->where(function ($query) use ($vendorTransactionId) {
+                    $query->where('status', Status::TRANSACTION_PENDING)
+                        ->orWhere(function ($query) use ($vendorTransactionId) {
+                            // A failed row only stands in for the invoice if it's the same
+                            // PaymentIntent being retried — otherwise it's an unrelated attempt.
+                            $query->where('status', Status::TRANSACTION_FAILED)
+                                ->where('vendor_charge_id', $vendorTransactionId);
+                        });
+                })
                 ->orderBy('id', 'DESC')
                 ->first();
 
@@ -122,6 +133,10 @@ class SubscriptionService
                     'billing_info'      => $billingInfo,
                     'subscription_args' => $subscriptionUpdateArgs,
                 ]);
+
+                if ($lockName) {
+                    $wpdb->query($wpdb->prepare("SELECT RELEASE_LOCK(%s)", $lockName));
+                }
 
                 return $existingTransaction;
             }

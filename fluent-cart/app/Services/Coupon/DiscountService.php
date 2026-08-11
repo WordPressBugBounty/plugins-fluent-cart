@@ -129,11 +129,17 @@ class DiscountService
             return new \WP_Error('no_valid_coupons', $message, $invalidCoupons);
         }
 
-        // Let's check if we have multiple coupons and if they are stackable. If not, we will only keep the first one and invalidate the rest.
+        // Stacking contract — the first coupon applied always stays (parity with
+        // the admin path, CanValidateCoupon::canBeStacked). applyCouponCodes()
+        // merges existing cart coupons before newly submitted codes and
+        // formatCoupons() preserves that order, so index 0 is genuinely the
+        // first-applied valid coupon. A non-stackable first coupon locks the
+        // cart to itself; a stackable first admits only later stackable codes.
         if (count($validCoupons) >= 2) {
-            $intermediateValidCoupons = [];
-            foreach ($validCoupons as $coupon) {
-                if ($coupon->stackable === 'yes') {
+            $firstCoupon = $validCoupons[0];
+            $intermediateValidCoupons = [$firstCoupon];
+            foreach (array_slice($validCoupons, 1) as $coupon) {
+                if ($firstCoupon->stackable === 'yes' && $coupon->stackable === 'yes') {
                     $intermediateValidCoupons[] = $coupon;
                 } else {
                     $invalidCoupons[$coupon->code] = [
@@ -144,11 +150,7 @@ class DiscountService
                 }
             }
 
-            if (!$intermediateValidCoupons) {
-                $validCoupons = [$validCoupons[0]];
-            } else {
-                $validCoupons = $intermediateValidCoupons;
-            }
+            $validCoupons = $intermediateValidCoupons;
         }
 
         // Ensure stackable coupons are applied in priority order (lower value = higher priority)
@@ -247,11 +249,33 @@ class DiscountService
 
         $percent = $this->calculateDiscountPercent($coupon, $currentItemsTotalAfterDiscount);
 
+        // Snapshot per-item discounts before this coupon runs so the max-discount
+        // cap can trim only THIS coupon's contribution — stacked coupons applied
+        // earlier must keep their share untouched.
+        $preCouponDiscounts = [];
+        $preRecurringDiscounts = [];
+        foreach ($preValidatedItems as $preItem) {
+            $preCouponDiscounts[$preItem['id']] = (int) Arr::get($preItem, 'coupon_discount', 0);
+            $preRecurringDiscounts[$preItem['id']] = (int) Arr::get($preItem, 'recurring_discounts.amount', 0);
+        }
+
         list($preValidatedItems, $couponDiscountTotal) = $this->applyDiscountToItems($preValidatedItems, $percent, $coupon);
 
         if ($coupon->type === 'fixed') {
             list($preValidatedItems, $couponDiscountTotal) = $this->correctFixedCouponRounding(
                 $preValidatedItems, $coupon, $couponDiscountTotal
+            );
+        }
+
+        $maxDiscountAmount = (int) Arr::get($coupon->conditions, 'max_discount_amount', 0);
+        if ($maxDiscountAmount > 0) {
+            list($preValidatedItems, $couponDiscountTotal) = $this->capDiscountAtMax(
+                $preValidatedItems, 'coupon_discount', $maxDiscountAmount, $preCouponDiscounts
+            );
+            // The per-renewal discount must honor the same cap, otherwise every
+            // renewal charge overshoots it.
+            list($preValidatedItems) = $this->capDiscountAtMax(
+                $preValidatedItems, 'recurring_discounts.amount', $maxDiscountAmount, $preRecurringDiscounts
             );
         }
 
@@ -438,6 +462,65 @@ class DiscountService
         }
 
         return [$items, $couponDiscountTotal];
+    }
+
+    /**
+     * Clamp this coupon's total contribution under $valueKey to $maxAmount,
+     * scaling each item's share proportionally (cents in, cents out).
+     *
+     * $preValues holds each item's value before this coupon ran, keyed by item
+     * id — only the delta above it (this coupon's share) is ever reduced.
+     *
+     * @return array [items, appliedTotalForThisCoupon]
+     */
+    private function capDiscountAtMax(array $items, $valueKey, $maxAmount, array $preValues)
+    {
+        $shares = [];
+        $totalShare = 0;
+        foreach ($items as $index => $item) {
+            $current = (int) Arr::get($item, $valueKey, 0);
+            $pre = (int) Arr::get($preValues, $item['id'], 0);
+            $share = max(0, $current - $pre);
+            if ($share > 0) {
+                $shares[$index] = $share;
+                $totalShare += $share;
+            }
+        }
+
+        if ($totalShare <= $maxAmount) {
+            return [$items, $totalShare];
+        }
+
+        $capped = [];
+        $cappedTotal = 0;
+        foreach ($shares as $index => $share) {
+            $cappedShare = (int) floor(($share * $maxAmount) / $totalShare);
+            $capped[$index] = $cappedShare;
+            $cappedTotal += $cappedShare;
+        }
+
+        // floor() can leave a few cents of the cap unassigned — hand them out
+        // to items that still have room so the total lands exactly on the cap.
+        $leftover = $maxAmount - $cappedTotal;
+        foreach ($shares as $index => $share) {
+            if ($leftover <= 0) {
+                break;
+            }
+            $room = $share - $capped[$index];
+            if ($room <= 0) {
+                continue;
+            }
+            $add = min($room, $leftover);
+            $capped[$index] += $add;
+            $leftover -= $add;
+        }
+
+        foreach ($capped as $index => $cappedShare) {
+            $pre = (int) Arr::get($preValues, $items[$index]['id'], 0);
+            Arr::set($items, $index . '.' . $valueKey, $pre + $cappedShare);
+        }
+
+        return [$items, $maxAmount];
     }
 
     private function correctFixedCouponRounding(array $items, Coupon $coupon, $couponDiscountTotal)

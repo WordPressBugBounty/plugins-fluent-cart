@@ -38,6 +38,10 @@ class EmailPreviewService
                 $previewData['reminder']['stage'] = 'trial_end_3';
             }
 
+            if (Str::contains($template, 'renewal_failed')) {
+                $previewData['error'] = __('Your card was declined.', 'fluent-cart');
+            }
+
             if (Str::contains($template, 'canceled')) {
                 $previewData['reason'] = __('canceled on customer request', 'fluent-cart');
                 $previewData['subscription'] = $this->getDummySubscription($previewData['order']);

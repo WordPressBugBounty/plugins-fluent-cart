@@ -304,17 +304,17 @@ class CustomerResource extends BaseResourceApi
 
                 return static::makeErrorResponse([
                     ['code' => 400, 'message' => __('Customer update failed.', 'fluent-cart')]
-                ]);
+                ], 400);
             }
 
             return static::makeErrorResponse([
                 ['code' => 400, 'message' => __('Customer does not have any changes to update.', 'fluent-cart')]
-            ]);
+            ], 400);
         }
 
         return static::makeErrorResponse([
             ['code' => 404, 'message' => __('Customer not found, please reload the page and try again!', 'fluent-cart')]
-        ]);
+        ], 404);
     }
 
     /**

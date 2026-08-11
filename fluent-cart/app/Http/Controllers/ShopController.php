@@ -42,7 +42,15 @@ class ShopController extends Controller
         $allowOutOfStock = $request->get('allow_out_of_stock', false) == true;
         $cursor = $request->get('cursor', null);
         $orderType = $request->get('order_type', 'DESC');
-        $with = $request->get('with', []);
+        // The storefront never chooses its own eager loads. This route is public
+        // (frontend_routes.php, PublicPolicy), and forwarding the request's `with`
+        // let an anonymous caller walk arbitrary relation chains — e.g.
+        // `?with[]=orderItems.order.customer.wpUser` reached the WordPress users
+        // table. The two relations below are the ones the appends applied after
+        // this call already touch (`thumbnail` reads `detail`, `has_subscription`
+        // reads `variants`), so the response shape is unchanged and they are now
+        // eager loaded instead of lazily fetched per row.
+        $with = ['detail', 'variants'];
 
         // Shortcode filter params from AJAX
         $includeIds  = array_slice(array_values(array_filter(array_map('intval', (array) $request->get('include_ids', [])), function ($id) { return $id > 0; })), 0, 100);
@@ -71,13 +79,35 @@ class ShopController extends Controller
 
         $products = ShopResource::get($params);
 
+        $collection = $products['products']->getCollection();
+
+        // The appended has_subscription accessor reads $product->variants during
+        // serialization, so variants reach the response even without with[]=variants.
+        // Eager-load them once for the whole page (single query) so the sensitive
+        // fields can be hidden before serialization.
+        $collection->loadMissing('variants');
+
         $products['products']->setCollection(
-            $products['products']->getCollection()->transform(function ($product) {
+            $collection->transform(function ($product) {
                 $product->setAppends(['view_url', 'has_subscription', 'thumbnail']);
                 $product->makeHidden(['post_content']);
                 if ($product->detail !== null) {
                     $product->detail->makeHidden(['item_cost', 'editing_stage', 'stock', 'manage_stock', 'manage_cost', 'settings']);
                 }
+                $product->variants->each(function ($variant) {
+                    $variant->makeHidden(['item_cost', 'manage_cost', 'manage_stock', 'total_stock', 'available', 'committed', 'on_hold']);
+
+                    // other_info is a JSON blob that makeHidden cannot reach into; strip its
+                    // admin-only keys while keeping the storefront display fields (payment_type,
+                    // repeat_interval, trial_days, billing_summary, weight/dimensions).
+                    $info = $variant->other_info;
+                    if (is_array($info)) {
+                        foreach (['tax_class', 'tax_exempt', 'package_slug', 'bundle_child_ids', 'variation_type', 'is_bundle_product'] as $internalKey) {
+                            unset($info[$internalKey]);
+                        }
+                        $variant->other_info = $info;
+                    }
+                });
                 return $product;
             })
         );
@@ -321,7 +351,7 @@ class ShopController extends Controller
         ]))->renderResultItems($products);
 
         $view = ob_get_clean();
-        return $this->response->json([
+        return $this->response->sendSuccess([
             'htmlView' => $view
         ]);
     }

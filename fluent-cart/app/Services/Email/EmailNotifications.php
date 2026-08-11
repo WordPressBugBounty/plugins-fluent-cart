@@ -139,6 +139,41 @@ class EmailNotifications
                     'attach_pdf_template' => '',
                 ]
             ],
+            'subscription_renewal_failed_customer' => [
+                'event'            => 'subscription_renewal_failed',
+                'group'            => 'subscription',
+                'group_label'      => __('Subscription Actions', 'fluent-cart'),
+                'title'            => __('Notify customer when an automatic renewal charge fails', 'fluent-cart'),
+                'description'      => __('This email will be sent to the customer when their saved payment method could not be charged for a subscription renewal.', 'fluent-cart'),
+                'recipient'        => 'customer',
+                'smartcode_groups' => [],
+                'template_path'    => 'subscription.renewal_failed.customer',
+                'is_async'         => false,
+                'settings'         => [
+                    'active'          => 'yes',
+                    'subject'         => __('Automatic Payment Failed for Renewal #{{order.invoice_no}}', 'fluent-cart'),
+                    'is_default_body' => 'yes',
+                    'email_body'      => '',
+                ]
+            ],
+            'subscription_renewal_failed_admin'    => [
+                'event'            => 'subscription_renewal_failed',
+                'group'            => 'subscription',
+                'group_label'      => __('Subscription Actions', 'fluent-cart'),
+                'title'            => __('Notify admin when an automatic renewal charge fails', 'fluent-cart'),
+                'description'      => __('This email will be sent to the admin when a saved payment method could not be charged for a subscription renewal.', 'fluent-cart'),
+                'recipient'        => 'admin',
+                'smartcode_groups' => [],
+                'template_path'    => 'subscription.renewal_failed.admin',
+                'pre_header'       => __('An automatic subscription renewal charge failed. Review the order in the FluentCart Dashboard.', 'fluent-cart'),
+                'is_async'         => false,
+                'settings'         => [
+                    'active'          => 'no',
+                    'subject'         => __('Automatic Charge Failed for Renewal #{{order.invoice_no}}', 'fluent-cart'),
+                    'is_default_body' => 'yes',
+                    'email_body'      => '',
+                ]
+            ],
             'subscription_canceled_customer' => [
                 'event'            => 'subscription_canceled',
                 'group'            => 'subscription',

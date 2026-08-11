@@ -94,49 +94,8 @@ class CustomCheckout
             $instantCart = CartHelper::generateCartFromCustomVariation($newItem, $orderItem->quantity);
 
         } else {
-            $items = [];
-            $productItems = $order->order_items->filter(function ($orderItem) {
-                return !in_array($orderItem->payment_type, ['fee', 'signup_fee']);
-            });
-            foreach ($productItems as $orderItem) {
-                $itemData = ProductItemService::getItem([
-                    'order_id'         => $orderItem->order_id,
-                    'product_id'       => $orderItem->post_id,
-                    'variation_id'     => $orderItem->object_id,
-                ]);
-                if (!$itemData || !$itemData->variation) {
-                    die('Failed to load product data for custom checkout!');
-                }
-                $item = $itemData->variation->toArray();
-
-
-                Arr::set($item, 'coupon_discount', (string)($orderItem->discount_total)); // item discount total is always coupon discount + manual discount
-                Arr::set($item, 'tax_amount', $orderItem->tax_amount);
-                Arr::set($item, 'post_title', $orderItem->post_title);
-                Arr::set($item, 'variation_type', $itemData->variation->product_detail->variation_type);
-
-                // For renewal invoices, use the order item's unit_price (matches subscription's recurring_amount)
-                // and strip trial_days so CheckoutProcessor doesn't apply trial (0) pricing.
-                if ($order->type === Status::ORDER_TYPE_RENEWAL) {
-                    Arr::set($item, 'item_price', $orderItem->unit_price);
-                    $otherInfo = Arr::get($item, 'other_info', []);
-                    $otherInfo['trial_days'] = 0;
-                    Arr::set($item, 'other_info', $otherInfo);
-                }
-
-                if ($itemManualDiscountTotal) {
-                    $subtotal = Arr::get($orderItem, 'subtotal');
-                    $manualDiscount = ($subtotal * $itemManualDiscountTotal) / $order->subtotal;
-                    $couponDiscount = max(0, $orderItem->discount_total - $manualDiscount);
-                    Arr::set($item, 'manual_discount', $manualDiscount);
-                    Arr::set($item, 'coupon_discount', $couponDiscount);
-                }
-
-                $items[] = CartHelper::generateCartItemCustomItem($item, $orderItem->quantity);
-            }
-
             $instantCart = new Cart();
-            $instantCart->cart_data = $items;
+            $instantCart->cart_data = static::buildOneTimeCartItems($order, $itemManualDiscountTotal);
         }
 
         $primaryBillingAddress = [];
@@ -228,5 +187,59 @@ class CustomCheckout
 
         wp_redirect($checkoutUrl);
         exit();
+    }
+
+    /**
+     * Build cart items for a one-time (non-subscription) order re-pay, priced at the
+     * order's own unit_price rather than the current catalogue price.
+     */
+    protected static function buildOneTimeCartItems(Order $order, $itemManualDiscountTotal)
+    {
+        $items = [];
+        $productItems = $order->order_items->filter(function ($orderItem) {
+            return !in_array($orderItem->payment_type, ['fee', 'signup_fee']);
+        });
+
+        foreach ($productItems as $orderItem) {
+            $itemData = ProductItemService::getItem([
+                'order_id'     => $orderItem->order_id,
+                'product_id'   => $orderItem->post_id,
+                'variation_id' => $orderItem->object_id,
+            ]);
+            if (!$itemData || !$itemData->variation) {
+                die('Failed to load product data for custom checkout!');
+            }
+            $item = $itemData->variation->toArray();
+
+            Arr::set($item, 'coupon_discount', (string)($orderItem->discount_total)); // item discount total is always coupon discount + manual discount
+            Arr::set($item, 'tax_amount', $orderItem->tax_amount);
+            Arr::set($item, 'post_title', $orderItem->post_title);
+            Arr::set($item, 'variation_type', $itemData->variation->product_detail->variation_type);
+
+            // Use the order item's unit_price, not the current catalogue price — the order
+            // may carry a price agreed at purchase time (adjusted unit_price, since expired
+            // catalogue price) that differs from what the product sells for today.
+            Arr::set($item, 'item_price', $orderItem->unit_price);
+
+            // For renewal invoices, also strip trial_days so CheckoutProcessor doesn't
+            // apply trial (0) pricing on a renewal.
+            if ($order->type === Status::ORDER_TYPE_RENEWAL) {
+                $otherInfo = Arr::get($item, 'other_info', []);
+                $otherInfo['trial_days'] = 0;
+                Arr::set($item, 'other_info', $otherInfo);
+            }
+
+            if ($itemManualDiscountTotal) {
+                $subtotal = Arr::get($orderItem, 'subtotal');
+                $manualDiscount = ($subtotal * $itemManualDiscountTotal) / $order->subtotal;
+                $couponDiscount = max(0, $orderItem->discount_total - $manualDiscount);
+                Arr::set($item, 'manual_discount', $manualDiscount);
+                Arr::set($item, 'coupon_discount', $couponDiscount);
+            }
+
+            $items[] = CartHelper::generateCartItemCustomItem($item, $orderItem->quantity);
+        }
+
+        return $items;
     }
 }

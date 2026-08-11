@@ -276,6 +276,7 @@ class AdminOrderProcessor
             'ip_address'            => Arr::get($this->args, 'ip_address', ''),
             'config'                => [
                 'user_tz'                   => Arr::get($this->args, 'user_tz', ''),
+                'source'                    => 'admin',
             ],
         ];
 

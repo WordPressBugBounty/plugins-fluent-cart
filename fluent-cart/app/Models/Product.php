@@ -177,12 +177,6 @@ class Product extends Model
     }
 
 
-    public function getTags()
-    {
-        return get_the_terms($this->ID, 'product-tags');
-    }
-
-
     public function getMediaUrl($size = 'thumbnail')
     {
         return get_the_post_thumbnail_url($this->ID, $size);
@@ -193,12 +187,6 @@ class Product extends Model
      * Transforming old getters with accessor
      * Todo check
      */
-    public function getTagsAttribute($value)
-    {
-        return get_the_terms($this->ID, 'product-tags');
-    }
-
-
     public function getCategoriesAttribute($value)
     {
         return get_the_terms($this->ID, 'product-categories');
@@ -257,12 +245,6 @@ class Product extends Model
     public function categories()
     {
         return $this->getTermByType('product-categories');
-    }
-
-
-    public function tags()
-    {
-        return $this->getTermByType('product-tags');
     }
 
 

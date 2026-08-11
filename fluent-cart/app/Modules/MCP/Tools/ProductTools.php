@@ -259,8 +259,7 @@ class ProductTools
             'stock_status'     => $detail ? $detail->stock_availability : null,
             'price_range'      => self::priceRange($detail),
             'variations'       => self::variations($product),
-            'categories'       => self::terms($product, 'categories'),
-            'tags'             => self::terms($product, 'tags'),
+            'categories'       => self::terms($product),
             'created_at'       => MCPHelper::toIso8601($product->post_date_gmt ? $product->post_date_gmt : $product->post_date),
         ];
 
@@ -308,10 +307,10 @@ class ProductTools
         return $out;
     }
 
-    private static function terms($product, $which)
+    private static function terms($product)
     {
         try {
-            $terms = $which === 'tags' ? $product->getTags() : $product->getCategories();
+            $terms = $product->getCategories();
         } catch (\Throwable $e) {
             return [];
         }

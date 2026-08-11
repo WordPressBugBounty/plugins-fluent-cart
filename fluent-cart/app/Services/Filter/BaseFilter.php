@@ -8,6 +8,7 @@ use FluentCart\App\Models\Model;
 use FluentCart\App\Services\DateTime\DateTime;
 use FluentCart\App\Services\Filter\Concerns\HandleDateFilter;
 use FluentCart\App\Services\Filter\Concerns\HandleRelationalFilter;
+use FluentCart\App\Services\Permission\PermissionManager;
 use FluentCart\Framework\Database\Orm\Builder;
 use FluentCart\Framework\Http\Request\Request;
 use FluentCart\Framework\Pagination\LengthAwarePaginator;
@@ -25,7 +26,6 @@ use InvalidArgumentException;
 abstract class BaseFilter
 {
     use HandleRelationalFilter, HandleDateFilter;
-
 
     /**
      * Determines if the filter type is simple or advanced.
@@ -594,35 +594,216 @@ abstract class BaseFilter
         $this->query = $this->query->orderBy($this->sortBy, $this->sortType);
     }
 
+    /**
+     * What the `with` request parameter may load.
+     *
+     * DENY BY DEFAULT — the base returns an empty map, so a filter that does not
+     * override this loads nothing at all. That matters because the ORM resolves
+     * a relation by literally calling that method on the model
+     * (`Builder::getRelation()`), catching only BadMethodCallException. A method
+     * that exists but is not a relation still RUNS: before this allow-list,
+     * `with[]=recountTotalPaidAndRefund` inserted a phantom refunded order row.
+     *
+     * ## The entry form — one form, no others
+     *
+     * Every entry is a LITERAL request key mapped to a CALLABLE. Nothing else is
+     * an entry: a non-callable value is refused. The key is never decomposed,
+     * pattern-matched or prefix-parsed, so what the client sends is either a key
+     * in this map or it is dropped.
+     *
+     *     protected function allowedWiths(): array
+     *     {
+     *         return [
+     *             'admin_product_list' => [$this, 'adminProductList'],
+     *         ];
+     *     }
+     *
+     *     protected function adminProductList($query)
+     *     {
+     *         if (!$this->userCanAny('products/view')) {
+     *             return false;   // contributes nothing
+     *         }
+     *
+     *         return $query->with(['detail' => function ($q) {
+     *             $q->select(['id', 'post_id', 'featured_media']);
+     *         }]);
+     *     }
+     *
+     * ## Callback contract
+     *
+     * The callback receives the query as built so far — every entry already
+     * adopted is on it — checks its own permission, applies its own eager load
+     * (`with()`, `withCount()`, whatever it needs), and returns the query. It
+     * runs EXACTLY ONCE. The base never learns a relation name; the callback owns
+     * the whole path, the selects and the gate.
+     *
+     *   return false (or anything that is not a Builder) → contributes nothing
+     *   return the Builder                               → the base adopts it
+     *
+     * A count is not a special case: it is a callback that calls `withCount()`.
+     *
+     * ## Nested paths
+     *
+     * Nesting is not a special case either: name the full path (`'a.b'`) inside
+     * the callback. Two consequences, both of them sharp:
+     *
+     * 1. `with('a.b')` auto-injects the parent `a` with an EMPTY closure, so a
+     *    nested callback must repeat whatever GATE the parent carries — the
+     *    nested path is otherwise a way around it.
+     * 2. That injected empty closure also overwrites a CONSTRAINT an earlier
+     *    entry put on `a`, because each callback issues its own `with()` call and
+     *    Builder::with() array_merges into $eagerLoad (addNestedWiths() only
+     *    protects entries inside a single call). So a nested callback must also
+     *    re-state the parent's constraint in its own `with()` call:
+     *
+     *        return $query->with([
+     *            'a'   => function ($q) { $q->select([...]); },
+     *            'a.b' => function ($q) { $q->select([...]); },
+     *        ]);
+     *
+     * ## Why the builder you are handed is safe to mutate
+     *
+     * `$query->with([...])` mutates in place and returns the same instance, so a
+     * callback that mutated and then refused would already have changed the
+     * query. The base therefore invokes every callback against `clone
+     * $this->query` and adopts the result only when a Builder comes back:
+     * Orm\Builder::__clone() also clones the underlying Query\Builder, and both
+     * hold their wheres, bindings, columns and eager loads in plain arrays, which
+     * PHP copies by value. A refusing callback is structurally incapable of
+     * touching the live query.
+     *
+     * ## Escape valve
+     *
+     * The gate lives in applyWith(), so it covers every instance including a
+     * `with` assigned after construction, and it reads the CURRENT user — a cron
+     * or WP-CLI caller loses permission-gated entries. The
+     * `fluent_cart/{filter}_allowed_withs` filter is how an add-on or a
+     * privileged background job adds its own entry.
+     *
+     * @return array<string, callable>
+     */
+    protected function allowedWiths(): array
+    {
+        return [];
+    }
+
+    /**
+     * What the `scopes` request parameter may apply.
+     *
+     * DENY BY DEFAULT. The old applyScopes() invoked whatever method name the
+     * request supplied directly on the query builder, before any WHERE clause
+     * existed — `scopes[]=delete` emptied the table, `scopes[]=truncate` wiped it
+     * and the array form mass-updated every row.
+     *
+     * Same single entry form as allowedWiths(): literal key => callable. This is
+     * a separate map only because the request delivers it on a different
+     * parameter; the resolution and the safety properties are identical.
+     *
+     * Scope callbacks are invoked as `($query, $args)`, where `$args` is the raw
+     * remainder of an array-form request entry (`scopes[]=['x','y']` → `['y']`).
+     * `$args` is UNVALIDATED client input. Declare the parameter only if you
+     * intend to validate it; a callback declared `($query)` simply never sees it,
+     * which is the default refusal of request-supplied arguments.
+     *
+     * A scope name is not reachable unless a callback routes to it, and routing
+     * through `Builder::scopes()` adds a second structural gate: it resolves via
+     * Model::callNamedScope(), which prefixes with "scope", so only a real
+     * `scopeX()` method exists at the end of that path.
+     *
+     * @return array<string, callable>
+     */
+    protected function allowedScopes(): array
+    {
+        return [];
+    }
+
     protected function applyWith()
     {
-        $withs = Arr::wrap($this->with);
+        $filterName = static::getFilterName();
 
-        foreach ($withs as $with) {
-            if (Str::of($with)->lower()->endsWith('count')) {
-                //Get the relation name from count
-                //e.g.: variantsCount converts to variants
-                $relationName = Str::of($with)->substr(0, -5)->toString();
-                $this->query = $this->query->withCount($relationName);
-            } else {
-                $this->query = $this->query->with($with);
+        $withMap = apply_filters(
+            "fluent_cart/{$filterName}_allowed_withs", $this->allowedWiths(), ['filter' => $this]
+        );
+
+        foreach (Arr::wrap($this->with) as $requestKey) {
+            // Dropping non-strings also kills the array-nested with[parent][]=child
+            // form, which the ORM would otherwise read as the path parent.child.
+            if (!is_string($requestKey) || !array_key_exists($requestKey, $withMap)) {
+                continue;
             }
-        }
 
+            $this->adoptAllowEntry($withMap[$requestKey]);
+        }
     }
 
     protected function applyScopes()
     {
-        $scopes = Arr::wrap($this->scopes);
-        foreach ($scopes as $scope) {
-            if (is_array($scope)) {
-                $this->query = $this->query->{$scope[0]}($scope[1]);
+        $filterName = static::getFilterName();
+
+        $scopeMap = apply_filters(
+            "fluent_cart/{$filterName}_allowed_scopes", $this->allowedScopes(), ['filter' => $this]
+        );
+
+        foreach (Arr::wrap($this->scopes) as $requested) {
+            $args = [];
+
+            if (is_array($requested)) {
+                $requestKey = isset($requested[0]) ? $requested[0] : null;
+                $args = array_slice($requested, 1);
+            } else {
+                $requestKey = $requested;
+            }
+
+            if (!is_string($requestKey) || !array_key_exists($requestKey, $scopeMap)) {
                 continue;
             }
-            $this->query = $this->query->{$scope}();
+
+            $this->adoptAllowEntry($scopeMap[$requestKey], $args);
         }
     }
 
+    /**
+     * Invoke one allow-map entry and adopt what it hands back.
+     *
+     * The callback gets a CLONE of the live query, so a callback that mutates
+     * and then refuses cannot leave its mutation behind. Only a Builder is
+     * adopted; every other return value — false, null, a stray string — means the
+     * entry contributes nothing.
+     *
+     * @param mixed $entry Anything non-callable is refused.
+     * @param array $args  Unvalidated client arguments; always empty for a `with`.
+     * @return void
+     */
+    protected function adoptAllowEntry($entry, array $args = []): void
+    {
+        if (!is_callable($entry)) {
+            return;
+        }
+
+        $result = $entry(clone $this->query, $args);
+
+        if ($result instanceof Builder) {
+            $this->query = $result;
+        }
+    }
+
+    /**
+     * @param string|array $permission
+     * @return bool
+     */
+    protected function userCan($permission): bool
+    {
+        return PermissionManager::hasPermission((array)$permission);
+    }
+
+    /**
+     * @param string|array $permission
+     * @return bool
+     */
+    protected function userCanAny($permission): bool
+    {
+        return PermissionManager::hasAnyPermission((array)$permission);
+    }
     /**
      * Applies advanced filters to the query.
      *

@@ -2,6 +2,7 @@
 
 namespace FluentCart\App\Http\Requests;
 
+use FluentCart\App\Helpers\Helper;
 use FluentCart\Framework\Foundation\RequestGuard;
 
 class OrderRequest extends RequestGuard
@@ -26,7 +27,11 @@ class OrderRequest extends RequestGuard
             'manual_discount_total' => 'numeric',
             'coupon_discount_total' => 'numeric',
             'shipping_tax'          => 'numeric',
-            'shipping_total'        => 'numeric',
+            // min/max close the silent-corruption window: 1e19 passes `numeric`
+            // but wraps to a negative BIGINT through a float-to-int cast, and a
+            // negative shipping charge has no meaning. The bound matches the
+            // Helper::roundCent() guard (float's exact-integer range).
+            'shipping_total'        => 'numeric|min:0|max:9000000000000000',
             'tax_total'             => 'numeric',
             'total_amount'          => 'numeric',
             'rate'                  => 'numeric',
@@ -139,7 +144,17 @@ class OrderRequest extends RequestGuard
             'manual_discount_total' => 'floatval',
             'coupon_discount_total' => 'floatval',
             'shipping_tax'          => 'floatval',
-            'shipping_total'        => 'floatval',
+            // Cents column: normalize at the boundary so every consumer of this request
+            // receives a whole-cent int. floatval alone let a client-computed 19.99 * 100
+            // arrive as 1998.9999999999998, which any later int cast would truncate.
+            //
+            // Wrapped in a closure, NOT passed as [Helper::class, 'roundCent']: an array
+            // value in this map is a LIST of callbacks, iterated one by one
+            // (vendor/wpfluent/framework/src/WPFluent/Support/Sanitizer.php:456-464), so the
+            // array-callable form would try to call Helper() as a function.
+            'shipping_total'        => function ($value) {
+                return Helper::roundCent($value);
+            },
             'tax_total'             => 'floatval',
             'tax_behavior'          => 'intval',
             'total_amount'          => 'floatval',

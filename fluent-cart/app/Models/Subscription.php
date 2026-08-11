@@ -8,6 +8,8 @@ use FluentCart\App\App;
 use FluentCart\App\Helpers\AttributeHelper;
 use FluentCart\App\Helpers\Helper;
 use FluentCart\App\Helpers\Status;
+use FluentCart\App\Modules\PaymentMethods\Core\AbstractPaymentGateway;
+use FluentCart\App\Modules\PaymentMethods\Core\PaymentGatewayInterface;
 use FluentCart\App\Modules\Subscriptions\Services\SubscriptionService;
 use FluentCart\App\Models\Concerns\CanUpdateBatch;
 use FluentCart\App\Models\Concerns\HasActivity;
@@ -178,6 +180,67 @@ class Subscription extends Model
         }
 
         $this->attributes['config'] = $value;
+    }
+
+    /**
+     * Merge keys into the config blob under a row lock.
+     *
+     * Every writer of this column must go through here. `config` is a single JSON
+     * document written by the cancel path, both Stripe paths and both PayPal paths;
+     * a plain read-merge-write loses whichever concurrent write commits first, and a
+     * renewal landing during a payment-method switch is not a rare pairing.
+     *
+     * @param array $values keys to set; existing keys not named here survive
+     * @return array the merged config as committed
+     */
+    public function mergeConfig(array $values): array
+    {
+        $current = $this->config;
+        $current = is_array($current) ? $current : [];
+
+        if (!$values) {
+            return $current;
+        }
+
+        $db = static::query()->getConnection();
+        $db->beginTransaction();
+
+        try {
+            $locked = static::query()
+                ->where('id', $this->getKey())
+                ->lockForUpdate()
+                ->first();
+
+            if (!$locked) {
+                $db->rollBack();
+                return $current;
+            }
+
+            $stored = $locked->config;
+            $stored = is_array($stored) ? $stored : [];
+            $merged = array_merge($stored, $values);
+
+            // Query-builder update bypasses setConfigAttribute, so encode with the
+            // same flags the mutator uses.
+            static::query()
+                ->where('id', $this->getKey())
+                ->update([
+                    'config' => json_encode($merged, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)
+                ]);
+
+            $db->commit();
+        } catch (\Exception $e) {
+            $db->rollBack();
+            throw $e;
+        }
+
+        // Only `config` was written, so only `config` is clean now — a bare
+        // syncOriginal() would also mark the caller's unsaved edits as persisted
+        // and their next save() would drop them.
+        $this->setAttribute('config', $merged);
+        $this->syncOriginalAttribute('config');
+
+        return $merged;
     }
 
     /**
@@ -611,10 +674,70 @@ class Subscription extends Model
                 ->exists() && in_array($this->status, [Status::SUBSCRIPTION_ACTIVE, Status::SUBSCRIPTION_TRIALING]);
     }
 
+    /**
+     * The gateway backing this subscription, or null when there is not one.
+     *
+     * `App::gateway()` returns the GatewayManager when its argument is null —
+     * that is how `App::gateway()` with no argument is meant to work, but
+     * `current_payment_method` is nullable, so a subscription with no payment
+     * method resolves to the manager too. The manager is a truthy object, so
+     * every `if (!$gateway)` guard in this class waved it through, and the next
+     * line read `$gateway->supportedFeatures` as null.
+     *
+     * `in_array($needle, null)` is a TypeError on PHP 8, thrown from
+     * `getPermissionsAttribute()` — an `$appends` entry — so it fires while
+     * SERIALIZING. One subscription row with a blank payment method therefore
+     * took down the entire subscriptions list response, not just its own row.
+     *
+     * Resolve through here rather than calling `App::gateway()` directly.
+     *
+     * The instanceof is against PaymentGatewayInterface — the manager's
+     * registration contract — NOT AbstractPaymentGateway, so a third-party
+     * gateway implementing the interface directly still resolves. The only
+     * object it rejects is the GatewayManager itself, which does not implement
+     * the interface.
+     *
+     * @return PaymentGatewayInterface|null
+     */
+    private function resolveGateway(): ?PaymentGatewayInterface
+    {
+        if (empty($this->current_payment_method)) {
+            return null;
+        }
+
+        // The one direct App::gateway() call in this class.
+        $gateway = App::gateway($this->current_payment_method);
+
+        return $gateway instanceof PaymentGatewayInterface ? $gateway : null;
+    }
+
+    /**
+     * The `switch_payment_method` entry of `supportedFeatures`, or [] when the
+     * gateway does not declare one.
+     *
+     * Unlike the flat feature flags this is a KEYED entry carrying config
+     * (`supported_gateways`), so `has()` cannot answer it — it needs the raw
+     * `supportedFeatures` property, which only AbstractPaymentGateway carries.
+     * An interface-only gateway therefore reports no switch support rather
+     * than triggering an undefined-property read.
+     *
+     * @return array
+     */
+    private function switchPaymentConfig(): array
+    {
+        $gateway = $this->resolveGateway();
+
+        if (!$gateway instanceof AbstractPaymentGateway) {
+            return [];
+        }
+
+        return (array) Arr::get($gateway->supportedFeatures, 'switch_payment_method', []);
+    }
+
     public function canUpdatePaymentMethod()
     {
-        $gateway = App::gateway($this->current_payment_method);
-        if (!$gateway || !in_array('card_update', $gateway->supportedFeatures)) {
+        $gateway = $this->resolveGateway();
+        if (!$gateway || !$gateway->has('card_update')) {
             return false;
         }
 
@@ -632,9 +755,7 @@ class Subscription extends Model
             return false;
         }
 
-        $gateway = App::gateway($this->current_payment_method);
-
-        if (!$gateway || empty(Arr::get($gateway->supportedFeatures, 'switch_payment_method'))) {
+        if (!$this->switchPaymentConfig()) {
             return false;
         }
 
@@ -647,12 +768,7 @@ class Subscription extends Model
             return [];
         }
 
-        $gateway = App::gateway($this->current_payment_method);
-        if (!$gateway || empty($gateway->supportedFeatures['switch_payment_method'])) {
-            return [];
-        }
-
-        return Arr::get($gateway->supportedFeatures, 'switch_payment_method.supported_gateways', []);
+        return Arr::get($this->switchPaymentConfig(), 'supported_gateways', []);
     }
 
     public function canPause()
@@ -669,14 +785,14 @@ class Subscription extends Model
         }
 
         // Automatic subscriptions require gateway support
-        $gateway = App::gateway($this->current_payment_method);
+        $gateway = $this->resolveGateway();
 
         if (!$gateway) {
             return false;
         }
 
         // Check if gateway supports pause
-        if (!in_array('pause_subscription', $gateway->supportedFeatures)) {
+        if (!$gateway->has('pause_subscription')) {
             return false;
         }
 
@@ -723,13 +839,13 @@ class Subscription extends Model
         }
 
 
-        $gateway = App::gateway($this->current_payment_method);
+        $gateway = $this->resolveGateway();
 
         if (!$gateway) {
             return false;
         }
 
-        if (!in_array('resume_subscription', $gateway->supportedFeatures)) {
+        if (!$gateway->has('resume_subscription')) {
             return false;
         }
 
@@ -899,7 +1015,7 @@ class Subscription extends Model
 
     public function reSyncFromRemote()
     {
-        if ($gateway = App::gateway($this->current_payment_method)) {
+        if ($gateway = $this->resolveGateway()) {
             if ($gateway->has('subscriptions')) {
                 return $gateway->subscriptions->reSyncSubscriptionFromRemote($this);
             }
@@ -921,7 +1037,7 @@ class Subscription extends Model
             return new \WP_Error('subscription_already_cancelled', __('This subscription is already cancelled.', 'fluent-cart'));
         }
 
-        $gateway = App::gateway($this->current_payment_method);
+        $gateway = $this->resolveGateway();
 
         // No vendor subscription (store-billed, or a vendor id that never landed) —
         // nothing to cancel at the gateway.
@@ -966,12 +1082,6 @@ class Subscription extends Model
             $updateData['canceled_at'] = NULL;
         }
 
-        $config = $this->config;
-        if ($args['reason']) {
-            $config['cancellation_reason'] = $args['reason'];
-        }
-        $updateData['config'] = $config;
-
         if (Arr::get($args, 'effective_from') === 'immediately' && $updateData['status'] !== Status::SUBSCRIPTION_COMPLETED) {
             $updateData['next_billing_date'] = gmdate('Y-m-d H:i:s', time());
         }
@@ -985,6 +1095,10 @@ class Subscription extends Model
 
         $this->fill($updateData);
         $this->save();
+
+        if ($args['reason']) {
+            $this->mergeConfig(['cancellation_reason' => $args['reason']]);
+        }
 
         $note = $args['note'];
 

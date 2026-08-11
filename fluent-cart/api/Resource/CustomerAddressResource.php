@@ -314,7 +314,7 @@ class CustomerAddressResource extends BaseResourceApi
         if (!$id) {
             return static::makeErrorResponse([
                 ['code' => 403, 'message' => __('Please use a valid address ID!', 'fluent-cart')]
-            ]);
+            ], 403);
         }
 
         // Retrieve the customer address using the ID
@@ -325,7 +325,7 @@ class CustomerAddressResource extends BaseResourceApi
             if ($customerAddress->is_primary) {
                 return static::makeErrorResponse([
                     ['code' => 403, 'message' => __('Primary address cannot be deleted!', 'fluent-cart')]
-                ]);
+                ], 403);
             }
             // Get the count of addresses for this customer
             $addressCount = static::getQuery()->where('customer_id', $customerAddress->customer_id)->count();
@@ -334,7 +334,7 @@ class CustomerAddressResource extends BaseResourceApi
             if ($addressCount <= 1) {
                 return static::makeErrorResponse([
                     ['code' => 403, 'message' => __('At least one address must remain. Address deletion failed!', 'fluent-cart')]
-                ]);
+                ], 403);
             }
 
             // If the address is not primary and there are multiple addresses, proceed with deletion
@@ -345,12 +345,12 @@ class CustomerAddressResource extends BaseResourceApi
             // Return an error if the address is not found in the database
             return static::makeErrorResponse([
                 ['code' => 400, 'message' => __('Address deletion failed!', 'fluent-cart')]
-            ]);
+            ], 400);
         }
 
         return static::makeErrorResponse([
             ['code' => 404, 'message' => __('Address not found in database, failed to remove.', 'fluent-cart')]
-        ]);
+        ], 404);
     }
 
     /**

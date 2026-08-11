@@ -40,6 +40,14 @@ class ModalCheckoutRenderer
 
     private $customer;
 
+    /**
+     * Memoised result of the before_payment_methods placement filter. Null until
+     * resolved; see beforePaymentMethodsPlacement() for why it is asked only once.
+     *
+     * @var string|null
+     */
+    private $paymentMethodsHookPlacement = null;
+
     public function __construct(Cart $cart, $config = [])
     {
         $this->cart = $cart;
@@ -184,6 +192,38 @@ class ModalCheckoutRenderer
         // together with the newly computed tax data, avoiding a double write.
     }
 
+    /**
+     * Where `fluent_cart/before_payment_methods` fires in the modal.
+     *
+     * 'payment' (default) wraps the payment-method list, matching CheckoutRenderer.
+     * 'details' restores the pre-fix position in the address/shipping pane, for a
+     * store whose add-on positioned itself around that spot.
+     *
+     * Resolved ONCE per renderer and memoised. The two call sites are mutually
+     * exclusive, so the hook must fire exactly once — but that only holds if both
+     * sites agree, and a filter is free to be stateful or context-sensitive. Asking
+     * it twice would let it answer differently and either fire the hook twice or
+     * swallow it entirely. Ask once, remember the answer.
+     *
+     * @return string 'payment'|'details'
+     */
+    private function beforePaymentMethodsPlacement(): string
+    {
+        if ($this->paymentMethodsHookPlacement !== null) {
+            return $this->paymentMethodsHookPlacement;
+        }
+
+        $placement = apply_filters('fluent_cart/modal_checkout/before_payment_methods_placement', 'payment', [
+            'cart' => $this->cart,
+        ]);
+
+        // Anything unrecognised falls back to the correct placement rather than
+        // silently dropping the hook.
+        $this->paymentMethodsHookPlacement = $placement === 'details' ? 'details' : 'payment';
+
+        return $this->paymentMethodsHookPlacement;
+    }
+
     public function renderCheckoutDetails()
     {
         ?>
@@ -200,7 +240,25 @@ class ModalCheckoutRenderer
                     <?php $this->checkoutRenderer->renderShippingOptions(); ?>
                 </div>
 
-                <?php do_action('fluent_cart/before_payment_methods', ['cart' => $this->cart]); ?>
+                <?php
+                    /**
+                     * The position `fluent_cart/before_payment_methods` used to
+                     * occupy in the modal. Given its own name so an add-on that
+                     * genuinely wants this pane — under shipping, above the terms
+                     * — has a stable place to render, instead of relying on a hook
+                     * whose name promises it sits before the payment methods.
+                     *
+                     * @param array $data ['cart' => Cart]
+                     */
+                    do_action('fluent_cart/modal_checkout/after_shipping_methods', ['cart' => $this->cart]);
+
+                    // Opt-in restoration of the old placement, for a store whose
+                    // add-on positioned itself around the previous spot. Mutually
+                    // exclusive with the call site in renderCheckoutBilling().
+                    if ($this->beforePaymentMethodsPlacement() === 'details') {
+                        do_action('fluent_cart/before_payment_methods', ['cart' => $this->cart]);
+                    }
+                ?>
 
                 <?php $this->checkoutRenderer->agreeTerms(); ?>
 
@@ -565,9 +623,32 @@ class ModalCheckoutRenderer
                     </h4>
                 </header>
 
+                <?php
+                    /**
+                     * Fired here, wrapping the payment methods, exactly as
+                     * CheckoutRenderer does. It used to fire from
+                     * renderCheckoutDetails() — the address/shipping pane — which
+                     * is a different part of the modal entirely, so anything
+                     * hooked to it (the saved-payment-method picker, Turnstile)
+                     * rendered detached from the methods it belongs to. A hook
+                     * named "before payment methods" has to fire before the
+                     * payment methods.
+                     */
+                    if ($this->beforePaymentMethodsPlacement() === 'payment') {
+                        do_action('fluent_cart/before_payment_methods', ['cart' => $this->cart]);
+                    }
+                ?>
+
                 <div class="fct_checkout_payment_methods" data-fluent-cart-checkout-payment-methods>
                     <?php $this->renderPaymentMethods(); ?>
                 </div>
+
+                <?php
+                    // The modal never fired this at all, so add-ons rendering
+                    // below the methods (the save-my-card consent box) were
+                    // simply absent from quick checkout.
+                    do_action('fluent_cart/after_payment_methods', ['cart' => $this->cart]);
+                ?>
 
                 <div class="fct-modal-checkout-btn-wrap">
                     <?php (new CheckoutRenderer($this->cart))->renderCheckoutButton(); ?>

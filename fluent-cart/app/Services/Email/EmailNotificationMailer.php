@@ -47,6 +47,14 @@ class EmailNotificationMailer
         }, 999, 1);
 
         // to customer and admin
+        add_action('fluent_cart/subscription_renewal_failed', function ($data) {
+            $this->mailEmailsOfEvent(
+                'subscription_renewal_failed',
+                $data
+            );
+        }, 999, 1);
+
+        // to customer and admin
         add_action('fluent_cart/subscription_canceled', function ($data) {
             $this->mailEmailsOfEvent(
                 'subscription_canceled',

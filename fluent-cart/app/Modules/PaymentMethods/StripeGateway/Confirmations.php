@@ -347,39 +347,27 @@ class Confirmations
                     'type' => $type,
                 ];
 
-                $fingerprint = null;
-                switch ($type) {
-                    case 'card':
-                        $pm['last4'] = Arr::get($method, 'card.last4');
-                        $pm['brand'] = Arr::get($method, 'card.brand');
-                        $pm['exp_month'] = Arr::get($method, 'card.exp_month');
-                        $pm['exp_year'] = Arr::get($method, 'card.exp_year');
-                        $pm['fingerprint'] = Arr::get($method, 'card.fingerprint');
-                        $fingerprint = $pm['fingerprint'];
-                        break;
-//                   case 'sepa_debit':
-//                       $pm['last4'] = Arr::get($method, 'sepa_debit.last4');
-//                       $fingerprint = Arr::get($method, 'sepa_debit.fingerprint');
-//                       break;
-//                   case 'ach_debit':
-//                       $pm['last4'] = Arr::get($method, 'ach_debit.last4');
-//                       $fingerprint = Arr::get($method, 'ach_debit.fingerprint');
-//                       break;
-//                   case 'ach_credit_transfer':
-//                       $pm['account_number'] = Arr::get($method, 'ach_credit_transfer.account_number');
-//                       $fingerprint = Arr::get($method, 'ach_credit_transfer.fingerprint');
-//                       break;
-//                   case 'us_bank_account':
-//                       $pm['account_number'] = Arr::get($method, 'us_bank_account.account_number');
-//                       $fingerprint = Arr::get($method, 'us_bank_account.fingerprint');
-//                       break;
-//                   case 'bacs_debit':
-//                       $pm['account_number'] = Arr::get($method, 'bacs_debit.account_number');
-//                       $fingerprint = Arr::get($method, 'bacs_debit.fingerprint');
-//                       break;
-                    default:
-                        break;
+                $details = Arr::get($method, $type);
+                if (!is_array($details)) {
+                    $details = [];
                 }
+
+                foreach (['last4', 'brand', 'exp_month', 'exp_year', 'fingerprint'] as $field) {
+                    if (Arr::has($details, $field)) {
+                        $pm[$field] = Arr::get($details, $field);
+                    }
+                }
+
+                // Identifier for account-like methods: link.email, paypal.payer_email,
+                // cashapp.cashtag — first one present labels the entry in the UI.
+                foreach (['email', 'payer_email', 'cashtag'] as $field) {
+                    if (Arr::get($details, $field)) {
+                        $pm['email'] = Arr::get($details, $field);
+                        break;
+                    }
+                }
+
+                $fingerprint = Arr::get($details, 'fingerprint');
 
                 if ($fingerprint && in_array($fingerprint, $seenFingerprints, true)) {
                     continue;
@@ -397,11 +385,12 @@ class Confirmations
         }
 
         $meta = $fctCustomer->getMeta($metaKey);
+        if (!is_array($meta)) {
+            $meta = [];
+        }
         $meta['stripe'] = $stripeMeta;
 
-        $fctCustomer->updateMeta($metaKey, [
-            'stripe' => $stripeMeta
-        ]);
+        $fctCustomer->updateMeta($metaKey, $meta);
     }
 
     public function confirmSetupIntent($setupIntent, $trxHash = null)

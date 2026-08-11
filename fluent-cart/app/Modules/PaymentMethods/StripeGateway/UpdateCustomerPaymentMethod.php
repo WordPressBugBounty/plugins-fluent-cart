@@ -34,9 +34,10 @@ class UpdateCustomerPaymentMethod
 
             if ($localSubscription instanceof Subscription && $localSubscription->isSystem()) {
                 $this->updateSystemPaymentMethod($localSubscription, $newPaymentMethod, $verificationStatus);
+                return;
             }
 
-            return;
+            throw new \Exception(esc_html__('This subscription has no vendor subscription to update.', 'fluent-cart'), 423);
         }
 
         // get customer id
