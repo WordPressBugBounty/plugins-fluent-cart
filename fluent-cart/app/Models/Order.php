@@ -57,6 +57,16 @@ class Order extends Model
         });
 
         static::created(function ($model) {
+            // Every order carries a companion operations row. ReceiptHandler reads
+            // sales_recorded off it to decide whether a receipt is being seen for the
+            // first time, and that gates fluent_cart/after_receipt_first_time — an order
+            // without the row silently never fires its purchase event.
+            //
+            // Created here rather than at each call site because orders also come from
+            // renewals, subscription child orders, the admin and WP-CLI, none of which
+            // pass through the checkout or dispatch fluent_cart/order_created.
+            OrderOperation::query()->firstOrCreate(['order_id' => $model->id]);
+
             if ($model->invoice_no) {
                 do_action('fluent_cart/order/invoice_number_added', [
                     'order' => $model

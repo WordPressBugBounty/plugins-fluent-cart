@@ -12,6 +12,39 @@ use FluentCart\Framework\Support\Arr;
 
 class Processor
 {
+    /**
+     * The return URL handed to Stripe for an onsite confirm.
+     *
+     * Onsite normally never navigates (`redirect: 'if_required'`), but an
+     * issuer that forces a full 3DS redirect sends the buyer here. Deliberately
+     * unfiltered: this is a machine contract dispatched by core WebRoutes to
+     * the fluent_cart_action_fct_stripe_onsite_return action, which confirms
+     * before the buyer is sent anywhere.
+     *
+     * @param \FluentCart\App\Models\OrderTransaction $transaction
+     * @return string
+     */
+    public static function getOnsiteGatewayReturnUrl($transaction)
+    {
+        return site_url('?fluent-cart=fct_stripe_onsite_return&trx_hash=' . $transaction->uuid);
+    }
+
+    /**
+     * The return URL handed to Stripe for hosted checkout sessions.
+     *
+     * Deliberately unfiltered: this URL is a machine contract dispatched by
+     * core WebRoutes to the fluent_cart_action_fct_stripe_hosted action,
+     * which confirms the session. The buyer's real destination —
+     * fluent_cart/payment/success_url — is applied AFTER confirmation, in
+     * the hosted-return redirect.
+     *
+     * @param \FluentCart\App\Models\OrderTransaction $transaction
+     * @return string
+     */
+    public static function getHostedGatewayReturnUrl($transaction)
+    {
+        return site_url('?fluent-cart=fct_stripe_hosted&trx_hash=' . $transaction->uuid);
+    }
 
     public function handleSubscription(PaymentInstance $paymentInstance, $paymentArgs)
     {
@@ -32,10 +65,6 @@ class Processor
 
         if (!$subscriptionModel) {
             return new \WP_Error('no_subscription', __('No subscription found.', 'fluent-cart'));
-        }
-
-        if ($guardError = $this->guardExistingRemoteSubscription($subscriptionModel)) {
-            return $guardError;
         }
 
         $stripeCustomer = StripeHelper::createOrGetStripeCustomer($paymentInstance->order->customer);
@@ -158,26 +187,45 @@ class Processor
         // incomplete subscription auto-expires). Params, not transaction->total: a
         // recurring coupon can change the plan while the first charge stays $0.
         // Metadata excluded — volatile filters must not change the key on a duplicate.
+        // Guard runs here, after the create body is built, so it can compare it.
+        $existingRemoteSubscription = $this->guardExistingRemoteSubscription($subscriptionModel, $paymentInstance->order, $stripeSubscriptionData);
+        if (is_wp_error($existingRemoteSubscription)) {
+            return $existingRemoteSubscription;
+        }
+
         $idempotencyFingerprint = [
             'customer'          => Arr::get($stripeSubscriptionData, 'customer'),
             'items'             => Arr::get($stripeSubscriptionData, 'items'),
             'add_invoice_items' => Arr::get($stripeSubscriptionData, 'add_invoice_items'),
             'trial_end'         => Arr::get($stripeSubscriptionData, 'trial_end'),
+            'replaces'          => (string)Arr::get(
+                (array)$subscriptionModel->config,
+                'stripe_replaced_vendor_sub_id',
+                ''
+            ),
         ];
         $idempotencySeed = $paymentInstance->getIdempotencySeed();
         $idempotencyKey = $idempotencySeed
             ? 'fct_stripe_sub_' . md5($idempotencySeed . '|' . wp_json_encode($idempotencyFingerprint))
             : null;
 
-        $stripeSubscription = (new API())->createStripeObject('subscriptions', $stripeSubscriptionData, 'current', [
-            'Idempotency-Key' => $idempotencyKey
-        ]);
+        if ($existingRemoteSubscription) {
+            $stripeSubscription = $existingRemoteSubscription;
+        } else {
+            $stripeSubscription = (new API())->createStripeObject('subscriptions', $stripeSubscriptionData, 'current', [
+                'Idempotency-Key' => $idempotencyKey
+            ]);
+        }
 
         if (is_wp_error($stripeSubscription)) {
             return $stripeSubscription;
         }
 
+        // A guard-reused sub carries an expanded payment_intent object here.
         $vendorChargeId = Arr::get($stripeSubscription, 'latest_invoice.payment_intent');
+        if (is_array($vendorChargeId)) {
+            $vendorChargeId = Arr::get($vendorChargeId, 'id');
+        }
         if (!$vendorChargeId) {
             $vendorChargeId = Arr::get($stripeSubscription, 'pending_setup_intent.id');
         }
@@ -239,18 +287,50 @@ class Processor
      * attached — the previous create succeeded but its confirm/webhook never
      * landed, and a changed cart mints a fresh idempotency key, so the key alone
      * cannot stop a second create. A second create bills the customer on a
-     * subscription the store cannot see or cancel. Billing-active remote: block
-     * the create and re-sync local state from Stripe. Unconfirmed incomplete
-     * remote: cancel it so the fresh create is the only confirmable one.
+     * subscription the store cannot see or cancel.
+     *
+     * Ownership discriminator: metadata.fct_ref_id (stamped at create) must match
+     * $order->uuid before the guard reuses or cancels anything. A non-matching sub
+     * belongs to another flow — on renewal, the previous cycle's subscription that
+     * SubscriptionRenewalHandler cancels only after payment succeeds — so the
+     * guard must leave it alone. active/trialing blocks regardless of owner: the
+     * customer must never be charged beside a live subscription. One exception:
+     * an owned trialing sub with no payment method and a still-confirmable
+     * pending_setup_intent is handed back for reuse — a $0 first invoice skips
+     * `incomplete`, so a failed card setup leaves the sub trialing, not dead.
+     *
+     * Owned incomplete the buyer can still confirm is handed back for reuse —
+     * `incomplete` is the normal status for the whole confirm (3DS) window, and
+     * cancelling it voids the PaymentIntent mid-confirmation
+     * (payment_intent_unexpected_state). Owned but dead is cancelled, the
+     * cancelled id persisted to subscription config
+     * (stripe_replaced_vendor_sub_id) and the local vendor id cleared; the
+     * caller folds the persisted id into the idempotency fingerprint so the
+     * recreate cannot replay Stripe's 24h-cached response for the deleted sub
+     * (the pending transaction's seed has not rolled). Persisted, not
+     * request-local, so a retry after an ambiguously failed recreate computes
+     * the same key and Stripe's idempotent replay recovers the unrecorded sub.
+     * A failed cancel fails CLOSED, like guardExistingPaymentIntent.
+     *
+     * @param array $requestData create body for reuse comparison; empty (hosted
+     *                           Checkout Session) means nothing is reusable.
+     * @return array|\WP_Error|null reusable remote sub, stop, or create fresh
      */
-    private function guardExistingRemoteSubscription($subscriptionModel)
+    private function guardExistingRemoteSubscription($subscriptionModel, $order, $requestData = [])
     {
         $existingVendorSubId = $subscriptionModel->vendor_subscription_id;
-        if (!$existingVendorSubId) {
+        if (!$existingVendorSubId || strpos($existingVendorSubId, 'sub_') !== 0) {
             return null;
         }
 
-        $remoteSub = (new API())->getStripeObject('subscriptions/' . $existingVendorSubId, [], 'current');
+        $remoteSub = (new API())->getStripeObject('subscriptions/' . $existingVendorSubId, [
+            'expand' => [
+                'latest_invoice.confirmation_secret',
+                'latest_invoice.payment_intent',
+                'pending_setup_intent'
+            ]
+        ], 'current');
+
         if (is_wp_error($remoteSub)) {
             return null;
         }
@@ -258,6 +338,19 @@ class Processor
         $remoteStatus = Arr::get($remoteSub, 'status');
 
         if (in_array($remoteStatus, ['active', 'trialing'], true)) {
+            // A $0 first invoice skips `incomplete`: the sub is `trialing` while the
+            // card is still being set up via pending_setup_intent, and a failed 3DS
+            // leaves it trialing with no payment method. Hand the setup intent back
+            // so the buyer's retry can attach a card instead of being blocked.
+            if (
+                $remoteStatus === 'trialing'
+                && !Arr::get($remoteSub, 'default_payment_method')
+                && Arr::get($remoteSub, 'metadata.fct_ref_id') === $order->uuid
+                && $this->remoteSubscriptionIsConfirmable($remoteSub, $requestData)
+            ) {
+                return $remoteSub;
+            }
+
             (new StripeSubscriptions())->reSyncSubscriptionFromRemote($subscriptionModel);
             return new \WP_Error(
                 'stripe_subscription_already_active',
@@ -265,23 +358,135 @@ class Processor
             );
         }
 
-        if (in_array($remoteStatus, ['incomplete', 'unpaid'], true)) {
-            $cancelResponse = (new API())->deleteStripeObject('subscriptions/' . $existingVendorSubId, [], 'current');
-            if (is_wp_error($cancelResponse)) {
-                fluent_cart_warning_log(
-                    'Stripe stale ' . $remoteStatus . ' subscription cancel failed',
-                    $cancelResponse->get_error_message() . ' (' . $existingVendorSubId . ')',
-                    [
-                        'module_type' => 'FluentCart\App\Models\Subscription',
-                        'module_id'   => $subscriptionModel->id,
-                        'module_name' => 'subscription',
-                        'log_type'    => 'api'
-                    ]
-                );
-            }
+        if (Arr::get($remoteSub, 'metadata.fct_ref_id') !== $order->uuid) {
+            return null;
         }
 
+        // Already canceled remotely (e.g. an earlier guard cancel whose replacement
+        // create failed before it was recorded): mark it replaced and clear the
+        // local id — the retry then recomputes the post-cancel key, and Stripe's
+        // idempotent replay recovers any unrecorded replacement.
+        if (in_array($remoteStatus, ['canceled', 'incomplete_expired'], true)) {
+            $subscriptionModel->mergeConfig(['stripe_replaced_vendor_sub_id' => $existingVendorSubId]);
+            $subscriptionModel->update(['vendor_subscription_id' => '']);
+            return null;
+        }
+
+        if (!in_array($remoteStatus, ['incomplete', 'unpaid'], true)) {
+            return null;
+        }
+
+        if ($remoteStatus === 'incomplete' && $this->remoteSubscriptionIsConfirmable($remoteSub, $requestData)) {
+            return $remoteSub;
+        }
+
+        $cancelResponse = (new API())->deleteStripeObject('subscriptions/' . $existingVendorSubId, [], 'current');
+        if (is_wp_error($cancelResponse)) {
+            fluent_cart_warning_log(
+                'Stripe stale ' . $remoteStatus . ' subscription cancel failed',
+                $cancelResponse->get_error_message() . ' (' . $existingVendorSubId . ')',
+                [
+                    'module_type' => 'FluentCart\App\Models\Subscription',
+                    'module_id'   => $subscriptionModel->id,
+                    'module_name' => 'subscription',
+                    'log_type'    => 'api'
+                ]
+            );
+
+            return new \WP_Error(
+                'stripe_subscription_cancel_failed',
+                __('We could not update your previous subscription attempt. Please wait a moment and try again.', 'fluent-cart')
+            );
+        }
+
+        // Marker before id-clear: a crash between the two leaves the id pointing at
+        // the now-canceled sub, which the canceled branch above converges on retry.
+        $subscriptionModel->mergeConfig(['stripe_replaced_vendor_sub_id' => $existingVendorSubId]);
+        $subscriptionModel->update(['vendor_subscription_id' => '']);
+
         return null;
+    }
+
+    /**
+     * The intent (payment or setup) must still be browser-confirmable AND the
+     * subscription must bill exactly what this attempt would create — a cart
+     * edited between attempts mints new Stripe price ids, and reusing the old
+     * subscription would charge the wrong amount.
+     */
+    private function remoteSubscriptionIsConfirmable($remoteSub, $requestData)
+    {
+        if (!$requestData) {
+            return false;
+        }
+
+        $confirmable = ['requires_payment_method', 'requires_confirmation', 'requires_action'];
+
+        $intentStatus = Arr::get($remoteSub, 'latest_invoice.payment_intent.status');
+        $clientSecret = Arr::get($remoteSub, 'latest_invoice.confirmation_secret.client_secret');
+        if (!$intentStatus) {
+            $intentStatus = Arr::get($remoteSub, 'pending_setup_intent.status');
+            $clientSecret = Arr::get($remoteSub, 'pending_setup_intent.client_secret');
+        }
+
+        if (!in_array($intentStatus, $confirmable, true) || !$clientSecret) {
+            return false;
+        }
+
+        return $this->subscriptionChargeMaterialMatches($remoteSub, $requestData);
+    }
+
+    /**
+     * Recurring items are compared against `items.data`; one-off signup/addon
+     * lines live only on the first invoice, so they are compared against
+     * `latest_invoice.lines` when the invoice carries any — a $0 trial invoice
+     * often carries none, and falling back to the item comparison there keeps
+     * trial checkouts reusable instead of cancelling a live intent.
+     */
+    private function subscriptionChargeMaterialMatches($remoteSub, $requestData)
+    {
+        $wantedItems = [];
+        foreach ((array)Arr::get($requestData, 'items', []) as $item) {
+            $priceId = Arr::get($item, 'plan', Arr::get($item, 'price'));
+            $wantedItems[] = (string)$priceId . ':' . (int)(Arr::get($item, 'quantity') ?: 1);
+        }
+
+        $remoteItems = [];
+        foreach ((array)Arr::get($remoteSub, 'items.data', []) as $item) {
+            $priceId = Arr::get($item, 'price.id', Arr::get($item, 'plan.id'));
+            $remoteItems[] = (string)$priceId . ':' . (int)(Arr::get($item, 'quantity') ?: 1);
+        }
+
+        sort($wantedItems);
+        sort($remoteItems);
+
+        if (!$wantedItems || $wantedItems !== $remoteItems) {
+            return false;
+        }
+
+        $remoteLines = [];
+        foreach ((array)Arr::get($remoteSub, 'latest_invoice.lines.data', []) as $line) {
+            $remoteLines[] = (string)Arr::get($line, 'price.id', Arr::get($line, 'plan.id'));
+        }
+
+        if (!$remoteLines) {
+            return true;
+        }
+
+        $wantedLines = [];
+        foreach ((array)Arr::get($requestData, 'items', []) as $item) {
+            $wantedLines[] = (string)Arr::get($item, 'plan', Arr::get($item, 'price'));
+        }
+        foreach ((array)Arr::get($requestData, 'add_invoice_items', []) as $item) {
+            $wantedLines[] = (string)Arr::get($item, 'price');
+        }
+
+        $remoteLines = array_values(array_unique($remoteLines));
+        $wantedLines = array_values(array_unique($wantedLines));
+    
+        sort($remoteLines);
+        sort($wantedLines);
+
+        return $wantedLines === $remoteLines;
     }
 
     /**
@@ -346,7 +551,7 @@ class Processor
             return [
                 'fct_redirect' => true,
                 'status'       => 'success',
-                'redirect_to'  => $transaction->getReceiptPageUrl(),
+                'redirect_to'  => $transaction->getSuccessUrl(),
                 'message'      => __('Your payment has already been processed. Redirecting to your order...', 'fluent-cart')
             ];
         }
@@ -511,7 +716,7 @@ class Processor
             'client_reference_id' => $order->uuid,
             'mode'                => 'setup',
             'currency'            => strtolower($transactionCurrency),
-            'success_url'         => Arr::get($paymentArgs, 'success_url') . '&fct_stripe_hosted=1&trx_hash=' . $transaction->uuid,
+            'success_url'         => Processor::getHostedGatewayReturnUrl($transaction),
             'cancel_url'          => StripeHelper::getCancelUrl(),
             'metadata'            => [
                 'fct_ref_id'       => $order->uuid,
@@ -739,7 +944,7 @@ class Processor
             'client_reference_id' => $order->uuid,
             'line_items'         => $lineItems,
             'mode'               => 'payment',
-            'success_url'        => Arr::get($paymentArgs, 'success_url') . '&fct_stripe_hosted=1&trx_hash=' . $transaction->uuid,
+            'success_url'        => Processor::getHostedGatewayReturnUrl($transaction),
             'cancel_url'         => StripeHelper::getCancelUrl(),
             'metadata'           => [
                 'fct_ref_id'      => $order->uuid,
@@ -824,7 +1029,10 @@ class Processor
             return new \WP_Error('no_subscription', __('No subscription found.', 'fluent-cart'));
         }
 
-        if ($guardError = $this->guardExistingRemoteSubscription($subscriptionModel)) {
+        // No request body: a hosted Checkout Session mints its own subscription,
+        // so nothing is reusable here.
+        $guardError = $this->guardExistingRemoteSubscription($subscriptionModel, $order);
+        if (is_wp_error($guardError)) {
             return $guardError;
         }
 
@@ -929,7 +1137,7 @@ class Processor
             'line_items'          => $lineItems,
             'mode'                => 'subscription',
             'consent_collection' => ['payment_method_reuse_agreement' => ['position' => 'hidden']],
-            'success_url'         => Arr::get($paymentArgs, 'success_url') . '&fct_stripe_hosted=1&trx_hash=' . $transaction->uuid,
+            'success_url'         => Processor::getHostedGatewayReturnUrl($transaction),
             'cancel_url'          => StripeHelper::getCancelUrl(),
             'subscription_data'   => $subscriptionData,
             'metadata'            => [
@@ -954,6 +1162,13 @@ class Processor
             'line_items'        => Arr::get($sessionData, 'line_items'),
             'mode'              => Arr::get($sessionData, 'mode'),
             'subscription_data' => Arr::get($sessionData, 'subscription_data'),
+            // See the onsite path: rolls the key after a guard cancel, read from
+            // the persisted marker so retries recompute the same key.
+            'replaces'          => (string)Arr::get(
+                (array)$subscriptionModel->config,
+                'stripe_replaced_vendor_sub_id',
+                ''
+            ),
         ];
         $idempotencySeed = $paymentInstance->getIdempotencySeed();
         $idempotencyKey = $idempotencySeed

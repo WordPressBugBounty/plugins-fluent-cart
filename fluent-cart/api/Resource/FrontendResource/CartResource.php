@@ -405,7 +405,11 @@ class CartResource extends BaseResourceApi
 
         $utmData = static::prepareUtmData($data);
         if ($utmData) {
-            $cart->utm_data = array_merge(is_array($cart->utm_data) ? $cart->utm_data : [], $utmData);
+            // Replaced, not merged. A cart row is reused across visits, so merging
+            // key by key accumulated a union of every touch that ever reached it and
+            // the column stopped describing any single one. The browser has already
+            // resolved which touch this is, so its block is the answer.
+            $cart->utm_data = $utmData;
             $cart->save();
         }
 

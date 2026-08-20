@@ -25,7 +25,7 @@ class PayPal extends AbstractPaymentGateway
 
     public array $supportedFeatures = ['payment', 'refund', 'webhook', 'custom_payment', 'card_update', 'switch_payment_method' => [
         'supported_gateways' => ['stripe', 'paypal'],
-    ], 'dispute_handler', 'subscriptions', 'resume_subscription', 'system_subscription', 'manual_subscription'];
+    ], 'dispute_handler', 'subscriptions', 'resume_subscription', 'system_subscription', 'manual_subscription', 'verify_vendor_ids'];
 
     private $vaultUserIdToken = '';
 
@@ -454,7 +454,7 @@ class PayPal extends AbstractPaymentGateway
 
             wp_send_json([
                 'status'       => 'pending',
-                'redirect_url' => $transaction->getReceiptPageUrl(true),
+                'redirect_url' => $this->getConfirmRedirectUrl($transaction),
                 'order'        => [
                     'uuid' => $transaction->order->uuid
                 ],
@@ -516,7 +516,7 @@ class PayPal extends AbstractPaymentGateway
 
         wp_send_json([
             'status'       => 'success',
-            'redirect_url' => $transaction->getReceiptPageUrl(true),
+            'redirect_url' => $this->getConfirmRedirectUrl($transaction),
             'order'        => [
                 'uuid' => $transaction->order->uuid
             ],
@@ -601,7 +601,7 @@ class PayPal extends AbstractPaymentGateway
 
         wp_send_json([
             'status'       => 'success',
-            'redirect_url' => $transaction->getReceiptPageUrl(true),
+            'redirect_url' => $this->getConfirmRedirectUrl($transaction),
             'order'        => [
                 'uuid' => $transaction->order->uuid
             ],
@@ -716,7 +716,7 @@ class PayPal extends AbstractPaymentGateway
         wp_send_json([
             'status'       => 'success',
             'message'      => __('Subscription has been activated successfully!', 'fluent-cart'),
-            'redirect_url' => $transaction->getReceiptPageUrl(true),
+            'redirect_url' => $this->getConfirmRedirectUrl($transaction),
             'order'        => [
                 'uuid' => $transaction->order->uuid
             ],
@@ -726,6 +726,25 @@ class PayPal extends AbstractPaymentGateway
     protected function getPayPalSubscription($subscriptionId)
     {
         return API::getResource('billing/subscriptions/' . $subscriptionId);
+    }
+
+    /**
+     * Post-payment redirect for PayPal confirm responses. The canonical
+     * fluent_cart/payment/success_url filter fires inside getSuccessUrl();
+     * the receipt_page_url filter is bridged for existing consumers of the
+     * previous PayPal redirect and will be dropped from this path later.
+     */
+    private function getConfirmRedirectUrl($transaction)
+    {
+        $url = $transaction->getSuccessUrl();
+
+        return apply_filters_deprecated(
+            'fluent_cart/transaction/receipt_page_url',
+            [$url, ['transaction' => $transaction, 'order' => $transaction->order]],
+            '1.6.2',
+            'fluent_cart/payment/success_url',
+            'PayPal post-payment redirects now go through fluent_cart/payment/success_url. Hook that filter instead; this bridge will be removed in a future release.'
+        );
     }
 
     protected function verifyPayPalPayment($payPalReferenceId)

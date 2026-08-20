@@ -10,6 +10,7 @@ use FluentCart\App\Services\Filter\Concerns\HandleDateFilter;
 use FluentCart\App\Services\Filter\Concerns\HandleRelationalFilter;
 use FluentCart\App\Services\Permission\PermissionManager;
 use FluentCart\Framework\Database\Orm\Builder;
+use FluentCart\Framework\Database\Query\Builder as QueryBuilder;
 use FluentCart\Framework\Http\Request\Request;
 use FluentCart\Framework\Pagination\LengthAwarePaginator;
 use FluentCart\Framework\Support\Arr;
@@ -303,6 +304,14 @@ abstract class BaseFilter
             return $this->defaultSortBy;
         }
 
+        // Declared sort options are an allow-list written in PHP (the filter
+        // class + the {filterName}_table_sorts hook), so they are trusted the
+        // same way $fillable is — that is what lets a filter or an add-on offer
+        // a sort that is not a fillable column.
+        if (array_key_exists($sortBy, static::getSortableColumns())) {
+            return $sortBy;
+        }
+
         /**
          * @var Model $modelObject
          */
@@ -591,7 +600,29 @@ abstract class BaseFilter
 
     protected function applySort()
     {
-        $this->query = $this->query->orderBy($this->sortBy, $this->sortType);
+        $column = Arr::get(static::getSortableColumns(), $this->sortBy . '.column');
+
+        // A declared option may hand over its own ordering — that is how a sort
+        // that is not a plain column on this table (an aggregate, a joined
+        // relation) gets applied.
+        if (is_callable($column)) {
+            $sorted = call_user_func($column, $this->query, $this->sortType);
+
+            // Only a builder replaces the query. A callback that orders in place
+            // and returns nothing — or returns something else entirely — must not
+            // be able to swap the query out from under the rest of the filter.
+            if ($sorted instanceof Builder || $sorted instanceof QueryBuilder) {
+                $this->query = $sorted;
+            }
+
+            return;
+        }
+
+        if (!is_string($column) || $column === '') {
+            $column = $this->sortBy;
+        }
+
+        $this->query = $this->query->orderBy($column, $this->sortType);
     }
 
     /**
@@ -890,8 +921,17 @@ abstract class BaseFilter
                 continue;
             }
 
-            // Normalize string value to array for merging
-            if (is_string($value) && $value !== '') {
+            // Normalize string value to array for merging.
+            //
+            // Only for the membership operators. `contains`/`not_contains` on a
+            // text field are substring searches ("Includes gmail"), and wrapping
+            // one into an array sends it down the whereIn path below — an exact
+            // match, so the search silently returns nothing. Left as a string it
+            // is passed through unmerged and handleRelation answers it with a
+            // LIKE. Array values for those operators (ids from a
+            // remote_tree_select field such as Order Items) still merge, which is
+            // what this merge was written for.
+            if (is_string($value) && $value !== '' && in_array($operator, ['in', 'not_in'], true)) {
                 $value = [$value];
                 $item['value'] = $value;
             }
@@ -943,7 +983,7 @@ abstract class BaseFilter
     private function searchFromArray(Builder &$query, array $filterItem)
     {
         $property = $filterItem['property'];
-        $operator = $filterItem['operator'];
+        $operator = $this->resolveOperator($filterItem['operator']);
         $searchTerm = $filterItem['value'];
         $methodName = 'modify' . Str::studly($property . '_value');
 
@@ -976,7 +1016,7 @@ abstract class BaseFilter
     private function searchFromString(Builder &$query, array $filterItem)
     {
         $property = $filterItem['property'];
-        $operator = $filterItem['operator'];
+        $operator = $this->resolveOperator($filterItem['operator']);
         $searchTerm = $filterItem['value'];
 
         $methodName = 'modify' . Str::studly($property . '_value');
@@ -1078,6 +1118,75 @@ abstract class BaseFilter
             ['=', '!=', '>', '<', '>=', '<=', '::'],
             $except
         );
+    }
+
+    /**
+     * The operator vocabulary this engine resolves: the operator a request may
+     * name => the operator actually applied to the query.
+     *
+     * Every entry core ships is an identity mapping, so translating through this
+     * map changes nothing on its own. The indirection exists so that filter
+     * options contributed from outside this class — an add-on's, or one of the
+     * named operators the built-in options already advertise — can be taught to
+     * the engine without editing it.
+     *
+     * Why it matters that an unknown operator never reaches the query builder:
+     * Query\Builder::invalidOperator() silently rewrites one it does not
+     * recognise into `=` and compares the column against the operator STRING, so
+     * the filter does not error — it returns wrong rows.
+     *
+     * @return array<string, string>
+     */
+    public static function supportedOperators(): array
+    {
+        $operators = [
+            '='            => '=',
+            '!='           => '!=',
+            '>'            => '>',
+            '<'            => '<',
+            '>='           => '>=',
+            '<='           => '<=',
+            '::'           => '::',
+            'in'           => 'in',
+            'not_in'       => 'not_in',
+            'in_all'       => 'in_all',
+            'not_in_all'   => 'not_in_all',
+            'contains'     => 'contains',
+            'not_contains' => 'not_contains',
+            'is_null'      => 'is_null',
+            'not_null'     => 'not_null',
+            'before'       => 'before',
+            'after'        => 'after',
+            'date_equal'   => 'date_equal',
+            'between'      => 'between',
+        ];
+
+        // Listeners must declare add_filter(..., 10, 2) to receive the context.
+        return apply_filters(
+            'fluent_cart/filter/supported_operators',
+            $operators,
+            ['filter_name' => static::getFilterName()]
+        );
+    }
+
+    /**
+     * Translate a requested operator into the one the engine applies.
+     *
+     * An operator with no entry is returned untouched — declining to resolve it
+     * here keeps this behaviour-neutral for anything already in use.
+     *
+     * @param mixed $operator
+     * @return mixed
+     */
+    protected function resolveOperator($operator)
+    {
+        if (!is_string($operator)) {
+            return $operator;
+        }
+
+        $resolved = Arr::get(static::supportedOperators(), $operator);
+
+        return is_string($resolved) && $resolved !== '' ? $resolved : $operator;
     }
 
     public function applySimpleOperatorFilter(?string $search = null): bool
@@ -1376,12 +1485,71 @@ abstract class BaseFilter
         return apply_filters("fluent_cart/{$filterName}_table_columns", []);
     }
 
+    /**
+     * Sort options this filter offers, keyed by the value the table sends as
+     * `sort_by`:
+     *
+     *     'id'          => ['label' => 'Order ID', 'column' => 'id'],
+     *     'best_seller' => ['label' => 'Best Selling', 'column' => function ($query, $direction) {
+     *         return $query->orderBy('order_items_count', $direction);
+     *     }],
+     *
+     * `column` is the real DB column to ORDER BY, or a callable that receives
+     * ($query, $direction) and applies its own ordering — which is how an
+     * add-on sorts by something that is not a plain column on this table.
+     *
+     * Filter classes override this with the core defaults; add-ons append
+     * through the hook in getSortableColumns().
+     *
+     * @return array<string, array<string, mixed>>
+     */
+    protected static function sortableColumns(): array
+    {
+        return [];
+    }
+
+    /**
+     * The declared sort options plus whatever add-ons registered.
+     *
+     * This map is the allow-list parseSortBy() validates `sort_by` against and
+     * the handler table applySort() resolves against, so a registered option
+     * actually reaches ORDER BY instead of being dropped for not being fillable.
+     *
+     * @return array<string, array<string, mixed>>
+     */
+    public static function getSortableColumns(): array
+    {
+        $filterName = static::getFilterName();
+        $columns = apply_filters("fluent_cart/{$filterName}_table_sorts", static::sortableColumns());
+
+        return is_array($columns) ? $columns : [];
+    }
+
+    /**
+     * What the admin table receives: a `sort_by value => label` map. The column
+     * (or the callable behind it) stays server side — it is not serializable,
+     * and resolving it is the backend's job.
+     *
+     * @return array<string, string>
+     */
+    public static function getSortOptions(): array
+    {
+        $options = [];
+
+        foreach (static::getSortableColumns() as $value => $option) {
+            $options[$value] = (string)Arr::get($option, 'label', $value);
+        }
+
+        return $options;
+    }
+
     public static function getTableFilterOptions(): array
     {
         return [
             'advance' => static::getAdvanceFilterOptions(),
             'guide'   => static::getSearchableFields(),
             'columns' => static::getCustomColumns(),
+            'sorts'   => static::getSortOptions(),
         ];
     }
 

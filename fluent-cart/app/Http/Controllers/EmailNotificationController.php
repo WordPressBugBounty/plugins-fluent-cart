@@ -156,6 +156,14 @@ class EmailNotificationController extends Controller
         $previewService = new EmailPreviewService();
         $data = $previewService->getPreviewData($template);
 
+        // Let add-ons adjust the preview data for their own templates — e.g. unset
+        // `order` so an orderless notification (wishlist, withdrawal, …) previews
+        // without the order header (emails.parts.order_header renders only when
+        // $order is non-empty), or add the sample context their smartcodes need.
+        // Core templates are untouched: no core listener changes $data. The context
+        // is an array so more keys can be added later without changing the signature.
+        $data = apply_filters('fluent_cart/email/preview_data', $data, ['template' => $template]);
+
         $body = TemplateService::getTemplateByPathName($template, $data);
 
         // Wrap in the same outer email template used by actual emails

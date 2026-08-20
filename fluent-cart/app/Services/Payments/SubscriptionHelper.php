@@ -51,30 +51,11 @@ class SubscriptionHelper
             $baseDate = DateTime::gmtNow()->format('Y-m-d H:i:s');
         }
 
-        switch (strtolower($subscriptionModel->billing_interval)) {
-            case 'daily':
-                $next = strtotime($baseDate . " +1 day");
-                break;
-            case 'weekly':
-                $next = strtotime($baseDate . " +1 week");
-                break;
-            case 'monthly':
-                $next = strtotime($baseDate . " +1 month");
-                break;
-            case 'quarterly':
-                $next = strtotime($baseDate . " +3 months");
-                break;
-            case 'half_yearly':
-                $next = strtotime($baseDate . " +6 months");
-                break;
-            case 'yearly':
-                $next = strtotime($baseDate . " +1 year");
-                break;
-            default:
-                $next = strtotime($baseDate . " +1 month"); // fallback
-        }
-
-        return gmdate('Y-m-d H:i:s', $next);
+        return gmdate('Y-m-d H:i:s', self::addBillingInterval(
+            $baseDate,
+            strtolower($subscriptionModel->billing_interval),
+            self::getBillingSchedule($subscriptionModel)
+        ));
     }
 
     /*
@@ -214,6 +195,197 @@ class SubscriptionHelper
         }
 
         return 7;
+    }
+
+    /**
+     * Custom billing schedule stored in the subscription's config, or null.
+     *
+     * Shape: ['period' => day|week|month|year, 'interval' => N, 'anchor' => []].
+     * Written by migrators for cadences the billing_interval enum cannot express
+     * (every 2 weeks, every 4 months) and for calendar-synced billing (fixed day
+     * of week / day of month / month of year). When present it overrides the
+     * slug in addBillingInterval(); the slug itself stays a native enum value
+     * (the schedule's base period) so validation, grace periods, and the UI keep
+     * working — and so a site without config support bills the base period
+     * rather than daily.
+     *
+     * Anchor keys: week → weekday (ISO 1-7); month → day (1-31, 31 = last day
+     * of month); year → day + month.
+     *
+     * @return array|null
+     */
+    public static function getBillingSchedule(Subscription $subscription)
+    {
+        $config   = $subscription->config;
+        $schedule = is_array($config) ? Arr::get($config, 'billing_schedule') : null;
+
+        if (!is_array($schedule)) {
+            return null;
+        }
+
+        $period = Arr::get($schedule, 'period');
+
+        if (!in_array($period, ['day', 'week', 'month', 'year'], true)) {
+            return null;
+        }
+
+        return [
+            'period'   => $period,
+            'interval' => max(1, (int) Arr::get($schedule, 'interval', 1)),
+            'anchor'   => self::sanitizeScheduleAnchor($period, Arr::get($schedule, 'anchor')),
+        ];
+    }
+
+    /**
+     * Keep only anchor keys valid for the period and inside calendar range.
+     * gmmktime() silently renormalizes out-of-range values (month 15 rolls
+     * into the next year, day -3 into the previous month), so a corrupt
+     * anchor value must be dropped — addSchedulePeriod() then falls back to
+     * the current date part, keeping the cycle length correct.
+     */
+    private static function sanitizeScheduleAnchor($period, $anchor)
+    {
+        if (!is_array($anchor)) {
+            return [];
+        }
+
+        $clean = [];
+
+        if ($period === 'week') {
+            $weekday = (int) Arr::get($anchor, 'weekday');
+            if ($weekday >= 1 && $weekday <= 7) {
+                $clean['weekday'] = $weekday;
+            }
+        }
+
+        if ($period === 'month' || $period === 'year') {
+            $day = (int) Arr::get($anchor, 'day');
+            if ($day >= 1 && $day <= 31) {
+                $clean['day'] = $day;
+            }
+        }
+
+        if ($period === 'year') {
+            $month = (int) Arr::get($anchor, 'month');
+            if ($month >= 1 && $month <= 12) {
+                $clean['month'] = $month;
+            }
+        }
+
+        return $clean;
+    }
+
+    /**
+     * Advance a GMT datetime by one whole billing cycle, calendar-accurate.
+     *
+     * Month-based intervals keep the day-of-month, clamping into shorter target
+     * months (Jan 31 + monthly = Feb 28/29, then back to the 31st the cycle
+     * after) — a flat day count (monthly = 30 days) walks a subscription's
+     * billing day backwards roughly five days a year. Day/week intervals are
+     * exact multiples already. Unknown intervals keep the day-count contract of
+     * PaymentHelper::getIntervalDays() and its
+     * `fluent_cart/subscription_interval_in_days` filter, including its
+     * zero-progress edge (a filter returning 0 advances nothing, as before).
+     *
+     * When $schedule (see getBillingSchedule()) is given it wins over the slug:
+     * the cycle is interval × period with the anchor re-applied, so a migrated
+     * every-2-weeks-on-Friday subscription stays on Fridays even after a late
+     * payment rebases the cycle.
+     *
+     * @param string|int $fromDate GMT datetime string or UTC timestamp
+     * @param string $interval billing_interval slug
+     * @param array|null $schedule config-defined schedule, overrides $interval
+     * @return int advanced UTC timestamp
+     */
+    public static function addBillingInterval($fromDate, $interval, $schedule = null)
+    {
+        $fromTs = is_numeric($fromDate) ? (int) $fromDate : (int) strtotime($fromDate);
+
+        if (is_array($schedule) && !empty($schedule['period'])) {
+            return self::addSchedulePeriod($fromTs, $schedule);
+        }
+
+        $monthsMap = [
+            Status::BILLING_MONTHLY     => 1,
+            Status::BILLING_QUARTERLY   => 3,
+            Status::BILLING_HALF_YEARLY => 6,
+            Status::BILLING_YEARLY      => 12,
+        ];
+
+        if (isset($monthsMap[$interval])) {
+            $hour  = (int) gmdate('H', $fromTs);
+            $min   = (int) gmdate('i', $fromTs);
+            $sec   = (int) gmdate('s', $fromTs);
+            $year  = (int) gmdate('Y', $fromTs);
+            $month = (int) gmdate('n', $fromTs) + $monthsMap[$interval];
+
+            $firstOfTarget = gmmktime($hour, $min, $sec, $month, 1, $year);
+            $day           = min((int) gmdate('j', $fromTs), (int) gmdate('t', $firstOfTarget));
+
+            return gmmktime($hour, $min, $sec, $month, $day, $year);
+        }
+
+        if ($interval === Status::BILLING_DAILY) {
+            return $fromTs + DAY_IN_SECONDS;
+        }
+
+        if ($interval === Status::BILLING_WEEKLY) {
+            return $fromTs + (7 * DAY_IN_SECONDS);
+        }
+
+        return $fromTs + (PaymentHelper::getIntervalDays($interval) * DAY_IN_SECONDS);
+    }
+
+    /**
+     * Advance by interval × period, then re-apply the anchor: week cycles snap
+     * forward to the anchor weekday, month/year cycles keep the anchor day
+     * clamped into short months (anchor 31 bills Feb 28, back to the 31st the
+     * month after). Always moves at least one day forward.
+     */
+    private static function addSchedulePeriod($fromTs, array $schedule)
+    {
+        $n      = max(1, (int) Arr::get($schedule, 'interval', 1));
+        $anchor = is_array(Arr::get($schedule, 'anchor')) ? $schedule['anchor'] : [];
+        $hour   = (int) gmdate('H', $fromTs);
+        $min    = (int) gmdate('i', $fromTs);
+        $sec    = (int) gmdate('s', $fromTs);
+
+        switch (Arr::get($schedule, 'period')) {
+            case 'day':
+                return $fromTs + ($n * DAY_IN_SECONDS);
+
+            case 'week':
+                $ts      = $fromTs + ($n * 7 * DAY_IN_SECONDS);
+                $weekday = (int) Arr::get($anchor, 'weekday', 0);
+
+                if ($weekday >= 1 && $weekday <= 7) {
+                    $ts += ((($weekday - (int) gmdate('N', $ts)) + 7) % 7) * DAY_IN_SECONDS;
+                }
+
+                return $ts;
+
+            case 'month':
+                $year      = (int) gmdate('Y', $fromTs);
+                $month     = (int) gmdate('n', $fromTs) + $n;
+                $anchorDay = (int) Arr::get($anchor, 'day', 0) ?: (int) gmdate('j', $fromTs);
+
+                $firstOfTarget = gmmktime($hour, $min, $sec, $month, 1, $year);
+                $day           = min($anchorDay, (int) gmdate('t', $firstOfTarget));
+
+                return gmmktime($hour, $min, $sec, $month, $day, $year);
+
+            case 'year':
+                $year        = (int) gmdate('Y', $fromTs) + $n;
+                $anchorMonth = (int) Arr::get($anchor, 'month', 0) ?: (int) gmdate('n', $fromTs);
+                $anchorDay   = (int) Arr::get($anchor, 'day', 0) ?: (int) gmdate('j', $fromTs);
+
+                $firstOfTarget = gmmktime($hour, $min, $sec, $anchorMonth, 1, $year);
+                $day           = min($anchorDay, (int) gmdate('t', $firstOfTarget));
+
+                return gmmktime($hour, $min, $sec, $anchorMonth, $day, $year);
+        }
+
+        return $fromTs + DAY_IN_SECONDS;
     }
 
 }

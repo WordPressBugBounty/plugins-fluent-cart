@@ -29,7 +29,7 @@ class Stripe extends AbstractPaymentGateway
 
     public array $supportedFeatures = ['payment', 'refund', 'webhook', 'custom_payment', 'card_update', 'switch_payment_method' => [
         'supported_gateways' => ['stripe', 'paypal'],
-    ], 'dispute_handler', 'subscriptions', 'zero_recurring', 'system_subscription', 'manual_subscription'];
+    ], 'dispute_handler', 'subscriptions', 'zero_recurring', 'system_subscription', 'manual_subscription', 'verify_vendor_ids'];
 
     public BaseGatewaySettings $settings;
 
@@ -90,7 +90,8 @@ class Stripe extends AbstractPaymentGateway
             'currency'            => strtolower($transactionCurrency),
             'description'         => $storeName . ' #' . $order->invoice_no, // @todo: We will replace with order summary with item names later
             'customer_email'      => $paymentInstance->order->email,
-            'success_url'         => $this->getSuccessUrl($paymentInstance->transaction),
+            'success_url'         => $paymentInstance->transaction->getSuccessUrl(),
+            'gateway_return_url'  => Processor::getOnsiteGatewayReturnUrl($paymentInstance->transaction),
             'custom_payment_url'  => PaymentHelper::getCustomPaymentLink($paymentInstance->order->uuid)
         );
 
@@ -255,7 +256,7 @@ class Stripe extends AbstractPaymentGateway
         $attempt = max(1, (int) Arr::get($args, 'attempt', 1));
 
         $intent = (new API())->createStripeObject('payment_intents', $intentData, $order->mode, [
-            'Idempotency-Key' => 'fct_system_charge_' . $order->id . '_' . $attempt,
+            'Idempotency-Key' => 'fct_system_charge_' . $order->uuid . '_' . $attempt,
         ]);
 
         if (is_wp_error($intent)) {
@@ -579,7 +580,7 @@ class Stripe extends AbstractPaymentGateway
 
     public function fields(): array
     {
-        $disabled = apply_filters_deprecated('fluent_cart_form_disable_stripe_connect', [false, []], '1.3.16', 'fluent_cart/form_disable_stripe_connect', 'Use fluent_cart/form_disable_stripe_connect instead of fluent_cart_form_disable_stripe_connect. It will be removed in v1.4.3.');
+        $disabled = false;
         $providerValue = apply_filters('fluent_cart/form_disable_stripe_connect', $disabled, []) ? 'api_keys' : 'connect';
 
         return array(
@@ -791,9 +792,7 @@ class Stripe extends AbstractPaymentGateway
         $paymentArgs['public_key'] = $publicKey;
 
         // Allow filtering the appearance configuration for Stripe Elements
-        $appearance = apply_filters_deprecated('fluent_cart_stripe_appearance', [
-            ['theme' => 'stripe']
-        ], '1.3.16', 'fluent_cart/stripe_appearance', 'Use fluent_cart/stripe_appearance instead of fluent_cart_stripe_appearance. It will be removed in v1.4.3.');
+        $appearance = ['theme' => 'stripe'];
         $appearance = apply_filters('fluent_cart/stripe_appearance', $appearance);
 
         $storeCurrency = CurrencySettings::get('currency');

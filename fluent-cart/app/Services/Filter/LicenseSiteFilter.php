@@ -17,6 +17,17 @@ class LicenseSiteFilter extends BaseFilter
     }
 
     /**
+     * @return array<string, array<string, mixed>>
+     */
+    protected static function sortableColumns(): array
+    {
+        return [
+            'site_url'   => ['label' => __('Site URL', 'fluent-cart'), 'column' => 'site_url'],
+            'created_at' => ['label' => __('Created At', 'fluent-cart'), 'column' => 'created_at'],
+        ];
+    }
+
+    /**
      * Intentionally empty, and verified so: LicenseSiteTable.js sends no `with`
      * at all. In particular `LicenseSite::activations()` must stay denied — it
      * walks back to the licence keys this list deliberately does not show.

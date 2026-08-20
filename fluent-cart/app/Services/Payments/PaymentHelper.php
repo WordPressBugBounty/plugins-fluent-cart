@@ -5,6 +5,7 @@ namespace FluentCart\App\Services\Payments;
 use FluentCart\Api\StoreSettings;
 use FluentCart\App\Helpers\Helper;
 use FluentCart\App\Helpers\Status;
+use FluentCart\App\Models\OrderTransaction;
 use FluentCart\App\Modules\PaymentMethods\Core\GatewayManager;
 use FluentCart\App\Services\URL;
 use FluentCart\Framework\Support\Arr;
@@ -21,15 +22,28 @@ class PaymentHelper
     public function listenerUrl($args = [])
     {
         $listener = '/?fct_payment_listener=1&method=' . $this->slug;
-        $data = apply_filters_deprecated('fluent_cart_ipn_url_' . $this->slug, [
-            ['listener_url' => site_url($listener)]
-        ], '1.3.16', 'fluent_cart/ipn_url_' . $this->slug, 'Use fluent_cart/ipn_url_' . $this->slug . ' instead of fluent_cart_ipn_url_' . $this->slug . '. It will be removed in v1.4.3.');
+        $data = ['listener_url' => site_url($listener)];
 
         return apply_filters('fluent_cart/ipn_url_' . $this->slug, $data);
     }
 
-    public function successUrl($uuid, $args = null)
+    /**
+     * Build the filterable post-payment success URL.
+     *
+     * @param OrderTransaction|string $transaction Transaction model or its uuid
+     * @param array|null $args Extra query args merged into the URL
+     * @return string
+     */
+    public function successUrl($transaction, $args = null)
     {
+        if ($transaction instanceof OrderTransaction) {
+            $transactionModel = $transaction;
+            $uuid = $transaction->uuid;
+        } else {
+            $uuid = (string)$transaction;
+            $transactionModel = OrderTransaction::query()->where('uuid', $uuid)->first();
+        }
+
         $queryArgs = array_merge(
             array(
                 'method'       => $this->slug,
@@ -48,11 +62,11 @@ class PaymentHelper
         $context = [
             'transaction_hash' => $uuid,
             'args' => $args,
-            'payment_method' => $this->slug ?? ''
+            'payment_method' => $this->slug ?? '',
+            'transaction' => $transactionModel,
+            'order' => $transactionModel ? $transactionModel->order : null
         ];
-        $url = apply_filters_deprecated('fluentcart/payment/success_url', [add_query_arg($queryArgs, $receiptUrl), $context], '1.3.16', 'fluent_cart/payment/success_url', 'Use fluent_cart/payment/success_url instead of fluentcart/payment/success_url. It will be removed in v1.4.3.');
-
-        return apply_filters('fluent_cart/payment/success_url', $url, $context);
+        return apply_filters('fluent_cart/payment/success_url', add_query_arg($queryArgs, $receiptUrl), $context);
     }
 
     public static function getCustomPaymentLink($orderHash): string

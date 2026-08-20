@@ -11,6 +11,7 @@ use FluentCart\App\Modules\PaymentMethods\StripeGateway\API\API;
 use FluentCart\App\Modules\PaymentMethods\StripeGateway\Confirmations;
 use FluentCart\App\Modules\PaymentMethods\StripeGateway\StripeHelper;
 use FluentCart\App\Modules\Subscriptions\Services\SubscriptionService;
+use FluentCart\App\Services\DateTime\DateTime;
 use FluentCart\Framework\Support\Arr;
 
 class Webhook
@@ -317,6 +318,14 @@ class Webhook
             $transactionData['card_last_4'] = Arr::get($paymentIntent, 'latest_charge.payment_method_details.card.last4', '');
             $transactionData['card_brand'] = (string)Arr::get($paymentIntent, 'latest_charge.payment_method_details.card.brand', '');
             $transactionData['payment_method_type'] = (string)Arr::get($paymentIntent, 'latest_charge.payment_method_details.type', '');
+
+            // The charge's own `created` is the settlement moment; without it the
+            // model hook would stamp the webhook-processing time, which drifts on
+            // delayed deliveries.
+            $chargeCreatedAt = (int)Arr::get($paymentIntent, 'latest_charge.created', 0);
+            if ($chargeCreatedAt) {
+                $transactionData['meta'] = array_merge($transactionData['meta'] ?? [], ['settled_at' => DateTime::anyTimeToGmt($chargeCreatedAt)->format('Y-m-d H:i:s')]);
+            }
         } else {
             $activePaymentMethod = $subscription->getMeta('active_payment_method', []);
             if (!$activePaymentMethod || !is_array($activePaymentMethod)) {

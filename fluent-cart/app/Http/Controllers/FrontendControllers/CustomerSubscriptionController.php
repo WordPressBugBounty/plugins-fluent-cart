@@ -137,6 +137,7 @@ class CustomerSubscriptionController extends BaseFrontendController
             ],
             'billing_addresses'         => $subscription->billing_addresses,
             'recurring_amount'          => $subscription->recurring_amount,
+            'currency'                  => $subscription->currency,
             'can_early_pay'             => EarlyPaymentFeature::canPay($subscription),
             'remaining_installments'    => max(0, $subscription->bill_times - $subscription->bill_count),
             'card_update_url'           => $subscription->url,

@@ -67,6 +67,20 @@ class LicenseFilter extends BaseFilter
     }
 
     /**
+     * @return array<string, array<string, mixed>>
+     */
+    protected static function sortableColumns(): array
+    {
+        return [
+            'order_id'         => ['label' => __('Order ID', 'fluent-cart'), 'column' => 'order_id'],
+            'activation_count' => ['label' => __('Activation Count', 'fluent-cart'), 'column' => 'activation_count'],
+            'expiration_date'  => ['label' => __('Expiration Date', 'fluent-cart'), 'column' => 'expiration_date'],
+            'created_at'       => ['label' => __('Date', 'fluent-cart'), 'column' => 'created_at'],
+            'status'           => ['label' => __('Status', 'fluent-cart'), 'column' => 'status'],
+        ];
+    }
+
+    /**
      * `GET /licensing/licenses` requires `licenses/view`. That says nothing
      * about customers or products, so those relations carry their own bar
      * through every door below.

@@ -247,6 +247,16 @@ class CheckoutProcessor
                 }
 
                 $cart->save();
+
+                // Carry the traffic source onto the order while the cart still exists.
+                // Carts are pruned on a schedule, so this is the last reliable point at
+                // which the click that produced the sale can still be recovered.
+                UtmHelper::addUtmToOrder(
+                    $this->orderModel->id,
+                    UtmHelper::resolveUtmData(UtmHelper::getUtmDataOfRequest(), $cart->utm_data),
+                    $cart->cart_hash
+                );
+
                 $actions = Arr::get($cart->checkout_data, '__after_draft_created_actions__', []);
                 if ($actions) {
                     foreach ($actions as $actionName) {

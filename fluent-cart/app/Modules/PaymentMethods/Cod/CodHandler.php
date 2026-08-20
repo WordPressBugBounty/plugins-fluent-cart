@@ -9,7 +9,6 @@ use FluentCart\App\Helpers\StatusHelper;
 use FluentCart\App\Models\Cart;
 use FluentCart\App\Modules\Subscriptions\Services\SubscriptionService;
 use FluentCart\App\Services\DateTime\DateTime;
-use FluentCart\App\Services\Payments\PaymentHelper;
 use FluentCart\App\Models\Subscription;
 
 class CodHandler {
@@ -61,8 +60,6 @@ class CodHandler {
             }
         }
 
-        $paymentHelper = new PaymentHelper('offline_payment');
-
         $relatedCart = Cart::query()->where('order_id', $order->id)
             ->where('stage', '!=', 'completed')
             ->first();
@@ -73,7 +70,7 @@ class CodHandler {
             $relatedCart->save();
         }
 
-        return $paymentHelper->successUrl($paymentInstance->transaction->uuid);
+        return $paymentInstance->transaction->getSuccessUrl();
     }
 
     public function handleZeroTotalPayment($paymentInstance)
@@ -105,7 +102,6 @@ class CodHandler {
                 }
         }
 
-        $paymentHelper = new PaymentHelper('offline_payment');
-        return $paymentHelper->successUrl($transaction->uuid);
+        return $transaction->getSuccessUrl();
     }
 }

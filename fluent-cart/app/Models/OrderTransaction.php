@@ -4,9 +4,11 @@ namespace FluentCart\App\Models;
 
 use FluentCart\Api\StoreSettings;
 use FluentCart\App\Helpers\Status;
+use FluentCart\App\Services\DateTime\DateTime;
 use FluentCart\App\Models\Concerns\CanSearch;
 use FluentCart\App\Modules\PaymentMethods\Core\AbstractPaymentGateway;
 use FluentCart\App\Modules\PaymentMethods\Core\GatewayManager;
+use FluentCart\App\Services\Payments\PaymentHelper;
 use FluentCart\Framework\Database\Orm\Relations\HasOne;
 use FluentCart\Framework\Support\Arr;
 
@@ -104,6 +106,21 @@ class OrderTransaction extends Model
                 $model->uuid = md5(time() . wp_generate_uuid4());
             }
         });
+
+        // created_at is the checkout time, which can be weeks before the money
+        // moves (payment links, delayed webhooks) — the settlement moment is
+        // only observable at this transition, so record it here. Gateways that
+        // know the exact remote charge time set meta.settled_at themselves;
+        // this fallback never overwrites it.
+        static::saving(function ($model) {
+            if ($model->status === Status::TRANSACTION_SUCCEEDED && $model->isDirty('status')) {
+                $meta = $model->meta;
+                if (empty($meta['settled_at'])) {
+                    $meta['settled_at'] = DateTime::gmtNow()->format('Y-m-d H:i:s');
+                    $model->meta = $meta;
+                }
+            }
+        });
     }
 
     public function getUrlAttribute($value)
@@ -181,7 +198,14 @@ class OrderTransaction extends Model
         return $this->payment_method;
     }
 
-    public function getReceiptPageUrl($filtered = false)
+    /**
+     * $filtered defaults to true because every caller redirects the customer and
+     * therefore wants the filter. It defaulted to false, so a caller that omitted
+     * the argument silently got an unfilterable URL — which is how the Stripe
+     * confirmation redirect lost its filter in a refactor. The parameter is kept
+     * so an explicit `false` can still ask for the raw URL.
+     */
+    public function getReceiptPageUrl($filtered = true)
     {
         $url = add_query_arg([
             'trx_hash' => $this->uuid
@@ -192,11 +216,22 @@ class OrderTransaction extends Model
                 'transaction' => $this,
                 'order'       => $this->order,
             ];
-            $url = apply_filters_deprecated('fluentcart/transaction/receipt_page_url', [$url, $context], '1.3.16', 'fluent_cart/transaction/receipt_page_url', 'Use fluent_cart/transaction/receipt_page_url instead of fluentcart/transaction/receipt_page_url. It will be removed in v1.4.3.');
             $url = apply_filters('fluent_cart/transaction/receipt_page_url', $url, $context);
         }
 
         return $url;
+    }
+
+    /**
+     * Canonical post-payment redirect URL for this transaction.
+     * Always fires the fluent_cart/payment/success_url filter.
+     *
+     * @param array $args Extra query args merged into the URL
+     * @return string
+     */
+    public function getSuccessUrl($args = [])
+    {
+        return (new PaymentHelper((string)$this->payment_method))->successUrl($this, $args);
     }
 
     public function syncPendingTransaction()

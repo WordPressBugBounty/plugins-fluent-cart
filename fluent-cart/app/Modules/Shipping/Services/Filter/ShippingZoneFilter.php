@@ -41,6 +41,17 @@ class ShippingZoneFilter extends BaseFilter
     }
 
     /**
+     * @return array<string, array<string, mixed>>
+     */
+    protected static function sortableColumns(): array
+    {
+        return [
+            'name'  => ['label' => __('Zone Name', 'fluent-cart'), 'column' => 'name'],
+            'order' => ['label' => __('Order', 'fluent-cart'), 'column' => 'order'],
+        ];
+    }
+
+    /**
      * SCREEN key — `admin_shipping_zone_list` is what ShippingZoneTable.js
      * sends, and a method COUNT is the whole of what that screen renders.
      *

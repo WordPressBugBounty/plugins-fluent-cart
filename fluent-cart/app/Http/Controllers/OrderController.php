@@ -326,6 +326,12 @@ class OrderController extends Controller
     }
 
     /**
+     * Refund against an order transaction.
+     *
+     * `refund_info.amount` is in CENTS, matching every money value in a read response and
+     * the stored column. So {"amount": 2500} refunds $25.00. roundCent() below only
+     * normalizes float artifacts; it does not scale. See dev-docs/PRICING-AND-TAX.md §6.
+     *
      * @throws ValidationException
      */
     public function refundOrder(Request $request, $orderId)
@@ -358,7 +364,7 @@ class OrderController extends Controller
         }
 
         $transaction = OrderTransaction::query()->where('order_id', $orderId)->findOrFail($refundInfo['transaction_id']);
-        $refundAmount = Helper::toCent($refundInfo['amount']);
+        $refundAmount = Helper::roundCent($refundInfo['amount']);
 
         // refund on our end
         $result = (new Refund())->processRefund($transaction, $refundAmount, $refundInfo);

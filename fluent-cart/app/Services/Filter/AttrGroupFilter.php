@@ -69,6 +69,18 @@ class AttrGroupFilter extends BaseFilter
     }
 
     /**
+     * @return array<string, array<string, mixed>>
+     */
+    protected static function sortableColumns(): array
+    {
+        return [
+            'id'         => ['label' => __('ID', 'fluent-cart'), 'column' => 'id'],
+            'title'      => ['label' => __('Title', 'fluent-cart'), 'column' => 'title'],
+            'created_at' => ['label' => __('Created at', 'fluent-cart'), 'column' => 'created_at'],
+        ];
+    }
+
+    /**
      * Intentionally empty, and verified so: AttrGroupsTable.js sends no `with`
      * at all, so there is nothing to allow. Add an entry only when a caller
      * actually needs it — do not pre-open relations.

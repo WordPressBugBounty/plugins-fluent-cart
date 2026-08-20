@@ -935,7 +935,7 @@ class Processor
         ], [
             // One vendor charge per (order, attempt) — a scheduler double-fire
             // replays the original response instead of charging twice.
-            'PayPal-Request-Id' => 'fct_system_charge_' . $order->id . '_' . $attempt,
+            'PayPal-Request-Id' => 'fct_system_charge_' . $order->uuid . '_' . $attempt,
         ]);
 
         if (is_wp_error($paypalOrder)) {

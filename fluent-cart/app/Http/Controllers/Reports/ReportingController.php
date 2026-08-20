@@ -11,7 +11,6 @@ use FluentCart\App\Helpers\Status;
 use FluentCart\App\Http\Controllers\Controller;
 use FluentCart\App\Models\Order;
 use FluentCart\App\Modules\ReportingModule\OrdersReport;
-use FluentCart\App\Modules\ReportingModule\SalesReport;
 use FluentCart\App\Services\DateTime\DateTime;
 use FluentCart\App\Services\Report\DashBoardReportService;
 use FluentCart\App\Services\Report\ReportHelper;
@@ -37,23 +36,6 @@ class ReportingController extends Controller
             'stats' => (new OrdersReport())->getOrderStats($fromDate, false, $compare),
             'from_date' => $fromDate,
             'to_date' => gmdate('Y-m-d 23:59:59', current_time('timestamp'))
-        ];
-    }
-
-    public function getSalesGrowth(Request $request, SalesReport $salesReport): array
-    {
-
-        $endYear = $request->get('end_date', Order::query()->max('created_at'));
-        $startYear = $request->get('start_date', Order::query()->min('created_at'));
-
-        $filters = [
-            "status" => ["column" => "status", "operator" => "in", "value" => Status::getOrderSuccessStatuses()],
-            "payment_status" => ["column" => "payment_status", "operator" => "in", "value" => Status::getTransactionSuccessStatuses()],
-            "created_at" => ["column" => "created_at", "operator" => "between", "value" => [$startYear, $endYear]]
-        ];
-
-        return [
-            'sales_data' => $salesReport->getSalesGrowth($filters)
         ];
     }
 

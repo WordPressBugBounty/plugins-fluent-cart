@@ -128,16 +128,30 @@ class API
         return $data;
     }
 
-    public function getEvent($eventId)
+    /**
+     * Event ids are namespaced per mode, so a live id is unfetchable with a test key
+     * and vice versa. The store's global mode toggle is not a reliable proxy — a
+     * renewal is billed by Stripe on its own schedule, whatever the store is set to.
+     *
+     * @param string    $eventId
+     * @param bool|null $livemode Mode the event belongs to; null falls back to the store setting.
+     * @return object|null|\WP_Error Null when the response body is not decodable JSON.
+     */
+    public function getEvent($eventId, $livemode = null)
     {
-        $api = $this->getApi();
+        $mode = 'current';
+        if (!is_null($livemode)) {
+            $mode = $livemode ? 'live' : 'test';
+        }
+
+        $api = $this->getApi($mode);
         return $api::request([], 'events/' . $eventId, 'GET');
     }
 
-    public function getApi()
+    public function getApi($mode = 'current')
     {
         $api = new ApiRequest();
-        $api::set_secret_key((new StripeSettingsBase())->getApiKey());
+        $api::set_secret_key((new StripeSettingsBase())->getApiKey($mode));
         return $api;
     }
 

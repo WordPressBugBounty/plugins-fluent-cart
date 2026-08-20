@@ -98,6 +98,24 @@ class CouponFilter extends BaseFilter
     }
 
     /**
+     * @return array<string, array<string, mixed>>
+     */
+    protected static function sortableColumns(): array
+    {
+        return [
+            'id'          => ['label' => __('ID', 'fluent-cart'), 'column' => 'id'],
+            'title'       => ['label' => __('Title', 'fluent-cart'), 'column' => 'title'],
+            'code'        => ['label' => __('Code', 'fluent-cart'), 'column' => 'code'],
+            'amount'      => ['label' => __('Amount', 'fluent-cart'), 'column' => 'amount'],
+            'stackable'   => ['label' => __('Stackable', 'fluent-cart'), 'column' => 'stackable'],
+            'status'      => ['label' => __('Status', 'fluent-cart'), 'column' => 'status'],
+            // The table has always offered this as "Expiry Date"; the column
+            // behind it is end_date.
+            'expiry_date' => ['label' => __('Expiry Date', 'fluent-cart'), 'column' => 'end_date'],
+        ];
+    }
+
+    /**
      * No screen key: CouponTable.js sends no `with` at all. AllCoupons.vue and
      * CouponsTableMobile.vue render the real `use_count` column off the coupons
      * table, so no admin screen needs a relation here.

@@ -86,6 +86,20 @@ class SubscriptionFilter extends BaseFilter
     }
 
     /**
+     * @return array<string, array<string, mixed>>
+     */
+    protected static function sortableColumns(): array
+    {
+        return [
+            'id'                => ['label' => __('Subscription ID', 'fluent-cart'), 'column' => 'id'],
+            'next_billing_date' => ['label' => __('Next Billing Date', 'fluent-cart'), 'column' => 'next_billing_date'],
+            'bill_count'        => ['label' => __('Bills Count', 'fluent-cart'), 'column' => 'bill_count'],
+            'created_at'        => ['label' => __('Created At', 'fluent-cart'), 'column' => 'created_at'],
+            'status'            => ['label' => __('Status', 'fluent-cart'), 'column' => 'status'],
+        ];
+    }
+
+    /**
      * `GET /subscriptions` requires `subscriptions/view`, which says nothing
      * about customers, so the customer relation carries its own bar through
      * BOTH doors below.

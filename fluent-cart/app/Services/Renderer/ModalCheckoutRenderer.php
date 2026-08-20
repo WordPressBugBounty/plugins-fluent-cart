@@ -802,7 +802,7 @@ class ModalCheckoutRenderer
             'method_title' => $methodTitle,
             'method_style' => $methodStyle,
         ];
-        $paymentMethodClass = apply_filters_deprecated('fluent_cart_payment_method_list_class', ['', $pmContext], '1.3.16', 'fluent_cart/payment_method_list_class', 'Use fluent_cart/payment_method_list_class instead of fluent_cart_payment_method_list_class.');
+        $paymentMethodClass = '';
         $paymentMethodClass = apply_filters('fluent_cart/payment_method_list_class', $paymentMethodClass, $pmContext);
 
         ?>

@@ -56,6 +56,16 @@ class TaxFilter extends BaseFilter
     }
 
     /**
+     * @return array<string, array<string, mixed>>
+     */
+    protected static function sortableColumns(): array
+    {
+        return [
+            'id' => ['label' => __('ID', 'fluent-cart'), 'column' => 'id'],
+        ];
+    }
+
+    /**
      * `GET /taxes` mounts under `AdminPolicy` with no per-route permission, so
      * a caller here is already a super admin and no entry on this map needs a
      * further bar of its own.

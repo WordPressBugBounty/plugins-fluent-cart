@@ -2,14 +2,18 @@
 
 namespace FluentCart\App\Modules\Subscriptions\Http\Controllers;
 
+use FluentCart\App\App;
 use FluentCart\App\Helpers\Status;
 use FluentCart\App\Http\Controllers\Controller;
 use FluentCart\App\Models\Order;
 use FluentCart\App\Models\Subscription;
+use FluentCart\App\Modules\PaymentMethods\Core\AbstractPaymentGateway;
 use FluentCart\App\Modules\Subscriptions\Services\EarlyPaymentFeature;
 use FluentCart\App\Services\Reminders\ReminderService;
 use FluentCart\App\Http\Requests\UpdateSubscriptionRequest;
+use FluentCart\App\Http\Requests\UpdateVendorIdsRequest;
 use FluentCart\Framework\Http\Request\Request;
+use FluentCart\Framework\Support\Arr;
 use FluentCart\App\Modules\StoreManagedRenewal\Services\RenewalService;
 use FluentCart\App\Modules\Subscriptions\Services\SubscriptionService;
 use FluentCart\App\Modules\Subscriptions\Services\Filter\SubscriptionFilter;
@@ -287,6 +291,81 @@ class SubscriptionController extends Controller
         return $this->sendSuccess([
             'message'      => __('Subscription has been updated successfully!', 'fluent-cart'),
             'subscription' => Subscription::query()->find($subscription->id)
+        ]);
+    }
+
+    public function updateVendorIds(UpdateVendorIdsRequest $request, Order $order, Subscription $subscription)
+    {
+        $this->validateSubscription($subscription);
+        if ($error = $this->validateOrderBinding($order, $subscription)) return $error;
+
+        $data = $request->all();
+        $payload = [];
+
+        // Only the keys actually sent are written — an absent key must not blank
+        // the stored id.
+        foreach (['vendor_subscription_id', 'vendor_customer_id'] as $field) {
+            if (array_key_exists($field, $data)) {
+                $payload[$field] = (string) $data[$field];
+            }
+        }
+
+        if (empty($payload)) {
+            return $this->sendError([
+                'message' => __('No data provided for update.', 'fluent-cart')
+            ]);
+        }
+
+        $result = SubscriptionService::updateVendorIds($subscription, $payload);
+
+        if (is_wp_error($result)) {
+            return $this->sendError([
+                'message' => $result->get_error_message()
+            ]);
+        }
+
+        return $this->sendSuccess([
+            'message'      => __('Vendor IDs have been updated successfully!', 'fluent-cart'),
+            'subscription' => Subscription::query()->find($subscription->id)
+        ]);
+    }
+
+    public function verifyVendorIds(UpdateVendorIdsRequest $request, Order $order, Subscription $subscription)
+    {
+        $this->validateSubscription($subscription);
+        if ($error = $this->validateOrderBinding($order, $subscription)) return $error;
+
+        if (!$subscription->canEditVendorIds()) {
+            return $this->sendError([
+                'message' => __('Vendor IDs can only be edited on an active gateway-billed subscription.', 'fluent-cart')
+            ]);
+        }
+
+        if (!$subscription->canVerifyVendorIds()) {
+            return $this->sendError([
+                'message' => __('This payment method does not support subscription lookup.', 'fluent-cart')
+            ]);
+        }
+
+        /** @var AbstractPaymentGateway $gateway */
+        $gateway = App::gateway($subscription->current_payment_method);
+
+        $data = $request->all();
+
+        $result = $gateway->subscriptions->verifyVendorSubscription([
+            'vendor_subscription_id' => (string) Arr::get($data, 'vendor_subscription_id', ''),
+            'vendor_customer_id'     => (string) Arr::get($data, 'vendor_customer_id', ''),
+        ], $order->mode);
+
+        if (is_wp_error($result)) {
+            return $this->sendError([
+                'message' => $result->get_error_message()
+            ]);
+        }
+
+        return $this->sendSuccess([
+            'message'      => __('Subscription found at the payment gateway.', 'fluent-cart'),
+            'verification' => $result
         ]);
     }
 

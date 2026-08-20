@@ -37,7 +37,7 @@ class BulkProductUpdateService
 
     /**
      * Format a single product for the bulk edit spreadsheet.
-     * Converts prices from cents to decimal and attaches categories.
+     * Money stays in cents; PriceInput renders it as dollars in the grid.
      */
     protected function formatProductForEdit(Product $product): array
     {
@@ -71,7 +71,7 @@ class BulkProductUpdateService
             ];
         }
 
-        // Variants — convert prices from cents to decimal
+        // Variants — money stays in cents
         $data['variants'] = [];
         if ($product->variants) {
             foreach ($product->variants as $variant) {
@@ -85,8 +85,10 @@ class BulkProductUpdateService
                     'post_id'         => $variant->post_id,
                     'variation_title' => $variant->variation_title,
                     'sku'             => $variant->sku,
-                    'item_price'      => $variant->item_price / 100,
-                    'compare_price'   => $variant->compare_price / 100,
+                    // Cents, as stored and as the write endpoints now expect.
+                    // PriceInput renders these as dollars for the merchant.
+                    'item_price'      => (int) $variant->item_price,
+                    'compare_price'   => (int) $variant->compare_price,
                     'payment_type'    => $variant->payment_type,
                     'manage_stock'    => (int) $variant->manage_stock,
                     'total_stock'     => (int) $variant->total_stock,
@@ -344,7 +346,7 @@ class BulkProductUpdateService
             throw new \RuntimeException(__('Product not found', 'fluent-cart'));
         }
 
-        // Use ProductResource::update for variants/detail (handles price * 100)
+        // Use ProductResource::update for variants/detail (amounts are cents)
         $updatePayload = [];
 
         // Detail
@@ -396,7 +398,7 @@ class BulkProductUpdateService
             $updatePayload['post_status'] = 'publish';
         }
 
-        // Use ProductResource::update which handles price conversion and variant updates
+        // Use ProductResource::update which handles the variant and detail writes
         if (!empty($updatePayload['variants']) || !empty($updatePayload['detail'])) {
             ProductResource::update($updatePayload, $postId);
         }
@@ -484,10 +486,11 @@ class BulkProductUpdateService
      */
     protected function createVariantForProduct(int $postId, Product $product, array $variantData): void
     {
+        // Amounts arrive in cents; normalize float artifacts without scaling.
         $priceColumns = ['item_price', 'compare_price', 'item_cost'];
         foreach ($priceColumns as $column) {
             if (Arr::has($variantData, $column)) {
-                $variantData[$column] = floatval(Arr::get($variantData, $column, 0)) * 100;
+                $variantData[$column] = Helper::roundCent(Arr::get($variantData, $column, 0));
             }
         }
 
@@ -566,7 +569,7 @@ class BulkProductUpdateService
     protected function formatOtherInfoForEdit(array $otherInfo): array
     {
         if (!empty($otherInfo['signup_fee']) && is_numeric($otherInfo['signup_fee'])) {
-            $otherInfo['signup_fee'] = (float) $otherInfo['signup_fee'] / 100;
+            $otherInfo['signup_fee'] = (int) $otherInfo['signup_fee'];
         }
 
         return $otherInfo;

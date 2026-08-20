@@ -55,6 +55,18 @@ class OrderBumpFilter extends BaseFilter
     }
 
     /**
+     * @return array<string, array<string, mixed>>
+     */
+    protected static function sortableColumns(): array
+    {
+        return [
+            'id'         => ['label' => __('Order Bump ID', 'fluent-cart'), 'column' => 'id'],
+            'title'      => ['label' => __('Title', 'fluent-cart'), 'column' => 'title'],
+            'created_at' => ['label' => __('Created at', 'fluent-cart'), 'column' => 'created_at'],
+        ];
+    }
+
+    /**
      * Intentionally empty. Nothing instantiates this filter: the order-bump
      * list endpoint is Pro's OrderBumpController::index(), which builds its own
      * OrderPromotion query and hardcodes `->with(['product_variant.product'])`.

@@ -68,6 +68,18 @@ class ProductFilter extends BaseFilter
     }
 
     /**
+     * @return array<string, array<string, mixed>>
+     */
+    protected static function sortableColumns(): array
+    {
+        return [
+            'ID'         => ['label' => __('Product ID', 'fluent-cart'), 'column' => 'ID'],
+            'post_title' => ['label' => __('Title', 'fluent-cart'), 'column' => 'post_title'],
+            'post_date'  => ['label' => __('Created at', 'fluent-cart'), 'column' => 'post_date'],
+        ];
+    }
+
+    /**
      * SCREEN keys — one per calling screen. Four genuinely different screens
      * read products and each renders a different DEPTH of the same two
      * relations, so each gets a key it can re-scope without widening the

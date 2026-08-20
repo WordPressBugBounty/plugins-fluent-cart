@@ -115,6 +115,16 @@ class SubscriptionService
                 ->first();
 
             if ($existingTransaction) {
+                // Gateways that know the exact remote charge time pass it as
+                // meta.settled_at; carry it onto the pending invoice's transaction
+                // (empty-only, same contract as the model hook's fallback stamp).
+                $settledAt = Arr::get($transactionData, 'meta.settled_at');
+                if ($settledAt && empty($existingTransaction->meta['settled_at'])) {
+                    $existingTransaction->meta = array_merge($existingTransaction->meta, [
+                        'settled_at' => $settledAt
+                    ]);
+                }
+
                 $transactionUpdateData = array_filter([
                     'total'               => $transactionData['total'] ?? $existingTransaction->total,
                     'status'              => Status::TRANSACTION_SUCCEEDED,
@@ -299,6 +309,9 @@ class SubscriptionService
             $billingAddressData,
             $shippingAddressData
         );
+
+        \FluentCart\App\Helpers\AddressHelper::copyOrderAddressMeta($childOrder->id, 'billing', $billingAddress);
+        \FluentCart\App\Helpers\AddressHelper::copyOrderAddressMeta($childOrder->id, 'shipping', $shippingAddress);
 
         // Copy tax ID meta from parent order if exists
         $parentTaxId = $parentOrder->getMeta('tax_id', '');
@@ -1198,6 +1211,125 @@ class SubscriptionService
         }
 
         return true;
+    }
+
+    /**
+     * Correct the gateway identifiers on an automatic subscription.
+     *
+     * Deliberately separate from updateSubscription(): nothing here touches
+     * billing state, so no renewal is voided, no invoice re-synced and no
+     * status event dispatched. Only the two identifier columns move.
+     *
+     * @param array $data vendor_subscription_id and/or vendor_customer_id
+     * @return true|\WP_Error
+     */
+    public static function updateVendorIds(Subscription $subscription, array $data)
+    {
+        if (!$subscription->canEditVendorIds()) {
+            return new \WP_Error(
+                'cannot_edit_vendor_ids',
+                __('Vendor IDs can only be edited on an active gateway-billed subscription.', 'fluent-cart')
+            );
+        }
+
+        $updates = [];
+        $changes = [];
+
+        foreach (['vendor_subscription_id', 'vendor_customer_id'] as $field) {
+            if (!array_key_exists($field, $data)) {
+                continue;
+            }
+
+            $value = trim((string) $data[$field]);
+            $oldValue = (string) $subscription->{$field};
+
+            if ($oldValue === $value) {
+                continue;
+            }
+
+            $updates[$field] = $value;
+            $changes[] = sprintf(
+                '%1$s: %2$s → %3$s',
+                $field,
+                $oldValue !== '' ? $oldValue : '(none)',
+                $value !== '' ? $value : '(none)'
+            );
+        }
+
+        if (empty($updates)) {
+            return new \WP_Error(
+                'no_changes',
+                __('No changes detected.', 'fluent-cart')
+            );
+        }
+
+        // fct_subscriptions indexes vendor_subscription_id but does not enforce
+        // uniqueness, and every gateway IPN resolves its subscription through
+        // that column — a duplicate would silently route webhooks into the wrong
+        // row. A gateway never reissues an id inside its own account, so the
+        // collision that matters is same-gateway.
+        //
+        // Claim it with one statement rather than SELECT-then-save: the anti-join
+        // makes "nobody else holds this id" part of the UPDATE itself, so two
+        // concurrent edits racing for the same id cannot both pass the check.
+        // Zero affected rows means the other one won.
+        if (!empty($updates['vendor_subscription_id'])) {
+            if (!self::claimVendorSubscriptionId($subscription, $updates)) {
+                return new \WP_Error(
+                    'vendor_subscription_id_taken',
+                    __('Another subscription on this payment method is already using this Vendor Subscription ID.', 'fluent-cart')
+                );
+            }
+
+            $subscription->fill($updates)->syncOriginal();
+        } else {
+            $subscription->fill($updates)->save();
+        }
+
+        $subscription->addLog(
+            'Vendor IDs updated',
+            sprintf('Admin updated: %s', implode(', ', $changes)),
+            'info'
+        );
+
+        return true;
+    }
+
+    /**
+     * Write the vendor identifiers only if no other subscription on the same
+     * payment method already holds the incoming vendor_subscription_id.
+     *
+     * The anti-join makes the check part of the write, so the check-then-write
+     * window a separate SELECT would leave open does not exist.
+     *
+     * @return bool false when another row already holds the id
+     */
+    private static function claimVendorSubscriptionId(Subscription $subscription, array $updates): bool
+    {
+        $newId  = $updates['vendor_subscription_id'];
+        $method = (string) $subscription->current_payment_method;
+
+        $values = ['s.vendor_subscription_id' => $newId];
+
+        if (array_key_exists('vendor_customer_id', $updates)) {
+            $values['s.vendor_customer_id'] = $updates['vendor_customer_id'];
+        }
+
+        $values['s.updated_at'] = DateTime::gmtNow()->format('Y-m-d H:i:s');
+
+        $affected = Subscription::query()
+            ->getConnection()
+            ->table('fct_subscriptions as s')
+            ->leftJoin('fct_subscriptions as o', function ($join) use ($newId, $method) {
+                $join->on('o.id', '<>', 's.id')
+                    ->where('o.vendor_subscription_id', '=', $newId)
+                    ->where('o.current_payment_method', '=', $method);
+            })
+            ->where('s.id', $subscription->id)
+            ->whereNull('o.id')
+            ->update($values);
+
+        return (int) $affected > 0;
     }
 
     /**

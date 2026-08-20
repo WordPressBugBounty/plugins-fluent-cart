@@ -423,10 +423,27 @@ class IPN
         }
 
         $eventId = $data->id;
-        $event = (new API())->getEvent($eventId);
+        $livemode = isset($data->livemode) ? (bool)$data->livemode : null;
+        $event = (new API())->getEvent($eventId, $livemode);
 
         if (!$event || is_wp_error($event)) {
-            $this->sendResponse(400, 'Event not found or error occurred.');
+            $reason = is_wp_error($event)
+                ? $event->get_error_code() . ': ' . $event->get_error_message()
+                : 'Stripe returned an empty response.';
+
+            // Warning, not error: fluent_cart_error_log() is a no-op unless
+            // FLUENT_CART_DEV_MODE is on, and this is the only surviving record of
+            // why a delivery failed.
+            fluent_cart_warning_log(
+                'Stripe Webhook: could not fetch event ' . $eventId,
+                $reason . ' (event mode: ' . (is_null($livemode) ? 'unknown' : ($livemode ? 'live' : 'test')) . ')',
+                [
+                    'module_name' => 'payment',
+                    'log_type'    => 'api',
+                ]
+            );
+
+            $this->sendResponse(400, 'Event not found or error occurred. ' . $reason);
         }
 
         // get the order from the event, in case of renewal create one

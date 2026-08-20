@@ -54,6 +54,21 @@ class CustomerFilter extends BaseFilter
     }
 
     /**
+     * @return array<string, array<string, mixed>>
+     */
+    protected static function sortableColumns(): array
+    {
+        return [
+            'id'                 => ['label' => __('Customer ID', 'fluent-cart'), 'column' => 'id'],
+            'first_name'         => ['label' => __('Name', 'fluent-cart'), 'column' => 'first_name'],
+            'purchase_count'     => ['label' => __('Purchases', 'fluent-cart'), 'column' => 'purchase_count'],
+            'ltv'                => ['label' => __('Lifetime Value (LTV)', 'fluent-cart'), 'column' => 'ltv'],
+            'last_purchase_date' => ['label' => __('Last Purchase Date', 'fluent-cart'), 'column' => 'last_purchase_date'],
+            'created_at'         => ['label' => __('Customer Since', 'fluent-cart'), 'column' => 'created_at'],
+        ];
+    }
+
+    /**
      * SCREEN key — `admin_customer_search` is the one screen on `GET /customers`
      * that sends a `with` at all. CustomerTable.js and ChangeOrderCustomer.vue
      * send none.

@@ -26,7 +26,6 @@ use FluentCart\App\Http\Routes\WebRoutes;
 (new \FluentCart\App\Hooks\Handlers\ReminderHandler)->register();
 
 (new \FluentCart\App\Hooks\Handlers\ShortCodes\ShopAppHandler)->register();
-(new \FluentCart\App\Hooks\Handlers\ExportHandler)->register();
 
 (new FluentCart\App\Hooks\Handlers\CustomCheckout\CustomCheckout())->register();
 
@@ -134,11 +133,19 @@ $orderPaidAsyncHandler = function ($data) {
     }
 
     $order = \FluentCart\App\Models\Order::find($orderId);
-    if (!$order || $order->payment_status !== 'paid' || !$order->getMeta('action_scheduler_id')) {
+    if (!$order || $order->payment_status !== 'paid') {
         return;
     }
 
-    $order->deleteMeta('action_scheduler_id');
+    // Claim the run by deleting the meta and branching on the affected-row count.
+    // The Action Scheduler worker and the receipt-page AJAX nudge
+    // (IntegrationEventListener::runOrderActionsAjax) can arrive together, so a
+    // read-then-delete would let both pass the guard and fire order_paid_done
+    // twice. A single DELETE is atomic: MySQL hands the row to exactly one
+    // caller, and the loser sees 0 rows and returns.
+    if (!$order->deleteMeta('action_scheduler_id')) {
+        return;
+    }
 
     $transaction = \FluentCart\App\Models\OrderTransaction::query()
         ->where('order_id', $order->id)
@@ -163,7 +170,6 @@ $orderPaidAsyncHandler = function ($data) {
 
 };
 add_action('fluent_cart/order_paid_async_private_handle', $orderPaidAsyncHandler, 1, 1);
-add_action('fluent_cart/order_paid_ansyc_private_handle', $orderPaidAsyncHandler, 1, 1);
 
 
 //

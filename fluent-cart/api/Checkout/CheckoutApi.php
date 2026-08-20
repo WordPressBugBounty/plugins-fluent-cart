@@ -432,13 +432,10 @@ class CheckoutApi
         static::syncCustomerNames($order, $args);
         $cart = CartHelper::getCart();
 
-        $utmData = [];
-        if (!empty($cart) && is_array($cart->utm_data) && count($cart->utm_data) > 0) {
-            $utmData = $cart->utm_data;
-        }
-
-        $requestUtmData = UtmHelper::getUtmDataOfRequest();
-        $utmData = wp_parse_args($requestUtmData, $utmData);
+        $utmData = UtmHelper::resolveUtmData(
+            UtmHelper::getUtmDataOfRequest(),
+            !empty($cart) ? $cart->utm_data : []
+        );
         UtmHelper::addUtmToOrder($order->id, $utmData);
 
         $prevOrder = Arr::get($args, 'prev_order', null);

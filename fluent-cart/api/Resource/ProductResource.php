@@ -130,10 +130,10 @@ class ProductResource extends BaseResourceApi
      *          'id'               => (int) Required. The variant ID.
      *          'post_id'          => (int) Required. The product ID.
      *          'variant_title'  => (string) Required. The variant title.
-     *          'item_price'     => (float) Required. The item price.
-     *          'compare_price'  => (float) Required. The compare price.
+     *          'item_price'     => (int) Required. The item price in CENTS (129900 = $1,299.00).
+     *          'compare_price'  => (int) Required. The compare price, in cents.
      *          'manage_cost'    => (string) Optional. Whether to manage costs.
-     *          'item_cost'      => (float) Required if manage cost is yes. The item cost.
+     *          'item_cost'      => (int) Required if manage cost is yes. The item cost, in cents.
      *          'manage_stock'   => (string) Required. Whether to manage stock.
      *          'stock_status'   => (string) Required. The stock status.
      *          'stock'          => (int) Required. The stock quantity.
@@ -188,9 +188,10 @@ class ProductResource extends BaseResourceApi
                     'item_cost',
                 ];
 
+                // Amounts arrive in CENTS; normalize float artifacts without scaling.
                 foreach ($priceColumns as $column) {
                     if (Arr::has($variant, $column)) {
-                        $variant[$column] = Arr::get($variant, $column) * 100;
+                        $variant[$column] = Helper::roundCent(Arr::get($variant, $column));
                     }
                 }
 
@@ -222,7 +223,7 @@ class ProductResource extends BaseResourceApi
                 if (!empty($otherInfo)) {
                     if (Arr::get($otherInfo, 'payment_type') == 'subscription') {
                         if (Arr::get($otherInfo, 'manage_setup_fee') == 'yes') {
-                            $signupFee = Helper::toCent(floatval(Arr::get($otherInfo, 'signup_fee', 0)));
+                            $signupFee = Helper::roundCent(Arr::get($otherInfo, 'signup_fee', 0));
                             Arr::set($otherInfo, 'signup_fee', $signupFee);
                         }
                         $variantData['payment_type'] = 'subscription';
@@ -250,9 +251,10 @@ class ProductResource extends BaseResourceApi
                         'item_cost',
                     ];
 
+                    // Amounts arrive in CENTS; normalize without scaling.
                     foreach ($priceColumns as $column) {
                         if (Arr::has($variant, $column)) {
-                            $variant[$column] = Arr::get($variant, $column) * 100;
+                            $variant[$column] = Helper::roundCent(Arr::get($variant, $column));
                         }
                     }
                     unset($variant['rowId']);
@@ -272,7 +274,7 @@ class ProductResource extends BaseResourceApi
                     if (!empty($otherInfo)) {
                         if (Arr::get($otherInfo, 'payment_type') == 'subscription') {
                             if (Arr::get($otherInfo, 'manage_setup_fee') == 'yes') {
-                                $signupFee = Helper::toCent(floatval(Arr::get($otherInfo, 'signup_fee', 0)));
+                                $signupFee = Helper::roundCent(Arr::get($otherInfo, 'signup_fee', 0));
                                 Arr::set($otherInfo, 'signup_fee', $signupFee);
                             }
                         }

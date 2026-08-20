@@ -299,7 +299,6 @@ class Subscription extends Model
      */
     public function getOverriddenStatusAttribute($value)
     {
-        $variation = ProductVariation::find($this->variation_id);
         if (Arr::get($this->config, 'is_trial_days_simulated', 'no') == 'yes' && $this->status == Status::SUBSCRIPTION_TRIALING) {
             return Status::SUBSCRIPTION_ACTIVE;
         }
@@ -479,6 +478,8 @@ class Subscription extends Model
 
         return [
             'canEdit'          => $canEdit,
+            'canEditVendorIds' => $this->canEditVendorIds(),
+            'canVerifyVendorIds' => $this->canVerifyVendorIds(),
             'canPause'         => $this->canPause(),
             'canResume'        => $this->canResume(),
             'canFetch'         => !$this->usesRenewalEngine() && $hasVendorId,
@@ -514,6 +515,16 @@ class Subscription extends Model
     public function isSystem(): bool
     {
         return $this->collection_method === 'system';
+    }
+
+    /**
+     * Check if this is a gateway-billed (automatic) subscription
+     *
+     * @return bool
+     */
+    public function isAutomatic(): bool
+    {
+        return $this->collection_method === Status::SUBSCRIPTION_METHOD_AUTOMATIC;
     }
 
     /**
@@ -556,6 +567,10 @@ class Subscription extends Model
         ];
 
         $recurringTotal = $this->recurring_total ?? 0;
+
+        if ($schedule = SubscriptionHelper::getBillingSchedule($this)) {
+            return Helper::generateScheduleSubscriptionInfo($schedule, $otherInfo, $recurringTotal, $this->currency) ?? '';
+        }
 
         return Helper::generateSubscriptionInfo($otherInfo, $recurringTotal, $this->currency) ?? '';
     }
@@ -871,6 +886,54 @@ class Subscription extends Model
     }
 
     /**
+     * Vendor identifiers are the inverse case of canUpdateDetails(): only a
+     * gateway-billed subscription has them, and correcting them is the one
+     * admin write an automatic subscription accepts. Billing fields stay
+     * gateway-owned.
+     *
+     * Off by default — this is a migration/support repair tool, and the column it
+     * writes is what gateway webhooks resolve on. Enable with:
+     *
+     *   add_filter('fluent_cart/subscription/vendor_id_editing_enabled', '__return_true');
+     *
+     * @return bool
+     */
+    public function canEditVendorIds(): bool
+    {
+        if (!apply_filters('fluent_cart/subscription/vendor_id_editing_enabled', false)) {
+            return false;
+        }
+
+        if (!$this->isAutomatic() || !$this->current_payment_method) {
+            return false;
+        }
+
+        // `expired` and `canceled` stay editable: a subscription usually lands there
+        // *because* the id was wrong (webhooks resolved to nothing), so those are the
+        // states the repair is needed in most. Sync from gateway has no status gate
+        // either. `completed` is a real end of term, not a lookup failure.
+        return strtolower($this->status) !== Status::SUBSCRIPTION_COMPLETED;
+    }
+
+    /**
+     * Whether the gateway backing this subscription can look a candidate id up
+     * before it is saved. Editing does not depend on this — a gateway with no
+     * lookup still accepts a correction, it just cannot preview it.
+     *
+     * @return bool
+     */
+    public function canVerifyVendorIds(): bool
+    {
+        if (!$this->canEditVendorIds()) {
+            return false;
+        }
+
+        $gateway = App::gateway($this->current_payment_method);
+
+        return $gateway && $gateway->has('subscriptions') && $gateway->has('verify_vendor_ids');
+    }
+
+    /**
      * Update subscription details (for manual subscriptions)
      *
      * Allowed fields for manual subscriptions:
@@ -935,21 +998,23 @@ class Subscription extends Model
         return $this->canReactivate();
     }
 
-    public function getReactivationNonceAction()
-    {
-        return 'fluent_cart_reactivate_subscription_' . $this->uuid;
-    }
-
+    /**
+     * These links are minted in email and webhook contexts, where there is no
+     * current user. A wp_create_nonce() token bound to that user-less request
+     * stops verifying the moment the recipient logs in to act on it, so the link
+     * broke for the one journey it exists to serve. Authorization for the
+     * endpoint is the subscription-ownership check on the handling side, which
+     * a nonce never provided; the uuid alone is inert to anyone else.
+     */
     public function getReactivateUrl()
     {
-        if (!$this->canReactive()) {
+        if (!$this->canReactivate()) {
             return '';
         }
 
         return add_query_arg([
             'fluent-cart'       => 'reactivate-subscription',
             'subscription_hash' => $this->uuid,
-            '_wpnonce'          => wp_create_nonce($this->getReactivationNonceAction()),
         ], home_url('/'));
     }
 

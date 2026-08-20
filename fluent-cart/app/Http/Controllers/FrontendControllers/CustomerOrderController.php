@@ -64,7 +64,7 @@ class CustomerOrderController extends BaseFrontendController
         $search = $request->getSafe('search', 'sanitize_text_field');
 
         $orders = Order::query()
-            ->select(['invoice_no', 'id', 'parent_id', 'total_amount', 'fee_total', 'uuid', 'type', 'status', 'created_at'])
+            ->select(['invoice_no', 'id', 'parent_id', 'total_amount', 'fee_total', 'currency', 'uuid', 'type', 'status', 'created_at'])
             ->with(['order_items' => function ($query) {
                 $query->select('id', 'order_id', 'object_id', 'post_title', 'title', 'quantity', 'payment_type', 'line_meta', 'other_info');
             }])
@@ -86,6 +86,7 @@ class CustomerOrderController extends BaseFrontendController
                 'created_at'     => DateTime::gmtToTimezone($order->created_at, Arr::get($order->config, 'user_tz', wp_timezone_string()))->format('Y-m-d H:i:s'),
                 'invoice_no'     => $order->invoice_no,
                 'total_amount'   => $order->total_amount,
+                'currency'       => $order->currency,
                 'uuid'           => $order->uuid,
                 'type'           => $order->type,
                 'status'         => $order->status,

@@ -85,6 +85,19 @@ class OrderFilter extends BaseFilter
     }
 
     /**
+     * @return array<string, array<string, mixed>>
+     */
+    protected static function sortableColumns(): array
+    {
+        return [
+            'id'             => ['label' => __('Order ID', 'fluent-cart'), 'column' => 'id'],
+            'total_amount'   => ['label' => __('Total', 'fluent-cart'), 'column' => 'total_amount'],
+            'payment_status' => ['label' => __('Payment Status', 'fluent-cart'), 'column' => 'payment_status'],
+            'status'         => ['label' => __('Order Status', 'fluent-cart'), 'column' => 'status'],
+        ];
+    }
+
+    /**
      * Two tiers of key, and they answer two different questions.
      *
      * SCREEN keys — one per calling screen, loading exactly what that screen

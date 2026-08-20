@@ -14,6 +14,38 @@ use FluentCart\Framework\Support\Arr;
 
 class PayPalSubscriptions extends AbstractSubscriptionModule
 {
+    /**
+     * Read-only lookup used by the admin "Edit Vendor IDs" verify action.
+     *
+     * PayPal's status vocabulary is its own (ACTIVE / SUSPENDED / CANCELLED), so it is
+     * mapped through SubscriptionManager the same way the resync path does.
+     */
+    public function verifyVendorSubscription(array $args, $mode = 'current')
+    {
+        $vendorSubscriptionId = Arr::get($args, 'vendor_subscription_id');
+
+        if (!$vendorSubscriptionId) {
+            return new \WP_Error('invalid_subscription', __('A Vendor Subscription ID is required to look up a PayPal subscription.', 'fluent-cart'));
+        }
+
+        $subscription = (new API())->verifySubscription($vendorSubscriptionId, $mode);
+
+        if (is_wp_error($subscription)) {
+            return $subscription;
+        }
+
+        $nextBilling = Arr::get($subscription, 'billing_info.next_billing_time');
+
+        return [
+            'id'                => Arr::get($subscription, 'id'),
+            'status'            => (new SubscriptionManager)->getCorrectSubscriptionStatus(Arr::get($subscription, 'status')),
+            'customer_id'       => Arr::get($subscription, 'subscriber.payer_id'),
+            'amount'            => Arr::get($subscription, 'billing_info.last_payment.amount.value', ''),
+            'currency'          => strtoupper((string) Arr::get($subscription, 'billing_info.last_payment.amount.currency_code')),
+            'next_billing_date' => $nextBilling ? gmdate('Y-m-d H:i:s', strtotime($nextBilling)) : '',
+        ];
+    }
+
     public function reSyncSubscriptionFromRemote(Subscription $subscriptionModel)
     {
         $order = $subscriptionModel->order;
@@ -76,15 +108,22 @@ class PayPalSubscriptions extends AbstractSubscriptionModule
                 $status = strtolower(Arr::get($paypalTransaction, 'status'));
 
                 if ($status == 'completed') {
+                    // PayPal reports when the remote charge completed; that is the
+                    // settlement moment, not this resync's run time.
+                    $settledAt = DateTime::anyTimeToGmt(Arr::get($paypalTransaction, 'time'))->format('Y-m-d H:i:s');
+
+                    // status drives the branch below and meta is merged on update,
+                    // so both must be selected — omitting them would read null and
+                    // wipe unrelated meta keys.
                     $transaction = OrderTransaction::query()
-                        ->select(['id', 'order_id'])
+                        ->select(['id', 'order_id', 'status', 'meta'])
                         ->where('vendor_charge_id', $chargeId)
                         ->first();
 
                     if (!$transaction) {
                         // check if any transaction related to this subscription exists without vendor_charge_id, mainly for first cycle payment
                         $transaction = OrderTransaction::query()
-                            ->select(['id', 'order_id'])
+                            ->select(['id', 'order_id', 'status', 'meta'])
                             ->where('subscription_id', $subscriptionModel->id)
                             ->where('vendor_charge_id', '')
                             ->where('total', $amount)
@@ -92,13 +131,15 @@ class PayPalSubscriptions extends AbstractSubscriptionModule
                             ->first();
 
                         if ($transaction) {
+                            $meta = array_merge($transaction->meta, ['payer' => $payer]);
+                            if (empty($meta['settled_at'])) {
+                                $meta['settled_at'] = $settledAt;
+                            }
                             $transaction->update([
                                 'vendor_charge_id' => $chargeId,
                                 'status'           => Status::TRANSACTION_SUCCEEDED,
                                 'payment_method_type' => 'PayPal',
-                                'meta'             => array_merge($transaction->meta, [
-                                    'payer' => $payer
-                                ])
+                                'meta'             => $meta
                             ]);
                             continue;
                         }
@@ -110,7 +151,8 @@ class PayPalSubscriptions extends AbstractSubscriptionModule
                             'payment_method_type' => 'PayPal',
                             'total'               => $amount,
                             'meta'                => [
-                                'payer' => $payer
+                                'payer'      => $payer,
+                                'settled_at' => $settledAt
                             ],
                             'created_at'          => DateTime::anyTimeToGmt(Arr::get($paypalTransaction, 'time'))->format('Y-m-d H:i:s'),
                         ];
@@ -118,12 +160,14 @@ class PayPalSubscriptions extends AbstractSubscriptionModule
                         $newPayment = true;
                         SubscriptionService::recordRenewalPayment($transactionData, $subscriptionModel, $subscriptionUpdateData);
                     } else if ($transaction->status !== Status::TRANSACTION_SUCCEEDED) {
+                        $meta = array_merge($transaction->meta, ['payer' => $payer]);
+                        if (empty($meta['settled_at'])) {
+                            $meta['settled_at'] = $settledAt;
+                        }
                         $transaction->update([
                             'vendor_charge_id' => $chargeId,
                             'status'           => Status::TRANSACTION_SUCCEEDED,
-                            'meta'             => array_merge($transaction->meta, [
-                                'payer' => $payer
-                            ])
+                            'meta'             => $meta
                         ]);
                     }
                 }

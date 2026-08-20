@@ -10,6 +10,7 @@ use FluentCart\Api\StoreSettings;
 use FluentCart\App\App;
 use FluentCart\App\Models\CustomerAddresses;
 use FluentCart\App\Models\Order;
+use FluentCart\App\Models\OrderAddress;
 use FluentCart\App\Models\ShippingMethod;
 use FluentCart\App\Services\Localization\LocalizationManager;
 use FluentCart\App\Services\Renderer\CheckoutFieldsSchema;
@@ -91,6 +92,24 @@ class AddressHelper
                 }
             }
         }
+    }
+
+    /**
+     * Copy an existing OrderAddress's meta (company/VAT/legal-reg id/label) onto the
+     * order-address row of the same type already created for $orderId. insertOrderAddresses()
+     * only accepts flat column data, so a parent-order snapshot copy (renewals) must
+     * carry meta over separately.
+     */
+    public static function copyOrderAddressMeta($orderId, $type, $sourceAddress): void
+    {
+        if (!$sourceAddress || empty($sourceAddress->meta)) {
+            return;
+        }
+
+        OrderAddress::query()
+            ->where('order_id', $orderId)
+            ->where('type', $type)
+            ->update(['meta' => json_encode($sourceAddress->meta)]);
     }
 
     public static function getIpAddress($anonymize = false)

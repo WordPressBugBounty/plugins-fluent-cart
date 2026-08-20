@@ -1039,7 +1039,7 @@ class WebCheckoutHandler
         }
 
         $checkoutData = $cart->checkout_data;
-        if (!empty($checkoutData['upgrade_data']) || !empty($checkoutData['is_locked'])) {
+        if (!$cart->acceptsAdditionalItems()) {
             return new \WP_Error('invalid_request', __('This cart is locked or already has an upgrade applied.', 'fluent-cart'));
         }
 

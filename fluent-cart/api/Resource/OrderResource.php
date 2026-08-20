@@ -2500,6 +2500,10 @@ class OrderResource extends BaseResourceApi
             $address->{$key} = $addressData[$key];
         }
 
+        if (array_key_exists('meta', $addressData)) {
+            $address->meta = $addressData['meta'];
+        }
+
         if ($address->save()) {
             return $address;
         }
@@ -2510,7 +2514,7 @@ class OrderResource extends BaseResourceApi
 
     private static function createOrderAddress(array $address, $orderId)
     {
-        $keysToInclude = ['order_id', 'type', 'name', 'address_1', 'address_2', 'city', 'state', 'postcode', 'country'];
+        $keysToInclude = ['order_id', 'type', 'name', 'address_1', 'address_2', 'city', 'state', 'postcode', 'country', 'meta'];
         $address = Arr::only($address, $keysToInclude);
         $address['order_id'] = $orderId;
 

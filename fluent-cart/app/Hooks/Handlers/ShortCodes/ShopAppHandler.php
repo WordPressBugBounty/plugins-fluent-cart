@@ -11,6 +11,7 @@ use FluentCart\App\Helpers\Helper;
 //use FluentCart\App\Hooks\Handlers\ShortCodes\Buttons\AddToCartShortcode;
 use FluentCart\App\Models\ProductDetail;
 use FluentCart\App\Modules\Templating\AssetLoader;
+use FluentCart\App\Services\Renderer\RenderContext;
 use FluentCart\App\Services\Renderer\ShopAppRenderer;
 use FluentCart\App\Services\TemplateService;
 use FluentCart\App\Vite;
@@ -45,7 +46,15 @@ class ShopAppHandler
             }
         }, 5);
         add_shortcode(static::SHORT_CODE, function ($shortcodeAttributes, $content, $block) {
-            return $this->handelShortcodeCall($shortcodeAttributes);
+            // The shop shortcode registers its own closure rather than going
+            // through ShortCode::register(), so it declares itself separately.
+            return RenderContext::declaring(
+                RenderContext::SOURCE_SHORTCODE,
+                static::SHORT_CODE,
+                function () use ($shortcodeAttributes) {
+                    return $this->handelShortcodeCall($shortcodeAttributes);
+                }
+            );
         });
     }
 

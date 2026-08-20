@@ -129,7 +129,9 @@ class API
         $response = wp_remote_post($paypal_api_url, [
             'headers' => $headers,
             'method'  => $method,
-            'body'    => json_encode($args)
+            // An empty array encodes to a literal [], which PayPal rejects
+            // with MALFORMED_REQUEST_JSON — it requires a {} body.
+            'body'    => json_encode($args ?: new \stdClass())
         ]);
 
         if (is_wp_error($response)) {

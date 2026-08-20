@@ -9,7 +9,6 @@ use FluentCart\App\Models\OrderItem;
 use FluentCart\App\Models\OrderTaxRate;
 use FluentCart\App\Models\OrderTransaction;
 use FluentCart\App\Models\Subscription;
-use FluentCart\App\Services\Payments\PaymentHelper;
 use FluentCart\App\Services\Payments\SubscriptionHelper;
 use FluentCart\App\Modules\Subscriptions\Services\SubscriptionService;
 use FluentCart\App\Modules\Subscriptions\Services\SystemChargeService;
@@ -300,6 +299,9 @@ class RenewalService
             $shippingAddressData
         );
 
+        AddressHelper::copyOrderAddressMeta($childOrder->id, 'billing', $billingAddress);
+        AddressHelper::copyOrderAddressMeta($childOrder->id, 'shipping', $shippingAddress);
+
         foreach (['tax_id', 'vat_tax_id', 'business_info', 'store_business_info'] as $metaKey) {
             $metaValue = $parentOrder->getMeta($metaKey, null);
 
@@ -507,14 +509,14 @@ class RenewalService
             return;
         }
 
-        $intervalDays = PaymentHelper::getIntervalDays($subscription->billing_interval);
         $dueDate = $order->getMeta('due_date');
         $paidAt = time();
+        $schedule = SubscriptionHelper::getBillingSchedule($subscription);
 
         if ($dueDate && $paidAt <= strtotime($dueDate)) {
-            $nextBillingDate = gmdate('Y-m-d H:i:s', strtotime($dueDate) + ($intervalDays * 86400));
+            $nextBillingDate = gmdate('Y-m-d H:i:s', SubscriptionHelper::addBillingInterval($dueDate, $subscription->billing_interval, $schedule));
         } else {
-            $nextBillingDate = gmdate('Y-m-d H:i:s', $paidAt + ($intervalDays * 86400));
+            $nextBillingDate = gmdate('Y-m-d H:i:s', SubscriptionHelper::addBillingInterval($paidAt, $subscription->billing_interval, $schedule));
         }
 
         // syncSubscriptionStates derives bill_count from DB transactions, handles EOT
@@ -731,16 +733,18 @@ class RenewalService
             return null;
         }
 
-        $intervalDays = PaymentHelper::getIntervalDays($subscription->billing_interval);
-        $newTs = strtotime($oldDate) + ($intervalDays * DAY_IN_SECONDS);
+        $schedule = SubscriptionHelper::getBillingSchedule($subscription);
+        $newTs = SubscriptionHelper::addBillingInterval($oldDate, $subscription->billing_interval, $schedule);
 
         // Overdue dates: advance whole intervals until in the future. Guard the loop
-        // so a zero/negative interval can never spin.
-        if ($intervalDays > 0) {
-            $now = time();
-            while ($newTs <= $now) {
-                $newTs += $intervalDays * DAY_IN_SECONDS;
+        // so a zero-progress interval (broken day-count filter) can never spin.
+        $now = time();
+        while ($newTs <= $now) {
+            $advanced = SubscriptionHelper::addBillingInterval($newTs, $subscription->billing_interval, $schedule);
+            if ($advanced <= $newTs) {
+                break;
             }
+            $newTs = $advanced;
         }
 
         $newDate = gmdate('Y-m-d H:i:s', $newTs);
@@ -892,8 +896,7 @@ class RenewalService
             return;
         }
 
-        $intervalDays = PaymentHelper::getIntervalDays($subscription->billing_interval);
-        $newDate = gmdate('Y-m-d H:i:s', strtotime($dueDate) + ($intervalDays * DAY_IN_SECONDS));
+        $newDate = gmdate('Y-m-d H:i:s', SubscriptionHelper::addBillingInterval($dueDate, $subscription->billing_interval, SubscriptionHelper::getBillingSchedule($subscription)));
 
         $subscription->update(['next_billing_date' => $newDate]);
     }

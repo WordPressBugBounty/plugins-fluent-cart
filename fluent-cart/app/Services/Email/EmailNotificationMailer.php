@@ -31,12 +31,19 @@ class EmailNotificationMailer
 
         }, 999, 1);
         // To Admin
+        // 999 like the rest of this file: custom smartcodes in a customised admin
+        // body resolve against the payload as it stands when the mail is built, so
+        // the mail has to run after everything else bound here writes its data —
+        // integration feeds (11), FluentCRM (20), affiliate referral status (99).
+        // Cost of running last: this hook forces every feed to run realtime, so the
+        // mail waits on their outbound HTTP, and IntegrationEventListener catches
+        // only \Exception — a \Error in a feed loses the mail.
         add_action('fluent_cart/order_paid_done', function ($data) {
             $this->mailEmailsOfEvent(
                 'order_paid_done',
                 $data
             );
-        }, 10, 1);
+        }, 999, 1);
 
         // to customer and admin
         add_action('fluent_cart/subscription_renewed', function ($data) {

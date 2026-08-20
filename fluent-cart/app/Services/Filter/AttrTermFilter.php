@@ -67,6 +67,18 @@ class AttrTermFilter extends BaseFilter
     }
 
     /**
+     * @return array<string, array<string, mixed>>
+     */
+    protected static function sortableColumns(): array
+    {
+        return [
+            'serial'     => ['label' => __('Serial', 'fluent-cart'), 'column' => 'serial'],
+            'title'      => ['label' => __('Title', 'fluent-cart'), 'column' => 'title'],
+            'created_at' => ['label' => __('Created at', 'fluent-cart'), 'column' => 'created_at'],
+        ];
+    }
+
+    /**
      * Intentionally empty, and verified so: AttrTermsTable.js sends no `with`
      * at all, so there is nothing to allow. Add an entry only when a caller
      * actually needs it — do not pre-open relations.

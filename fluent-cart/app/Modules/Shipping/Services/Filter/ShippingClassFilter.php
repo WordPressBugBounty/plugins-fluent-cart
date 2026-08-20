@@ -35,6 +35,17 @@ class ShippingClassFilter extends BaseFilter
     }
 
     /**
+     * @return array<string, array<string, mixed>>
+     */
+    protected static function sortableColumns(): array
+    {
+        return [
+            'name' => ['label' => __('Class Name', 'fluent-cart'), 'column' => 'name'],
+            'cost' => ['label' => __('Cost', 'fluent-cart'), 'column' => 'cost'],
+        ];
+    }
+
+    /**
      * Intentionally empty, and verified so: ShippingClassTable.js sends no
      * `with` at all, so there is nothing to allow. Add an entry only when a
      * caller actually needs it — do not pre-open relations.

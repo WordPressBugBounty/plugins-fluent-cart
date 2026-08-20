@@ -99,6 +99,7 @@ class CustomerProfileController extends BaseFrontendController
                 'created_at'     => $order->created_at->format('Y-m-d H:i:s'),
                 'invoice_no'     => $order->invoice_no,
                 'total_amount'   => $order->total_amount,
+                'currency'       => $order->currency,
                 'uuid'           => $order->uuid,
                 'type'           => $order->type,
                 'status'         => $order->status,

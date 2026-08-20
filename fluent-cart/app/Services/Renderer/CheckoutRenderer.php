@@ -151,7 +151,6 @@ class CheckoutRenderer
             $hookData = [
                 'cart' => $this->cart
             ];
-            do_action_deprecated('fluent_cart/afrer_checkout_page_start', [$hookData], '1.3.16', 'fluent_cart/after_checkout_page_start', 'Use fluent_cart/after_checkout_page_start instead of fluent_cart/afrer_checkout_page_start. It will be removed in v1.4.3.');
             do_action('fluent_cart/after_checkout_page_start', $hookData);
     }
 
@@ -935,7 +934,7 @@ class CheckoutRenderer
                         'method_title' => $methodTitle,
                         'method_style' => $methodStyle,
                     ];
-                    $paymentMethodClass = apply_filters_deprecated('fluent_cart_payment_method_list_class', ['', $pmContext], '1.3.16', 'fluent_cart/payment_method_list_class', 'Use fluent_cart/payment_method_list_class instead of fluent_cart_payment_method_list_class.');
+                    $paymentMethodClass = '';
                     $paymentMethodClass = apply_filters('fluent_cart/payment_method_list_class', $paymentMethodClass, $pmContext);
 
                     ?>

@@ -495,11 +495,16 @@ class BulkProductInsertService
 
     /**
      * Sanitize a price value to ensure it's a valid integer (cents).
+     *
+     * The value ARRIVES in cents — this only normalizes float artifacts and
+     * rejects negatives. CSV imports carry dollars, so Importer.vue converts
+     * at parse time, keeping this endpoint on the same cents contract as every
+     * other write. See dev-docs/PRICING-AND-TAX.md §6.
      */
     protected function sanitizePrice($value): int
     {
         if (is_numeric($value)) {
-            return absint(round(floatval($value) * 100));
+            return absint(Helper::roundCent($value));
         }
 
         return 0;

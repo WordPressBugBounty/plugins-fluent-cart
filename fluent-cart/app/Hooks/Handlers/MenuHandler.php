@@ -27,6 +27,11 @@ use FluentCart\App\Services\Filter\LicenseFilter;
 use FluentCart\App\Services\Filter\LicenseSiteFilter;
 use FluentCart\App\Services\Filter\ProductFilter;
 use FluentCart\App\Services\Filter\CustomerFilter;
+use FluentCart\App\Services\Filter\CouponFilter;
+use FluentCart\App\Services\Filter\LogFilter;
+use FluentCart\App\Services\Filter\OrderBumpFilter;
+use FluentCart\App\Modules\Shipping\Services\Filter\ShippingClassFilter;
+use FluentCart\App\Modules\Shipping\Services\Filter\ShippingZoneFilter;
 use FluentCart\App\Modules\Integrations\AddOnModule;
 use FluentCart\App\Services\Translations\TransStrings;
 use FluentCart\App\Services\Permission\PermissionManager;
@@ -440,7 +445,8 @@ class MenuHandler
         do_action('fluent_cart/loading_app', $app);
 
         //This should be done before enqueueing the global script.
-        Vite::enqueueScript($slug . '_admin_app_start', 'admin/bootstrap/app.js', [$slug . '_global_admin_hooks']);
+        // wp-i18n backs the admin translator (resources/admin/utils/translator/Translator.js).
+        Vite::enqueueScript($slug . '_admin_app_start', 'admin/bootstrap/app.js', [$slug . '_global_admin_hooks', 'wp-i18n']);
 
         //Don't register this script using vite.
         if (!wp_script_is('wp-hooks', 'registered')) {
@@ -484,7 +490,27 @@ class MenuHandler
             'taxes_table'         => ['filters' => Arr::get($filterOptions, 'tax_filter_options', [])],
             'subscriptions'       => ['filters' => Arr::get($filterOptions, 'subscription_filter_options', [])],
             'shipping_zone_table' => ['filters' => Arr::get($filterOptions, 'shipping_zone_filter_options', [])],
+            // The Order Sources report filters orders, so its advanced-filter UI
+            // reuses the Orders filter vocabulary rather than defining its own.
+            'source_report'       => ['filters' => Arr::get($filterOptions, 'order_filter_options', [])],
         ];
+
+        // Tables that declare sort options on their filter class but carry no
+        // filter-options entry above: the Sort popover still needs them, and
+        // they are what `fluent_cart/{filterName}_table_sorts` feeds.
+        $sortOnlyTables = [
+            'coupon_table'         => CouponFilter::class,
+            'log_table'            => LogFilter::class,
+            'order_bump_table'     => OrderBumpFilter::class,
+            'shipping_class_table' => ShippingClassFilter::class,
+            'shipping_zone_table'  => ShippingZoneFilter::class,
+        ];
+
+        foreach ($sortOnlyTables as $tableName => $filterClass) {
+            if (empty($tableConfig[$tableName]['filters']['sorts'])) {
+                $tableConfig[$tableName]['filters']['sorts'] = call_user_func([$filterClass, 'getSortOptions']);
+            }
+        }
 
         $tableConfig = apply_filters('fluent_cart/admin_table_saved_views', $tableConfig, [
             'filterOptions' => $filterOptions

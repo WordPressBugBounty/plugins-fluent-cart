@@ -302,6 +302,28 @@ class Cart extends Model
         return Arr::get($this->checkout_data, 'is_locked') === 'yes' && $this->order_id;
     }
 
+    /**
+     * Whether this cart can still take an additional item, such as an order bump.
+     *
+     * False when the cart is locked to an existing payment (custom payment link,
+     * renewal invoice, early installment) or already carries an upgrade.
+     *
+     * `is_locked` is a 'yes'/'no' string, so it must be compared explicitly —
+     * `!empty()` treats the string 'no' as locked.
+     *
+     * Deliberately distinct from isLocked(), which additionally requires order_id
+     * and is therefore false for renewal and early-installment carts, which never
+     * set that column.
+     */
+    public function acceptsAdditionalItems()
+    {
+        if (Arr::get($this->checkout_data, 'is_locked') === 'yes') {
+            return false;
+        }
+
+        return empty(Arr::get($this->checkout_data, 'upgrade_data'));
+    }
+
     public function addItem($item = [], $replacingIndex = null)
     {
         if ($this->isLocked()) {

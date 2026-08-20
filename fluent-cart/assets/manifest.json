@@ -498,20 +498,21 @@
     "name": "OrderCustomerInformation",
     "imports": [
       "_vue.esm-bundler.js",
-      "__plugin-vue_export-helper.js",
+      "_index.js",
+      "_Translator.js",
+      "_Animation.js",
       "_Badge.js",
+      "_Rest.js",
+      "_Notify.js",
+      "__plugin-vue_export-helper.js",
       "_Empty.js",
       "_common.js",
       "_IconButton.js",
       "_DynamicIcon.js",
-      "_Translator.js",
       "_CardBody.js",
       "_UserCan.js",
       "_Arr.js",
       "_Asset.js",
-      "_Notify.js",
-      "_Rest.js",
-      "_index.js",
       "_AddressComponent2.js",
       "_NotFound.js",
       "_productService.js"
@@ -652,7 +653,8 @@
     "imports": [
       "_Translator.js",
       "_dayjs.min.js",
-      "_timezone.js"
+      "_timezone.js",
+      "_CurrencyFormatter.js"
     ]
   },
   "__plugin-vue_export-helper.js": {
@@ -924,16 +926,16 @@
       "_index3.js",
       "_IconButton.js",
       "_Utils.js",
+      "_CurrencyFormatter.js",
       "_TransitionAccordion.js",
+      "_Animation.js",
       "_Empty.js",
       "_CardBody.js",
       "_UserCan.js",
       "_Asset.js",
       "_AddressComponent2.js",
-      "_Animation.js",
       "_NotFound.js",
-      "_productService.js",
-      "_CurrencyFormatter.js"
+      "_productService.js"
     ]
   },
   "resources/admin/Bits/Components/Form/Components/ModuleSettings.vue": {
@@ -962,6 +964,7 @@
       "_index3.js",
       "_IconButton.js",
       "_Utils.js",
+      "_CurrencyFormatter.js",
       "_TransitionAccordion.js"
     ]
   },
@@ -1055,7 +1058,8 @@
       "__plugin-vue_export-helper.js",
       "_index3.js",
       "_IconButton.js",
-      "_Utils.js"
+      "_Utils.js",
+      "_CurrencyFormatter.js"
     ]
   },
   "resources/admin/Bits/Components/Form/Components/TurnstileSettings.vue": {
@@ -1083,6 +1087,7 @@
       "_index3.js",
       "_IconButton.js",
       "_Utils.js",
+      "_CurrencyFormatter.js",
       "_TransitionAccordion.js"
     ]
   },
@@ -3860,9 +3865,9 @@
       "_Utils.js",
       "_TransitionAccordion.js",
       "_OrderCustomerInformation.js",
+      "_Animation.js",
       "_Asset.js",
       "_AddressComponent2.js",
-      "_Animation.js",
       "_NotFound.js",
       "_productService.js",
       "_Activity.js",
@@ -3911,6 +3916,7 @@
       "_Url.js",
       "_index3.js",
       "_Utils.js",
+      "_CurrencyFormatter.js",
       "_TransitionAccordion.js",
       "_Asset.js"
     ],
@@ -3931,11 +3937,11 @@
       "_Activity.js",
       "__plugin-vue_export-helper.js",
       "_index.js",
-      "_CardBody.js",
-      "_OrderCustomerInformation.js",
-      "_Str.js",
-      "_UserCan.js",
       "_DynamicIcon.js",
+      "_OrderCustomerInformation.js",
+      "_UserCan.js",
+      "_CardBody.js",
+      "_Str.js",
       "_Notify.js",
       "_NotFound.js",
       "_Arr.js",
@@ -3949,12 +3955,12 @@
       "_index3.js",
       "_IconButton.js",
       "_Utils.js",
-      "_TransitionAccordion.js",
       "_CurrencyFormatter.js",
+      "_TransitionAccordion.js",
       "_BundleProducts.js",
+      "_Animation.js",
       "_Asset.js",
       "_AddressComponent2.js",
-      "_Animation.js",
       "_productService.js"
     ],
     "css": [
@@ -3979,6 +3985,7 @@
       "_Translator.js",
       "_Badge.js",
       "_Empty.js",
+      "_index.js",
       "_OrderCustomerInformation.js",
       "_UserCan.js",
       "_CurrencyFormatter.js",
@@ -3990,12 +3997,12 @@
       "_Model.js",
       "_Rest.js",
       "_dayjs.min.js",
-      "_index.js",
       "_Notify.js",
       "_Animation.js",
       "_dateShortCuts.js",
       "_countries.js",
       "_NotFound.js",
+      "_Utils.js",
       "_Asset.js",
       "_index2.js",
       "_Str.js",
@@ -4004,7 +4011,6 @@
       "_Url.js",
       "_DynamicTemplateParser.js",
       "_timezone.js",
-      "_Utils.js",
       "_ProductVariationSelector.js",
       "_productService.js",
       "_BundleProducts.js",
@@ -4291,11 +4297,11 @@
       "_Notify.js",
       "_index3.js",
       "_Utils.js",
+      "_CurrencyFormatter.js",
       "_TransitionAccordion.js",
-      "_AddressComponent2.js",
       "_Animation.js",
-      "_productService.js",
-      "_CurrencyFormatter.js"
+      "_AddressComponent2.js",
+      "_productService.js"
     ],
     "css": [
       "assets/license.css"
@@ -4329,6 +4335,7 @@
       "_timezone.js",
       "_index3.js",
       "_Utils.js",
+      "_CurrencyFormatter.js",
       "_TransitionAccordion.js"
     ]
   },
@@ -4657,7 +4664,8 @@
       "_vue.esm-bundler.js",
       "_Arr.js",
       "_dayjs.min.js",
-      "_timezone.js"
+      "_timezone.js",
+      "_CurrencyFormatter.js"
     ]
   },
   "resources/public/search-bar-app/style/style.scss": {

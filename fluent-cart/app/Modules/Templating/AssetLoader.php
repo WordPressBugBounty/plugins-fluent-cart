@@ -343,10 +343,13 @@ class AssetLoader
             'public/customer-profile/style/customer-profile.scss'
         );
 
+        // wp-i18n: this bundle pulls in the admin translator transitively
+        // (Start.js -> @/Bits/common.js -> @/utils/translator/Translator.js),
+        // which resolves strings through window.wp.i18n.
         Vite::enqueueScript(
             'fluentcart-customer-js',
             'public/customer-profile/Start.js',
-            []
+            ['wp-i18n']
         )->with(CustomerProfileHandler::getLocalizationData());
 
         /**

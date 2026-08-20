@@ -172,15 +172,13 @@ class Status
 
     public static function getEditableOrderStatuses()
     {
-        $statuses = apply_filters_deprecated('fluent-cart/editable_order_statuses', [
-            [
-                self::ORDER_ON_HOLD    => __('On Hold', 'fluent-cart'),
-                self::ORDER_PROCESSING => __('Processing', 'fluent-cart'),
-                self::ORDER_COMPLETED  => __('Completed', 'fluent-cart'),
-                //  'archived' => __('Archived', 'fluent-cart'),
-                self::ORDER_CANCELED   => __('Canceled', 'fluent-cart')
-            ], []
-        ], '1.3.16', 'fluent_cart/editable_order_statuses', 'Use fluent_cart/editable_order_statuses instead of fluent-cart/editable_order_statuses. It will be removed in v1.4.3.');
+        $statuses = [
+            self::ORDER_ON_HOLD    => __('On Hold', 'fluent-cart'),
+            self::ORDER_PROCESSING => __('Processing', 'fluent-cart'),
+            self::ORDER_COMPLETED  => __('Completed', 'fluent-cart'),
+            //  'archived' => __('Archived', 'fluent-cart'),
+            self::ORDER_CANCELED   => __('Canceled', 'fluent-cart')
+        ];
 
         return apply_filters('fluent_cart/editable_order_statuses', $statuses, []);
     }
@@ -221,15 +219,13 @@ class Status
 
     public static function getEditableTransactionStatuses($withLabel = true)
     {
-        $statuses = apply_filters_deprecated('fluent-cart/editable_transaction_statuses', [
-            [
-                self::TRANSACTION_PENDING   => __('Pending', 'fluent-cart'),
-                self::TRANSACTION_SUCCEEDED => __('Succeeded', 'fluent-cart'),
-                self::TRANSACTION_AUTHORIZED => __('Authorized', 'fluent-cart'),
-                self::TRANSACTION_FAILED    => __('Failed', 'fluent-cart'),
-                self::TRANSACTION_REFUNDED  => __('Refunded', 'fluent-cart'),
-            ], []
-        ], '1.3.16', 'fluent_cart/editable_transaction_statuses', 'Use fluent_cart/editable_transaction_statuses instead of fluent-cart/editable_transaction_statuses. It will be removed in v1.4.3.');
+        $statuses = [
+            self::TRANSACTION_PENDING   => __('Pending', 'fluent-cart'),
+            self::TRANSACTION_SUCCEEDED => __('Succeeded', 'fluent-cart'),
+            self::TRANSACTION_AUTHORIZED => __('Authorized', 'fluent-cart'),
+            self::TRANSACTION_FAILED    => __('Failed', 'fluent-cart'),
+            self::TRANSACTION_REFUNDED  => __('Refunded', 'fluent-cart'),
+        ];
 
         $statuses = apply_filters('fluent_cart/editable_transaction_statuses', $statuses, []);
 
@@ -253,14 +249,12 @@ class Status
 
     public static function getEditableShippingStatuses()
     {
-        $statuses = apply_filters_deprecated('fluent-cart/editable_order_statuses', [
-            [
-                self::SHIPPING_UNSHIPPED   => __('Unshipped', 'fluent-cart'),
-                self::SHIPPING_SHIPPED     => __('Shipped', 'fluent-cart'),
-                self::SHIPPING_DELIVERED   => __('Delivered', 'fluent-cart'),
-                self::SHIPPING_UNSHIPPABLE => __('Unshippable', 'fluent-cart'),
-            ], []
-        ], '1.3.16', 'fluent_cart/editable_shipping_statuses', 'Use fluent_cart/editable_shipping_statuses instead of fluent-cart/editable_order_statuses. It will be removed in v1.4.3.');
+        $statuses = [
+            self::SHIPPING_UNSHIPPED   => __('Unshipped', 'fluent-cart'),
+            self::SHIPPING_SHIPPED     => __('Shipped', 'fluent-cart'),
+            self::SHIPPING_DELIVERED   => __('Delivered', 'fluent-cart'),
+            self::SHIPPING_UNSHIPPABLE => __('Unshippable', 'fluent-cart'),
+        ];
 
         return apply_filters('fluent_cart/editable_shipping_statuses', $statuses, []);
     }
@@ -373,12 +367,10 @@ class Status
 
     public static function getEditableCustomerStatuses()
     {
-        $statuses = apply_filters_deprecated('fluent-cart/editable_customer_statuses', [
-            [
-                self::CUSTOMER_ACTIVE   => __('Active', 'fluent-cart'),
-                self::CUSTOMER_INACTIVE => __('Inactive', 'fluent-cart'),
-            ], []
-        ], '1.3.16', 'fluent_cart/editable_customer_statuses', 'Use fluent_cart/editable_customer_statuses instead of fluent-cart/editable_customer_statuses. It will be removed in v1.4.3.');
+        $statuses = [
+            self::CUSTOMER_ACTIVE   => __('Active', 'fluent-cart'),
+            self::CUSTOMER_INACTIVE => __('Inactive', 'fluent-cart'),
+        ];
 
         return apply_filters('fluent_cart/editable_customer_statuses', $statuses, []);
     }

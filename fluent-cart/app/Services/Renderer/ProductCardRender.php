@@ -63,9 +63,22 @@ class ProductCardRender
         }
 
 
+        // Card wrapper classes are filterable so an integration can tag cards
+        // (sale, low-stock, layout variants) without wrapping or re-rendering
+        // the whole card. Sanitised in RenderGate, so listeners may return a
+        // plain array of class names.
+        $cardClasses = RenderGate::cardClasses(['fct-product-card'], [
+                'product' => $this->product,
+                'scope'   => RenderGate::SCOPE_CARD,
+        ]);
+
+        do_action('fluent_cart/product/group/before_card', RenderContext::decorate([
+                'product' => $this->product,
+                'scope'   => RenderGate::SCOPE_CARD,
+        ]));
         ?>
         <article data-fluent-cart-shop-app-single-product data-fct-product-card=""
-                 class="fct-product-card"
+                 class="<?php echo esc_attr($cardClasses); ?>"
                 <?php echo $cursor; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Already escaped ?>
                 <?php echo $cardWidth; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Already escaped ?>
                  aria-label="<?php echo esc_attr(sprintf(
@@ -79,6 +92,10 @@ class ProductCardRender
             <?php $this->showBuyButton(); ?>
         </article>
         <?php
+        do_action('fluent_cart/product/group/after_card', RenderContext::decorate([
+                'product' => $this->product,
+                'scope'   => RenderGate::SCOPE_CARD,
+        ]));
     }
 
     /**
@@ -124,6 +141,14 @@ class ProductCardRender
             return;
         }
 
+        $gateContext = RenderGate::context($this->product, RenderGate::SCOPE_CARD);
+
+        if (!RenderGate::shouldRender('excerpt', $gateContext)) {
+            return;
+        }
+
+        do_action('fluent_cart/product/group/before_excerpt_block', $gateContext);
+
         echo sprintf(
             '<p %1$s class="fct-product-card-excerpt">
                    %2$s
@@ -131,10 +156,20 @@ class ProductCardRender
             $atts, // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
             wp_kses_post($this->product->post_excerpt),
         );
+
+        do_action('fluent_cart/product/group/after_excerpt_block', $gateContext);
     }
 
     public function renderTitle($atts = '', $config = [])
     {
+        $gateContext = RenderGate::context($this->product, RenderGate::SCOPE_CARD);
+
+        if (!RenderGate::shouldRender('title', $gateContext)) {
+            return;
+        }
+
+        do_action('fluent_cart/product/group/before_title_block', $gateContext);
+
         $link = Arr::get($config, 'isLink', true);
         $target = Arr::get($config, 'target', '_self');
 
@@ -166,10 +201,16 @@ class ProductCardRender
                 esc_html($titleText)
             );
         }
+
+        do_action('fluent_cart/product/group/after_title_block', $gateContext);
     }
 
     public function renderProductImage()
     {
+        if (!RenderGate::shouldRender('image', RenderGate::context($this->product, RenderGate::SCOPE_CARD))) {
+            return;
+        }
+
         $image = $this->product->thumbnail;
         $isPlaceholder = false;
 
@@ -184,10 +225,10 @@ class ProductCardRender
                         __('Placeholder image for %s', 'fluent-cart'), $this->product->post_title)
                 : $this->product->post_title;
 
-        do_action('fluent_cart/product/group/before_image_block', [
+        do_action('fluent_cart/product/group/before_image_block', RenderContext::decorate([
                 'product'       => $this->product,
                 'scope'         => 'product_card'
-        ]);
+        ]));
         ?>
         <a class="fct-product-card-image-wrap"
            href="<?php echo esc_url($this->viewUrl); ?>"
@@ -205,14 +246,18 @@ class ProductCardRender
         </a>
         <?php
 
-        do_action('fluent_cart/product/group/after_image_block', [
+        do_action('fluent_cart/product/group/after_image_block', RenderContext::decorate([
                 'product'       => $this->product,
                 'scope'         => 'product_card'
-        ]);
+        ]));
     }
 
     public function renderPrices($wrapper_attributes = '')
     {
+        if (!RenderGate::shouldRender('price', RenderGate::context($this->product, RenderGate::SCOPE_CARD))) {
+            return;
+        }
+
         $priceFormat = Arr::get($this->config, 'price_format', 'starts_from');
         $isSimple = $this->product->detail->variation_type === 'simple';
         $minPrice = $this->product->detail->min_price;
@@ -239,11 +284,11 @@ class ProductCardRender
         $formattedMaxPrice = Helper::toDecimal($maxPrice);
         $formattedComparePrice = Helper::toDecimal($comparePrice);
 
-        do_action('fluent_cart/product/group/before_price_block', [
+        do_action('fluent_cart/product/group/before_price_block', RenderContext::decorate([
                 'product'       => $this->product,
                 'current_price' => $minPrice,
                 'scope'         => 'product_card'
-        ]);
+        ]));
         ?>
         <div <?php echo $wrapper_attributes; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
                 class="fct-product-card-prices"
@@ -286,24 +331,42 @@ class ProductCardRender
             <?php endif; ?>
 
             <?php
-            do_action('fluent_cart/product/after_price', [
+            do_action('fluent_cart/product/after_price', RenderContext::decorate([
                     'product'       => $this->product,
                     'variant'       => $firstVariant,
                     'current_price' => $minPrice,
                     'scope'         => 'product_card'
-            ]);
+            ]));
             RenderHelper::renderPriceSuffix($this->product, $firstVariant, 'product_card');
             ?>
         </div>
         <?php
-        do_action('fluent_cart/product/group/after_price_block', [
+        do_action('fluent_cart/product/group/after_price_block', RenderContext::decorate([
                 'product'       => $this->product,
                 'current_price' => $minPrice,
                 'scope'         => 'product_card'
-        ]);
+        ]));
     }
 
     public function showBuyButton($atts = '')
+    {
+        $gateContext = RenderGate::context($this->product, RenderGate::SCOPE_CARD);
+
+        // 'actions' gates the whole affordance slot, including the disabled
+        // out-of-stock placeholder — hiding the row should not leave a stray
+        // "Not Available" button behind.
+        if (!RenderGate::shouldRender('actions', $gateContext)) {
+            return;
+        }
+
+        do_action('fluent_cart/product/group/before_actions_block', $gateContext);
+
+        $this->renderBuyButtonMarkup($atts, $gateContext);
+
+        do_action('fluent_cart/product/group/after_actions_block', $gateContext);
+    }
+
+    protected function renderBuyButtonMarkup($atts, array $gateContext)
     {
         $isOutOfStock = ModuleSettings::isActive('stock_management') && !$this->product->isStock();
 
@@ -352,6 +415,22 @@ class ProductCardRender
                 $ariaLabel = sprintf(
                 /* translators: %s: product title */
                         __('Add %s to cart', 'fluent-cart'), $this->product->post_title);
+            }
+        }
+
+        // The card fills this slot with one of three things: an instant-checkout
+        // Buy Now anchor (simple + subscription), an Add to Cart button (simple),
+        // or a "View Options" link through to the product page (variable). The
+        // first two are purchase affordances and answer to their own gates.
+        // "View Options" is navigation, so it stays under 'actions' alone — a
+        // catalog-mode listener hides the buying, not the browsing.
+        if ($isInstantCheckout) {
+            if (!RenderGate::shouldRender('buy_now_button', $gateContext)) {
+                return;
+            }
+        } elseif ($firstVariant) {
+            if (!RenderGate::shouldRender('add_to_cart_button', $gateContext)) {
+                return;
             }
         }
 

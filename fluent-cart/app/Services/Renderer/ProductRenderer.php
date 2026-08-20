@@ -295,6 +295,17 @@ class ProductRenderer
 
     public function renderBuySection($atts = [])
     {
+        $gateContext = RenderGate::context($this->product, RenderGate::SCOPE_SINGLE, $this->defaultVariant);
+
+        // The buy section is the root the variation-selector JS binds to
+        // (data-fluent-cart-product-pricing-section). Gating it removes the
+        // variation picker along with the buttons, which is what a full catalog
+        // mode wants; to keep shoppers able to browse options while hiding only
+        // the purchase affordances, gate 'actions' instead.
+        if (!RenderGate::shouldRender('buy_section', $gateContext)) {
+            return;
+        }
+
         // Render no buy section when there is nothing purchasable — avoids a
         // broken quantity + "Not Available" block. Two cases:
         //  - no variants at all (any product type), or
@@ -664,6 +675,11 @@ class ProductRenderer
 
     public function renderGallery($args = [])
     {
+        $gateContext = RenderGate::context($this->product, RenderGate::SCOPE_SINGLE, $this->defaultVariant);
+
+        if (!RenderGate::shouldRender('image', $gateContext)) {
+            return;
+        }
 
         $defaults = [
                 'thumbnail_mode'    => 'all', // horizontal, vertical
@@ -700,11 +716,19 @@ class ProductRenderer
 
     public function renderTitle()
     {
+        $gateContext = RenderGate::context($this->product, RenderGate::SCOPE_SINGLE, $this->defaultVariant);
+
+        if (!RenderGate::shouldRender('title', $gateContext)) {
+            return;
+        }
+
+        do_action('fluent_cart/product/single/before_title_block', $gateContext);
         ?>
         <div class="fct-product-title">
             <h1 id="fct-product-summary-title"><?php echo esc_html($this->product->post_title); ?></h1>
         </div>
         <?php
+        do_action('fluent_cart/product/single/after_title_block', $gateContext);
     }
 
     public function renderStockAvailability($wrapper_attributes = '')
@@ -908,12 +932,20 @@ class ProductRenderer
         if (!$excerpt) {
             return;
         }
+
+        $gateContext = RenderGate::context($this->product, RenderGate::SCOPE_SINGLE, $this->defaultVariant);
+
+        if (!RenderGate::shouldRender('excerpt', $gateContext)) {
+            return;
+        }
+
+        do_action('fluent_cart/product/single/before_excerpt_block', $gateContext);
         ?>
         <div class="fct-product-excerpt" aria-labelledby="fct-product-summary-title">
             <p><?php echo wp_kses_post($excerpt); ?></p>
         </div>
         <?php
-
+        do_action('fluent_cart/product/single/after_excerpt_block', $gateContext);
     }
 
     public function renderDescription()
@@ -945,6 +977,12 @@ class ProductRenderer
 
     public function renderPrices()
     {
+        $gateContext = RenderGate::context($this->product, RenderGate::SCOPE_SINGLE, $this->defaultVariant);
+
+        if (!RenderGate::shouldRender('price', $gateContext)) {
+            return;
+        }
+
         if ($this->product->detail->variation_type === 'simple') {
             // we have to render for the simple product
 
@@ -960,11 +998,11 @@ class ProductRenderer
             if ($comparePrice <= $itemPrice) {
                 $comparePrice = 0;
             }
-            do_action('fluent_cart/product/single/before_price_block', [
+            do_action('fluent_cart/product/single/before_price_block', RenderContext::decorate([
                     'product'       => $this->product,
                     'current_price' => $itemPrice,
                     'scope'         => 'price_range'
-            ]);
+            ]));
             ?>
             <?php
 
@@ -994,29 +1032,29 @@ class ProductRenderer
                 <?php endif; ?>
                 <span class="fct-item-price" aria-label="<?php echo esc_attr(__('Current price', 'fluent-cart')); ?>">
                     <?php echo esc_html(Helper::toDecimal($itemPrice)); ?>
-                    <?php do_action('fluent_cart/product/after_price', [
+                    <?php do_action('fluent_cart/product/after_price', RenderContext::decorate([
                             'product'       => $this->product,
                             'current_price' => $itemPrice,
                             'scope'         => 'price_range'
-                    ]); ?>
+                    ])); ?>
                 </span>
             </div>
             <?php
-            do_action('fluent_cart/product/single/after_price_block', [
+            do_action('fluent_cart/product/single/after_price_block', RenderContext::decorate([
                     'product'       => $this->product,
                     'current_price' => $itemPrice,
                     'scope'         => 'price_range'
-            ]);
+            ]));
             return;
         }
         $min_price = $this->product->detail->min_price;
         $max_price = $this->product->detail->max_price;
 
-        do_action('fluent_cart/product/single/before_price_range_block', [
+        do_action('fluent_cart/product/single/before_price_range_block', RenderContext::decorate([
                 'product'       => $this->product,
                 'current_price' => $min_price,
                 'scope'         => 'price_range'
-        ]);
+        ]));
         ?>
         <?php
         $aria_label = sprintf(
@@ -1036,19 +1074,19 @@ class ProductRenderer
                 <?php echo esc_html(Helper::toDecimal($max_price)); ?>
             </span>
 
-            <?php do_action('fluent_cart/product/after_price', [
+            <?php do_action('fluent_cart/product/after_price', RenderContext::decorate([
                     'product'       => $this->product,
                     'current_price' => $min_price,
                     'scope'         => 'price_range'
-            ]); ?>
+            ])); ?>
 
         </div>
         <?php
-        do_action('fluent_cart/product/single/after_price_range_block', [
+        do_action('fluent_cart/product/single/after_price_range_block', RenderContext::decorate([
                 'product'       => $this->product,
                 'current_price' => $min_price,
                 'scope'         => 'price_range'
-        ]);
+        ]));
     }
 
     public function renderVariants($atts = [])
@@ -1075,17 +1113,17 @@ class ProductRenderer
         <div class="<?php echo esc_attr(implode(' ', $classes)); ?>" role="radiogroup"
              aria-label="<?php esc_attr_e('Product Variants', 'fluent-cart'); ?>">
             <?php foreach ($variants as $variant) {
-                do_action('fluent_cart/product/single/before_variant_item', [
+                do_action('fluent_cart/product/single/before_variant_item', RenderContext::decorate([
                         'product' => $this->product,
                         'variant' => $variant,
                         'scope'   => 'product_variant_item'
-                ]);
+                ]));
                 $this->renderVariationItem($variant, $this->defaultVariationId);
-                do_action('fluent_cart/product/single/after_variant_item', [
+                do_action('fluent_cart/product/single/after_variant_item', RenderContext::decorate([
                         'product' => $this->product,
                         'variant' => $variant,
                         'scope'   => 'product_variant_item'
-                ]);
+                ]));
             } ?>
         </div>
         <?php
@@ -1093,15 +1131,22 @@ class ProductRenderer
 
     public function renderItemPrice()
     {
+        // Same 'price' gate as renderPrices(): one filter hides the price
+        // wherever it appears, rather than making callers hunt for the second
+        // place the single product page prints one.
+        if (!RenderGate::shouldRender('price', RenderGate::context($this->product, RenderGate::SCOPE_SINGLE, $this->defaultVariant))) {
+            return;
+        }
+
         if ($this->product->detail->variation_type === 'simple' && !$this->hasSubscription) {
             return; // for simple product we already rendered the price
         }
 
-        do_action('fluent_cart/product/single/before_price_block', [
+        do_action('fluent_cart/product/single/before_price_block', RenderContext::decorate([
                 'product'       => $this->product,
                 'current_price' => $this->defaultVariant ? $this->defaultVariant->item_price : 0,
                 'scope'         => 'product_variant_price'
-        ]);
+        ]));
 
         foreach ($this->product->variants as $variant) {
             if ($this->shouldRenderPriceInPriceSection()) {
@@ -1137,11 +1182,11 @@ class ProductRenderer
 
 
 
-        do_action('fluent_cart/product/single/after_price_block', [
+        do_action('fluent_cart/product/single/after_price_block', RenderContext::decorate([
                 'product'       => $this->product,
                 'current_price' => $this->defaultVariant ? $this->defaultVariant->item_price : 0,
                 'scope'         => 'product_variant_price'
-        ]);
+        ]));
     }
 
     public function shouldRenderPriceInPriceSection(): bool
@@ -1170,12 +1215,12 @@ class ProductRenderer
                 'variant' => $variant,
                 'scope'   => 'product_variant_price'
         ]));
-        do_action('fluent_cart/product/after_price', [
+        do_action('fluent_cart/product/after_price', RenderContext::decorate([
                 'product'       => $this->product,
                 'variant'       => $variant,
                 'current_price' => $variant->item_price,
                 'scope'         => 'product_variant_price'
-        ]);
+        ]));
         RenderHelper::renderPriceSuffix($this->product, $variant, 'product_variant_price');
     }
 
@@ -1287,6 +1332,12 @@ class ProductRenderer
 
     public function renderQuantity()
     {
+        $gateContext = RenderGate::context($this->product, RenderGate::SCOPE_SINGLE, $this->defaultVariant);
+
+        if (!RenderGate::shouldRender('quantity', $gateContext)) {
+            return;
+        }
+
         $soldIndividually = $this->product->soldIndividually();
 
         if (!$this->hasOnetime || $soldIndividually) {
@@ -1307,10 +1358,10 @@ class ProductRenderer
             $attributes['class'] .= ' is-hidden';
         }
 
-        do_action('fluent_cart/product/single/before_quantity_block', [
+        do_action('fluent_cart/product/single/before_quantity_block', RenderContext::decorate([
                 'product' => $this->product,
                 'scope'   => 'product_quantity_block'
-        ]);
+        ]));
         ?>
         <div <?php $this->renderAttributes($attributes); ?>>
             <label for="fct-product-qty-input" class="quantity-title">
@@ -1356,21 +1407,37 @@ class ProductRenderer
             </div>
         </div>
         <?php
-        do_action('fluent_cart/product/single/after_quantity_block', [
+        do_action('fluent_cart/product/single/after_quantity_block', RenderContext::decorate([
                 'product' => $this->product,
                 'scope'   => 'product_quantity_block'
-        ]);
+        ]));
     }
 
     public function renderPurchaseButtons($atts = [])
     {
+        $gateContext = RenderGate::context($this->product, RenderGate::SCOPE_SINGLE, $this->defaultVariant);
+
+        if (!RenderGate::shouldRender('actions', $gateContext)) {
+            return;
+        }
+
+        do_action('fluent_cart/product/single/before_actions_block', $gateContext);
+
         $buyNowButtonAtts = $atts;
         $this->renderBuyNowButton($buyNowButtonAtts);
         $this->renderAddToCartButton($atts);
+
+        do_action('fluent_cart/product/single/after_actions_block', $gateContext);
     }
 
     public function renderBuyNowButton($atts = [])
     {
+        $gateContext = RenderGate::context($this->product, RenderGate::SCOPE_SINGLE, $this->defaultVariant);
+
+        if (!RenderGate::shouldRenderPurchaseButton('buy_now_button', $gateContext)) {
+            return;
+        }
+
         // Stock management check using isStock() method
 //        if (ModuleSettings::isActive('stock_management')) {
 //            if ($this->product->detail->variation_type === 'simple' && $this->defaultVariant) {
@@ -1454,6 +1521,14 @@ class ProductRenderer
 
     public function renderBuyNowButtonBlock($atts = [])
     {
+        $gateContext = RenderGate::context($this->product, RenderGate::SCOPE_SINGLE, $this->defaultVariant);
+
+        // Same gate as the in-section button: a page assembled from standalone
+        // button blocks must honour catalog mode too, or the gate leaks.
+        if (!RenderGate::shouldRenderPurchaseButton('buy_now_button', $gateContext)) {
+            return;
+        }
+
         $text = Arr::get($atts, 'text', __('Buy Now', 'fluent-cart'));
         $variantIds = Arr::get($atts, 'variant_ids', []);
         $variantId  = Arr::get($variantIds, 0);
@@ -1540,6 +1615,12 @@ class ProductRenderer
 
     public function renderAddToCartButton($atts = [])
     {
+        $gateContext = RenderGate::context($this->product, RenderGate::SCOPE_SINGLE, $this->defaultVariant);
+
+        if (!RenderGate::shouldRenderPurchaseButton('add_to_cart_button', $gateContext)) {
+            return;
+        }
+
         $defaults = [
                 'buy_now_text'     => __('Buy Now', 'fluent-cart'),
                 'add_to_cart_text' => __('Add To Cart', 'fluent-cart'),
@@ -1636,6 +1717,13 @@ class ProductRenderer
 
     public function renderAddToCartButtonBlock($atts = [])
     {
+        $gateContext = RenderGate::context($this->product, RenderGate::SCOPE_SINGLE, $this->defaultVariant);
+
+        // Same gate as the in-section button — see renderBuyNowButtonBlock().
+        if (!RenderGate::shouldRenderPurchaseButton('add_to_cart_button', $gateContext)) {
+            return;
+        }
+
         $text = Arr::get($atts, 'text', __('Add To Cart', 'fluent-cart'));
         $customClass = trim(Arr::get($atts, 'class', ''));
         $extraClass = trim(Arr::get($atts, 'extra_class', ''));
@@ -1972,19 +2060,19 @@ class ProductRenderer
                     $variants = (new Collection($variants))->sortBy('serial_index')->values();
 
                     foreach ($variants as $variant) {
-                        do_action('fluent_cart/product/single/before_variant_item', [
+                        do_action('fluent_cart/product/single/before_variant_item', RenderContext::decorate([
                                 'product' => $this->product,
                                 'variant' => $variant,
                                 'scope'   => 'product_variant_item'
-                        ]);
+                        ]));
 
                         $this->renderVariationItem($variant, $this->defaultVariationId);
 
-                        do_action('fluent_cart/product/single/after_variant_item', [
+                        do_action('fluent_cart/product/single/after_variant_item', RenderContext::decorate([
                                 'product' => $this->product,
                                 'variant' => $variant,
                                 'scope'   => 'product_variant_item'
-                        ]);
+                        ]));
                     }
                     ?>
                 </div>

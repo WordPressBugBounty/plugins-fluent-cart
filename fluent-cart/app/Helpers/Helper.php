@@ -279,70 +279,60 @@ class Helper
 
     public static function getOrderStatuses()
     {
-        $statuses = apply_filters_deprecated('fluent-cart/order_statuses', [
-            [
-                'on-hold'    => __('On Hold', 'fluent-cart'),
-                'processing' => __('Processing', 'fluent-cart'),
-                'completed'  => __('Completed', 'fluent-cart'),
-                //'archived' => __('Archived', 'fluent-cart'),
-                'cancelled'  => __('Cancelled', 'fluent-cart'),
-            ], []
-        ], '1.3.16', 'fluent_cart/order_statuses', 'Use fluent_cart/order_statuses instead of fluent-cart/order_statuses. It will be removed in v1.4.3.');
+        $statuses = [
+            'on-hold'    => __('On Hold', 'fluent-cart'),
+            'processing' => __('Processing', 'fluent-cart'),
+            'completed'  => __('Completed', 'fluent-cart'),
+            //'archived' => __('Archived', 'fluent-cart'),
+            'cancelled'  => __('Cancelled', 'fluent-cart'),
+        ];
 
         return apply_filters('fluent_cart/order_statuses', $statuses, []);
     }
 
     public static function getEditableOrderStatuses()
     {
-        $statuses = apply_filters_deprecated('fluent-cart/editable_order_statuses', [
-            [
-                'on-hold'    => __('On Hold', 'fluent-cart'),
-                'processing' => __('Processing', 'fluent-cart'),
-                'completed'  => __('Completed', 'fluent-cart'),
-                //  'archived' => __('Archived', 'fluent-cart'),
-                'cancelled'  => __('Cancelled', 'fluent-cart')
-            ], []
-        ], '1.3.16', 'fluent_cart/editable_order_statuses', 'Use fluent_cart/editable_order_statuses instead of fluent-cart/editable_order_statuses. It will be removed in v1.4.3.');
+        $statuses = [
+            'on-hold'    => __('On Hold', 'fluent-cart'),
+            'processing' => __('Processing', 'fluent-cart'),
+            'completed'  => __('Completed', 'fluent-cart'),
+            //  'archived' => __('Archived', 'fluent-cart'),
+            'cancelled'  => __('Cancelled', 'fluent-cart')
+        ];
 
         return apply_filters('fluent_cart/editable_order_statuses', $statuses, []);
     }
 
     public static function getEditableCustomerStatuses()
     {
-        $statuses = apply_filters_deprecated('fluent-cart/editable_customer_statuses', [
-            [
-                'active'   => __('Active', 'fluent-cart'),
-                'inactive' => __('Inactive', 'fluent-cart'),
-            ], []
-        ], '1.3.16', 'fluent_cart/editable_customer_statuses', 'Use fluent_cart/editable_customer_statuses instead of fluent-cart/editable_customer_statuses. It will be removed in v1.4.3.');
+        $statuses = [
+            'active'   => __('Active', 'fluent-cart'),
+            'inactive' => __('Inactive', 'fluent-cart'),
+        ];
 
         return apply_filters('fluent_cart/editable_customer_statuses', $statuses, []);
     }
 
     public static function getShippingStatuses()
     {
-        $statuses = apply_filters_deprecated('fluent-cart/shipping_statuses', [
-            [
-                'unshipped'   => __('Unshipped', 'fluent-cart'),
-                'shipped'     => __('Shipped', 'fluent-cart'),
-                'delivered'   => __('Delivered', 'fluent-cart'),
-                'unshippable' => __('Unshippable', 'fluent-cart'),
-            ], []
-        ], '1.3.16', 'fluent_cart/shipping_statuses', 'Use fluent_cart/shipping_statuses instead of fluent-cart/shipping_statuses. It will be removed in v1.4.3.');
+        $statuses = [
+            'unshipped'   => __('Unshipped', 'fluent-cart'),
+            'shipped'     => __('Shipped', 'fluent-cart'),
+            'delivered'   => __('Delivered', 'fluent-cart'),
+            'unshippable' => __('Unshippable', 'fluent-cart'),
+        ];
 
         return apply_filters('fluent_cart/shipping_statuses', $statuses, []);
     }
 
     public static function getEditableShippingStatuses()
     {
-        $statuses = apply_filters_deprecated('fluent-cart/editable_order_statuses', [
-            [
-                'unshipped'   => __('Unshipped', 'fluent-cart'),
-                'shipped'     => __('Shipped', 'fluent-cart'),
-                'delivered'   => __('Delivered', 'fluent-cart'),
-                'unshippable' => __('Unshippable', 'fluent-cart'),
-            ], []
-        ], '1.3.16', 'fluent_cart/editable_shipping_statuses', 'Use fluent_cart/editable_shipping_statuses instead of fluent-cart/editable_order_statuses. It will be removed in v1.4.3.');
+        $statuses = [
+            'unshipped'   => __('Unshipped', 'fluent-cart'),
+            'shipped'     => __('Shipped', 'fluent-cart'),
+            'delivered'   => __('Delivered', 'fluent-cart'),
+            'unshippable' => __('Unshippable', 'fluent-cart'),
+        ];
 
         return apply_filters('fluent_cart/editable_shipping_statuses', $statuses, []);
     }
@@ -374,16 +364,14 @@ class Helper
 
     public static function getTransactionStatuses($withLabel = true)
     {
-        $statuses = apply_filters_deprecated('fluent-cart/transaction_statuses', [
-            [
-                'pending'         => __('Pending', 'fluent-cart'),
-                'paid'            => __('Paid', 'fluent-cart'),
-                'require_capture' => __('Authorized (Require Capture)', 'fluent-cart'),
-                'failed'          => __('Failed', 'fluent-cart'),
-                'refunded'        => __('Refunded', 'fluent-cart'),
-                'active'          => __('Active', 'fluent-cart'),
-            ], []
-        ], '1.3.16', 'fluent_cart/transaction_statuses', 'Use fluent_cart/transaction_statuses instead of fluent-cart/transaction_statuses. It will be removed in v1.4.3.');
+        $statuses = [
+            'pending'         => __('Pending', 'fluent-cart'),
+            'paid'            => __('Paid', 'fluent-cart'),
+            'require_capture' => __('Authorized (Require Capture)', 'fluent-cart'),
+            'failed'          => __('Failed', 'fluent-cart'),
+            'refunded'        => __('Refunded', 'fluent-cart'),
+            'active'          => __('Active', 'fluent-cart'),
+        ];
 
         $statuses = apply_filters('fluent_cart/transaction_statuses', $statuses, []);
 
@@ -396,14 +384,12 @@ class Helper
 
     public static function getEditableTransactionStatuses($withLabel = true)
     {
-        $statuses = apply_filters_deprecated('fluent-cart/editable_transaction_statuses', [
-            [
-                'pending'  => __('Pending', 'fluent-cart'),
-                'paid'     => __('Paid', 'fluent-cart'),
-                'failed'   => __('Failed', 'fluent-cart'),
-                'refunded' => __('Refunded', 'fluent-cart'),
-            ], []
-        ], '1.3.16', 'fluent_cart/editable_transaction_statuses', 'Use fluent_cart/editable_transaction_statuses instead of fluent-cart/editable_transaction_statuses. It will be removed in v1.4.3.');
+        $statuses = [
+            'pending'  => __('Pending', 'fluent-cart'),
+            'paid'     => __('Paid', 'fluent-cart'),
+            'failed'   => __('Failed', 'fluent-cart'),
+            'refunded' => __('Refunded', 'fluent-cart'),
+        ];
 
         $statuses = apply_filters('fluent_cart/editable_transaction_statuses', $statuses, []);
 
@@ -412,19 +398,6 @@ class Helper
         }
 
         return array_keys($statuses);
-    }
-
-    public static function loadSpoutLib()
-    {
-        static $loaded;
-
-        if ($loaded) {
-            return $loaded;
-        }
-
-        require_once FLUENTCART_PLUGIN_PATH . 'app/Services/Libs/Spout/Autoloader/autoload.php';
-
-        return true;
     }
 
     public static function productStatuses($withLabel = true): array
@@ -667,25 +640,23 @@ class Helper
 
     public static function getAvailableCurrencyList()
     {
-        $currencies = apply_filters_deprecated('fluent-cart/available_currencies', [
-            [
-                'BDT' => [
-                    "label"  => __('Bangladeshi Taka', 'fluent-cart'),
-                    "value"  => 'BDT',
-                    "symbol" => '৳',
-                ],
-                'USD' => [
-                    "label"  => __('United State Dollar', 'fluent-cart'),
-                    "value"  => 'USD',
-                    "symbol" => '$',
-                ],
-                'GBP' => [
-                    "label"  => __('United Kingdom', 'fluent-cart'),
-                    "value"  => 'GBP',
-                    "symbol" => '£',
-                ],
-            ], []
-        ], '1.3.16', 'fluent_cart/available_currencies', 'Use fluent_cart/available_currencies instead of fluent-cart/available_currencies. It will be removed in v1.4.3.');
+        $currencies = [
+            'BDT' => [
+                "label"  => __('Bangladeshi Taka', 'fluent-cart'),
+                "value"  => 'BDT',
+                "symbol" => '৳',
+            ],
+            'USD' => [
+                "label"  => __('United State Dollar', 'fluent-cart'),
+                "value"  => 'USD',
+                "symbol" => '$',
+            ],
+            'GBP' => [
+                "label"  => __('United Kingdom', 'fluent-cart'),
+                "value"  => 'GBP',
+                "symbol" => '£',
+            ],
+        ];
 
         return apply_filters('fluent_cart/available_currencies', $currencies, []);
     }
@@ -1034,13 +1005,11 @@ class Helper
 
     public static function getCouponStatuses()
     {
-        $statuses = apply_filters_deprecated('fluent-cart/coupon_statuses', [
-            [
-                'active'   => __('Active', 'fluent-cart'),
-                'expired'  => __('Expired', 'fluent-cart'),
-                'disabled' => __('Disabled', 'fluent-cart'),
-            ], []
-        ], '1.3.16', 'fluent_cart/coupon_statuses', 'Use fluent_cart/coupon_statuses instead of fluent-cart/coupon_statuses. It will be removed in v1.4.3.');
+        $statuses = [
+            'active'   => __('Active', 'fluent-cart'),
+            'expired'  => __('Expired', 'fluent-cart'),
+            'disabled' => __('Disabled', 'fluent-cart'),
+        ];
 
         return apply_filters('fluent_cart/coupon_statuses', $statuses, []);
     }
@@ -1308,6 +1277,146 @@ class Helper
         return !empty($otherInfo) ? $paymentInfo : null;
     }
 
+    /**
+     * Billing-cycle text for a subscription with a config-defined schedule
+     * (see SubscriptionHelper::getBillingSchedule()) — cadences the
+     * billing_interval enum cannot express, e.g. "$100 per 3 years on Aug 19".
+     * Subscriptions without a schedule keep generateSubscriptionInfo().
+     */
+    public static function generateScheduleSubscriptionInfo(array $schedule, $otherInfo, $itemPrice, $currencyCode = null): ?string
+    {
+        if (is_object($otherInfo)) {
+            $otherInfo = json_decode(json_encode($otherInfo), true);
+        }
+
+        $count = max(1, (int) Arr::get($schedule, 'interval', 1));
+
+        switch (Arr::get($schedule, 'period')) {
+            case 'day':
+                $unitLabel = _n('day', 'days', $count, 'fluent-cart');
+                break;
+            case 'week':
+                $unitLabel = _n('week', 'weeks', $count, 'fluent-cart');
+                break;
+            case 'month':
+                $unitLabel = _n('month', 'months', $count, 'fluent-cart');
+                break;
+            case 'year':
+                $unitLabel = _n('year', 'years', $count, 'fluent-cart');
+                break;
+            default:
+                return self::generateSubscriptionInfo($otherInfo, $itemPrice, $currencyCode);
+        }
+
+        $price = self::toDecimal($itemPrice, true, $currencyCode);
+        $recurringDiscountAmount = Arr::get($otherInfo, 'recurring_discounts.amount', 0);
+
+        if ($recurringDiscountAmount) {
+            $newRecurringAmount = $itemPrice - $recurringDiscountAmount;
+            $price = "<del>" . $price . "</del> " . self::toDecimal($newRecurringAmount, true, $currencyCode);
+        }
+
+        $interval = $count === 1
+            ? sprintf(
+            /* translators: %s is the interval unit (e.g., day, week, month, year) */
+                __('per %s', 'fluent-cart'),
+                $unitLabel
+            )
+            : sprintf(
+            /* translators: %1$d is the count number, %2$s is the plural unit name (e.g., days, months, years) */
+                __('per %1$d %2$s', 'fluent-cart'),
+                $count,
+                $unitLabel
+            );
+
+        if ($anchorText = self::getScheduleAnchorText($schedule['period'], Arr::get($schedule, 'anchor', []))) {
+            $interval .= ' ' . $anchorText;
+        }
+
+        $occurrence = (int) Arr::get($otherInfo, 'times', 0);
+
+        if (empty($occurrence)) {
+            return sprintf(
+            /* translators: %1$s is the price, %2$s is the interval, %3$s is "until cancel" text */
+                __('%1$s %2$s %3$s', 'fluent-cart'),
+                $price,
+                $interval,
+                __('until cancel', 'fluent-cart')
+            );
+        }
+
+        return sprintf(
+        /* translators: %1$s is the price, %2$s is the interval, %3$s is the occurrence count, %4$s is "cycle(s)" */
+            __('%1$s %2$s, for %3$s %4$s', 'fluent-cart'),
+            $price,
+            $interval,
+            $occurrence,
+            _n('cycle', 'cycles', $occurrence, 'fluent-cart')
+        );
+    }
+
+    /**
+     * Human-readable billing anchor, e.g. "on Friday", "on the 10th",
+     * "on the last day", "on Aug 19". Anchor day 31 encodes "last day of
+     * the month" (see SubscriptionHelper::getBillingSchedule()).
+     */
+    private static function getScheduleAnchorText(string $period, $anchor): string
+    {
+        if (!is_array($anchor) || !$anchor) {
+            return '';
+        }
+
+        if ($period === 'week' && !empty($anchor['weekday'])) {
+            $weekdays = [
+                1 => __('Monday', 'fluent-cart'),
+                2 => __('Tuesday', 'fluent-cart'),
+                3 => __('Wednesday', 'fluent-cart'),
+                4 => __('Thursday', 'fluent-cart'),
+                5 => __('Friday', 'fluent-cart'),
+                6 => __('Saturday', 'fluent-cart'),
+                7 => __('Sunday', 'fluent-cart'),
+            ];
+
+            if (isset($weekdays[$anchor['weekday']])) {
+                /* translators: %s is a weekday name, e.g. "on Friday" */
+                return sprintf(__('on %s', 'fluent-cart'), $weekdays[$anchor['weekday']]);
+            }
+
+            return '';
+        }
+
+        if ($period === 'month' && !empty($anchor['day'])) {
+            $day = (int) $anchor['day'];
+
+            if ($day === 31) {
+                return __('on the last day', 'fluent-cart');
+            }
+
+            /* translators: %s is an ordinal day of month, e.g. "on the 10th" */
+            return sprintf(__('on the %s', 'fluent-cart'), gmdate('jS', gmmktime(12, 0, 0, 1, $day, 2001)));
+        }
+
+        if ($period === 'year' && (!empty($anchor['day']) || !empty($anchor['month']))) {
+            $day   = (int) Arr::get($anchor, 'day', 0);
+            $month = (int) Arr::get($anchor, 'month', 0);
+
+            if ($month && $day) {
+                /* translators: %s is a date, e.g. "on Aug 19" */
+                return sprintf(__('on %s', 'fluent-cart'), gmdate('M', gmmktime(12, 0, 0, $month, 1, 2001)) . ' ' . $day);
+            }
+
+            if ($month) {
+                /* translators: %s is a month name, e.g. "in August" */
+                return sprintf(__('in %s', 'fluent-cart'), gmdate('F', gmmktime(12, 0, 0, $month, 1, 2001)));
+            }
+
+            /* translators: %s is an ordinal day of month, e.g. "on the 10th" */
+            return sprintf(__('on the %s', 'fluent-cart'), gmdate('jS', gmmktime(12, 0, 0, 1, $day, 2001)));
+        }
+
+        return '';
+    }
+
     public static function generateSetupFeeInfo($otherInfo, $asArray = false)
     {
         // Convert to array if it's an object
@@ -1374,7 +1483,6 @@ class Helper
     public static function getCountryList(): array
     {
         $options = App::getInstance('localization')->countriesOptions();
-        $options = apply_filters_deprecated('fluent-cart/util/countries', [$options, []], '1.3.16', 'fluent_cart/util/countries', 'Use fluent_cart/util/countries instead of fluent-cart/util/countries. It will be removed in v1.4.3.');
 
         return apply_filters('fluent_cart/util/countries', $options, []);
     }

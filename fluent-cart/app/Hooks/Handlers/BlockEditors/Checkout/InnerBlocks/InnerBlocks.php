@@ -972,6 +972,15 @@ class InnerBlocks
         if (empty(Arr::get($cart, 'cart_data', []))) {
             return '';
         }
+
+        // A cart bound to an existing payment (custom payment link, renewal invoice, early
+        // installment) or already carrying an upgrade cannot take new items — the
+        // apply_order_bump handler refuses it, so rendering the bump would only offer a
+        // control that fails. Same predicate on both sides so they cannot drift.
+        if (!$cart->acceptsAdditionalItems()) {
+            return '';
+        }
+
         $atts = get_block_wrapper_attributes();
         $title = Arr::get($attributes, 'section_title');
         ob_start();

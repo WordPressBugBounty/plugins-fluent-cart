@@ -64,9 +64,23 @@ class DashboardController extends Controller
             $steps['product_info']['completed'] = true;
         }
 
-        if ($this->isAllPageSetUpDone($settings)) {
+        $missingPage = $this->getMissingPageSetup($settings);
+
+        if (!$missingPage) {
             $completed++;
             $steps['page_setup']['completed'] = true;
+        } else {
+            // Let whichever plugin registered the missing page (via
+            // fluent_cart/generatable_pages) decide where it should be
+            // resolved. Core stays agnostic of third-party settings screens.
+            $steps['page_setup']['url'] = apply_filters(
+                'fluent_cart/dashboard/page_setup_redirect_url',
+                $steps['page_setup']['url'],
+                [
+                    'missing_page' => $missingPage,
+                    'base_url'     => $baseUrl,
+                ]
+            );
         }
 
         if (!$this->isAnyPaymentModuleEnabled()) {
@@ -149,16 +163,34 @@ class DashboardController extends Controller
     }
 
 
-    private function isAllPageSetUpDone(array $settings): bool
+    private function getMissingPageSetup(array $settings): ?array
     {
-        $pages = (new Pages())->getGeneratablePage();
-        foreach ($pages as $pageKey => $page) {
-            $pageKey = "{$pageKey}_page_id";
-            if (empty(Arr::get($settings, $pageKey))) {
-                return false;
+        $pagesInstance = new Pages();
+        $pages = $pagesInstance->getGeneratablePage();
+
+        // Core pages must be checked first regardless of the order a
+        // fluent_cart/generatable_pages listener leaves the filtered array
+        // in, so an add-on can never take priority over a missing core page.
+        $orderedKeys = array_unique(array_merge(
+            array_keys($pagesInstance->corePages()),
+            array_keys($pages)
+        ));
+
+        foreach ($orderedKeys as $pageKey) {
+            if (!isset($pages[$pageKey])) {
+                continue;
+            }
+
+            $settingKey = "{$pageKey}_page_id";
+            if (empty(Arr::get($settings, $settingKey))) {
+                return array_merge($pages[$pageKey], [
+                    'key'         => $pageKey,
+                    'setting_key' => $settingKey,
+                ]);
             }
         }
-        return true;
+
+        return null;
     }
 
     private function isAnyPaymentModuleEnabled(): bool

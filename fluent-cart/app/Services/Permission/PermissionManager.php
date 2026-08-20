@@ -33,6 +33,7 @@ class PermissionManager
                     'products/delete',
                     'customers/view',
                     'customers/manage',
+                    'customers/export',
                     'customers/delete',
                     'orders/view',
                     'orders/manage_statuses',
@@ -42,9 +43,11 @@ class PermissionManager
                     'orders/delete',
                     'subscriptions/view',
                     'subscriptions/manage',
+                    'subscriptions/export',
                     'subscriptions/delete',
                     'licenses/view',
                     'licenses/manage',
+                    'licenses/export',
                     'licenses/delete',
                     'coupons/view',
                     'coupons/manage',
@@ -81,8 +84,11 @@ class PermissionManager
                     'reports/export',
                     'products/view',
                     'customers/view',
+                    'customers/export',
                     'subscriptions/view',
+                    'subscriptions/export',
                     'licenses/view',
+                    'licenses/export',
                     'coupons/view',
                     'integrations/view'
                 ]
@@ -187,6 +193,7 @@ class PermissionManager
             'products/delete'        => __('Delete Products', 'fluent-cart'),
             'customers/view'         => __('View Customers', 'fluent-cart'),
             'customers/manage'       => __('Manage Customers', 'fluent-cart'),
+            'customers/export'       => __('Export Customers', 'fluent-cart'),
             'customers/delete'       => __('Delete Customers', 'fluent-cart'),
             'orders/view'            => __('View Orders', 'fluent-cart'),
             'orders/create'          => __('Create Orders', 'fluent-cart'),
@@ -197,9 +204,11 @@ class PermissionManager
             'orders/delete'          => __('Delete Orders', 'fluent-cart'),
             'subscriptions/view'     => __('View Subscriptions', 'fluent-cart'),
             'subscriptions/manage'   => __('Manage Subscriptions', 'fluent-cart'),
+            'subscriptions/export'   => __('Export Subscriptions', 'fluent-cart'),
             'subscriptions/delete'   => __('Delete Subscriptions', 'fluent-cart'),
             'licenses/view'          => __('View Licenses', 'fluent-cart'),
             'licenses/manage'        => __('Manage Licenses', 'fluent-cart'),
+            'licenses/export'        => __('Export Licenses', 'fluent-cart'),
             'licenses/delete'        => __('Delete Licenses', 'fluent-cart'),
             'coupons/view'           => __('View Coupons', 'fluent-cart'),
             'coupons/manage'         => __('Manage Coupons', 'fluent-cart'),
@@ -299,5 +308,3 @@ class PermissionManager
         return $currentUser && $currentUser->userCan($permission);
     }
 }
-
-

@@ -191,7 +191,10 @@ class ProductDetailResource extends BaseResourceApi
 
             // Handle subscription-specific logic
             if (Arr::get($mergedOtherInfo, 'payment_type') == 'subscription' && Arr::get($mergedOtherInfo, 'manage_setup_fee') == 'yes') {
-                $signupFee = Helper::toCent(floatval(Arr::get($mergedOtherInfo, 'signup_fee', 0)));
+                // Cents in, and $mergedOtherInfo may carry the already-cents stored
+                // value when the caller did not resend signup_fee — roundCent is
+                // idempotent, so neither case is rescaled.
+                $signupFee = Helper::roundCent(Arr::get($mergedOtherInfo, 'signup_fee', 0));
                 $mergedOtherInfo['signup_fee'] = $signupFee;
             }
 

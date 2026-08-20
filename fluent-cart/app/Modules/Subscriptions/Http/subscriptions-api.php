@@ -39,6 +39,12 @@ $router->prefix('orders')->withPolicy('OrderPolicy')->group(function (Router $ro
     $router->put('/{order}/subscriptions/{subscription}/update', [SubscriptionController::class, 'updateSubscription'])->meta([
         'permissions' => 'subscriptions/manage'
     ]);
+    $router->put('/{order}/subscriptions/{subscription}/vendor-ids', [SubscriptionController::class, 'updateVendorIds'])->meta([
+        'permissions' => 'subscriptions/manage'
+    ]);
+    $router->post('/{order}/subscriptions/{subscription}/verify-vendor-ids', [SubscriptionController::class, 'verifyVendorIds'])->meta([
+        'permissions' => 'subscriptions/manage'
+    ]);
     $router->post('/{order}/subscriptions/{subscription}/create-renewal', [SubscriptionController::class, 'createRenewalNow'])->meta([
         'permissions' => 'subscriptions/manage'
     ]);

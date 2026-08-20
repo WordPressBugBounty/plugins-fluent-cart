@@ -290,22 +290,24 @@ class ProductVariationController extends Controller
                 $row = ['id' => $id];
 
                 if (array_key_exists('item_price', $update)) {
-                    $itemPriceDollar = floatval($update['item_price']);
+                    // Submitted in CENTS. roundCent() normalizes float artifacts
+                    // without scaling; it does not multiply by 100.
+                    $itemPriceCentsIn = floatval($update['item_price']);
                     // Reject negative prices outright rather than coerce to 0 —
                     // a caller submitting -50 has either bad client logic or
                     // hostile intent; either way we should not silently
                     // substitute a price they didn't choose.
-                    if ($itemPriceDollar >= 0) {
-                        $row['item_price'] = Helper::toCent($itemPriceDollar);
+                    if ($itemPriceCentsIn >= 0) {
+                        $row['item_price'] = Helper::roundCent($itemPriceCentsIn);
                     }
                 }
 
                 if (array_key_exists('compare_price', $update)) {
-                    $comparePriceDollar = floatval($update['compare_price']);
+                    $comparePriceCentsIn = floatval($update['compare_price']);
                     // Mirror of the item_price negative guard. compare_price=0
                     // is a valid "no discount" sentinel; negative is not.
-                    if ($comparePriceDollar >= 0) {
-                        $comparePriceCents = Helper::toCent($comparePriceDollar);
+                    if ($comparePriceCentsIn >= 0) {
+                        $comparePriceCents = Helper::roundCent($comparePriceCentsIn);
                         // Effective item_price (in cents) for the comparison:
                         // the new value if this update sets it (and is valid),
                         // otherwise the already-persisted value from the DB.
@@ -418,7 +420,7 @@ class ProductVariationController extends Controller
         if ($itemPrice !== null && $itemPrice !== '') {
             $price = floatval($itemPrice);
             if ($price >= 0) {
-                $topLevelDelta['item_price'] = Helper::toCent($price);
+                $topLevelDelta['item_price'] = Helper::roundCent($price);
             }
         }
 
@@ -426,7 +428,7 @@ class ProductVariationController extends Controller
         if ($comparePrice !== null && $comparePrice !== '') {
             $compare = floatval($comparePrice);
             if ($compare >= 0) {
-                $topLevelDelta['_compare_price_dollars'] = $compare;
+                $topLevelDelta['_compare_price_cents'] = $compare;
             }
         }
 
@@ -467,7 +469,7 @@ class ProductVariationController extends Controller
         if ($itemCost !== null && $itemCost !== '') {
             $cost = floatval($itemCost);
             if ($cost >= 0) {
-                $topLevelDelta['item_cost'] = Helper::toCent($cost);
+                $topLevelDelta['item_cost'] = Helper::roundCent($cost);
             }
         }
 
@@ -528,8 +530,8 @@ class ProductVariationController extends Controller
                     $rowUpdate['item_price'] = $topLevelDelta['item_price'];
                 }
 
-                if (isset($topLevelDelta['_compare_price_dollars'])) {
-                    $compareCents   = Helper::toCent($topLevelDelta['_compare_price_dollars']);
+                if (isset($topLevelDelta['_compare_price_cents'])) {
+                    $compareCents   = Helper::roundCent($topLevelDelta['_compare_price_cents']);
                     $itemPriceCents = isset($rowUpdate['item_price'])
                         ? (int) $rowUpdate['item_price']
                         : (int) $existingVariant->item_price;
@@ -574,7 +576,7 @@ class ProductVariationController extends Controller
                     }
 
                     if ($paymentType === 'subscription' && array_key_exists('signup_fee', $otherInfoDelta)) {
-                        $merged['signup_fee'] = Helper::toCent(floatval($otherInfoDelta['signup_fee']));
+                        $merged['signup_fee'] = Helper::roundCent($otherInfoDelta['signup_fee']);
                     }
 
                     // `installment` is not an accepted delta key (see sanitizeOtherInfoDelta),
@@ -755,8 +757,8 @@ class ProductVariationController extends Controller
             $delta[$key] = floatval($value);
         }
 
-        // signup_fee is stored in dollars here; groupBulkUpdate() converts to cents
-        // via Helper::toCent() when payment_type is subscription.
+        // signup_fee arrives in cents; groupBulkUpdate() normalizes it with
+        // Helper::roundCent() when payment_type is subscription.
         $signupFee = Arr::get($raw, 'signup_fee');
         if ($signupFee !== null && $signupFee !== '') {
             $delta['signup_fee'] = floatval($signupFee);

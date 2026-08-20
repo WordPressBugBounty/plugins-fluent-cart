@@ -745,6 +745,9 @@ class AdvancedVariationService
                     'item_status'          => $ancestor !== null ? $ancestor->item_status           : 'active',
                     'fulfillment_type'     => $ancestor !== null ? $ancestor->fulfillment_type      : $srcDetails->fulfillment_type,
                     'manage_stock'         => $ancestor !== null ? $ancestor->manage_stock          : $srcDetails->manage_stock,
+                    // Advanced-variation missed the payment_type column that
+                    // simple / simple_variations set — default it to 'onetime'.
+                    'payment_type'         => Arr::get($composedOtherInfo, 'payment_type', 'onetime'),
                     'variation_title'      => $composedTitle,
                     'variation_identifier' => $identifier,
                     'other_info'           => $composedOtherInfo,

@@ -21,15 +21,6 @@
             'aliases' => array(),
             'dev_requirement' => true,
         ),
-        'openspout/openspout' => array(
-            'pretty_version' => 'v3.7.4',
-            'version' => '3.7.4.0',
-            'reference' => 'dfbbd53b5edcd486b45a37f6a04fac33073c70f3',
-            'type' => 'library',
-            'install_path' => __DIR__ . '/../openspout/openspout',
-            'aliases' => array(),
-            'dev_requirement' => false,
-        ),
         'psr/container' => array(
             'pretty_version' => '2.0.2',
             'version' => '2.0.2.0',
