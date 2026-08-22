@@ -17,7 +17,9 @@ class BulkProductUpdateService
 {
     /**
      * Fetch products formatted for bulk editing.
-     * Returns products with decimal prices and category terms.
+     * Returns money in CENTS and category terms. It said "decimal prices" back
+     * when a temporary adapter divided here for a dollars-based grid; the grid
+     * renders cents through PriceInput now, so nothing is scaled on the way out.
      */
     public function fetchForBulkEdit(Request $request): array
     {
@@ -564,7 +566,11 @@ class BulkProductUpdateService
     }
 
     /**
-     * Convert cents-based fields in other_info to dollars for frontend display.
+     * Normalize the money fields in other_info for the bulk edit grid.
+     *
+     * Despite what this used to say, nothing is converted to dollars: signup_fee
+     * stays in CENTS and is only int-cast, because PriceInput does the rendering.
+     * Reintroducing a division here would halve-by-100 every setup fee in the grid.
      */
     protected function formatOtherInfoForEdit(array $otherInfo): array
     {

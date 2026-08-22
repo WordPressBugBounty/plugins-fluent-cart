@@ -4,7 +4,7 @@ Tags: ecommerce, cart, checkout, subscriptions, payments
 Requires at least: 6.7
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 1.6.2
+Stable tag: 1.6.3
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -80,10 +80,10 @@ FluentCart supports a variety of sales models, all in the same store. Offer one-
 
 === Analytics, Marketing & Growth ===
 * Reports Overview – Track order volume, Revenue by Quarter, Revenue by Country
-* Sales Reporting – Track order volume, most sold products and variants, Customer LTV and more
+* Sales Reporting – Track order volume, most sold products and variants, Customer LTV, and more
 * Order Analytics – Average order value, order items, order heatmap, orders by country, and more
-* Revenue Analytics – Net revenue sorted by Time, Country and Payment Gateway
-* Refund Analytics – Total refunds, Avg. Refund value, Refund Rate, Filter by Country, Payment method and Intervals
+* Revenue Analytics – Net revenue sorted by Time, Country, and Payment Gateway
+* Refund Analytics – Total refunds, Avg. Refund value, Refund Rate, Filter by Country, Payment method, and Intervals
 * Product Data – Top performing products, Product Performance over time
 * Subscriptions Report – Top performing products, Product Performance over time
 * Product Data – Top performing products, Product Performance over time
@@ -312,6 +312,11 @@ This service is provided by PayPal: [Terms of Service](https://www.paypal.com/le
 
 
 == Changelog ==
+
+= 1.6.3 (Aug 22, 2026) =
+- Improves File storage security by making sure downloadable file paths always resolve inside your uploads folder.
+- Fixes Advanced Variations table showing prices in the wrong format, where a $1.00 variant appeared as 100.
+- Fixes Prices entered in the Advanced Variations table, the group quick-set field, and the bulk Set Price field saving at the wrong amount.
 
 = 1.6.2 (Aug 20, 2026) =
 - Adds Data Export for orders, customers, subscriptions, and licenses in CSV or JSON.
@@ -787,4 +792,84 @@ Fixes Security issues with ongoing audits and platform hardening
 - Fixes Payment method settings customization issue
 - Fixes Zero decimal amount issue for Japanese currency
 
-Full changelog can be found here: https://docs.fluentcart.com/guide/changelog
+= 1.3.12 (Feb 26, 2026) =
+- Fixes caching issue during new version upgrades
+
+= 1.3.11 (Feb 25, 2026) =
+- Adds GB Blocks: Related Products, Customer Dashboard Button, Store Logo
+- Adds Media Carousel Block
+- Adds Elementor Widgets: Checkout, Add to Cart, Buy Now Button, Mini Cart, Products, Product Carousel, Product Categories List
+- Adds Razorpay Subscription Supports
+- Adds Product SKU feature
+- Adds Customer LTV recalculation action
+- Adds Sync order statuses action
+- Adds Test Data Cleanup Tool
+- Adds First Name & Last Name Field Settings
+- Improvements Inventory Manager Free (Previously Pro)
+- Improvements New Settings UI
+- Fixes Gallery Image Overflow Issue
+- Fixes Subscription validity expire events issue
+- Fixes Minor issues
+- Schedule security audit for all modules
+
+= 1.3.10 (Feb 04, 2026) = 
+- Adds FSE Block Theme Support
+- Adds Blocks & shortcodes: Mini cart, Product Carousel, title, image
+- Adds Shortcode product categories
+- Improves Guttenberg Blocks into latest version (v3)
+- Fixes Missing tax breakdown on renewal email
+- Fixes Missing VAT info on renewal order
+- Fixes Dark-light theme conflict for addons promo
+- Fixes Modal checkout responsive issue
+
+= 1.3.9 (Jan 27, 2026) = 
+- Adds Mercado Pago gateway (one-time payments)
+- Adds Ghost product checkout
+- Adds Gutenberg block: Add to Cart
+- Adds Shortcode [fluent_cart_checkout_button]
+- Adds Shortcode [fluent_cart_add_to_cart_button]
+- Fixes IPN issues for some third-party gateways
+- Fixes Dashboard styling issues
+- Improves security
+
+= 1.3.8 (Jan 23, 2026) =
+- Adds Instant checkout feature
+- Adds Product Button block (Guttenberg)
+- Adds Product duplicate feature
+- Adds Copy variation ID option in variation context menu
+- Fixes S3 driver directory separator issue
+- Improves JS file size optimization
+
+= 1.3.7 (Jan 20, 2026) =
+- Adds Support for frontend templates
+- Adds Order UUID / hash filter
+- Adds Stripe metadata hook
+- Adds Hook for autocomplete digital orders (default enabled)
+- Fixes Hide consent section for stripe subscription
+- Fixes Security issue in license APIs
+- Fixes Product variation IDs not updating in DownloadFile
+- Fixes ShopApp block list view & pagination issue
+- Fixes Cart icon in body setting not working
+- Fixes GroupKey bug in reports
+- Fixes License rendering issue on customer profile
+- Fixes Checkout empty state issue
+- Fixes Address validation message and input label mismatch
+- Fixes Missing required symbol for “Full Name” in checkout
+- Improves Translation support for receipt page
+- Improves Frontend loader UI
+- Improves Cart item count sync between backend and UI badge
+- Improves Stripe subscription price update event handling
+- Improves Validation error handling and messaging
+- Improves Retention report components
+- Improves Checkout, product, and loader styles
+- Improves Checkout field defaults and labels
+- Improves Text change: “Half year” → “Six month”
+
+= 1.3.6 (Jan 08, 2026) =
+- Fixes FSE theme support
+- Fixes Checkout Agree Terms and Conditions issue
+- Fixes Product Min-Max pricing issue
+- Fixes Buy now section position issue
+- Fixes Shortcode issue in cart and checkout page
+- Fixes Subscription related order issue
+- Fixes Checkout page broken on Breakdance builder

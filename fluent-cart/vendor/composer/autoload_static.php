@@ -625,6 +625,7 @@ class ComposerStaticInitb2eff533900bbaf3c7b668b284ce4755
         'FluentCart\\App\\Services\\FileSystem\\Drivers\\S3\\S3FileUploader' => __DIR__ . '/../..' . '/app/Services/FileSystem/Drivers/S3/S3FileUploader.php',
         'FluentCart\\App\\Services\\FileSystem\\Drivers\\S3\\S3InputValidator' => __DIR__ . '/../..' . '/app/Services/FileSystem/Drivers/S3/S3InputValidator.php',
         'FluentCart\\App\\Services\\FileSystem\\FileManager' => __DIR__ . '/../..' . '/app/Services/FileSystem/FileManager.php',
+        'FluentCart\\App\\Services\\FileSystem\\StoragePath' => __DIR__ . '/../..' . '/app/Services/FileSystem/StoragePath.php',
         'FluentCart\\App\\Services\\Filter\\AttrGroupFilter' => __DIR__ . '/../..' . '/app/Services/Filter/AttrGroupFilter.php',
         'FluentCart\\App\\Services\\Filter\\AttrTermFilter' => __DIR__ . '/../..' . '/app/Services/Filter/AttrTermFilter.php',
         'FluentCart\\App\\Services\\Filter\\BaseFilter' => __DIR__ . '/../..' . '/app/Services/Filter/BaseFilter.php',

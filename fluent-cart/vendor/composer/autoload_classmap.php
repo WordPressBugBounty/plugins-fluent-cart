@@ -577,6 +577,7 @@ return array(
     'FluentCart\\App\\Services\\FileSystem\\Drivers\\S3\\S3FileUploader' => $baseDir . '/app/Services/FileSystem/Drivers/S3/S3FileUploader.php',
     'FluentCart\\App\\Services\\FileSystem\\Drivers\\S3\\S3InputValidator' => $baseDir . '/app/Services/FileSystem/Drivers/S3/S3InputValidator.php',
     'FluentCart\\App\\Services\\FileSystem\\FileManager' => $baseDir . '/app/Services/FileSystem/FileManager.php',
+    'FluentCart\\App\\Services\\FileSystem\\StoragePath' => $baseDir . '/app/Services/FileSystem/StoragePath.php',
     'FluentCart\\App\\Services\\Filter\\AttrGroupFilter' => $baseDir . '/app/Services/Filter/AttrGroupFilter.php',
     'FluentCart\\App\\Services\\Filter\\AttrTermFilter' => $baseDir . '/app/Services/Filter/AttrTermFilter.php',
     'FluentCart\\App\\Services\\Filter\\BaseFilter' => $baseDir . '/app/Services/Filter/BaseFilter.php',

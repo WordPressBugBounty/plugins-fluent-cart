@@ -7,6 +7,7 @@ use FluentCart\Api\StorageDrivers;
 use FluentCart\App\Hooks\Handlers\GlobalStorageHandler;
 use FluentCart\App\Http\Requests\UserRequest;
 use FluentCart\App\Services\FileSystem\FileManager;
+use FluentCart\App\Services\FileSystem\StoragePath;
 use FluentCart\Framework\Http\Request\File;
 use FluentCart\Framework\Http\Request\Request;
 use FluentCart\Framework\Support\Arr;
@@ -141,6 +142,15 @@ class FileUploadController extends Controller
         $filePath = sanitize_text_field($request->get('file_path'));
         $driver = sanitize_text_field($request->get('driver'));
         $bucket = sanitize_text_field($request->get('bucket'));
+
+        // `..` survives sanitize_text_field(). The local driver contains the
+        // path itself, but no driver has a use for a relative segment, so it is
+        // refused here for every driver.
+        if (!StoragePath::isSafe($filePath)) {
+            return $this->sendError([
+                'message' => __('Invalid file path', 'fluent-cart')
+            ], 422);
+        }
 
         $result = (new FileManager($driver))->deleteFile($filePath, $bucket);
 

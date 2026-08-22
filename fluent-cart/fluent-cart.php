@@ -5,7 +5,7 @@ defined('ABSPATH') or die;
 /*
 Plugin Name: FluentCart
 Description: FluentCart WordPress Plugin
-Version: 1.6.2
+Version: 1.6.3
 Author: FluentCart Team
 Author URI: https://fluentcart.com/about-us
 Plugin URI: https://fluentcart.com
@@ -15,7 +15,7 @@ Domain Path: /language
 */
 
 if (!defined('FLUENTCART_PLUGIN_PATH')) {
-    define('FLUENTCART_VERSION', '1.6.2');
+    define('FLUENTCART_VERSION', '1.6.3');
     define('FLUENTCART_DB_VERSION', '1.0.50');
     define('FLUENTCART_PLUGIN_PATH', plugin_dir_path(__FILE__));
     define('FLUENTCART_URL', plugin_dir_url(__FILE__));
