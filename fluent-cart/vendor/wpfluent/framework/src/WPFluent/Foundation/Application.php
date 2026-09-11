@@ -31,7 +31,7 @@ use FluentCart\Framework\Foundation\Concerns\FoundationTrait;
  * @property \FluentCart\Framework\Foundation\Config        $config
  * @property \FluentCart\Framework\View\View                $view
  * @property \FluentCart\Framework\Cache\Cache              $cache
- * @property \FluentCart\Framework\Http\Router\Router       $router
+ * @property \FluentCart\Framework\Http\Router              $router
  * @property \FluentCart\Framework\Http\Request\Request     $request
  * @property \FluentCart\Framework\Http\Response\Response   $response
  * @property \FluentCart\Framework\Validator\Validator      $validator

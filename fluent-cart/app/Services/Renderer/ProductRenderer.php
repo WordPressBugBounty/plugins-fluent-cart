@@ -14,6 +14,7 @@ use FluentCart\App\Http\Routes\WebRoutes;
 use FluentCart\App\Models\ProductVariation;
 use FluentCart\Framework\Support\Collection;
 use FluentCart\App\Modules\Templating\AssetLoader;
+use FluentCart\App\Modules\FluentPlayer\ProductVideoRenderer;
 
 class ProductRenderer
 {
@@ -38,6 +39,8 @@ class ProductRenderer
     protected $defaultGalleryImageId = 0;
 
     protected $galleryActiveSet = false;
+
+    protected $productVideoRenderer = null;
 
     protected $paymentTypes = [];
 
@@ -433,25 +436,63 @@ class ProductRenderer
             $this->defaultImageUrl = $featuredMedia;
         }
 
+        $videoRenderer = $this->getProductVideoRenderer();
+        $videoRenderer->showFirstByDefault(!$this->hasGalleryImages());
+        $defaultVideoId = $videoRenderer->getDefaultMediaId();
+
         ?>
-        <div class="fct-product-gallery-thumb" role="region"
-             aria-label="<?php echo esc_attr($this->product->post_title . ' gallery'); ?>">
+        <div class="fct-product-gallery-thumb<?php echo $defaultVideoId ? ' is-video-active' : ''; ?>" role="region"
+             aria-label="<?php echo esc_attr($this->product->post_title . ' gallery'); ?>"
+             <?php echo $defaultVideoId ? 'data-fct-video-default="' . esc_attr((string) $defaultVideoId) . '"' : ''; ?>>
             <img
                     src="<?php echo esc_url($this->defaultImageUrl ?? '') ?>"
                     alt="<?php echo esc_attr($this->defaultImageAlt) ?>"
                     data-fluent-cart-single-product-page-product-thumbnail
                     data-default-image-url="<?php echo esc_url($featuredMedia) ?>"
             />
+            <?php $this->getProductVideoRenderer()->renderInlinePlayers(); ?>
         </div>
         <?php
+    }
+
+    /**
+     * Whether any gallery / variant image exists to show in the main area.
+     * Only meaningful after renderGalleryThumb() has built $this->images.
+     */
+    protected function hasGalleryImages(): bool
+    {
+        foreach ($this->images as $image) {
+            foreach ((array) Arr::get($image, 'media', []) as $item) {
+                if (!empty(Arr::get($item, 'url'))) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    public function getProductVideoRenderer(): ProductVideoRenderer
+    {
+        if ($this->productVideoRenderer === null) {
+            $this->productVideoRenderer = new ProductVideoRenderer($this->product);
+        }
+
+        return $this->productVideoRenderer;
     }
 
     public function renderGalleryThumbControls($maxThumbnails = null)
     {
         $totalThumbImages = Arr::pluck($this->images, 'media.*.url');
 
-        if(count($totalThumbImages) == 1 && is_countable($totalThumbImages[0]) && count($totalThumbImages[0]) == 1){
+        // A lone image needs no strip, but a video thumb still has to be reachable.
+        if(count($totalThumbImages) == 1 && is_countable($totalThumbImages[0]) && count($totalThumbImages[0]) == 1 && !$this->getProductVideoRenderer()->isAvailable()){
 
+            return '';
+        }
+
+        // A lone video without images is already showing in the main area.
+        if (!$this->hasGalleryImages() && count($this->getProductVideoRenderer()->getVideos()) === 1) {
             return '';
         }
 
@@ -549,6 +590,13 @@ class ProductRenderer
         $countedMediaKeys  = [];
         $count             = 0;
         $totalImages       = 0;
+        $videoRenderer     = $this->getProductVideoRenderer();
+
+        // The gallery opens on a video the admin put in front of every image,
+        // so no image thumb takes the selected slot in that case.
+        if ($videoRenderer->getDefaultMediaId()) {
+            $this->galleryActiveSet = true;
+        }
 
         // Count unique images to render. For advanced variations, deduplicate by WP media ID
         // when available, or by URL for externally imported images (media ID = 0).
@@ -593,14 +641,19 @@ class ProductRenderer
                     $renderedMediaKeys[$mediaDedupeKey] = true;
                 }
                 if ($maxThumbnails !== null && $count >= (int) $maxThumbnails) {
+                    $videoRenderer->renderThumbControls(!$this->galleryActiveSet);
                     $this->renderGallerySeeMoreButton($totalImages - (int) $maxThumbnails);
                     return;
                 }
+                // Videos the admin dragged in front of this image come first.
+                $videoRenderer->renderThumbControlsBefore($count, !$this->galleryActiveSet);
                 $termId = (int) ($this->variantTermMap[(int) $imageId] ?? 0);
                 $this->renderGalleryThumbControlButton($item, $imageId, $termId, $mediaId);
                 $count++;
             }
         }
+
+        $videoRenderer->renderThumbControls(!$this->galleryActiveSet);
     }
 
     public function renderGallerySeeMoreButton($remainingCount)
@@ -1004,39 +1057,24 @@ class ProductRenderer
                     'scope'         => 'price_range'
             ]));
             ?>
-            <?php
-
-            if ($comparePrice) {
-                $aria_label = sprintf(
-                /* translators: 1: Original price, 2: Current item price */
-                        __('Original Price: %1$s, Price: %2$s', 'fluent-cart'),
-                        Helper::toDecimal($comparePrice),
-                        Helper::toDecimal($itemPrice)
-                );
-            } else {
-                $aria_label = sprintf(
-                /* translators: 1: Current item price */
-                        __('Price: %1$s', 'fluent-cart'),
-                        Helper::toDecimal($itemPrice)
-                );
-            }
-
-            ?>
-            <div class="fct-price-range fct-product-prices" role="term"
-                 aria-label="<?php echo esc_attr($aria_label); ?>">
+            <div class="fct-price-range fct-product-prices">
 
                 <?php if ($comparePrice): ?>
                     <span class="fct-compare-price">
-                        <del aria-label="<?php echo esc_attr(__('Original price', 'fluent-cart')); ?>"><?php echo esc_html(Helper::toDecimal($comparePrice)); ?></del>
+                        <span class="fct-sr-only"><?php echo esc_html__('Original price:', 'fluent-cart'); ?></span>
+                        <del><?php echo esc_html(Helper::toDecimal($comparePrice)); ?></del>
                     </span>
                 <?php endif; ?>
-                <span class="fct-item-price" aria-label="<?php echo esc_attr(__('Current price', 'fluent-cart')); ?>">
+                <span class="fct-item-price">
+                    <span class="fct-sr-only"><?php echo $comparePrice ? esc_html__('Sale price:', 'fluent-cart') : esc_html__('Price:', 'fluent-cart'); ?></span>
                     <?php echo esc_html(Helper::toDecimal($itemPrice)); ?>
                     <?php do_action('fluent_cart/product/after_price', RenderContext::decorate([
                             'product'       => $this->product,
+                            'variant'       => $first_price,
                             'current_price' => $itemPrice,
                             'scope'         => 'price_range'
                     ])); ?>
+                    <?php RenderHelper::renderPriceSuffix($this->product, $first_price, 'price_range'); ?>
                 </span>
             </div>
             <?php
@@ -1056,19 +1094,13 @@ class ProductRenderer
                 'scope'         => 'price_range'
         ]));
         ?>
-        <?php
-        $aria_label = sprintf(
-        /* translators: 1: Minimum price, 2: Maximum price */
-                __('Price range: %1$s - %2$s', 'fluent-cart'),
-                Helper::toDecimal($min_price),
-                Helper::toDecimal($max_price)
-        );
-        ?>
-        <div class="fct-product-prices fct-price-range" role="term" aria-label="<?php echo esc_attr($aria_label); ?>">
+        <div class="fct-product-prices fct-price-range">
 
             <?php if ($max_price && $max_price != $min_price && $max_price > $min_price): ?>
+                <span class="fct-sr-only"><?php echo esc_html__('Price range:', 'fluent-cart'); ?></span>
                 <span class="fct-min-price"><?php echo esc_html(Helper::toDecimal($min_price)); ?></span>
                 <span class="fct-price-separator" aria-hidden="true">-</span>
+                <span class="fct-sr-only"><?php echo esc_html__('to', 'fluent-cart'); ?></span>
             <?php endif; ?>
             <span class="fct-max-price">
                 <?php echo esc_html(Helper::toDecimal($max_price)); ?>
@@ -1245,6 +1277,7 @@ class ProductRenderer
         } ?>
 
         <span class="fct-compare-price">
+            <span class="fct-sr-only"><?php echo esc_html__('Original price:', 'fluent-cart'); ?></span>
             <del><?php echo esc_html(Helper::toDecimal($variant->compare_price)); ?></del>
         </span>
         <?php
@@ -1917,7 +1950,7 @@ class ProductRenderer
                 ?>
                 <?php if ($this->viewType === 'both' || $this->viewType === 'text'): ?>
                     <div class="fct-product-variant-text">
-                        <div class="fct-product-variant-title" aria-label="<?php echo esc_attr(__('Variant title', 'fluent-cart')); ?>"><?php echo esc_html($variant->variation_title); ?></div>
+                        <div class="fct-product-variant-title"><?php echo esc_html($variant->variation_title); ?></div>
                         <?php if (!$this->shouldRenderPriceInPriceSection() && $paymentType === 'subscription'): ?>
                             <?php $this->renderSubscriptionInfo($variant); ?>
                         <?php endif; ?>
@@ -1929,12 +1962,13 @@ class ProductRenderer
                 <div class="fct-product-variant-price">
                     <?php if ($comparePrice): ?>
                         <div class="fct-product-variant-compare-price">
-                            <del aria-label="<?php echo esc_attr(__('Original price', 'fluent-cart')); ?>">
+                            <span class="fct-sr-only"><?php echo esc_html__('Original price:', 'fluent-cart'); ?></span>
+                            <del>
                                 <span><?php echo esc_html(Helper::toDecimal($comparePrice)); ?></span></del>
                         </div>
                     <?php endif; ?>
-                    <div class="fct-product-variant-item-price"
-                         aria-label="<?php echo esc_attr(__('Current price', 'fluent-cart')); ?>">
+                    <div class="fct-product-variant-item-price">
+                        <span class="fct-sr-only"><?php echo $comparePrice ? esc_html__('Sale price:', 'fluent-cart') : esc_html__('Price:', 'fluent-cart'); ?></span>
                         <span><?php echo esc_html(Helper::toDecimal($itemPrice)); ?></span>
                     </div>
                 </div>

@@ -2,6 +2,7 @@
 
 namespace FluentCart\App\Http\Controllers;
 
+use FluentCart\Api\ModuleSettings;
 use FluentCart\Api\Resource\ProductDetailResource;
 use FluentCart\Api\Resource\ProductResource;
 use FluentCart\Api\Resource\ProductVariationResource;
@@ -1540,6 +1541,11 @@ class ProductController extends Controller
 
     public function updateInventory(Request $request, $postId, $variantId)
     {
+        if (!ModuleSettings::isActive('stock_management')) {
+            return $this->response->sendError([
+                'message' => __('Stock Management module is disabled. Enable it from Settings to manage inventory.', 'fluent-cart')
+            ], 422);
+        }
 
         $variant = ProductVariation::query()->find($variantId);
 
@@ -1606,6 +1612,15 @@ class ProductController extends Controller
     public function updateManageStock(Request $request, $postId)
     {
         $manageStock = sanitize_text_field($request->get('manage_stock'));
+
+        // Turning inventory ON requires the Stock Management module to be active.
+        // Turning it OFF stays allowed so a store that disables the module can
+        // still clean up products that were left with manage_stock = 1.
+        if ($manageStock == 1 && !ModuleSettings::isActive('stock_management')) {
+            return $this->response->sendError([
+                'message' => __('Stock Management module is disabled. Enable it from Settings to manage inventory.', 'fluent-cart')
+            ], 422);
+        }
 
         $detail = ProductDetail::query()->where('post_id', $postId)->first();
 

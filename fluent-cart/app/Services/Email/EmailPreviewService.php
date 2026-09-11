@@ -31,6 +31,16 @@ class EmailPreviewService
             ],
         ];
 
+        if (Str::startsWith($template, 'order.reminder.renewal_overdue.')) {
+            if (Str::contains($template, '.final.')) {
+                $previewData['reminder']['stage'] = 'overdue_7';
+            } elseif (Str::contains($template, '.followup.')) {
+                $previewData['reminder']['stage'] = 'overdue_3';
+            } else {
+                $previewData['reminder']['stage'] = 'overdue_1';
+            }
+        }
+
         if (Str::startsWith($template, 'subscription.')) {
             $previewData['transaction'] = $subscription->getLatestTransaction();
 

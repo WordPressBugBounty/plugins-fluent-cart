@@ -118,28 +118,8 @@ class ProductFilterRender
 
                     <div id="filter-<?php echo esc_attr($key); ?>" class="fct-shop-checkbox-group">
                         <div class="fct-shop-checkbox-group-inner">
-                            <?php
-                                foreach ($filter['options'] as $option) :
-                                    $option['parent_key'] = $key;
-                                ?>
-
-                                <?php if (empty($option['children'])) : ?>
-                                    <?php $this->renderCheckbox($option); ?>
-                                <?php else : ?>
-                                    <div class="fct-shop-checkbox-child-group"
-                                         data-fluent-cart-shop-app-filter-checkbox-child-group>
-                                        <?php $this->renderCheckbox($option); ?>
-
-                                        <div class="fct-shop-checkbox-child-options">
-                                            <?php foreach ($option['children'] as $childOption) :
-                                                $childOption['parent_key'] = $key;
-                                                ?>
-                                                <?php $this->renderCheckbox($childOption); ?>
-                                            <?php endforeach; ?>
-                                        </div>
-                                    </div>
-                                <?php endif; ?>
-
+                            <?php foreach ($filter['options'] as $option) : ?>
+                                <?php $this->renderOptionNode($option, $key); ?>
                             <?php endforeach; ?>
                         </div>
                     </div>
@@ -153,6 +133,35 @@ class ProductFilterRender
         <?php endforeach;
 
 
+    }
+
+    /**
+     * Render one option and, recursively, its whole subtree.
+     *
+     * Terms nest to an arbitrary depth (a child category can itself have
+     * children), so every node that has children gets its own child-group
+     * wrapper instead of only the top-level ones.
+     */
+    public function renderOptionNode($option, $key)
+    {
+        $option['parent_key'] = $key;
+
+        if (empty($option['children'])) {
+            $this->renderCheckbox($option);
+            return;
+        }
+        ?>
+        <div class="fct-shop-checkbox-child-group"
+             data-fluent-cart-shop-app-filter-checkbox-child-group>
+            <?php $this->renderCheckbox($option); ?>
+
+            <div class="fct-shop-checkbox-child-options">
+                <?php foreach ($option['children'] as $childOption) : ?>
+                    <?php $this->renderOptionNode($childOption, $key); ?>
+                <?php endforeach; ?>
+            </div>
+        </div>
+        <?php
     }
 
     public function renderCheckbox($option)

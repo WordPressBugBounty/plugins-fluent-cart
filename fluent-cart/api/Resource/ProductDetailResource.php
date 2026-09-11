@@ -2,6 +2,7 @@
 
 namespace FluentCart\Api\Resource;
 
+use FluentCart\Api\Meta;
 use FluentCart\App\Events\StockChanged;
 use FluentCart\App\Helpers\Helper;
 use FluentCart\App\Helpers\ProductAdminHelper;
@@ -142,6 +143,27 @@ class ProductDetailResource extends BaseResourceApi
                     $variationIds,
                     __("the product variation type was changed to 'Simple'", 'fluent-cart')
                 );
+
+                // The surviving variant (variationIds[0]) is kept, but a Simple
+                // product has no editor control to view, replace, or clear its
+                // image (VariantTitleMedia only shows for simple_variations /
+                // advanced_variations). Leaving that image attached would let it
+                // keep rendering on the storefront gallery with no way for the
+                // merchant to find or remove it, so it is cleared with the same
+                // switch the admin UI now warns about.
+                //
+                // variation_ids is client-supplied, so confirm the surviving id
+                // actually belongs to this product before deleting its media —
+                // otherwise a caller could point it at an unrelated product's
+                // variation and wipe that variation's image instead.
+                $keptVariantBelongsToProduct = \FluentCart\App\Models\ProductVariation::query()
+                    ->where('id', $variationIds[0])
+                    ->where('post_id', $detail->post_id)
+                    ->exists();
+
+                if ($keptVariantBelongsToProduct) {
+                    Meta::deleteVariationMedia($variationIds[0]);
+                }
             }
         }
 
@@ -176,9 +198,15 @@ class ProductDetailResource extends BaseResourceApi
         $data['min_price'] = Arr::get($data, 'min_price') ?: ($detail->min_price ?? 0);
         $data['max_price'] = Arr::get($data, 'max_price') ?: ($detail->max_price ?? 0);
 
-        // Handle Default Variation
-        if (empty(Arr::get($data, 'default_variation_id'))) {
-            $data['default_variation_id'] = NULL;
+        // Handle Default Variation. Only act when the caller actually supplied the
+        // key: a partial update that never mentions it must leave the stored value
+        // alone, while an explicitly empty value still clears it.
+        if (Arr::has($data, 'default_variation_id')) {
+            if (empty(Arr::get($data, 'default_variation_id'))) {
+                $data['default_variation_id'] = NULL;
+            }
+        } else {
+            unset($data['default_variation_id']);
         }
 
         // Handle other_info merge

@@ -159,8 +159,9 @@
     "file": "chunks/ColorPickerField.js",
     "name": "ColorPickerField",
     "imports": [
-      "_BlockEditorTranslator.js",
-      "_Icons.js"
+      "_jsx-runtime.js",
+      "_Icons.js",
+      "_BlockEditorTranslator.js"
     ]
   },
   "_CurrencyFormatter.js": {
@@ -176,14 +177,16 @@
     "file": "chunks/CustomSelect.js",
     "name": "CustomSelect",
     "imports": [
-      "_BlockEditorTranslator.js",
-      "_index6.js"
+      "_jsx-runtime.js",
+      "_index6.js",
+      "_BlockEditorTranslator.js"
     ]
   },
   "_DynamicIcon.js": {
     "file": "chunks/DynamicIcon.js",
     "name": "DynamicIcon",
     "imports": [
+      "_preload-helper.js",
       "_vue.esm-bundler.js"
     ],
     "dynamicImports": [
@@ -336,6 +339,7 @@
       "resources/admin/Bits/Components/Icons/Party.vue",
       "resources/admin/Bits/Components/Icons/PaymentIcon.vue",
       "resources/admin/Bits/Components/Icons/Pending.vue",
+      "resources/admin/Bits/Components/Icons/PlayCircle.vue",
       "resources/admin/Bits/Components/Icons/Plus.vue",
       "resources/admin/Bits/Components/Icons/PlusCircle.vue",
       "resources/admin/Bits/Components/Icons/Print.vue",
@@ -386,6 +390,7 @@
       "resources/admin/Bits/Components/Icons/Unlink.vue",
       "resources/admin/Bits/Components/Icons/Upload.vue",
       "resources/admin/Bits/Components/Icons/Users.vue",
+      "resources/admin/Bits/Components/Icons/VideoAdd.vue",
       "resources/admin/Bits/Components/Icons/Wallet.vue",
       "resources/admin/Bits/Components/Icons/Warning.vue",
       "resources/admin/Bits/Components/Icons/WarningFill.vue",
@@ -409,14 +414,14 @@
     "file": "chunks/EditorPanel.js",
     "name": "EditorPanel",
     "imports": [
-      "_BlockEditorTranslator.js"
+      "_jsx-runtime.js"
     ]
   },
   "_EditorPanelRow.js": {
     "file": "chunks/EditorPanelRow.js",
     "name": "EditorPanelRow",
     "imports": [
-      "_BlockEditorTranslator.js"
+      "_jsx-runtime.js"
     ]
   },
   "_Empty.js": {
@@ -432,6 +437,7 @@
     "file": "chunks/ErrorBoundary.js",
     "name": "ErrorBoundary",
     "imports": [
+      "_jsx-runtime.js",
       "_BlockEditorTranslator.js"
     ]
   },
@@ -461,7 +467,7 @@
     "file": "chunks/Icons.js",
     "name": "Icons",
     "imports": [
-      "_BlockEditorTranslator.js"
+      "_jsx-runtime.js"
     ]
   },
   "_Model.js": {
@@ -530,16 +536,18 @@
     "file": "chunks/ProductExcerptBlock.js",
     "name": "ProductExcerptBlock",
     "imports": [
-      "_BlockEditorTranslator.js",
-      "_SingleProductContext.js"
+      "_jsx-runtime.js",
+      "_SingleProductContext.js",
+      "_BlockEditorTranslator.js"
     ]
   },
   "_ProductListItem.js": {
     "file": "chunks/ProductListItem.js",
     "name": "ProductListItem",
     "imports": [
-      "_BlockEditorTranslator.js",
-      "_Icons.js"
+      "_jsx-runtime.js",
+      "_Icons.js",
+      "_BlockEditorTranslator.js"
     ]
   },
   "_ProductVariationSelector.js": {
@@ -562,8 +570,9 @@
     "file": "chunks/SelectProductModal.js",
     "name": "SelectProductModal",
     "imports": [
-      "_BlockEditorTranslator.js",
+      "_jsx-runtime.js",
       "_Icons.js",
+      "_BlockEditorTranslator.js",
       "_index5.js",
       "_ProductListItem.js",
       "_index6.js",
@@ -574,11 +583,12 @@
     "file": "chunks/SelectVariationModal.js",
     "name": "SelectVariationModal",
     "imports": [
-      "_BlockEditorTranslator.js",
+      "_jsx-runtime.js",
       "_ProductListItem.js",
       "_Icons.js",
       "_index6.js",
       "_index5.js",
+      "_BlockEditorTranslator.js",
       "_add-query-args.js"
     ]
   },
@@ -714,6 +724,10 @@
     "file": "chunks/dayjs.min.js",
     "name": "dayjs.min"
   },
+  "_galleryTabs.js": {
+    "file": "chunks/galleryTabs.js",
+    "name": "galleryTabs"
+  },
   "_index.js": {
     "file": "chunks/index.js",
     "name": "index",
@@ -755,12 +769,20 @@
     "file": "chunks/index6.js",
     "name": "index",
     "imports": [
-      "_BlockEditorTranslator.js"
+      "_jsx-runtime.js"
     ]
+  },
+  "_jsx-runtime.js": {
+    "file": "chunks/jsx-runtime.js",
+    "name": "jsx-runtime"
   },
   "_payment-loader.js": {
     "file": "chunks/payment-loader.js",
     "name": "payment-loader"
+  },
+  "_preload-helper.js": {
+    "file": "chunks/preload-helper.js",
+    "name": "preload-helper"
   },
   "_productService.js": {
     "file": "chunks/productService.js",
@@ -822,6 +844,7 @@
       "_index.js",
       "_IconButton.js",
       "_DynamicIcon.js",
+      "_preload-helper.js",
       "_Rest.js",
       "_Notify.js",
       "_Model.js"
@@ -922,6 +945,7 @@
       "_vue-router.js",
       "_Url.js",
       "_DynamicIcon.js",
+      "_preload-helper.js",
       "__plugin-vue_export-helper.js",
       "_index3.js",
       "_IconButton.js",
@@ -960,6 +984,7 @@
       "_Url.js",
       "_Notify.js",
       "_DynamicIcon.js",
+      "_preload-helper.js",
       "__plugin-vue_export-helper.js",
       "_index3.js",
       "_IconButton.js",
@@ -977,7 +1002,8 @@
       "_vue.esm-bundler.js",
       "_Translator.js",
       "_DynamicIcon.js",
-      "_Arr.js"
+      "_Arr.js",
+      "_preload-helper.js"
     ]
   },
   "resources/admin/Bits/Components/Form/Components/StoreSettings/AddressComponent.vue": {
@@ -1008,6 +1034,7 @@
       "_Notify.js",
       "_Rest.js",
       "_IconButton.js",
+      "_preload-helper.js",
       "_Arr.js",
       "_Str.js",
       "_index.js",
@@ -1025,6 +1052,7 @@
       "_DynamicIcon.js",
       "_Arr.js",
       "resources/admin/Bits/Components/Form/Components/StoreSettings/CreatePageButton.vue",
+      "_preload-helper.js",
       "_Notify.js",
       "_Str.js",
       "_index.js",
@@ -1055,6 +1083,7 @@
       "_vue-router.js",
       "_Url.js",
       "_DynamicIcon.js",
+      "_preload-helper.js",
       "__plugin-vue_export-helper.js",
       "_index3.js",
       "_IconButton.js",
@@ -1083,6 +1112,7 @@
       "_Url.js",
       "_Notify.js",
       "_DynamicIcon.js",
+      "_preload-helper.js",
       "__plugin-vue_export-helper.js",
       "_index3.js",
       "_IconButton.js",
@@ -2581,6 +2611,16 @@
       "__plugin-vue_export-helper.js"
     ]
   },
+  "resources/admin/Bits/Components/Icons/PlayCircle.vue": {
+    "file": "chunks/PlayCircle.js",
+    "name": "PlayCircle",
+    "src": "resources/admin/Bits/Components/Icons/PlayCircle.vue",
+    "isDynamicEntry": true,
+    "imports": [
+      "_vue.esm-bundler.js",
+      "__plugin-vue_export-helper.js"
+    ]
+  },
   "resources/admin/Bits/Components/Icons/Plus.vue": {
     "file": "chunks/Plus.js",
     "name": "Plus",
@@ -3081,6 +3121,16 @@
       "__plugin-vue_export-helper.js"
     ]
   },
+  "resources/admin/Bits/Components/Icons/VideoAdd.vue": {
+    "file": "chunks/VideoAdd.js",
+    "name": "VideoAdd",
+    "src": "resources/admin/Bits/Components/Icons/VideoAdd.vue",
+    "isDynamicEntry": true,
+    "imports": [
+      "_vue.esm-bundler.js",
+      "__plugin-vue_export-helper.js"
+    ]
+  },
   "resources/admin/Bits/Components/Icons/Wallet.vue": {
     "file": "chunks/Wallet.js",
     "name": "Wallet",
@@ -3137,6 +3187,7 @@
     "src": "resources/admin/BlockEditor/Buttons/AddToCartButtonBlockEditor.jsx",
     "isEntry": true,
     "imports": [
+      "_jsx-runtime.js",
       "_BlockEditorTranslator.js",
       "_index5.js",
       "_SingleProductContext.js",
@@ -3153,6 +3204,7 @@
     "src": "resources/admin/BlockEditor/Buttons/BuyNowButtonBlockEditor.jsx",
     "isEntry": true,
     "imports": [
+      "_jsx-runtime.js",
       "_BlockEditorTranslator.js",
       "_index5.js",
       "_SelectVariationModal.js",
@@ -3177,6 +3229,7 @@
     "src": "resources/admin/BlockEditor/BuySection/BuySectionBlockEditor.jsx",
     "isEntry": true,
     "imports": [
+      "_jsx-runtime.js",
       "_BlockEditorTranslator.js",
       "_index5.js",
       "_EditorPanel.js",
@@ -3197,17 +3250,45 @@
     "src": "resources/admin/BlockEditor/BuySection/style/buy-section-block-editor.scss",
     "isEntry": true
   },
+  "resources/admin/BlockEditor/Cart/CartBlockEditor.jsx": {
+    "file": "CartBlockEditor.js",
+    "name": "CartBlockEditor",
+    "src": "resources/admin/BlockEditor/Cart/CartBlockEditor.jsx",
+    "isEntry": true,
+    "imports": [
+      "_jsx-runtime.js",
+      "_Icons.js"
+    ]
+  },
+  "resources/admin/BlockEditor/Cart/InnerBlocks/InnerBlocks.jsx": {
+    "file": "InnerBlocks5.js",
+    "name": "InnerBlocks",
+    "src": "resources/admin/BlockEditor/Cart/InnerBlocks/InnerBlocks.jsx",
+    "isEntry": true,
+    "imports": [
+      "_BlockEditorTranslator.js",
+      "_jsx-runtime.js",
+      "_EditorPanel.js",
+      "_EditorPanelRow.js"
+    ]
+  },
   "resources/admin/BlockEditor/Cart/MiniCartBlockEditor.jsx": {
     "file": "MiniCartBlockEditor.js",
     "name": "MiniCartBlockEditor",
     "src": "resources/admin/BlockEditor/Cart/MiniCartBlockEditor.jsx",
     "isEntry": true,
     "imports": [
-      "_BlockEditorTranslator.js",
+      "_jsx-runtime.js",
       "_index5.js",
       "_SingleProductContext.js",
-      "_Icons.js"
+      "_Icons.js",
+      "_BlockEditorTranslator.js"
     ]
+  },
+  "resources/admin/BlockEditor/Cart/style/cart-block-editor.scss": {
+    "file": "assets/cart-block-editor.css",
+    "src": "resources/admin/BlockEditor/Cart/style/cart-block-editor.scss",
+    "isEntry": true
   },
   "resources/admin/BlockEditor/Cart/style/mini-cart-block-editor.scss": {
     "file": "assets/mini-cart-block-editor.css",
@@ -3224,9 +3305,10 @@
     "src": "resources/admin/BlockEditor/Checkout/CheckoutBlockEditor.jsx",
     "isEntry": true,
     "imports": [
-      "_BlockEditorTranslator.js",
+      "_jsx-runtime.js",
       "_EditorPanel.js",
       "_ColorPickerField.js",
+      "_BlockEditorTranslator.js",
       "_Icons.js"
     ],
     "assets": [
@@ -3239,7 +3321,8 @@
     "src": "resources/admin/BlockEditor/Checkout/InnerBlocks/InnerBlocks.jsx",
     "isEntry": true,
     "imports": [
-      "_BlockEditorTranslator.js"
+      "_BlockEditorTranslator.js",
+      "_jsx-runtime.js"
     ]
   },
   "resources/admin/BlockEditor/Checkout/style/checkout-block-editor.scss": {
@@ -3258,6 +3341,7 @@
     "src": "resources/admin/BlockEditor/CustomerDashboardButton/CustomerDashboardButtonBlockEditor.jsx",
     "isEntry": true,
     "imports": [
+      "_jsx-runtime.js",
       "_BlockEditorTranslator.js",
       "_Icons.js"
     ]
@@ -3277,8 +3361,9 @@
     "src": "resources/admin/BlockEditor/CustomerProfile/CustomerProfileBlockEditor.jsx",
     "isEntry": true,
     "imports": [
-      "_BlockEditorTranslator.js",
-      "_Icons.js"
+      "_jsx-runtime.js",
+      "_Icons.js",
+      "_BlockEditorTranslator.js"
     ],
     "assets": [
       "assets/CustomerProfile.png"
@@ -3295,6 +3380,7 @@
     "src": "resources/admin/BlockEditor/Excerpt/ExcerptBlockEditor.jsx",
     "isEntry": true,
     "imports": [
+      "_jsx-runtime.js",
       "_BlockEditorTranslator.js",
       "_index5.js",
       "_SelectProductModal.js",
@@ -3318,6 +3404,7 @@
     "src": "resources/admin/BlockEditor/MediaCarousel/InnerBlocks/InnerBlocks.jsx",
     "isEntry": true,
     "imports": [
+      "_jsx-runtime.js",
       "_BlockEditorTranslator.js",
       "_SingleProductContext.js",
       "_Icons.js",
@@ -3331,11 +3418,12 @@
     "src": "resources/admin/BlockEditor/MediaCarousel/MediaCarouselBlockEditor.jsx",
     "isEntry": true,
     "imports": [
-      "_BlockEditorTranslator.js",
+      "_jsx-runtime.js",
       "_Icons.js",
       "_index5.js",
       "_EditorPanel.js",
       "_EditorPanelRow.js",
+      "_BlockEditorTranslator.js",
       "_SelectVariationModal.js",
       "_SingleProductContext.js",
       "_ProductContext.js",
@@ -3362,12 +3450,13 @@
     "src": "resources/admin/BlockEditor/PriceRange/PriceRangeBlockEditor.jsx",
     "isEntry": true,
     "imports": [
-      "_BlockEditorTranslator.js",
+      "_jsx-runtime.js",
       "_index5.js",
       "_SelectProductModal.js",
       "_CustomSelect.js",
       "_EditorPanel.js",
       "_EditorPanelRow.js",
+      "_BlockEditorTranslator.js",
       "_SingleProductContext.js",
       "_Icons.js",
       "_add-query-args.js",
@@ -3390,7 +3479,7 @@
     "src": "resources/admin/BlockEditor/PricingTable/PricingTableBlockEditor.jsx",
     "isEntry": true,
     "imports": [
-      "_BlockEditorTranslator.js",
+      "_jsx-runtime.js",
       "_index6.js",
       "_Icons.js",
       "_ProductListItem.js",
@@ -3398,6 +3487,7 @@
       "_index5.js",
       "_ColorPickerField.js",
       "_EditorPanel.js",
+      "_BlockEditorTranslator.js",
       "_CustomSelect.js",
       "_add-query-args.js"
     ],
@@ -3420,8 +3510,9 @@
     "src": "resources/admin/BlockEditor/ProductCard/ProductCardBlockEditor.jsx",
     "isEntry": true,
     "imports": [
-      "_BlockEditorTranslator.js",
+      "_jsx-runtime.js",
       "_Icons.js",
+      "_BlockEditorTranslator.js",
       "_index5.js",
       "_EditorPanel.js",
       "_EditorPanelRow.js",
@@ -3447,11 +3538,12 @@
     "src": "resources/admin/BlockEditor/ProductCarousel/InnerBlocks/InnerBlocks.jsx",
     "isEntry": true,
     "imports": [
-      "_BlockEditorTranslator.js",
+      "_jsx-runtime.js",
       "_ProductExcerptBlock.js",
       "_ProductContext.js",
       "_SingleProductContext.js",
-      "_ProductContainerContext.js"
+      "_ProductContainerContext.js",
+      "_BlockEditorTranslator.js"
     ]
   },
   "resources/admin/BlockEditor/ProductCarousel/ProductCarousel.png": {
@@ -3464,11 +3556,12 @@
     "src": "resources/admin/BlockEditor/ProductCarousel/ProductCarouselBlockEditor.jsx",
     "isEntry": true,
     "imports": [
-      "_BlockEditorTranslator.js",
+      "_jsx-runtime.js",
       "_Icons.js",
       "_index5.js",
       "_EditorPanel.js",
       "_EditorPanelRow.js",
+      "_BlockEditorTranslator.js",
       "_CustomSelect.js",
       "_SelectProductModal.js",
       "_SingleProductContext.js",
@@ -3492,6 +3585,7 @@
     "src": "resources/admin/BlockEditor/ProductCategoriesList/ProductCategoriesListBlockEditor.jsx",
     "isEntry": true,
     "imports": [
+      "_jsx-runtime.js",
       "_BlockEditorTranslator.js",
       "_Icons.js"
     ]
@@ -3507,6 +3601,7 @@
     "src": "resources/admin/BlockEditor/ProductDescription/ProductDescriptionBlockEditor.jsx",
     "isEntry": true,
     "imports": [
+      "_jsx-runtime.js",
       "_BlockEditorTranslator.js",
       "_index5.js",
       "_SelectProductModal.js",
@@ -3535,9 +3630,10 @@
     "src": "resources/admin/BlockEditor/ProductGallery/ProductGalleryBlockEditor.jsx",
     "isEntry": true,
     "imports": [
-      "_BlockEditorTranslator.js",
+      "_jsx-runtime.js",
       "_Icons.js",
       "_SelectVariationModal.js",
+      "_BlockEditorTranslator.js",
       "_index5.js",
       "_EditorPanel.js",
       "_EditorPanelRow.js",
@@ -3563,11 +3659,12 @@
     "src": "resources/admin/BlockEditor/ProductImage/ProductImageBlockEditor.jsx",
     "isEntry": true,
     "imports": [
-      "_BlockEditorTranslator.js",
+      "_jsx-runtime.js",
       "_index5.js",
       "_SelectProductModal.js",
       "_EditorPanel.js",
       "_EditorPanelRow.js",
+      "_BlockEditorTranslator.js",
       "_SingleProductContext.js",
       "_Icons.js",
       "_add-query-args.js",
@@ -3590,12 +3687,13 @@
     "src": "resources/admin/BlockEditor/ProductInfo/ProductInfoBlockEditor.jsx",
     "isEntry": true,
     "imports": [
-      "_BlockEditorTranslator.js",
+      "_jsx-runtime.js",
       "_Icons.js",
       "_index5.js",
       "_SelectProductModal.js",
       "_EditorPanel.js",
       "_EditorPanelRow.js",
+      "_BlockEditorTranslator.js",
       "_SingleProductContext.js",
       "_add-query-args.js",
       "_ProductListItem.js",
@@ -3616,6 +3714,7 @@
     "src": "resources/admin/BlockEditor/ProductPackageDescription/ProductPackageDescriptionBlockEditor.jsx",
     "isEntry": true,
     "imports": [
+      "_jsx-runtime.js",
       "_BlockEditorTranslator.js",
       "_index5.js",
       "_EditorPanel.js",
@@ -3636,6 +3735,7 @@
     "src": "resources/admin/BlockEditor/ProductSku/ProductSkuBlockEditor.jsx",
     "isEntry": true,
     "imports": [
+      "_jsx-runtime.js",
       "_BlockEditorTranslator.js",
       "_index5.js",
       "_SelectVariationModal.js",
@@ -3660,6 +3760,7 @@
     "src": "resources/admin/BlockEditor/ProductTitle/ProductTitleBlockEditor.jsx",
     "isEntry": true,
     "imports": [
+      "_jsx-runtime.js",
       "_BlockEditorTranslator.js",
       "_index5.js",
       "_SelectProductModal.js",
@@ -3689,9 +3790,10 @@
     "src": "resources/admin/BlockEditor/RelatedProduct/RelatedProductBlockEditor.jsx",
     "isEntry": true,
     "imports": [
-      "_BlockEditorTranslator.js",
+      "_jsx-runtime.js",
       "_Icons.js",
       "_index5.js",
+      "_BlockEditorTranslator.js",
       "_add-query-args.js",
       "_SingleProductContext.js"
     ]
@@ -3707,6 +3809,7 @@
     "src": "resources/admin/BlockEditor/SaleBadge/SaleBadgeBlockEditor.jsx",
     "isEntry": true,
     "imports": [
+      "_jsx-runtime.js",
       "_BlockEditorTranslator.js",
       "_index5.js",
       "_SelectProductModal.js",
@@ -3735,6 +3838,7 @@
     "src": "resources/admin/BlockEditor/SearchBar/SearchBarBlockEditor.jsx",
     "isEntry": true,
     "imports": [
+      "_jsx-runtime.js",
       "_BlockEditorTranslator.js",
       "_index6.js",
       "_Icons.js"
@@ -3749,11 +3853,12 @@
     "src": "resources/admin/BlockEditor/ShopApp/InnerBlocks/InnerBlocks.jsx",
     "isEntry": true,
     "imports": [
-      "_BlockEditorTranslator.js",
+      "_jsx-runtime.js",
       "_ProductExcerptBlock.js",
       "_ProductContext.js",
       "_SingleProductContext.js",
       "_ProductContainerContext.js",
+      "_BlockEditorTranslator.js",
       "_EditorPanel.js",
       "_EditorPanelRow.js"
     ]
@@ -3768,8 +3873,8 @@
     "src": "resources/admin/BlockEditor/ShopApp/ShopAppBlockEditor.jsx",
     "isEntry": true,
     "imports": [
+      "_jsx-runtime.js",
       "_BlockEditorTranslator.js",
-      "_ColorPickerField.js",
       "_CustomSelect.js",
       "_Icons.js",
       "_ErrorBoundary.js",
@@ -3792,6 +3897,7 @@
     "src": "resources/admin/BlockEditor/SoldOutBadge/SoldOutBadgeBlockEditor.jsx",
     "isEntry": true,
     "imports": [
+      "_jsx-runtime.js",
       "_BlockEditorTranslator.js",
       "_EditorPanel.js",
       "_EditorPanelRow.js",
@@ -3811,11 +3917,12 @@
     "src": "resources/admin/BlockEditor/Stock/StockBlock.jsx",
     "isEntry": true,
     "imports": [
-      "_BlockEditorTranslator.js",
+      "_jsx-runtime.js",
       "_Icons.js",
       "_SelectProductModal.js",
       "_EditorPanel.js",
       "_EditorPanelRow.js",
+      "_BlockEditorTranslator.js",
       "_index5.js",
       "_SingleProductContext.js",
       "_add-query-args.js",
@@ -3829,8 +3936,45 @@
     "src": "resources/admin/BlockEditor/StoreLogo/StoreLogoBlockEditor.jsx",
     "isEntry": true,
     "imports": [
+      "_jsx-runtime.js",
       "_BlockEditorTranslator.js",
       "_Icons.js"
+    ]
+  },
+  "resources/admin/Modules/Products/FluentPlayer/fluent-player-gallery.js": {
+    "file": "fluent-player-gallery.js",
+    "name": "fluent-player-gallery",
+    "src": "resources/admin/Modules/Products/FluentPlayer/fluent-player-gallery.js",
+    "isEntry": true,
+    "imports": [
+      "_preload-helper.js",
+      "_Translator.js",
+      "_vue.esm-bundler.js",
+      "_galleryTabs.js",
+      "_Rest.js",
+      "_Arr.js"
+    ],
+    "dynamicImports": [
+      "resources/admin/Modules/Products/parts/FluentPlayerVideoTab.vue"
+    ]
+  },
+  "resources/admin/Modules/Products/parts/FluentPlayerVideoTab.vue": {
+    "file": "chunks/FluentPlayerVideoTab.js",
+    "name": "FluentPlayerVideoTab",
+    "src": "resources/admin/Modules/Products/parts/FluentPlayerVideoTab.vue",
+    "isDynamicEntry": true,
+    "imports": [
+      "_vue.esm-bundler.js",
+      "_Rest.js",
+      "_Notify.js",
+      "_Translator.js",
+      "_DynamicIcon.js",
+      "resources/admin/Modules/Products/FluentPlayer/fluent-player-gallery.js",
+      "_index.js",
+      "_Str.js",
+      "_Arr.js",
+      "_preload-helper.js",
+      "_galleryTabs.js"
     ]
   },
   "resources/admin/Modules/Reports/Subscription/Cohort.vue": {
@@ -3851,6 +3995,7 @@
       "resources/admin/bootstrap/app.js",
       "_common.js",
       "_Arr.js",
+      "_preload-helper.js",
       "_vue-router.js",
       "_dayjs.min.js",
       "_Badge.js",
@@ -3879,6 +4024,7 @@
       "_AttrGroups.js",
       "_DynamicTemplateParser.js",
       "_ProductVariationSelector.js",
+      "_galleryTabs.js",
       "_FileUploaderDialog.js",
       "resources/admin/Bits/Components/Icons/Screenshot.vue",
       "_useElementPlusComponents.js"
@@ -3918,6 +4064,7 @@
       "_Utils.js",
       "_CurrencyFormatter.js",
       "_TransitionAccordion.js",
+      "_preload-helper.js",
       "_Asset.js"
     ],
     "css": [
@@ -3958,6 +4105,7 @@
       "_CurrencyFormatter.js",
       "_TransitionAccordion.js",
       "_BundleProducts.js",
+      "_preload-helper.js",
       "_Animation.js",
       "_Asset.js",
       "_AddressComponent2.js",
@@ -3981,7 +4129,7 @@
     "imports": [
       "_vue.esm-bundler.js",
       "_vue-router.js",
-      "_DynamicIcon.js",
+      "_preload-helper.js",
       "_Translator.js",
       "_Badge.js",
       "_Empty.js",
@@ -3991,6 +4139,7 @@
       "_CurrencyFormatter.js",
       "_Activity.js",
       "_CardBody.js",
+      "_DynamicIcon.js",
       "__plugin-vue_export-helper.js",
       "_common.js",
       "_IconButton.js",
@@ -4014,6 +4163,7 @@
       "_ProductVariationSelector.js",
       "_productService.js",
       "_BundleProducts.js",
+      "_galleryTabs.js",
       "_index3.js",
       "_TransitionAccordion.js",
       "_FileUploaderDialog.js",
@@ -4069,6 +4219,7 @@
       "_index3.js",
       "_Arr.js",
       "_DynamicIcon.js",
+      "_preload-helper.js",
       "resources/admin/Bits/Components/Icons/CaretRight.vue",
       "_Str.js",
       "_productService.js",
@@ -4125,6 +4276,7 @@
       "_dayjs.min.js",
       "_index3.js",
       "_DynamicIcon.js",
+      "_preload-helper.js",
       "resources/admin/Bits/Components/Icons/CaretRight.vue",
       "_Str.js",
       "_productService.js",
@@ -4164,6 +4316,7 @@
       "_dayjs.min.js",
       "_index3.js",
       "_DynamicIcon.js",
+      "_preload-helper.js",
       "_Str.js",
       "_productService.js",
       "_CurrencyFormatter.js",
@@ -4255,7 +4408,8 @@
       "_timezone.js",
       "_index.js",
       "_Notify.js",
-      "_DynamicIcon.js"
+      "_DynamicIcon.js",
+      "_preload-helper.js"
     ]
   },
   "resources/images/pro-feature-pattern.png": {
@@ -4293,6 +4447,7 @@
       "_Asset.js",
       "_Url.js",
       "_index4.js",
+      "_preload-helper.js",
       "_timezone.js",
       "_Notify.js",
       "_index3.js",
@@ -4336,7 +4491,8 @@
       "_index3.js",
       "_Utils.js",
       "_CurrencyFormatter.js",
-      "_TransitionAccordion.js"
+      "_TransitionAccordion.js",
+      "_preload-helper.js"
     ]
   },
   "resources/public/buttons/add-to-cart/style/style.scss": {
@@ -4487,6 +4643,7 @@
       "_DynamicTemplateParser.js",
       "_index3.js",
       "_index2.js",
+      "_preload-helper.js",
       "_Arr.js",
       "_TransitionAccordion.js",
       "_index4.js"
@@ -4749,7 +4906,8 @@
       "_Url.js",
       "_index3.js",
       "_Utils.js",
-      "_TransitionAccordion.js"
+      "_TransitionAccordion.js",
+      "_preload-helper.js"
     ],
     "css": [
       "assets/withdrawal.css"

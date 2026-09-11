@@ -118,7 +118,26 @@ class EmailNotificationMailer
         }, 999, 1);
 
         add_action('fluent_cart/renewal_reminder_overdue', function ($data) {
+            // Set only by the deprecated bridge in RenewalReminderService::send():
+            // the staged email (renewal_overdue_first/followup/final) already went
+            // out for this payload, so mailing here would duplicate it. Direct
+            // dispatches of this hook never carry the flag and still deliver.
+            if (!empty(Arr::get($data, 'staged_email_dispatched'))) {
+                return;
+            }
             $this->mailEmailsOfEvent('renewal_reminder_overdue', $data);
+        }, 999, 1);
+
+        add_action('fluent_cart/renewal_overdue_first', function ($data) {
+            $this->mailEmailsOfEvent('renewal_overdue_first', $data);
+        }, 999, 1);
+
+        add_action('fluent_cart/renewal_overdue_followup', function ($data) {
+            $this->mailEmailsOfEvent('renewal_overdue_followup', $data);
+        }, 999, 1);
+
+        add_action('fluent_cart/renewal_overdue_final', function ($data) {
+            $this->mailEmailsOfEvent('renewal_overdue_final', $data);
         }, 999, 1);
 
         add_action('fluent_cart/subscription_renewal_reminder', function ($data) {
@@ -238,6 +257,14 @@ class EmailNotificationMailer
                     }
                 }
 
+                $mailer = $this->applyMailerFilter($mailer, [
+                    'event'        => $event,
+                    'mail_name'    => $mailName,
+                    'recipient'    => Arr::get($notification, 'recipient'),
+                    'notification' => $notification,
+                    'data'         => $data,
+                ]);
+
                 $mailer->send(true);
 
                 // Clean up temp PDF file after sending
@@ -274,11 +301,34 @@ class EmailNotificationMailer
             }
         }
 
+        $mailer = $this->applyMailerFilter($mailer, [
+            'event'        => Arr::get($notification, 'event', ''),
+            'mail_name'    => $emailName,
+            'recipient'    => Arr::get($notification, 'recipient'),
+            'notification' => $notification,
+            'data'         => $data,
+        ]);
+
         $mailer->send(true);
 
         if ($pdfPath && file_exists($pdfPath)) {
             @unlink($pdfPath);
         }
+    }
+
+    /**
+     * Let third-party code adjust the fully prepared Mailer (recipients,
+     * subject, body, attachments already set) immediately before it sends.
+     *
+     * @param Mailer $mailer
+     * @param array $context event, mail_name, recipient, notification, data
+     * @return Mailer
+     */
+    private function applyMailerFilter(Mailer $mailer, array $context): Mailer
+    {
+        $filtered = apply_filters('fluent_cart/email_notification/mailer', $mailer, $context);
+
+        return $filtered instanceof Mailer ? $filtered : $mailer;
     }
 
     public function getEmailFooter(): string

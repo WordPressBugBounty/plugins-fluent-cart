@@ -394,13 +394,15 @@ class PayPal extends AbstractPaymentGateway
             }
         }
 
-        if ($paidAmount != $transaction->total) {
+        $expectedAmount = PayPalHelper::wireCents($transaction->total, $transaction->currency);
+
+        if ($paidAmount != $expectedAmount) {
             fluent_cart_warning_log(
                 __('PayPal Amount Mismatch Attempt', 'fluent-cart'),
                 sprintf(
                     /* translators: %1$s: expected amount, %2$s: received amount */
                     __('Payment amount mismatch detected. Expected: %1$s, Received: %2$s. This may indicate payment tampering.', 'fluent-cart'),
-                    Helper::toDecimal($transaction->total),
+                    Helper::toDecimal($expectedAmount),
                     Helper::toDecimal($paidAmount)
                 ),
                 [
@@ -898,8 +900,8 @@ class PayPal extends AbstractPaymentGateway
             return;
         }
 
+        // Sends the HTTP status via status_header() and exits — never returns.
         (new IPN())->processWebhook();
-        exit(200);
     }
 
     public function getTransactionUrl($url, $data)
@@ -1217,6 +1219,7 @@ class PayPal extends AbstractPaymentGateway
                     'no processing' => __('no processing', 'fluent-cart'),
                     'not proper order handler' => __('not proper order handler', 'fluent-cart'),
                     'Payment confirmation failed' => __('Payment confirmation failed', 'fluent-cart'),
+                    'Your payment is being reviewed. We will confirm your order once it completes.' => __('Your payment is being reviewed. We will confirm your order once it completes.', 'fluent-cart'),
                 ]
             ]
         ];
@@ -1255,10 +1258,12 @@ class PayPal extends AbstractPaymentGateway
 
         $paymentArgs['public_key'] = $clientId;
 
+        $currency = strtoupper(CurrencySettings::get('currency'));
+
         $paymentDetails = [
             'mode'     => 'payment',
-            'amount'   => number_format(Helper::toDecimalWithoutComma($totalPrice), 2, '.', ''),
-            'currency' => strtoupper(CurrencySettings::get('currency')),
+            'amount'   => PayPalHelper::formatAmount($totalPrice, $currency),
+            'currency' => $currency,
         ];
 
         $renderAsSubscription = $this->shouldRenderAsSubscriptionMode($hasSubscription);

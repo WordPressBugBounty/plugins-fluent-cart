@@ -130,6 +130,10 @@ class FluentMetaRequest extends RequestGuard
                 return in_array($value, ['yes', 'no'], true) ? $value : 'no';
             },
             'order_mode'                           => 'sanitize_text_field',
+            'subscription_mode_guard'              => function ($value) {
+                $value = sanitize_text_field($value);
+                return in_array($value, ['yes', 'no'], true) ? $value : 'yes';
+            },
             'variation_view'                       => 'sanitize_text_field',
             'variation_columns'                    => 'sanitize_text_field',
             'modules_settings'                     => 'sanitize_text_field',

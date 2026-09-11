@@ -8,6 +8,7 @@ use FluentCart\App\Models\OrderMeta;
 use FluentCart\App\Models\Subscription;
 use FluentCart\App\Modules\Subscriptions\Services\SystemChargeService;
 use FluentCart\App\Services\Payments\PaymentHelper;
+use FluentCart\App\Services\Payments\SubscriptionHelper;
 
 class RenewalReminderService extends ReminderService
 {
@@ -64,6 +65,21 @@ class RenewalReminderService extends ReminderService
             ];
 
             do_action('fluent_cart/' . $eventName, $data);
+
+            if (strpos($stage, 'overdue_') === 0) {
+                // Legacy hook shipped in 1.6.0 for scheduled overdue reminders.
+                // Kept for third-party listeners; the flag tells the core mailer
+                // the staged email above was already sent, so it must not mail
+                // again — direct dispatches of the legacy hook lack the flag and
+                // still deliver.
+                $data['staged_email_dispatched'] = true;
+                do_action_deprecated(
+                    'fluent_cart/renewal_reminder_overdue',
+                    [$data],
+                    '1.6.3',
+                    'fluent_cart/' . $eventName
+                );
+            }
 
             $state = $this->markStageSent($state, $cycleKey, $stage);
             $order->updateMeta(static::META_KEY, $state);
@@ -329,6 +345,13 @@ class RenewalReminderService extends ReminderService
 
     protected function isEligible(Order $order): bool
     {
+        // Live invoice on a test-mode store (or vice versa): don't email — the
+        // guard's promise covers reminders too. Checked at both scan and send
+        // time so pre-queued actions copied to a clone are also caught.
+        if (!SubscriptionHelper::canProcessInMode($order->mode)) {
+            return false;
+        }
+
         if (!in_array($order->payment_status, static::getReminderPaymentStatuses(), true)) {
             return false;
         }
@@ -417,9 +440,29 @@ class RenewalReminderService extends ReminderService
     protected function resolveEventName(string $stage): string
     {
         if (strpos($stage, 'overdue_') === 0) {
-            return 'renewal_reminder_overdue';
+            return $this->resolveOverdueEventName((int)substr($stage, strlen('overdue_')));
         }
 
         return 'renewal_reminder_due';
+    }
+
+    /**
+     * Map an overdue stage to a notification event by its position in the
+     * configured day list, not by a fixed day threshold — the escalation tone
+     * follows the admin's schedule (e.g. 14,30 → first at 14, final at 30).
+     */
+    protected function resolveOverdueEventName(int $daysAfter): string
+    {
+        $days = $this->getOverdueDays();
+
+        if (empty($days) || $daysAfter <= min($days)) {
+            return 'renewal_overdue_first';
+        }
+
+        if ($daysAfter >= max($days)) {
+            return 'renewal_overdue_final';
+        }
+
+        return 'renewal_overdue_followup';
     }
 }

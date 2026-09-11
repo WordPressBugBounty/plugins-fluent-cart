@@ -5,6 +5,7 @@ namespace FluentCart\App\Services\Renderer\Receipt;
 use FluentCart\Api\StoreSettings;
 use FluentCart\App\App;
 use FluentCart\App\Helpers\Helper;
+use FluentCart\App\Helpers\Status;
 use FluentCart\App\Modules\Tax\TaxModule;
 use FluentCart\App\Modules\Templating\AssetLoader;
 use FluentCart\App\Vite;
@@ -106,44 +107,76 @@ class ThankYouRender
         }
     }
 
+    protected function getHeaderState()
+    {
+        $order = Arr::get($this->config, 'order', null);
+        $status = $order ? $order->payment_status : '';
+
+        if ($status === Status::PAYMENT_REFUNDED) {
+            return 'refunded';
+        }
+        if ($status === Status::PAYMENT_FAILED) {
+            return 'failed';
+        }
+        if (in_array($status, [Status::PAYMENT_PAID, Status::PAYMENT_PARTIALLY_REFUNDED], true)) {
+            return 'success';
+        }
+
+        return 'pending';
+    }
+
     public function renderHeader()
     {
-        $bgColor = '#d4edda';
-        $titleColor = '#155724';
-        $iconBg = '#155724bd';
+        $state = $this->getHeaderState();
 
-        $order = Arr::get($this->config, 'order', null);
+        $styles = [
+            'success'  => ['bg' => '#d4edda', 'title' => '#155724', 'iconBg' => '#155724bd'],
+            'pending'  => ['bg' => '#fff3cd', 'title' => '#856404', 'iconBg' => '#856404bd'],
+            'failed'   => ['bg' => '#f8d7da', 'title' => '#721c24', 'iconBg' => '#721c24bd'],
+            'refunded' => ['bg' => '#e2e3e5', 'title' => '#383d41', 'iconBg' => '#383d41bd'],
+        ];
 
-        if ($order->payment_status !== 'paid') {
-            $bgColor = '#fff3cd';
-            $titleColor = '#856404';
-            $iconBg = '#856404bd';
-        }
+        $titles = [
+            'success'  => __('Purchase Successful!', 'fluent-cart'),
+            'pending'  => __('Payment Pending!', 'fluent-cart'),
+            'failed'   => __('Payment Failed', 'fluent-cart'),
+            'refunded' => __('Order Refunded', 'fluent-cart'),
+        ];
+
+        $bgColor = $styles[$state]['bg'];
+        $titleColor = $styles[$state]['title'];
+        $iconBg = $styles[$state]['iconBg'];
         ?>
         <div class="fct-thank-you-page-header" style="background: <?php echo esc_attr($bgColor); ?>;">
-            <?php if ($order->payment_status !== 'paid') : ?>
-                <div class="fct-thank-you-page-header-icon" style="background: <?php echo esc_attr($iconBg); ?>;">
+            <div class="fct-thank-you-page-header-icon" style="background: <?php echo esc_attr($iconBg); ?>;">
+                <?php if ($state === 'success') : ?>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                         stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="20,6 9,17 4,12"></polyline>
+                    </svg>
+                <?php elseif ($state === 'failed') : ?>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                         stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                <?php elseif ($state === 'refunded') : ?>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                         stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="9,14 4,9 9,4"></polyline>
+                        <path d="M4 9h10a6 6 0 0 1 0 12h-3"></path>
+                    </svg>
+                <?php else : ?>
                     <svg class="w-64 h-64" xmlns="http://www.w3.org/2000/svg"
                          viewBox="0 0 1024 1024" fill="currentColor">
                         <path
                                 d="M480 674V192c0-18 14-32 32-32s32 14 32 32v482h-64zm0 63h64v60h-64v-60zM0 512C0 229 229 0 512 0s512 229 512 512-229 512-512 512S0 795 0 512zm961 0c0-247-202-448-449-448S64 265 64 512s201 448 448 448 449-201 449-448z"></path>
                     </svg>
-                </div>
-                <h1 class="fct-thank-you-page-header-title" style="color:<?php echo esc_attr($titleColor); ?>">
-                    <?php echo esc_html__('Payment Pending!', 'fluent-cart'); ?>
-                </h1>
-
-            <?php else: ?>
-                <div class="fct-thank-you-page-header-icon" style="background: <?php echo esc_attr($iconBg); ?>;">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                         stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
-                        <polyline points="20,6 9,17 4,12"></polyline>
-                    </svg>
-                </div>
-                <h1 class="fct-thank-you-page-header-title" style="color:<?php echo esc_attr($titleColor); ?>;">
-                    <?php echo esc_html__('Purchase Successful!', 'fluent-cart'); ?>
-                </h1>
-            <?php endif; ?>
+                <?php endif; ?>
+            </div>
+            <h1 class="fct-thank-you-page-header-title" style="color:<?php echo esc_attr($titleColor); ?>;">
+                <?php echo esc_html($titles[$state]); ?>
+            </h1>
 
             <?php do_action('fluent_cart/receipt/thank_you/after_header_title', $this->config); ?>
 
@@ -207,7 +240,8 @@ class ThankYouRender
                 );
                 ?>
             </div>
-            <?php if ($order->payment_status === 'paid') : ?>
+            <?php $state = $this->getHeaderState(); ?>
+            <?php if ($state === 'success') : ?>
                 <p>
                     <?php
                     printf(
@@ -216,6 +250,32 @@ class ThankYouRender
                             esc_url($profilePage . 'order/' . $order->uuid),
                             esc_html($order->invoice_no),
                             esc_html__(' has been placed successfully.', 'fluent-cart')
+                    );
+                    ?>
+                </p>
+            <?php elseif ($state === 'refunded') : ?>
+                <p>
+                    <?php
+                    printf(
+                            '%s<strong style="color: #007bff;"><a href="%s">#%s</a></strong>%s',
+                            esc_html__('Your order ', 'fluent-cart'),
+                            esc_url($profilePage . 'order/' . $order->uuid),
+                            esc_html($order->invoice_no),
+                            esc_html__(' has been refunded.', 'fluent-cart')
+                    );
+                    ?>
+                </p>
+            <?php elseif ($state === 'failed') : ?>
+                <p>
+                    <?php
+                    printf(
+                            '%s<strong style="color: #007bff;"><a href="%s">#%s</a></strong>%s <a style="color: #007bff;" target="_blank" href="%s">%s</a>.',
+                            esc_html__('The payment for your order ', 'fluent-cart'),
+                            esc_url($profilePage . 'order/' . $order->uuid),
+                            esc_html($order->invoice_no),
+                            esc_html__(' could not be completed. You can try again from', 'fluent-cart'),
+                            esc_url(\FluentCart\App\Services\Payments\PaymentHelper::getCustomPaymentLink($order->uuid)),
+                            esc_html__('here', 'fluent-cart')
                     );
                     ?>
                 </p>

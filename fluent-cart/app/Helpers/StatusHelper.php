@@ -9,6 +9,7 @@ use FluentCart\App\Models\Cart;
 use FluentCart\App\Models\Order;
 use FluentCart\App\Models\OrderTransaction;
 use FluentCart\App\Models\Subscription;
+use FluentCart\App\Modules\PaymentMethods\Core\GatewayManager;
 use FluentCart\App\Modules\Subscriptions\Services\SubscriptionService;
 use FluentCart\App\Services\DateTime\DateTime;
 use FluentCart\App\Services\Payments\PaymentHelper;
@@ -87,6 +88,35 @@ class StatusHelper
         ]);
     }
 
+    /**
+     * Backfills payment_method_title when it was never stamped at creation.
+     *
+     * Only changeOrderStatus() (the COD-only path) writes payment_method_title.
+     * Every other gateway settles via syncOrderStatuses(), which never touched
+     * it, so the column stays empty for those orders.
+     */
+    protected function resolvePaymentMethodTitle()
+    {
+        $title = $this->order->payment_method_title;
+        if ($title) {
+            return $title;
+        }
+
+        $slug = $this->order->payment_method;
+        if (!$slug || !class_exists(GatewayManager::class)) {
+            return $title;
+        }
+
+        $gateway = GatewayManager::getInstance($slug);
+        if (!$gateway || !method_exists($gateway, 'getMeta')) {
+            return $title;
+        }
+
+        $resolvedTitle = (string) $gateway->getMeta('title');
+
+        return $resolvedTitle !== '' ? $resolvedTitle : $title;
+    }
+
     public function updateTotalPaid($amount)
     {
         $this->order->total_paid = intval($amount) + intval($this->order->total_paid);
@@ -151,9 +181,18 @@ class StatusHelper
 
         $isFullyPaid = $this->order->total_amount <= ($transactionPaidTotal - $refundedTotal);
 
+        // total_paid stays gross for a MoR order (cover invariant — see
+        // Order::netAmount()); net it out here so a full refund of the actually
+        // captured amount resolves to "refunded" instead of being stuck at
+        // "partially_refunded" on every later idempotent resync (e.g. a Paddle webhook
+        // replay for the already-succeeded transaction).
+        $netPaidTotal = $this->order->netAmount($transactionPaidTotal);
+
         $orderPaymentStatus = $this->order->payment_status;
         if ($isFullyPaid) {
             $orderPaymentStatus = Status::PAYMENT_PAID;
+        } else if ($refundedTotal && $refundedTotal >= $netPaidTotal) {
+            $orderPaymentStatus = Status::PAYMENT_REFUNDED;
         } else if ($refundedTotal) {
             $orderPaymentStatus = Status::PAYMENT_PARTIALLY_REFUNDED;
         }
@@ -168,10 +207,17 @@ class StatusHelper
         $oldOrderStatus = $this->order->status;
         $oldPaymentStatus = $this->order->payment_status;
 
+        $paymentMethodTitle = $this->resolvePaymentMethodTitle();
+
+        if ($orderPaymentStatus === Status::PAYMENT_REFUNDED && !$this->order->refunded_at) {
+            $this->order->refunded_at = DateTime::gmtNow();
+        }
+
         $this->order->status = $orderStatus;
         $this->order->payment_status = $orderPaymentStatus;
         $this->order->total_paid = $transactionPaidTotal;
         $this->order->total_refund = $refundedTotal;
+        $this->order->payment_method_title = $paymentMethodTitle;
 
         // When transitioning to PAID, use an atomic UPDATE to prevent concurrent requests
         // (e.g., payment gateway webhook + browser confirmation) from both processing
@@ -186,10 +232,11 @@ class StatusHelper
                       ->orWhere('payment_status', '!=', Status::PAYMENT_PAID);
                 })
                 ->update([
-                    'status'         => $orderStatus,
-                    'payment_status' => $orderPaymentStatus,
-                    'total_paid'     => $transactionPaidTotal,
-                    'total_refund'   => $refundedTotal,
+                    'status'               => $orderStatus,
+                    'payment_status'       => $orderPaymentStatus,
+                    'total_paid'           => $transactionPaidTotal,
+                    'total_refund'         => $refundedTotal,
+                    'payment_method_title' => $paymentMethodTitle,
                 ]);
 
             if (!$claimed) {

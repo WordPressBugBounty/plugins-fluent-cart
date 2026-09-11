@@ -404,7 +404,15 @@ class CartRenderer
                 role="region"
                 aria-label="<?php esc_attr_e('Cart Total', 'fluent-cart'); ?>"
         >
-            <span><?php echo esc_html__('Total', 'fluent-cart'); ?>:</span>
+            <span><?php
+                /**
+                 * Filters the cart total label. Lets a caller relabel it without
+                 * reimplementing this markup; the default renders exactly as before.
+                 *
+                 * @param string $label
+                 */
+                echo esc_html(apply_filters('fluent_cart/cart/total_label', __('Total', 'fluent-cart')));
+                ?></span>
             <span
                     data-fluent-cart-cart-total-price
                     aria-live="polite"
@@ -449,11 +457,19 @@ class CartRenderer
     {
         ?>
 
-        <a class="checkout-button"
+        <a class="checkout-button fct-primary-btn"
            href="<?php echo esc_attr($this->storeSettings->getCheckoutPage()); ?>"
            role="button"
            aria-label="<?php esc_attr_e('Go to checkout page', 'fluent-cart'); ?>">
-            <?php esc_html_e('Go to Checkout', 'fluent-cart'); ?>
+            <?php
+            /**
+             * Filters the cart checkout button text. Lets a caller relabel it
+             * without reimplementing this markup; the default is unchanged.
+             *
+             * @param string $text
+             */
+            echo esc_html(apply_filters('fluent_cart/cart/checkout_button_text', __('Go to Checkout', 'fluent-cart')));
+            ?>
         </a>
 
         <?php

@@ -5,6 +5,7 @@ namespace FluentCart\App\Modules\Templating\Bricks;
 
 use FluentCart\App\Hooks\Handlers\CPTHandler;
 use FluentCart\App\Modules\Data\ProductDataSetup;
+use FluentCart\App\Modules\Templating\AssetLoader;
 use FluentCart\App\Services\Renderer\ProductCardRender;
 
 class DynamicData
@@ -79,7 +80,10 @@ class DynamicData
                     ob_start();
                     (new ProductCardRender($productModel))->renderProductImage();
                     $content = ob_get_clean();
-                    return '<span data-fct-field="product-image">' . $content . '</span>';
+
+                    $badgesHtml = BricksHelper::renderProductBadges($productModel, BricksHelper::$imageBadgeSettings);
+
+                    return '<span data-fct-field="product-image">' . $content . $badgesHtml . '</span>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- renderProductBadges() escapes its own output
                 }
                 break;
             case 'fct_product_excerpt':
@@ -91,6 +95,9 @@ class DynamicData
             case 'fct_product_price':
                 $productModel = ProductDataSetup::getProductModel($post->ID);
                 if ($productModel) {
+                    // Price markup relies on the .fct-sr-only rule shipped with the
+                    // single product styles; without it the labels render visibly.
+                    AssetLoader::loadSingleProductAssets();
                     ob_start();
                     (new ProductCardRender($productModel))->renderPrices();
                     $content = ob_get_clean();

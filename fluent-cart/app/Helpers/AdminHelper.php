@@ -82,6 +82,14 @@ class AdminHelper
 
         $children = [];
 
+        // The parent link is not reachable on touch (the tap opens the dropdown),
+        // and the off-canvas menu renders children only — so list it as a child too.
+        $children['all_products'] = [
+            'label'      => __('All Products', 'fluent-cart'),
+            'link'       => $baseUrl . 'products',
+            'permission' => ['products/view']
+        ];
+
         // Attributes power the advanced-variations feature.
         $children['product_attributes'] = [
             'label'      => __('Attributes', 'fluent-cart'),

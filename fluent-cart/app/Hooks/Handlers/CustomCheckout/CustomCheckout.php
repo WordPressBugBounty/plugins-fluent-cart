@@ -147,7 +147,11 @@ class CustomCheckout
                 [
                     'id' => 'custom_payment_notice',
                     'type' => 'info',
-                    'content' => 'You are making payment for your order (#' . $order->uuid . ').',
+                    'content' => sprintf(
+                        /* translators: %1$s: the order UUID. */
+                        __('You are making payment for your order (#%1$s).', 'fluent-cart'),
+                        $order->uuid
+                    ),
                 ]
             ]
         ];
@@ -230,11 +234,14 @@ class CustomCheckout
             }
 
             if ($itemManualDiscountTotal) {
-                $subtotal = Arr::get($orderItem, 'subtotal');
-                $manualDiscount = ($subtotal * $itemManualDiscountTotal) / $order->subtotal;
-                $couponDiscount = max(0, $orderItem->discount_total - $manualDiscount);
+                // Use the order item's own stored split rather than proportionally
+                // redistributing the order-level manual_discount_total — a manual
+                // discount concentrated on one item must stay on that item, or this
+                // reconstruction both keeps it there AND leaves a duplicate slice
+                // behind as "coupon_discount" on it.
+                $manualDiscount = max(0, (int) $orderItem->discount_total - (int) $orderItem->coupon_discount);
                 Arr::set($item, 'manual_discount', $manualDiscount);
-                Arr::set($item, 'coupon_discount', $couponDiscount);
+                Arr::set($item, 'coupon_discount', (int) $orderItem->coupon_discount);
             }
 
             $items[] = CartHelper::generateCartItemCustomItem($item, $orderItem->quantity);

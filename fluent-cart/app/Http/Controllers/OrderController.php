@@ -827,59 +827,100 @@ class OrderController extends Controller
 
     public function markAsPaid(Request $request, Order $order)
     {
-        $dueAmount = intval($order->total_amount - $order->total_paid);
+        $db = Order::query()->getConnection();
+        $db->beginTransaction();
 
-        if ($dueAmount <= 0) {
-            return $this->sendError([
-                'message' => __('Order has already been paid', 'fluent-cart')
-            ], 423);
+        try {
+            $locked = Order::query()
+                ->where('id', $order->id)
+                ->lockForUpdate()
+                ->first();
+
+            if (!$locked) {
+                $db->rollBack();
+                return $this->sendError([
+                    'message' => __('Order not found', 'fluent-cart')
+                ], 404);
+            }
+
+            $dueAmount = intval($locked->total_amount - $locked->total_paid);
+
+            if ($dueAmount <= 0) {
+                $db->rollBack();
+                return $this->sendError([
+                    'message' => __('Order has already been paid', 'fluent-cart')
+                ], 423);
+            }
+
+            if ($locked->status === Status::ORDER_CANCELED) {
+                $db->rollBack();
+                return $this->sendError([
+                    'message' => __('Unable to mark paid for canceled order', 'fluent-cart')
+                ], 423);
+            }
+
+            // Reuse an existing pending transaction without vendor_charge_id instead of
+            // creating a new one. Queried fresh (not via the route-bound relation) so it
+            // reflects the state under the lock.
+            $transaction = OrderTransaction::query()
+                ->where('order_id', $locked->id)
+                ->where('status', Status::TRANSACTION_PENDING)
+                ->where(function ($query) {
+                    $query->whereNull('vendor_charge_id')
+                        ->orWhere('vendor_charge_id', '');
+                })
+                ->orderBy('id', 'asc')
+                ->lockForUpdate()
+                ->first();
+
+            $newTransactionData = [
+                'total'               => $dueAmount,
+                'status'              => Status::TRANSACTION_SUCCEEDED,
+                'payment_method'      => sanitize_text_field($request->payment_method),
+                'vendor_charge_id'    => sanitize_text_field($request->vendor_charge_id),
+                'payment_mode'        => sanitize_text_field($locked->mode),
+                'payment_method_type' => sanitize_text_field($request->payment_method),
+                'order_type'          => sanitize_text_field($locked->type),
+                'currency'            => sanitize_text_field($locked->currency),
+            ];
+
+            if ($transaction) {
+                // Don't include transaction_type in the update — the existing value is always 'charge'
+                // and overwriting it with the request value would break syncSubscriptionStates bill_count.
+                $transaction->update($newTransactionData);
+            } else {
+                $transaction = OrderTransaction::query()->create(
+                    array_merge($newTransactionData, [
+                        'order_id'         => $locked->id,
+                        'transaction_type' => Status::TRANSACTION_TYPE_CHARGE,
+                    ])
+                );
+            }
+
+            // Persist the settled balance while the row lock is held so the next request
+            // to acquire it computes due = 0. payment_status is deliberately left alone:
+            // syncOrderStatuses() owns the atomic pending → paid claim that dispatches
+            // OrderPaid exactly once, and it runs after commit so third-party hook
+            // callbacks (emails, integrations, subscription activation) never execute
+            // while the order row is locked.
+            $locked->total_paid = (int) OrderTransaction::query()
+                ->where('order_id', $locked->id)
+                ->whereIn('status', Status::getTransactionSuccessStatuses())
+                ->sum('total');
+
+            $note = sanitize_text_field($request->get('mark_paid_note', ''));
+            if ($note) {
+                $locked->note = $note;
+            }
+            $locked->save();
+
+            $db->commit();
+        } catch (\Throwable $e) {
+            $db->rollBack();
+            throw $e;
         }
 
-        if (Arr::get($order, 'status') === 'canceled') {
-            return $this->sendError([
-                'message' => __('Unable to mark paid for canceled order', 'fluent-cart')
-            ], 423);
-        }
-
-        // Reuse existing pending transaction without vendor_charge_id instead of creating a new one
-        $transaction = $order->transactions
-            ->where('status', Status::TRANSACTION_PENDING)
-            ->filter(function ($t) {
-                return empty($t->vendor_charge_id);
-            })
-            ->first();
-
-        $newTransactionData = [
-            'total'               => $dueAmount,
-            'status'              => Status::TRANSACTION_SUCCEEDED,
-            'payment_method'      => sanitize_text_field($request->payment_method),
-            'vendor_charge_id'    => sanitize_text_field($request->vendor_charge_id),
-            'payment_mode'        => sanitize_text_field($order->mode),
-            'payment_method_type' => sanitize_text_field($request->payment_method),
-            'order_type'          => sanitize_text_field($order->type),
-            'currency'            => sanitize_text_field($order->currency),
-        ];
-
-        if ($transaction) {
-            // Don't include transaction_type in the update — the existing value is always 'charge'
-            // and overwriting it with the request value would break syncSubscriptionStates bill_count.
-            $transaction->update($newTransactionData);
-        } else {
-            $transaction = OrderTransaction::query()->create(
-                array_merge($newTransactionData, [
-                    'order_id'         => $order->id,
-                    'transaction_type' => Status::TRANSACTION_TYPE_CHARGE,
-                ])
-            );
-        }
-
-        $note = sanitize_text_field($request->get('mark_paid_note', ''));
-        if ($note) {
-            $order->note = $note;
-            $order->save();
-        }
-
-        (new StatusHelper($order))->syncOrderStatuses($transaction);
+        (new StatusHelper($locked))->syncOrderStatuses($transaction);
 
         return $this->response->sendSuccess([
             'message' => __('Order has been marked as paid', 'fluent-cart')
@@ -1051,8 +1092,23 @@ class OrderController extends Controller
             ]);
         }
 
+        // Money already counted into the order cannot be changed from a dropdown; returning
+        // it is a refund, which records a refund transaction through the refund action (FC-SEC-09).
+        if ($transaction->status === Status::TRANSACTION_SUCCEEDED) {
+            return $this->sendError([
+                'message' => __('A succeeded transaction cannot be changed here. Use the refund action to return the payment.', 'fluent-cart')
+            ], 422);
+        }
+
         $transaction->updateStatus($newStatus);
-        $order->updatePaymentStatus($newStatus);
+
+        if ($newStatus === Status::TRANSACTION_SUCCEEDED) {
+            // 'succeeded' is a transaction word, not an order payment status: derive the
+            // order's paid state and total_paid from its transactions, as mark-as-paid does.
+            (new StatusHelper($order))->syncOrderStatuses($transaction);
+        } else {
+            $order->updatePaymentStatus($newStatus);
+        }
 
         return [
             'transaction' => $transaction,

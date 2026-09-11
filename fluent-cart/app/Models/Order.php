@@ -773,7 +773,16 @@ class Order extends Model
 
     public function getBusinessInfoAttribute(): array
     {
-        return $this->getBusinessInfo();
+        $businessInfo = $this->getBusinessInfo();
+
+        // Only meaningful for a MoR reverse-charge order (no orderTaxRate row) — omit
+        // for every normal order instead of appending a redundant duplicate of total_paid.
+        $morVatRemoved = $this->getMoRVatRemovedAmount();
+        if ($morVatRemoved > 0) {
+            $businessInfo['net_total_paid'] = $this->netAmount((int) $this->total_paid);
+        }
+
+        return $businessInfo;
     }
 
     public function getIsReverseChargeTaxOrderAttribute(): bool
@@ -815,6 +824,38 @@ class Order extends Model
         return $this->transactions()->where('status', Status::TRANSACTION_SUCCEEDED)->sum('total');
     }
 
+    /**
+     * Amount of VAT removed by a merchant-of-record gateway (e.g. Paddle) for a
+     * reverse-charge order that never ran the tax module (no `fct_order_tax_rate` row).
+     * Display-only — `total_amount`/`total_paid`/`txn.total` stay gross for such orders
+     * (cover invariant: the "fully paid" equality that drives due-amount checks, digital
+     * auto-complete, and dunning reminders depends on it), so this is never subtracted
+     * into the ledger, only into `getDisplayTotalPaid()` for the admin UI. Zero for
+     * core-handled reverse charge (tax-rate row present) — those are already net at
+     * creation time.
+     */
+    public function getMoRVatRemovedAmount(): int
+    {
+        if ($this->getPrimaryOrderTaxRate()) {
+            return 0;
+        }
+
+        return (int) Arr::get($this->getBusinessInfo(), 'mor_vat_removed', 0);
+    }
+
+    /**
+     * Nets a raw gross ledger figure (total_paid, a live paid-total sum, a refund amount)
+     * by the MoR VAT removal — see getMoRVatRemovedAmount(). Single formula for every
+     * "what did we actually collect/need to refund" comparison, so callers never
+     * reimplement the subtraction themselves. Never use for due-amount, digital
+     * auto-complete, or reminder logic; those must keep comparing the gross ledger
+     * columns (total_amount vs total_paid) so the "fully paid" equality still holds.
+     */
+    public function netAmount(int $amount): int
+    {
+        return max(0, $amount - $this->getMoRVatRemovedAmount());
+    }
+
     public function getTotalRefundAmount()
     {
         return $this->transactions()->where('status', Status::TRANSACTION_REFUNDED)->sum('total');
@@ -827,7 +868,11 @@ class Order extends Model
 
         $this->total_refund = $totalRefunded;
 
-        if (floatval($totalRefunded) >= floatval($totalPaid)) {
+        // Net out MoR VAT removal so a full refund of the actually captured amount
+        // resolves to "fully refunded" — see netAmount().
+        $netTotalPaid = $this->netAmount($totalPaid);
+
+        if (floatval($totalRefunded) >= floatval($netTotalPaid)) {
             $this->payment_status = Status::PAYMENT_REFUNDED;
         } elseif ($totalPaid > $totalRefunded) {
             $this->payment_status = Status::PAYMENT_PARTIALLY_REFUNDED;
@@ -843,6 +888,10 @@ class Order extends Model
         $paymentStatus = $type == 'full' ? Status::PAYMENT_REFUNDED : Status::PAYMENT_PARTIALLY_REFUNDED;
         $this->total_refund += $refundedAmount;
         $this->payment_status = $paymentStatus;
+
+        if ($paymentStatus === Status::PAYMENT_REFUNDED && !$this->refunded_at) {
+            $this->refunded_at = DateTime::gmtNow();
+        }
 
         $this->save();
 

@@ -412,6 +412,10 @@ class Cart extends Model
             return $this->removeItem($variation->id, Arr::get($config, 'remove_args', []), true);
         }
 
+        if (!$variation->product) {
+            return new \WP_Error('product_not_found', __('This product is no longer available.', 'fluent-cart'));
+        }
+
         $validate = Arr::get($config, 'will_validate', false);
 
         $replacingIndex = null;

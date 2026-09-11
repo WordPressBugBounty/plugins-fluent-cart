@@ -68,8 +68,16 @@ abstract class AbstractPaymentGateway implements PaymentGatewayInterface
             $meta['logo'] = $gatewaySettings['checkout_logo'];
         }
 
-        if (isset($gatewaySettings['checkout_instructions']) && !empty($gatewaySettings['checkout_instructions'])) {
-            $meta['instructions'] = $gatewaySettings['checkout_instructions'];
+        if (!empty($gatewaySettings['checkout_instructions'])) {
+            $instructionsText = trim(wp_strip_all_tags(html_entity_decode($gatewaySettings['checkout_instructions'], ENT_QUOTES)));
+            // Nbsp survives strip_tags/html_entity_decode as a literal
+            // non-breaking space, so a rich-text editor can save "<p>&nbsp;</p>"
+            // and still look non-empty to a bare !empty() check.
+            $instructionsText = str_replace("\xC2\xA0", '', $instructionsText);
+
+            if (trim($instructionsText) !== '') {
+                $meta['instructions'] = $gatewaySettings['checkout_instructions'];
+            }
         }
 
         if ($key !== '') {

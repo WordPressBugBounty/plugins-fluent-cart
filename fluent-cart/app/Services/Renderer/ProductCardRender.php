@@ -295,38 +295,34 @@ class ProductCardRender
                 role="region"
                 aria-label="<?php echo esc_attr__('Product pricing', 'fluent-cart'); ?>">
             <?php if ($comparePrice): ?>
-                <span class="fct-compare-price" aria-label="<?php echo esc_attr(sprintf(
-                /* translators: %s: product price */
-                        __('Original price: %s', 'fluent-cart'), $formattedComparePrice)); ?>">
-                    <del aria-hidden="true"><?php echo esc_html($formattedComparePrice); ?></del>
+                <span class="fct-compare-price">
+                    <span class="fct-sr-only"><?php echo esc_html__('Original price:', 'fluent-cart'); ?></span>
+                    <del><?php echo esc_html($formattedComparePrice); ?></del>
                 </span>
             <?php endif; ?>
 
             <?php if (!$comparePrice && $maxPrice && $maxPrice > $minPrice): ?>
                 <!-- Case 2: price range -->
                 <?php if ($priceFormat === 'range'): ?>
-                    <span class="fct-item-price" aria-label="<?php echo esc_attr(sprintf(
-                    /* translators: %1$s: min price, %2$s: max price */
-                            __('Price range from %1$s to %2$s', 'fluent-cart'), $formattedMinPrice, $formattedMaxPrice)); ?>">
-                        <span aria-hidden="true"><?php echo esc_html($formattedMinPrice); ?> - <?php echo esc_html($formattedMaxPrice); ?></span>
+                    <span class="fct-item-price">
+                        <span class="fct-sr-only"><?php echo esc_html__('Price range:', 'fluent-cart'); ?></span>
+                        <?php echo esc_html($formattedMinPrice); ?>
+                        <span aria-hidden="true">-</span>
+                        <span class="fct-sr-only"><?php echo esc_html__('to', 'fluent-cart'); ?></span>
+                        <?php echo esc_html($formattedMaxPrice); ?>
                     </span>
                 <?php else: ?>
-                    <span class="fct-item-price" aria-label="<?php echo esc_attr(sprintf(
-                    /* translators: %s: min price */
-                            __('Starting from %s', 'fluent-cart'), $formattedMinPrice)); ?>">
-                        <span aria-hidden="true"><?php
+                    <span class="fct-item-price"><?php
                             /* translators: %s is the minimum price */
                             printf(esc_html__('From %s', 'fluent-cart'), esc_html($formattedMinPrice));
                             ?></span>
-                    </span>
                 <?php endif; ?>
 
             <?php else: ?>
                 <!-- Case 3: Simple or single price -->
-                <span class="fct-item-price" aria-label="<?php echo esc_attr(sprintf(
-                /* translators: %s: product price */
-                        __('Price: %s', 'fluent-cart'), $formattedMinPrice)); ?>">
-                    <span aria-hidden="true"><?php echo esc_html($formattedMinPrice); ?></span>
+                <span class="fct-item-price">
+                    <span class="fct-sr-only"><?php echo esc_html__('Price:', 'fluent-cart'); ?></span>
+                    <?php echo esc_html($formattedMinPrice); ?>
                 </span>
             <?php endif; ?>
 

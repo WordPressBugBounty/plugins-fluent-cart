@@ -211,10 +211,13 @@ class ProductResource extends BaseResourceApi
 
                 $variantData = $variant;
 
-                // Remove empty sku and shipping_class to prevent unique constraint violation
-                if (array_key_exists('sku', $variantData) && empty($variantData['sku'])) {
-                    unset($variantData['sku']);
+                // An explicitly cleared sku ('' or null) must persist as NULL so the
+                // stored value is actually cleared, while still avoiding the sku_unique
+                // constraint (MySQL treats multiple NULLs as distinct, unlike '').
+                if (array_key_exists('sku', $variantData) && ($variantData['sku'] === '' || $variantData['sku'] === null)) {
+                    $variantData['sku'] = null;
                 }
+                // Remove empty shipping_class to prevent unique constraint violation
                 if (array_key_exists('shipping_class', $variantData) && empty($variantData['shipping_class'])) {
                     unset($variantData['shipping_class']);
                 }
@@ -258,7 +261,25 @@ class ProductResource extends BaseResourceApi
                         }
                     }
                     unset($variant['rowId']);
-                    $variant['serial_index'] = $index + 1;
+
+                    // serial_index is display ordering the caller owns, not a column derived
+                    // from this loop. An advanced-variation save carries only the rows the
+                    // merchant actually touched, so deriving it from the payload index
+                    // renumbered an edited row to the front and left two variations sharing a
+                    // position. The reorder path sends an explicit serial_index for every row
+                    // and bulk edit round-trips the stored one, so an absent value means
+                    // "unchanged": drop the column and let batchUpdate's `ELSE serial_index`
+                    // keep what is stored.
+                    if (!isset($variant['serial_index']) || $variant['serial_index'] === '') {
+                        unset($variant['serial_index']);
+                    }
+
+                    // An explicitly cleared sku ('' or null) must persist as NULL so the
+                    // stored value is actually cleared, while still avoiding the sku_unique
+                    // constraint (MySQL treats multiple NULLs as distinct, unlike '').
+                    if (array_key_exists('sku', $variant) && ($variant['sku'] === '' || $variant['sku'] === null)) {
+                        $variant['sku'] = null;
+                    }
 
                     // Recalculate stock_status from available and manage_stock
                     if (isset($variant['manage_stock'])) {
@@ -308,8 +329,11 @@ class ProductResource extends BaseResourceApi
 
         }
 
-        $defaultVariationId = Arr::get($detail, 'default_variation_id');
-        $detail['default_variation_id'] = $defaultVariationId;
+        // Deliberately NOT defaulted here. $detail is a partial row — the editor
+        // stages only what the merchant touched — so materialising this key as null
+        // told ProductDetailResource::update() to clear the stored Default Variant
+        // on every unrelated save (an inline price edit was enough). Absent now
+        // means "unchanged"; an explicit empty value still clears it.
 
         // Recalculate min_price / max_price from current variant prices
         $variantPriceRange = ProductVariation::query()

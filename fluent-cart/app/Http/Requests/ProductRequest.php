@@ -4,6 +4,7 @@ namespace FluentCart\App\Http\Requests;
 
 use FluentCart\App\Models\ShippingClass;
 use FluentCart\App\Services\DateTime\DateTime;
+use FluentCart\App\Http\Rules\RequiredWhenRule;
 use FluentCart\Framework\Foundation\RequestGuard;
 use FluentCart\Framework\Support\Arr;
 
@@ -276,11 +277,41 @@ class ProductRequest extends RequestGuard
                 'variants.*.other_info.payment_type'     => 'required|sanitizeText|in:onetime,subscription',
                 'variants.*.other_info.times'            => 'nullable|sanitizeText|maxLength:50',
                 'variants.*.other_info.trial_days'       => 'nullable|sanitizeText|maxLength:365',
-                'variants.*.other_info.repeat_interval'  => 'required_if:variants.*.other_info.payment_type,subscription|sanitizeText|maxLength:100',
+                'variants.*.other_info.repeat_interval'  => [
+                    RequiredWhenRule::make(
+                        'variants.*.other_info.payment_type',
+                        'subscription',
+                        esc_html__('Interval is required.', 'fluent-cart')
+                    ),
+                    'sanitizeText',
+                    'maxLength:100',
+                ],
                 'variants.*.other_info.billing_summary'  => 'nullable|sanitizeTextArea|maxLength:255',
-                'variants.*.other_info.manage_setup_fee' => 'required_if:variants.*.other_info.payment_type,subscription|sanitizeText|maxLength:100',
-                'variants.*.other_info.signup_fee'       => 'required_if:variants.*.other_info.manage_setup_fee,yes',
-                'variants.*.other_info.signup_fee_name'  => 'required_if:variants.*.other_info.manage_setup_fee,yes|sanitizeText|maxLength:100',
+                'variants.*.other_info.manage_setup_fee' => [
+                    RequiredWhenRule::make(
+                        'variants.*.other_info.payment_type',
+                        'subscription',
+                        esc_html__('Setup Fee option is required.', 'fluent-cart')
+                    ),
+                    'sanitizeText',
+                    'maxLength:100',
+                ],
+                'variants.*.other_info.signup_fee'       => [
+                    RequiredWhenRule::make(
+                        'variants.*.other_info.manage_setup_fee',
+                        'yes',
+                        esc_html__('Setup Fee Amount is required.', 'fluent-cart')
+                    ),
+                ],
+                'variants.*.other_info.signup_fee_name'  => [
+                    RequiredWhenRule::make(
+                        'variants.*.other_info.manage_setup_fee',
+                        'yes',
+                        esc_html__('Setup Fee Name is required.', 'fluent-cart')
+                    ),
+                    'sanitizeText',
+                    'maxLength:100',
+                ],
             ];
             $rules = array_merge($rules, $variantsOtherInfoRules);
 
@@ -341,9 +372,6 @@ class ProductRequest extends RequestGuard
                 'variants.*.other_info.description.max'             => esc_html__('Description may not be greater than 255 characters.', 'fluent-cart'),
                 'variants.*.other_info.payment_type.required'       => esc_html__('Payment Type is required.', 'fluent-cart'),
                 'variants.*.other_info.times.required_if'           => esc_html__('Times is required.', 'fluent-cart'),
-                'variants.*.other_info.repeat_interval.required_if' => esc_html__('Interval is required.', 'fluent-cart'),
-                'variants.*.other_info.signup_fee.required_if'      => esc_html__('Setup Fee Amount is required.', 'fluent-cart'),
-                'variants.*.other_info.signup_fee_name.required_if' => esc_html__('Setup Fee Name is required.', 'fluent-cart'),
             ];
 
             $messages = array_merge($messages, $otherInfoMessages);

@@ -26,10 +26,10 @@ class ProductShortDescription extends Element
         $this->controls['queryType'] = [
             'tab'      => 'content',
             'type'     => 'select',
-            'label'    => esc_html__('Query Type', 'fluent-cart-bricks-blocks'),
+            'label'    => esc_html__('Query Type', 'fluent-cart'),
             'options'  => [
-                'default' => esc_html__('Default', 'fluent-cart-bricks-blocks'),
-                'custom'  => esc_html__('Custom', 'fluent-cart-bricks-blocks'),
+                'default' => esc_html__('Default', 'fluent-cart'),
+                'custom'  => esc_html__('Custom', 'fluent-cart'),
             ],
             'default'  => 'default',
             'inline'   => true,
@@ -38,9 +38,9 @@ class ProductShortDescription extends Element
         $this->controls['productId'] = [
             'tab'         => 'content',
             'type'        => 'select',
-            'label'       => esc_html__('Product', 'fluent-cart-bricks-blocks'),
+            'label'       => esc_html__('Product', 'fluent-cart'),
             'options'     => BricksLoader::getProductOptions(),
-            'placeholder' => esc_html__('Select a product', 'fluent-cart-bricks-blocks'),
+            'placeholder' => esc_html__('Select a product', 'fluent-cart'),
             'searchable'  => true,
             'rerender'    => true,
             'required'    => ['queryType', '=', 'custom'],
@@ -49,8 +49,8 @@ class ProductShortDescription extends Element
         $this->controls['manualProductId'] = [
             'tab'         => 'content',
             'type'        => 'text',
-            'label'       => esc_html__('Manual Product ID', 'fluent-cart-bricks-blocks'),
-            'description' => esc_html__('Use this if the product is not available in dropdown.', 'fluent-cart-bricks-blocks'),
+            'label'       => esc_html__('Manual Product ID', 'fluent-cart'),
+            'description' => esc_html__('Use this if the product is not available in dropdown.', 'fluent-cart'),
             'required'    => [['queryType', '=', 'custom'], ['productId', '=', '']],
         ];
 
@@ -83,7 +83,7 @@ class ProductShortDescription extends Element
             return $this->render_element_placeholder([
                 'title' => esc_html__(
                     'Select a product',
-                    'fluent-cart-bricks-blocks'
+                    'fluent-cart'
                 ),
             ]);
         }
@@ -92,7 +92,7 @@ class ProductShortDescription extends Element
             return $this->render_element_placeholder([
                 'title' => esc_html__(
                     'No excerpt found.',
-                    'fluent-cart-bricks-blocks'
+                    'fluent-cart'
                 ),
             ]);
         }

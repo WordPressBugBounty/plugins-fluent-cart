@@ -1104,6 +1104,28 @@ class CheckoutProcessor
             + $estimatedShippingTax;
 
         $orderData['total_amount'] = $totalAmount > 0 ? $totalAmount : 0;
+
+        /**
+         * Filter the prepared order data before it is used for order creation.
+         *
+         * This runs after FluentCart calculates totals, so plugins can adjust
+         * currency, rate, totals, config, mode, or any other order field before
+         * the order model, transaction, and subscription are derived from it.
+         *
+         * @param array $orderData Prepared order data array.
+         * @param array $context {
+         *     Additional context for the filter.
+         *
+         *     @type array $items Formatted order items with prices and quantities.
+         *     @type array $args  Checkout arguments: customer data, payment method,
+         *                        shipping, tax, coupons, fees, and IP data.
+         * }
+         */
+        $orderData = apply_filters('fluent_cart/checkout/order_data', $orderData, [
+            'items' => $this->formattedIOrderItems,
+            'args'  => $this->args,
+        ]);
+
         $this->orderData = $orderData;
     }
 

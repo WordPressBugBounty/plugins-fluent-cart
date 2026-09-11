@@ -9,6 +9,7 @@ use FluentCart\App\Models\Order;
 use FluentCart\App\Models\OrderItem;
 use FluentCart\App\Models\ProductVariation;
 use FluentCart\App\Models\Subscription;
+use FluentCart\App\Services\Payments\PaymentHelper;
 use FluentCart\Framework\Support\Arr;
 
 class PlanUpgradeService
@@ -248,18 +249,13 @@ class PlanUpgradeService
 
         $daysRemaining = ceil((strtotime($subscription->next_billing_date) - time()) / 86400); // convert seconds to days
 
-        $maps = [
-            'monthly' => (int) gmdate('t'), // Get exact days in current month (handles leap year) to avoid false remaining days calculation
-            'yearly'  => 365,
-            'weekly'  => 7,
-            'daily'   => 1,
-        ];
+        $divider = PaymentHelper::getIntervalDays($subscription->billing_interval);
 
-        if (!isset($maps[$subscription->billing_interval])) {
-            return 0; // Invalid repeat interval
+        // 0 = interval neither core nor filter-resolved; no credit rather than the
+        // full paid amount the days-remaining cap would otherwise allow.
+        if ($divider < 1) {
+            return 0;
         }
-
-        $divider = $maps[$subscription->billing_interval];
 
         if ($daysRemaining > $divider) { // making sure we are not giving discount more than the actual amount
             $daysRemaining = $divider;

@@ -84,7 +84,7 @@ class Request
 
     /**
      * WP_REST_Request instance
-     * @var \WP_REST_Request
+     * @var \WP_REST_Request|false
      */
     protected $wpRestRequest = false;
 
@@ -106,8 +106,8 @@ class Request
     /**
      * Construct the request instance
      * @param \FluentCart\Framework\Foundation\Application $app
-     * @param $_GET $get
-     * @param $_POST $post
+     * @param array $get
+     * @param array $post
      */
     public function __construct(Application $app, $get, $post)
     {

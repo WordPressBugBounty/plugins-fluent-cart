@@ -240,6 +240,29 @@ class CustomerOrderController extends BaseFrontendController
             $productIds[] = $item->post_id;
         }
 
+        $upgradableVariationIds = [];
+        $isUpgradeEligibleOrder = in_array($order->payment_status, [
+            Status::PAYMENT_PAID,
+            Status::PAYMENT_PARTIALLY_PAID,
+            Status::PAYMENT_PARTIALLY_REFUNDED
+        ]);
+
+        if ($isUpgradeEligibleOrder && $variationIds) {
+            $upgradableVariationIds = Meta::query()
+                ->where('meta_key', 'variant_upgrade_path')
+                ->where('object_type', 'variant_upgrade')
+                ->whereIn('object_id', $variationIds)
+                ->pluck('object_id')
+                ->toArray();
+        }
+
+        foreach ($orderItems as &$orderItem) {
+            $orderItem['has_upgrade_paths'] = Arr::get($orderItem, 'payment_type') === 'onetime'
+                && !Arr::get($orderItem, 'line_meta.parent_item_id')
+                && in_array(Arr::get($orderItem, 'variation_id'), $upgradableVariationIds);
+        }
+        unset($orderItem);
+
         $formattedOrderData = [
             'fulfillment_type' => $order->fulfillment_type,
             'type'             => $order->type,

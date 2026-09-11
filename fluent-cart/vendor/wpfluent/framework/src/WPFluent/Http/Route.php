@@ -206,7 +206,6 @@ class Route
     /**
      * Map the route to be used in front-end.
      *
-     * @param mixed $handler
      * @return self
      */
     public function preparefrontendHandlers()
@@ -1550,8 +1549,8 @@ class Route
      */
     protected function isPolicyHandlerParseable($policyHandler)
     {
-        return (strpos($policyHandler, '@') === true
-            || strpos($policyHandler, '::') === true);
+        return (strpos($policyHandler, '@') !== false
+            || strpos($policyHandler, '::') !== false);
     }
 
     /**

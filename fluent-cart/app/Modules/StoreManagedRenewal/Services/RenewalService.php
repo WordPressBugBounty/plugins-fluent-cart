@@ -12,6 +12,7 @@ use FluentCart\App\Models\Subscription;
 use FluentCart\App\Services\Payments\SubscriptionHelper;
 use FluentCart\App\Modules\Subscriptions\Services\SubscriptionService;
 use FluentCart\App\Modules\Subscriptions\Services\SystemChargeService;
+use FluentCart\Api\StoreSettings;
 use FluentCart\Framework\Support\Arr;
 use WP_Error;
 
@@ -31,6 +32,15 @@ class RenewalService
 
         if (!$parentOrder) {
             return new WP_Error('parent_order_not_found', __('Parent order not found for this subscription.', 'fluent-cart'));
+        }
+
+        if (!SubscriptionHelper::canProcessInMode($parentOrder->mode)) {
+            return new WP_Error('store_mode_mismatch', sprintf(
+                /* translators: 1: the subscription's payment mode (live/test), 2: the store's current mode (live/test) */
+                __('Renewal skipped — this subscription is in %1$s mode but the store is currently in %2$s mode.', 'fluent-cart'),
+                $parentOrder->mode,
+                (new StoreSettings())->get('order_mode')
+            ));
         }
 
         // Get original order item — use eager-loaded collection if available, otherwise query
@@ -350,8 +360,17 @@ class RenewalService
             return $results;
         }
 
-        $subscriptions = Subscription::query()
-            ->with(['order.order_items', 'product', 'variation'])
+        $query = Subscription::query()
+            ->with(['order.order_items', 'product', 'variation']);
+
+        if (SubscriptionHelper::isModeGuardEnabled()) {
+            $storeMode = (new StoreSettings())->get('order_mode');
+            $query->whereHas('order', function ($query) use ($storeMode) {
+                $query->where('mode', $storeMode);
+            });
+        }
+
+        $subscriptions = $query
             ->whereIn('collection_method', ['manual', 'system'])
             ->whereNotIn('status', [
                 Status::SUBSCRIPTION_COMPLETED,
@@ -580,8 +599,14 @@ class RenewalService
             return $results;
         }
 
-        $pendingInvoices = Order::query()
-            ->where('type', Status::ORDER_TYPE_RENEWAL)
+        $invoiceQuery = Order::query()
+            ->where('type', Status::ORDER_TYPE_RENEWAL);
+
+        if (SubscriptionHelper::isModeGuardEnabled()) {
+            $invoiceQuery->where('mode', (new StoreSettings())->get('order_mode'));
+        }
+
+        $pendingInvoices = $invoiceQuery
             ->whereIn('payment_status', [
                 Status::PAYMENT_PENDING,
                 Status::PAYMENT_SCHEDULED,
@@ -649,6 +674,17 @@ class RenewalService
 
                 // Past the per-interval grace period: past_due → expired
                 if ($invoiceAge >= $graceDays && $subscription->status === Status::SUBSCRIPTION_PAST_DUE ) {
+                    // CAS the past_due → expired write inside syncSubscriptionStates; if a
+                    // concurrent renewal payment reactivated the row, it returns null and we skip.
+                    $expired = SubscriptionService::syncSubscriptionStates($subscription, [
+                        'status'            => Status::SUBSCRIPTION_EXPIRED,
+                        'next_billing_date' => null,
+                    ], Status::SUBSCRIPTION_PAST_DUE);
+
+                    if (!$expired) {
+                        continue;
+                    }
+
                     $subscription->addLog(
                         'Subscription expired',
                         sprintf(
@@ -658,12 +694,6 @@ class RenewalService
                         ),
                         'error'
                     );
-
-                    // Go through syncSubscriptionStates so all lifecycle hooks fire consistently
-                    SubscriptionService::syncSubscriptionStates($subscription, [
-                        'status'            => Status::SUBSCRIPTION_EXPIRED,
-                        'next_billing_date' => null,
-                    ]);
 
                     $results['expired']++;
                     continue;

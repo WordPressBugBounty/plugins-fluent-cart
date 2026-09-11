@@ -69,6 +69,7 @@ return [
     'Copied!' => __('Copied!', 'fluent-cart'),
     'Copy' => __('Copy', 'fluent-cart'),
     'Copy Key' => __('Copy Key', 'fluent-cart'),
+    'Copy License Key' => __('Copy License Key', 'fluent-cart'),
     'Copy license key to clipboard' => __('Copy license key to clipboard', 'fluent-cart'),
     'Country is required.' => __('Country is required.', 'fluent-cart'),
     'Coupon Discount' => __('Coupon Discount', 'fluent-cart'),

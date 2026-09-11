@@ -2,16 +2,52 @@
 
 namespace FluentCart\App\Services\Payments;
 
+use FluentCart\Api\StoreSettings;
 use FluentCart\App\App;
 use FluentCart\App\Helpers\Helper;
 use FluentCart\App\Helpers\Status;
 use FluentCart\App\Models\Order;
+use FluentCart\App\Models\OrderTransaction;
 use FluentCart\App\Models\Subscription;
 use FluentCart\App\Services\DateTime\DateTime;
 use FluentCart\Framework\Support\Arr;
 
 class SubscriptionHelper
 {
+    /**
+     * When money actually moved for an order, not when the row was created.
+     * A pending/COD/bank-transfer order can sit for months before it is paid,
+     * so `created_at` is not a safe billing anchor. Prefers the latest succeeded
+     * charge's meta.settled_at (the gateway's own settlement time), falls back
+     * to that transaction's created_at, then the order's completed_at, and only
+     * falls back to order created_at when nothing else exists (e.g. a $0 order).
+     */
+    public static function resolvePaidAnchor(Order $order)
+    {
+        $lastCharge = OrderTransaction::query()
+            ->where('order_id', $order->id)
+            ->where('transaction_type', Status::TRANSACTION_TYPE_CHARGE)
+            ->where('status', Status::TRANSACTION_SUCCEEDED)
+            ->orderBy('id', 'DESC')
+            ->first();
+
+        if ($lastCharge) {
+            $settledAt = Arr::get($lastCharge->meta, 'settled_at');
+            if (!empty($settledAt)) {
+                return $settledAt;
+            }
+            if (!empty($lastCharge->created_at)) {
+                return $lastCharge->created_at;
+            }
+        }
+
+        if (!empty($order->completed_at)) {
+            return $order->completed_at;
+        }
+
+        return $order->created_at;
+    }
+
     /*
      * @param $subscriptionModel
      * @return string|null
@@ -43,7 +79,8 @@ class SubscriptionHelper
 
 
         if ($subscriptionModel->bill_count == 0) {
-            $baseDate = $subscriptionModel->created_at;
+            $parentOrder = $subscriptionModel->order;
+            $baseDate    = $parentOrder ? self::resolvePaidAnchor($parentOrder) : $subscriptionModel->created_at;
 
         } elseif (!empty($subscriptionModel->next_billing_date) && strtotime($subscriptionModel->next_billing_date) < time()) {
             $baseDate = $subscriptionModel->next_billing_date;
@@ -153,6 +190,27 @@ class SubscriptionHelper
             return null;
         }
         return gmdate('Y-m-d H:i:s', $ts);
+    }
+
+    /**
+     * Whether renewal work is restricted to the store's current mode. On by
+     * default; a live store deliberately flipped to test mode can turn it off
+     * so live subscriptions keep billing. Fail-closed: only an explicit 'no'
+     * disables — a malformed value written past the request sanitizer must
+     * not silently drop staging protection.
+     */
+    public static function isModeGuardEnabled(): bool
+    {
+        return (new StoreSettings())->get('subscription_mode_guard', 'yes') !== 'no';
+    }
+
+    /**
+     * Whether renewal work (invoice creation, automatic charging) may run for
+     * an order of the given mode under the current store mode + guard setting.
+     */
+    public static function canProcessInMode(string $orderMode): bool
+    {
+        return !self::isModeGuardEnabled() || $orderMode === (new StoreSettings())->get('order_mode');
     }
 
     public static function getSubscriptionsGracePeriodDays()

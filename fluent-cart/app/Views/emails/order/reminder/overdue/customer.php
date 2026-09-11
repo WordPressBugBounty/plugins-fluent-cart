@@ -14,41 +14,17 @@ if (!$dueAmount) {
 }
 $paymentLink = \FluentCart\Framework\Support\Arr::get($reminder, 'payment_link', \FluentCart\App\Services\Payments\PaymentHelper::getCustomPaymentLink($order->uuid));
 $orderRef = \FluentCart\Framework\Support\Arr::get($reminder, 'order_ref', '');
-$stage    = \FluentCart\Framework\Support\Arr::get($reminder, 'stage', '');
 
 if (empty($orderRef)) {
     $orderRef = !empty($order->invoice_no) ? $order->invoice_no : '#' . $order->id;
 }
 
-$overdueDays = 0;
-if (preg_match('/^overdue_(\d+)$/', $stage, $m)) {
-    $overdueDays = (int)$m[1];
-}
-
-if ($overdueDays >= 7) {
-    $bodyText = sprintf(
-        /* translators: %1$s: invoice reference, %2$d: number of days overdue */
-        esc_html__('Your subscription invoice %1$s is now %2$d days overdue. If payment is not received soon, your subscription will be suspended.', 'fluent-cart'),
-        '<b>' . esc_html($orderRef) . '</b>',
-        $overdueDays
-    );
-    $ctaText = esc_html__('Your subscription is at risk. Please pay immediately to avoid suspension.', 'fluent-cart');
-} elseif ($overdueDays >= 3) {
-    $bodyText = sprintf(
-        /* translators: %1$s: invoice reference, %2$d: number of days overdue */
-        esc_html__('Your payment for invoice %1$s is %2$d days overdue. Please complete your payment as soon as possible to keep your subscription active.', 'fluent-cart'),
-        '<b>' . esc_html($orderRef) . '</b>',
-        $overdueDays
-    );
-    $ctaText = esc_html__('Please complete your payment to avoid any disruption to your subscription.', 'fluent-cart');
-} else {
-    $bodyText = sprintf(
-        /* translators: %1$s: invoice reference */
-        esc_html__('Just a nudge — your payment for invoice %1$s was due recently and is still pending. No worries, you can complete it now.', 'fluent-cart'),
-        '<b>' . esc_html($orderRef) . '</b>'
-    );
-    $ctaText = esc_html__('Complete your payment at your earliest convenience to keep your subscription running smoothly.', 'fluent-cart');
-}
+$bodyText = sprintf(
+    /* translators: %1$s: invoice reference */
+    esc_html__('This is a friendly reminder that your payment for invoice %1$s is still pending. You can complete it using the button below.', 'fluent-cart'),
+    '<b>' . esc_html($orderRef) . '</b>'
+);
+$ctaText = esc_html__('Complete your payment at your earliest convenience.', 'fluent-cart');
 ?>
 
 <div class="space_bottom_30">

@@ -570,10 +570,12 @@ class Blueprint
     {
         $tbl = Schema::table($this->table);
 
-        $rows = (array) Schema::db()->get_results("SHOW COLUMNS FROM {$tbl}");
+        // Fetch all columns and filter in PHP — the WP SQLite plugin
+        // ignores the WHERE clause on SHOW COLUMNS FROM.
+        $rows = Schema::db()->get_results("DESCRIBE {$tbl}");
 
         $row = null;
-        foreach ($rows as $r) {
+        foreach ((array) $rows as $r) {
             if ($r->Field === $column) {
                 $row = $r;
                 break;
@@ -594,7 +596,8 @@ class Blueprint
 
         if ($row->Default !== null) {
             $default = $row->Default;
-            // SQLite's SHOW COLUMNS returns defaults with surrounding quotes
+            // SQLite returns defaults with surrounding quotes — strip them
+            // before re-quoting to avoid double-quoting.
             if (Schema::isSqlite() && preg_match("/^'(.*)'$/s", $default, $m)) {
                 $default = $m[1];
             }

@@ -237,13 +237,22 @@ class DefaultPdfStructures
      */
     private static function itemsTable(): array
     {
+        // No inner content. The block is dynamic — it registers with
+        // `save: () => null` and renders through
+        // ReceiptItemTableBlockEditor::render(), which ignores $content and emits
+        // its own {{order.pdf_items_table}} placeholder built from these
+        // attributes. Passing content here made blocksToContent() serialise an
+        // open/close pair with `{{order.items_table}}` inside it, and the editor
+        // then failed to validate the saved markup against a save() that produces
+        // nothing. Every other receipt block already passes null and serialises
+        // self-closing.
         return self::block('fluent-cart/receipt-item-table', [
             'headerBg'    => self::WHITE,
             'headerColor' => self::TEXT,
             'bodyColor'   => self::TEXT,
             'borderColor' => self::BORDER,
             'fontSize'    => 11,
-        ], '{{order.items_table}}');
+        ]);
     }
 
     /**

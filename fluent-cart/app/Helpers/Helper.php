@@ -12,6 +12,7 @@ use FluentCart\App\Models\Customer;
 use FluentCart\App\Models\ProductVariation;
 use FluentCart\App\Models\User;
 use FluentCart\App\Services\DateTime\DateTime;
+use FluentCart\App\Services\Payments\PaymentHelper;
 use FluentCart\App\Services\Localization\LocalizationManager;
 use FluentCart\App\Services\Translations\TransStrings;
 use FluentCart\App\Services\URL;
@@ -1924,24 +1925,7 @@ class Helper
 
     public static function subscriptionIntervalInDays($interval)
     {
-        switch ($interval) {
-            case 'daily':
-                return 1;
-            case 'weekly':
-                return 7;
-            case 'monthly':
-                return 30;
-            case 'quarterly':
-                return 90;
-            case 'half_yearly':
-                return 182;
-            case 'yearly':
-                return 365;
-            default:
-                return apply_filters('fluent_cart/subscription_interval_in_days', 0, [
-                    'interval' => $interval,
-                ]);
-        }
+        return PaymentHelper::getIntervalDays($interval);
     }
 
     public static function parseTermIdsForFilter($filters): array
@@ -1998,10 +1982,10 @@ class Helper
         $allChildVariants = Arr::pluck($variants, 'other_info.bundle_child_ids');
 
         $allChildVariants = array_unique(Arr::flatten($allChildVariants));
-        $allChildVariants = Arr::except(
+        $allChildVariants = array_values(array_diff(
             $allChildVariants,
             Arr::pluck($variants, 'id')
-        );
+        ));
         $allChildVariants = array_filter($allChildVariants);
         $childVariants = ProductVariation::query()
             ->whereIn('id', $allChildVariants)

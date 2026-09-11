@@ -20,6 +20,7 @@ use FluentCart\App\Models\AttributeTerm;
 use FluentCart\App\Models\AttributeGroup;
 use FluentCart\App\Models\ShippingMethod;
 use FluentCart\App\Modules\Tax\TaxModule;
+use FluentCart\App\Modules\FluentPlayer\FluentPlayerBridge;
 use FluentCart\App\Helpers\CurrenciesHelper;
 use FluentCart\App\Services\Filter\TaxFilter;
 use FluentCart\App\Services\Filter\OrderFilter;
@@ -524,6 +525,7 @@ class MenuHandler
         $appConfig['permissions'] = PermissionManager::getUserPermissions();
         $appConfig['isProActive'] = App::isProActive();
         $appConfig['proVersion'] = defined('FLUENTCART_PRO_PLUGIN_VERSION') ? FLUENTCART_PRO_PLUGIN_VERSION : null;
+        $appConfig['fluentPlayer'] = FluentPlayerBridge::adminAppConfig();
 
         $appConfig['logos'] = [
             'dark'  => Vite::getAssetUrl('images/logo/logo-full-dark.svg'),

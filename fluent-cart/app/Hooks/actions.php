@@ -37,6 +37,8 @@ add_action('init', function () {
 // Turnstile Module Init
 (new \FluentCart\App\Modules\Turnstile\TurnstileInit())->register(\FluentCart\App\App::getInstance());
 
+(new \FluentCart\App\Modules\FluentPlayer\FluentPlayerAdminAssets())->register();
+
 // Register Pro Gateways Promo
 (new \FluentCart\App\Hooks\Handlers\PromoGatewaysHandler())->register();
 
@@ -75,6 +77,7 @@ add_action('init', function () {
 \FluentCart\App\Hooks\Handlers\BlockEditors\Buttons\AddToCartButtonBlockEditor::register();
 
 \FluentCart\App\Hooks\Handlers\BlockEditors\MiniCartBlockEditor::register();
+\FluentCart\App\Hooks\Handlers\BlockEditors\Cart\CartBlockEditor::register();
 \FluentCart\App\Hooks\Handlers\BlockEditors\ProductCategoriesListBlockEditor::register();
 \FluentCart\App\Hooks\Handlers\BlockEditors\RelatedProduct\RelatedProductBlockEditor::register();
 \FluentCart\App\Hooks\Handlers\ShortCodes\Buttons\DirectCheckoutShortcode::register();

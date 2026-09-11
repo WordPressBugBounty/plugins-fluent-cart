@@ -21,7 +21,10 @@ class PaymentHelper
 
     public function listenerUrl($args = [])
     {
-        $listener = '/?fct_payment_listener=1&method=' . $this->slug;
+        // Must match the WebRoutes dispatch contract: it reads $_REQUEST['fluent-cart']
+        // as the routed page and fires do_action('fluent_cart_action_' . $page), and
+        // GlobalPaymentHandler listens on 'fluent_cart_action_fct_payment_listener_ipn'.
+        $listener = '/?fluent-cart=fct_payment_listener_ipn&method=' . $this->slug;
         $data = ['listener_url' => site_url($listener)];
 
         return apply_filters('fluent_cart/ipn_url_' . $this->slug, $data);
@@ -263,25 +266,35 @@ class PaymentHelper
     }
 
 
+    /**
+     * Days in one billing cycle. Returns 0 when the interval cannot be resolved —
+     * neither a core interval nor one a fluent_cart/subscription_interval_in_days
+     * callback resolved to a positive day count. Callers must treat < 1 as
+     * unresolvable, never as a one-day cycle.
+     */
     public static function getIntervalDays($interval = ''): int
     {
         if ($interval === 'yearly') {
             $days = 365;
         } elseif ($interval === 'monthly') {
-            $days = 30;
+            $days = (int) gmdate('t'); // exact days in current month (handles leap year) to avoid false remaining days calculation
         } elseif ($interval === 'weekly') {
             $days = 7;
         } elseif ($interval === 'quarterly') {
             $days = 90;
         } elseif ($interval === 'half_yearly') {
             $days = 182;
+        } elseif ($interval === 'daily') {
+            $days = 1;
         } else {
-            $days =  1;
+            $days = 0;
         }
 
-        return apply_filters('fluent_cart/subscription_interval_in_days', $days, [
+        $days = (int) apply_filters('fluent_cart/subscription_interval_in_days', $days, [
             'interval' => $interval
         ]);
+
+        return $days > 0 ? $days : 0;
     }
 
 }

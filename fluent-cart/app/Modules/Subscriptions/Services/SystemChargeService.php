@@ -8,6 +8,7 @@ use FluentCart\App\Models\Order;
 use FluentCart\App\Models\OrderTransaction;
 use FluentCart\App\Modules\PaymentMethods\Core\AbstractPaymentGateway;
 use FluentCart\App\Services\Payments\PaymentInstance;
+use FluentCart\Api\StoreSettings;
 use FluentCart\App\Services\Payments\SubscriptionHelper;
 use FluentCart\Framework\Support\Arr;
 
@@ -341,6 +342,15 @@ class SystemChargeService
             return new \WP_Error('system_billing_disabled', __('Automatic charging is disabled.', 'fluent-cart'));
         }
 
+        if (!SubscriptionHelper::canProcessInMode($invoice->mode)) {
+            return new \WP_Error('store_mode_mismatch', sprintf(
+                /* translators: 1: the invoice's payment mode (live/test), 2: the store's current mode (live/test) */
+                __('This invoice is in %1$s mode but the store is currently in %2$s mode. Switch the store mode to charge it.', 'fluent-cart'),
+                $invoice->mode,
+                (new StoreSettings())->get('order_mode')
+            ));
+        }
+
         if ($invoice->type !== Status::ORDER_TYPE_RENEWAL
             || !in_array($invoice->payment_status, [Status::PAYMENT_PENDING, Status::PAYMENT_SCHEDULED], true)
         ) {
@@ -482,6 +492,7 @@ class SystemChargeService
             return;
         }
 
+        /** @var Order|null $order */
         $order = Order::query()->find($orderId);
 
         if (!$order || $order->type !== Status::ORDER_TYPE_RENEWAL) {
@@ -515,6 +526,33 @@ class SystemChargeService
             );
             return;
         }
+
+        // Invoice mode vs store mode at fire time — a store flipped to test (or a
+        // clone left in test mode) must not charge a live invoice. Hold, don't
+        // fail: re-arm a daily re-check so the charge fires once modes match
+        // again (or the subscription_mode_guard setting is turned off).
+        if (!SubscriptionHelper::canProcessInMode($order->mode)) {
+            if (function_exists('as_schedule_single_action')) {
+                // No as_next_scheduled_action() dedup needed here (unlike
+                // scheduleCharge): the firing action is already consumed, so
+                // this is the only pending copy.
+                as_schedule_single_action(time() + DAY_IN_SECONDS, self::HOOK, [$order->id, $attempt], self::SCHEDULER_GROUP);
+            }
+
+            // Log the transition into held once, not on every daily re-check —
+            // a long-lived clone would otherwise grow fct_activity unbounded.
+            if (!$order->getMeta('mode_guard_hold_logged')) {
+                $order->updateMeta('mode_guard_hold_logged', 'yes');
+                $subscription->addLog(
+                    'Automatic charge held',
+                    sprintf('Scheduled charge for renewal order #%s held — the invoice is in %s mode but the store is in %s mode. Will re-check daily.', $order->invoice_no ?: $order->id, $order->mode, (new StoreSettings())->get('order_mode')),
+                    'warning'
+                );
+            }
+            return;
+        }
+
+        $order->deleteMeta('mode_guard_hold_logged');
 
         // Capability re-check at fire time: the gateway may have been deactivated
         // or removed since the subscription was created.
@@ -627,6 +665,21 @@ class SystemChargeService
         $chargeState = $subscription->getMeta('system_charge_state', []) ?: [];
 
         if (Arr::get($chargeState, 'status') !== 'processing' || (int) Arr::get($chargeState, 'order_id') !== (int) $order->id) {
+            return;
+        }
+
+        // Invoice mode vs store mode — same clone risk as the billing pause
+        // above: retrieving a live PaymentIntent from a test-mode clone would
+        // settle the copied order and fire renewal-paid side effects. Re-arm
+        // (budget untouched) so reconciliation resumes once modes match.
+        if (!SubscriptionHelper::canProcessInMode($order->mode)) {
+            if (function_exists('as_schedule_single_action')
+                && function_exists('as_next_scheduled_action')
+                && !as_next_scheduled_action(self::RECONCILE_HOOK, [(int) $orderId], self::SCHEDULER_GROUP)
+            ) {
+                as_schedule_single_action(time() + self::RECONCILE_INTERVAL, self::RECONCILE_HOOK, [(int) $orderId], self::SCHEDULER_GROUP);
+            }
+
             return;
         }
 

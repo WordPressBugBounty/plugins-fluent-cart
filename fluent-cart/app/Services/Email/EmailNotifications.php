@@ -59,7 +59,10 @@ class EmailNotifications
          * Order Shipping Status Changed => fluent_cart/shipping_status_changed (customer + admin)
          * Reminder Events:
          * - fluent_cart/renewal_reminder_due
-         * - fluent_cart/renewal_reminder_overdue
+         * - fluent_cart/renewal_reminder_overdue (manual/on-demand payment reminder)
+         * - fluent_cart/renewal_overdue_first (scheduled, first overdue stage)
+         * - fluent_cart/renewal_overdue_followup (scheduled, intermediate overdue stages)
+         * - fluent_cart/renewal_overdue_final (scheduled, last overdue stage)
          * - fluent_cart/subscription_renewal_reminder
          * - fluent_cart/subscription_trial_end_reminder
          */
@@ -543,6 +546,57 @@ class EmailNotifications
                 'settings'         => [
                     'active'          => 'yes',
                     'subject'         => __('Upcoming Renewal Reminder from {{settings.store_name}}', 'fluent-cart'),
+                    'is_default_body' => 'yes',
+                    'email_body'      => '',
+                ]
+            ],
+            'renewal_overdue_first_customer' => [
+                'event'            => 'renewal_overdue_first',
+                'group'            => 'scheduler',
+                'group_label'      => __('Scheduler / Reminder Actions', 'fluent-cart'),
+                'title'            => __('First overdue renewal reminder to customer', 'fluent-cart'),
+                'description'      => __('This email will be sent at the first overdue reminder day after a renewal due date while the payment is still pending.', 'fluent-cart'),
+                'recipient'        => 'customer',
+                'smartcode_groups' => [],
+                'template_path'    => 'order.reminder.renewal_overdue.first.customer',
+                'is_async'         => false,
+                'settings'         => [
+                    'active'          => 'yes',
+                    'subject'         => __('Payment Reminder for Renewal #{{order.order_ref}}', 'fluent-cart'),
+                    'is_default_body' => 'yes',
+                    'email_body'      => '',
+                ]
+            ],
+            'renewal_overdue_followup_customer' => [
+                'event'            => 'renewal_overdue_followup',
+                'group'            => 'scheduler',
+                'group_label'      => __('Scheduler / Reminder Actions', 'fluent-cart'),
+                'title'            => __('Follow-up overdue renewal reminder to customer', 'fluent-cart'),
+                'description'      => __('This email will be sent at the intermediate overdue reminder days while the renewal payment remains pending.', 'fluent-cart'),
+                'recipient'        => 'customer',
+                'smartcode_groups' => [],
+                'template_path'    => 'order.reminder.renewal_overdue.followup.customer',
+                'is_async'         => false,
+                'settings'         => [
+                    'active'          => 'yes',
+                    'subject'         => __('Payment Overdue for Renewal #{{order.order_ref}}', 'fluent-cart'),
+                    'is_default_body' => 'yes',
+                    'email_body'      => '',
+                ]
+            ],
+            'renewal_overdue_final_customer' => [
+                'event'            => 'renewal_overdue_final',
+                'group'            => 'scheduler',
+                'group_label'      => __('Scheduler / Reminder Actions', 'fluent-cart'),
+                'title'            => __('Final overdue renewal notice to customer', 'fluent-cart'),
+                'description'      => __('This email will be sent at the last configured overdue reminder day while the renewal payment is still pending.', 'fluent-cart'),
+                'recipient'        => 'customer',
+                'smartcode_groups' => [],
+                'template_path'    => 'order.reminder.renewal_overdue.final.customer',
+                'is_async'         => false,
+                'settings'         => [
+                    'active'          => 'yes',
+                    'subject'         => __('Final Notice: Payment Overdue for Renewal #{{order.order_ref}}', 'fluent-cart'),
                     'is_default_body' => 'yes',
                     'email_body'      => '',
                 ]

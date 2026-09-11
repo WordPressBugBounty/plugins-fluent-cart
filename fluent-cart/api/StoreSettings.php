@@ -100,6 +100,7 @@ class StoreSettings implements ArrayableInterface
             'show_relevant_product_in_single_page' => 'yes',
             'show_relevant_product_in_modal'       => '',
             'order_mode'                           => 'test',
+            'subscription_mode_guard'              => 'yes',
             'variation_view'                       => 'both',
             'variation_columns'                    => 'masonry',
             'enable_early_payment_for_installment' => 'yes',
@@ -1312,6 +1313,48 @@ class StoreSettings implements ArrayableInterface
                                             'subscription_manual_fallback' => [
                                                 'type'  => 'hidden',
                                                 'value' => 'no',
+                                            ],
+                                        ]
+                                    ]
+                                ]
+                            ],
+                            'subscription_mode_guard_grid' => [
+                                'type'            => 'grid',
+                                'wrapperClass'    => 'items-start mt-6',
+                                'columns'         => [
+                                    'default' => 1,
+                                    'md'      => 3
+                                ],
+                                'disable_nesting' => true,
+                                'schema'          => [
+                                    'label'  => [
+                                        'type'  => 'html',
+                                        'value' => sprintf(
+                                        /* translators: 1: setting label, 2: setting description */
+                                            '<span class="setting-label">%1$s</span>
+                                                            <div class="form-note">%2$s</div>',
+                                            __('Staging Protection', 'fluent-cart'),
+                                            __('Prevent staging or test copies of your store from billing real customers.', 'fluent-cart')
+                                        )
+                                    ],
+                                    'fields' => [
+                                        'type'            => 'grid',
+                                        'columns'         => [
+                                            'default' => 1,
+                                            'md'      => 1
+                                        ],
+                                        'disable_nesting' => true,
+                                        'class'           => 'col-span-2',
+                                        'schema'          => [
+                                            'subscription_mode_guard' => [
+                                                'label' => __('Don\'t bill live subscriptions from this site while it is in test mode', 'fluent-cart'),
+                                                'type'  => 'checkbox',
+                                                'value' => 'yes',
+                                                'note'  => sprintf(
+                                                    /* translators: 1: the setting's explanatory note text */
+                                                    "<div class='pl-6'>%1\$s</div>",
+                                                    __('In test mode, this site won\'t invoice, charge, or email live subscriptions — so a staging copy can never double-bill customers. Billing from this site resumes when it is live again.', 'fluent-cart')
+                                                )
                                             ],
                                         ]
                                     ]

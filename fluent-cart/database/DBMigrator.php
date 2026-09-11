@@ -178,6 +178,9 @@ class DBMigrator
             // 2026-07-24
             OrdersMigrator::addUuidIndex();
 
+            // 2026-08-20
+            ProductMetaMigrator::addObjectMetaIndex();
+
             // let's check the orders table sequence number
             global $wpdb;
 

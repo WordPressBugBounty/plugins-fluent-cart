@@ -18,7 +18,7 @@ class OrderTransactionsMigrator extends Migrator
             `order_type` VARCHAR(100) NOT NULL DEFAULT '',
             `transaction_type` varchar(192) DEFAULT 'charge',
             `subscription_id` int(11) NULL,
-            `card_last_4` int(4),
+            `card_last_4` VARCHAR(4) NULL,
             `card_brand` varchar(100),
             `vendor_charge_id` VARCHAR(192) NOT NULL DEFAULT '',
             `payment_method` VARCHAR(100) NOT NULL DEFAULT '',
@@ -52,5 +52,10 @@ class OrderTransactionsMigrator extends Migrator
         // subscription_id (SubscriptionController, customer portal) — without
         // this, every detail view scans the transactions table.
         static::addIndexIfNotExists(static::getDbPrefix() . 'fct_ot__subscription_id_idx', 'subscription_id');
+
+        // card_last_4 was int(4), which silently strips a leading zero
+        // (e.g. "0042" -> 42) on write. Widen to VARCHAR so gateway-provided
+        // last-4 strings survive intact. modifyColumnIfExists is idempotent.
+        static::modifyColumnIfExists('card_last_4', 'VARCHAR(4) NULL');
     }
 }

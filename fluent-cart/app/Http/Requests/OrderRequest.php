@@ -4,6 +4,7 @@ namespace FluentCart\App\Http\Requests;
 
 use FluentCart\App\Helpers\Helper;
 use FluentCart\Framework\Foundation\RequestGuard;
+use FluentCart\Framework\Support\Arr;
 
 class OrderRequest extends RequestGuard
 {
@@ -87,26 +88,55 @@ class OrderRequest extends RequestGuard
             'tax_lines.*.label'      => 'nullable|sanitizeText',
             'tax_lines.*.is_compound'=> 'nullable',
 
-            'applied_coupon'                       => 'nullable|array',
-            "applied_coupon.*.id"                  => 'nullable|numeric|min:1',
-            "applied_coupon.*.order_id"            => 'nullable|numeric|min:1',
-            "applied_coupon.*.coupon_id"           => 'required|numeric|min:1',
-            //"applied_coupon.*.title"               => 'required|string|max:100',
-            "applied_coupon.*.code"                => 'required|sanitizeText|maxLength:100',
-            //"applied_coupon.*.status"              => 'required|string|max:100',
-            //"applied_coupon.*.type"                => 'required|string|max:100',
-            "applied_coupon.*.amount"              => 'nullable|numeric',
-            "applied_coupon.*.discounted_amount"   => 'required|numeric',
-            "applied_coupon.*.discount"            => 'nullable|numeric',
-            "applied_coupon.*.stackable"           => 'required|numeric',
-            "applied_coupon.*.priority"            => 'nullable|numeric',
-            "applied_coupon.*.max_uses"            => 'nullable|numeric',
-            "applied_coupon.*.use_count"           => 'nullable|numeric',
-            "applied_coupon.*.max_per_customer"    => 'nullable|numeric|min:1',
-            "applied_coupon.*.min_purchase_amount" => 'nullable|numeric',
-            "applied_coupon.*.max_discount_amount" => 'nullable|numeric',
-            "applied_coupon.*.notes"               => 'nullable|sanitizeTextArea|maxLength:100',
-            'trigger'                              => 'nullable|string',
+            // `applied_coupon` is the admin order screen handing back, untouched, what
+            // POST coupons/apply returned: a map KEYED BY COUPON CODE whose rows are
+            // CouponServiceAdmin discount data (see ensureCouponExistInDiscountData()),
+            // NOT fct_applied_coupons rows. AdminOrderProcessor::insertAppliedCoupons()
+            // reads the code keys plus `id` and `discount` and builds its insert rows
+            // from the Coupon model, so those two are the whole load-bearing contract;
+            // everything else in the map is display metadata.
+            //
+            // The previous rules described fct_applied_coupons columns (coupon_id, code,
+            // discounted_amount, stackable) that no caller has ever sent. They were inert
+            // while the validator skipped absent wildcard children, and became a hard
+            // 422 on every coupon order once it started materializing them.
+            //
+            // The per-row closure is the backstop, not decoration: whether the wildcard
+            // rules below can fire at all depends on the validator materializing absent
+            // children, so on its own `applied_coupon.*.id => required` is silently
+            // unenforced on older framework builds. insertAppliedCoupons() subscripts
+            // ['id'] unguarded, so an entry without one writes a null coupon_id.
+            'applied_coupon'                    => ['nullable', 'array', function ($attribute, $value) {
+                if (!is_array($value)) {
+                    return null; // the `array` rule already reports this
+                }
+
+                foreach ($value as $code => $row) {
+                    $couponId = is_array($row) ? Arr::get($row, 'id') : null;
+
+                    if (!is_numeric($couponId) || (int) $couponId < 1) {
+                        return sprintf(
+                            /* translators: %1$s: the coupon code the admin applied to the order. */
+                            __('The applied coupon "%1$s" is missing its coupon id.', 'fluent-cart'),
+                            sanitize_text_field((string) $code)
+                        );
+                    }
+                }
+
+                return null;
+            }],
+            "applied_coupon.*.id"               => 'required|numeric|min:1',
+            // Bounded for the same reason as shipping_total above: sanitize() routes this
+            // through Helper::roundCent(), which throws outside float's exact-integer
+            // range, and a negative coupon discount has no meaning.
+            "applied_coupon.*.discount"         => 'required|numeric|min:0|max:9000000000000000',
+            "applied_coupon.*.title"            => 'nullable|sanitizeText|maxLength:192',
+            "applied_coupon.*.type"             => 'nullable|sanitizeText|maxLength:100',
+            "applied_coupon.*.amount"           => 'nullable|numeric',
+            "applied_coupon.*.actual_amount"    => 'nullable|numeric',
+            "applied_coupon.*.unit_amount"      => 'nullable|numeric',
+            "applied_coupon.*.actual_quantity"  => 'nullable|numeric',
+            'trigger'                           => 'nullable|string',
         ];
     }
 
@@ -217,25 +247,21 @@ class OrderRequest extends RequestGuard
                 return (bool) $value;
             },
 
-            "applied_coupon.*.id"                  => 'intval',
-            "applied_coupon.*.order_id"            => 'intval',
-            "applied_coupon.*.coupon_id"           => 'intval',
-            "applied_coupon.*.title"               => 'sanitize_text_field',
-            "applied_coupon.*.discount"            => 'intval',
-            "applied_coupon.*.code"                => 'sanitize_text_field',
-            "applied_coupon.*.status"              => 'sanitize_text_field',
-            "applied_coupon.*.type"                => 'sanitize_text_field',
-            "applied_coupon.*.amount"              => 'intval',
-            "applied_coupon.*.discounted_amount"   => 'intval',
-            "applied_coupon.*.stackable"           => 'intval',
-            "applied_coupon.*.priority"            => 'intval',
-            "applied_coupon.*.max_uses"            => 'intval',
-            "applied_coupon.*.use_count"           => 'intval',
-            "applied_coupon.*.max_per_customer"    => 'intval',
-            "applied_coupon.*.min_purchase_amount" => 'intval',
-            "applied_coupon.*.max_discount_amount" => 'intval',
-            "applied_coupon.*.notes"               => 'sanitize_text_field',
-            'trigger'                              => 'sanitize_text_field',
+            // Mirrors rules(): the coupons/apply discount-data shape, keyed by coupon code.
+            "applied_coupon.*.id"               => 'intval',
+            // Already cents (CouponServiceAdmin rounds the distributed discount to two
+            // decimals in cents) — normalize the float artifact without scaling. A bare
+            // intval() here truncates, so a 9.99 discount would persist a cent short.
+            "applied_coupon.*.discount"         => function ($value) {
+                return Helper::roundCent($value);
+            },
+            "applied_coupon.*.title"            => 'sanitize_text_field',
+            "applied_coupon.*.type"             => 'sanitize_text_field',
+            "applied_coupon.*.amount"           => 'intval',
+            "applied_coupon.*.actual_amount"    => 'floatval',
+            "applied_coupon.*.unit_amount"      => 'intval',
+            "applied_coupon.*.actual_quantity"  => 'intval',
+            'trigger'                           => 'sanitize_text_field',
         ];
 
     }

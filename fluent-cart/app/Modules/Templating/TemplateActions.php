@@ -95,6 +95,22 @@ class TemplateActions
                 return __('Product not found', 'fluent-cart');
             }
 
+            // On the product page this shortcode is the block theme's
+            // equivalent of what filterSingleProductContent appends for
+            // classic themes, so it answers to the same setting and filter.
+            // Placed anywhere else it is an explicit choice and still renders.
+            if (is_singular(FluentProducts::CPT_NAME)) {
+                $showRelevant = (new StoreSettings())->get('show_relevant_product_in_single_page') == 'yes';
+                $showRelevant = apply_filters(
+                    'fluent_cart/single_product_page/show_relevant_products',
+                    $showRelevant,
+                    $productId
+                );
+
+                if (!$showRelevant) {
+                    return '';
+                }
+            }
 
             $products = ShopResource::getSimilarProducts($productId, false);
             if (empty($products)) {

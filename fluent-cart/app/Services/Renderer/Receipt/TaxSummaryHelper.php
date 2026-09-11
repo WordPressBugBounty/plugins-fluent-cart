@@ -175,6 +175,7 @@ class TaxSummaryHelper
         $reversedShippingTax = 0;
         $rcPriceMode          = '';
         $rcShippingAdjustment = 0;
+        $rcTotalAdjustment    = 0;
         $shippingNetStored    = false;
         if ($isReverseCharge) {
             $primaryRate = $order->orderTaxRates ? $order->orderTaxRates->first() : null;
@@ -184,6 +185,16 @@ class TaxSummaryHelper
                 $reversedShippingTax = (int) Arr::get($meta, 'reverse_charge_original_shipping_tax', 0);
                 $rcPriceMode         = (string) Arr::get($meta, 'reverse_charge_price_mode', 'fixed');
                 $shippingNetStored   = !empty($meta['shipping_net_stored']);
+            } else {
+                // No orderTaxRate row at all — a MoR gateway (Paddle, or any future one)
+                // applied the reverse charge and never ran the tax module, so there's no
+                // rate row to read. order.total_amount is still the gross catalog price
+                // (never lowered — see PaddleReconciler::coverReverseCharge), so the full
+                // removed VAT has to come from business_info instead of the shipping-only
+                // adjustment used for core-handled reverse charge orders below.
+                $businessInfo     = $order->getBusinessInfo();
+                $reversedTaxTotal = (int) Arr::get($businessInfo, 'mor_vat_removed', 0);
+                $rcTotalAdjustment = $reversedTaxTotal;
             }
             // Only apply the display adjustment for orders where shipping_total in DB is still gross.
             // New orders (shipping_net_stored = true) already have net shipping in DB — no adjustment.
@@ -214,7 +225,7 @@ class TaxSummaryHelper
             'reversedShippingTax'  => $reversedShippingTax,
             'rcPriceMode'          => $rcPriceMode,
             'rcShippingAdjustment' => $rcShippingAdjustment,
-            'rcTotalAdjustment'    => $rcShippingAdjustment,
+            'rcTotalAdjustment'    => $rcTotalAdjustment ?: $rcShippingAdjustment,
             'showRcShippingRow'    => $showRcShippingRow,
             // Under reverse charge the stored rate/shipping lines are zeroed, so the
             // per-rate rows are rebuilt from item-level line_meta instead. Empty rows

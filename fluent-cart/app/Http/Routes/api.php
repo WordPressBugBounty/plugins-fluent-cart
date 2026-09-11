@@ -554,7 +554,7 @@ $router->prefix('orders')->withPolicy('OrderPolicy')->group(function (Router $ro
     ]);
 
     $router->post('/do-bulk-action', [OrderController::class, 'handleBulkActions'])->meta([
-        'permissions' => 'orders/manage'
+        'permissions' => 'orders/delete' // every accepted action deletes orders — same gate as DELETE /{order_id}
     ]);
 
     $router->post('/{order}/mark-as-paid', [OrderController::class, 'markAsPaid'])->meta([
