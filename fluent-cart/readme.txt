@@ -4,7 +4,7 @@ Tags: ecommerce, cart, checkout, subscriptions, payments
 Requires at least: 6.7
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 1.6.4
+Stable tag: 1.6.5
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -312,6 +312,42 @@ This service is provided by PayPal: [Terms of Service](https://www.paypal.com/le
 
 
 == Changelog ==
+
+= 1.6.5 (Sep 24, 2026) =
+- Adds Appearance tab under Store Settings with FluentCart, theme-inherited, or custom color palettes.
+- Adds Theme-inherited palettes for block themes, Astra, Kadence, and GeneratePress.
+- Adds Storefront palette support for Stripe embedded payment forms.
+- Adds Editable hex color fields and live preview.
+- Adds Customer email verification and guest purchase recovery.
+- Adds Compliance setting for automatic login after account creation.
+- Adds Store-wide date, time, and timezone settings.
+- Adds Wildcard search guidance in admin.
+- Adds Feedback link and FluentCart version details in admin footer.
+- Adds First-cycle Paddle coupons as one-time discounts.
+- Adds Developer filter for order bumps on locked carts.
+- Improves Recurring coupon handling without simulated trials.
+- Improves Store Setup organization for date, time, and timezone.
+- Improves Admin subscription payment method display.
+- Improves Order bump styling with storefront colors.
+- Improves License lookup performance.
+- Improves Paddle subscription discount handling
+- Improves Multiple Authorize.Net, Paddle , Mollie payment, renewal, resync, card, and scheduling handling.
+- Improves PayPal connect authentication.
+- Fixes Guest orders incorrectly linking to existing accounts.
+- Fixes Customer email changes moving purchase history without verification.
+- Fixes Manual fixed discounts being stored one cent short.
+- Fixes Stripe embedded checkout errors and disabled button issues.
+- Fixes Stripe live/test mode lookup issues.
+- Fixes Duplicate gateway transactions on resubmitted checkouts.
+- Fixes Order note permissions for Manager and Super Admin roles.
+- Fixes Product bulk-action button state.
+- Fixes Custom palette button background and outline issues.
+- Fixes Empty product archive count display.
+- Fixes Product video gallery styling.
+- Fixes State and region translations.
+- Fixes Checkout page detection background errors.
+- Fixes PDF receipt tax badge rounding.
+- Fixes Order bump removal affecting booking items.
 
 = 1.6.4 (Sep 11, 2026) =
 - Adds FluentPlayer videos to product galleries with inline playback
@@ -826,4 +862,265 @@ Fixes Security issues with ongoing audits and platform hardening
 - Fixes Timezone issue for customer email
 - Fixes Modal checkout issue with billing field
 
-For full changelog please check at: <a href"https://docs.fluentcart.com/guide/changelog">https://docs.fluentcart.com/guide/changelog</a>
+
+= 1.3.14 (Mar 04, 2026) =
+- Adds Flutterwave for fluentCart
+- Adds Early Payment for installment
+- Adds Bulk product import
+- Adds Customizable product shortcodes
+- Adds Sale badge for guttenberg
+- Adds OutofStock badge guttenberg
+- Adds Product description guttenberg block
+- Adds Product imagae CDN support
+- Fixes Coupon per user limit issue
+- Fixes Modal checkout cart not found issue
+
+= 1.3.13 (Feb 26, 2026) =
+- Adds SKU Gutenberg block
+- Fixes SKU sanitization issue
+- Fixes Manual payment checkout instruction issue
+- Fixes Payment method settings customization issue
+- Fixes Zero decimal amount issue for Japanese currency
+
+= 1.3.12 (Feb 26, 2026) =
+- Fixes caching issue during new version upgrades
+
+= 1.3.11 (Feb 25, 2026) =
+- Adds GB Blocks: Related Products, Customer Dashboard Button, Store Logo
+- Adds Media Carousel Block
+- Adds Elementor Widgets: Checkout, Add to Cart, Buy Now Button, Mini Cart, Products, Product Carousel, Product Categories List
+- Adds Razorpay Subscription Supports
+- Adds Product SKU feature
+- Adds Customer LTV recalculation action
+- Adds Sync order statuses action
+- Adds Test Data Cleanup Tool
+- Adds First Name & Last Name Field Settings
+- Improvements Inventory Manager Free (Previously Pro)
+- Improvements New Settings UI
+- Fixes Gallery Image Overflow Issue
+- Fixes Subscription validity expire events issue
+- Fixes Minor issues
+- Schedule security audit for all modules
+
+= 1.3.10 (Feb 04, 2026) = 
+- Adds FSE Block Theme Support
+- Adds Blocks & shortcodes: Mini cart, Product Carousel, title, image
+- Adds Shortcode product categories
+- Improves Guttenberg Blocks into latest version (v3)
+- Fixes Missing tax breakdown on renewal email
+- Fixes Missing VAT info on renewal order
+- Fixes Dark-light theme conflict for addons promo
+- Fixes Modal checkout responsive issue
+
+= 1.3.9 (Jan 27, 2026) = 
+- Adds Mercado Pago gateway (one-time payments)
+- Adds Ghost product checkout
+- Adds Gutenberg block: Add to Cart
+- Adds Shortcode [fluent_cart_checkout_button]
+- Adds Shortcode [fluent_cart_add_to_cart_button]
+- Fixes IPN issues for some third-party gateways
+- Fixes Dashboard styling issues
+- Improves security
+
+= 1.3.8 (Jan 23, 2026) =
+- Adds Instant checkout feature
+- Adds Product Button block (Guttenberg)
+- Adds Product duplicate feature
+- Adds Copy variation ID option in variation context menu
+- Fixes S3 driver directory separator issue
+- Improves JS file size optimization
+
+= 1.3.7 (Jan 20, 2026) =
+- Adds Support for frontend templates
+- Adds Order UUID / hash filter
+- Adds Stripe metadata hook
+- Adds Hook for autocomplete digital orders (default enabled)
+- Fixes Hide consent section for stripe subscription
+- Fixes Security issue in license APIs
+- Fixes Product variation IDs not updating in DownloadFile
+- Fixes ShopApp block list view & pagination issue
+- Fixes Cart icon in body setting not working
+- Fixes GroupKey bug in reports
+- Fixes License rendering issue on customer profile
+- Fixes Checkout empty state issue
+- Fixes Address validation message and input label mismatch
+- Fixes Missing required symbol for “Full Name” in checkout
+- Improves Translation support for receipt page
+- Improves Frontend loader UI
+- Improves Cart item count sync between backend and UI badge
+- Improves Stripe subscription price update event handling
+- Improves Validation error handling and messaging
+- Improves Retention report components
+- Improves Checkout, product, and loader styles
+- Improves Checkout field defaults and labels
+- Improves Text change: “Half year” → “Six month”
+
+= 1.3.6 (Jan 08, 2026) =
+- Fixes FSE theme support
+- Fixes Checkout Agree Terms and Conditions issue
+- Fixes Product Min-Max pricing issue
+- Fixes Buy now section position issue
+- Fixes Shortcode issue in cart and checkout page
+- Fixes Subscription related order issue
+- Fixes Checkout page broken on Breakdance builder
+
+= 1.3.5 (Jan 06, 2026) =
+- hotfix: Cart Model caching issue fixed
+
+= 1.3.4 (Jan 06, 2026) =
+- Adds Bundle products
+- Adds Stripe hosted checkout
+- Adds Stripe appearance customizations support
+- Adds Razorpay payment gateway addon (onetime )
+- Adds 100% recurring discount
+- Adds Order reference to Stripe metadata
+- Adds New currency Ghanaian Cedi (GHS)
+- Adds Turnstile invisible captcha
+- Adds Email notification for offline payment
+- Adds Items information in stripe metadata
+- Adds WP user creation
+- Adds Subscription retention & Cohort report
+- Fixes Double confirmation email issue
+- Fixes Order bump with subscription products
+- Fixes NO_SHIPPING for paypal subscription issue
+- Fixes Amount precision issue for paypal
+- Fixes Update button issue for affiliate in coupon
+- Fixes Checkout missing company name store issue
+- Fixes Conflicts with Divi-5 Builder issue
+- Fixes Customer last purchase invalid date issue
+- Fix Downloads handling for object-based order
+- Fixes S3 empty file validation issue
+- Fixes downloadable file issue and empty file visibility
+- Fixes Get paypal plan api endpoints issue
+- Fixes Variation View Image & Text issue for Gutenberg
+- Enhanced Development hooks to customize checkout button text
+- Enhanced Translations for different modules
+- Enhanced More development related hooks and modules
+
+= 1.3.2 (Dec 02, 2025) =
+- Adds Private Product Status
+- Adds Authorize.net payment gateway
+- Adds Recurring discount coupon
+- Adds Checkout block
+- Adds Product variation customization hooks
+- Adds Thank You page payment instructions
+- Fixes handling of zero-decimal currency for Stripe
+- Fixes hookable customer profile menu & icon issue
+- Fixes coupon priority issue
+- Fixes coupon calculation issues
+- Fixes report card design issue
+- Fixes group key SQL security issue
+- Fixes EU VAT renderer issue on initial load
+- Fixes variation title not showing for bump product
+- Fixes wrong Stripe canceled_at date
+- Updates Reports graph design
+- Updates Gateway customization design
+- Updates Addon gateway management for future updates
+
+= 1.3.0 (Nov 19, 2025) =
+- Adds Paystack payment gateway
+- Adds Quarterly and Half-Yearly subscription billing intervals
+- Adds email-based restrictions for coupons
+- Adds REST API Documentation: https://dev.fluentcart.com/restapi/
+- Adds improved translation support for multiple languages
+- Adds new hooks and filters for developers
+- Improves reporting performance and data accuracy
+- Improves invoicing and tax handling
+- Improves multi-site support
+- Improves checkout page design and optimizes payment method re-rendering
+- Security: Performs a third-party paid security audit (Patchstack)
+- Fixes various bugs and overall improvements
+
+= 1.2.5 (Oct 29, 2025) =
+- Adds More currency formatting options
+- Adds Multiple tax rates on checkout
+- Adds Compound tax rates calculation
+- Adds Accessibility improvements
+- Adds Payment gateway reorder for checkout page
+- Adds EU tax home country override
+- Adds Date time and number translation
+- Adds UTM reports
+- Adds Accessibility on checkout
+- Adds Gateway logo and label customization
+- Adds Order_by filter to ShopAppBlock
+- Adds SortBy Filter to ShopAppBlock
+- Adds Product Price Block support to ProductInfoBlock
+- Adds Order_paid_done hook
+- Adds More context to fluent_cart/checkout/prepare_other_data hook
+- Adds Customization Hooks in Thank You page
+- Adds Customization Hooks in checkout page
+- Adds Button style support for ShopApp Block
+- Adds Link toggle and target option to Product Title Block
+- Adds Missing translation strings
+- Adds Mollie payment gateway
+- Fixes Missing currency sign for new currencies
+- Fixes Currency formatting issue for old thousand separator
+- Fixes Subscription details for pricing type simple
+- Fixes Setup fee displaying when disabled
+- Fixes Tax name for AU set as "ABN"
+- Fixes Buy now button style issue
+- Fixes Product Excerpt style not working
+- Fixes Inventory validation issue on default variation first load
+- Fixes Always showing 'in-stock' in ShopApp and Product Single
+- Fixes Quantity 10k leads to broken empty state
+- Fixes JS event not calling after removing the last item
+- Fixes Billing and Shipping address webhook issue
+- Fixes Payment validation error message not showing
+- Fixes Selected product not saving in ProductGallery and BuySection blocks
+- Fixes Broken product gallery block
+- Fixes Report colors issue for comparison
+- Fixes Report child page navigation
+- Fixes Loader not showing in product Modal
+- Fixes VAT not showing in receipt
+
+= 1.2.4 (Oct 22, 2025) =
+- Adds CSS variables on cart drawer/shop page
+- Adds Refactor class name on frontend page
+- Add Total on cart drawer
+- Adds Product name on admin create order items
+- Adds New hooks for single product and shop page products
+- Adds New hook (fluent_cart/hide_unnecessary_decimals)
+- Fixes Product comapre at price issue
+- Fixes Variation rearrange update issue
+- Fixes Console error and shipping method issue
+- Fixes Validation message issue when deleting an order
+- Fixes Static dollar sign appearing in price range
+- Fixes Free Shipping issue that destroyed cart
+- Fixes Undefined property issue on product page
+- Fixes Exception property issue
+- Fixes Remove force POST request validation for IPN
+- Fixes Translation strings issue for all modules
+- Fixes Payment method not showing issue on stripe
+
+= 1.2.2 (Oct 16, 2025) =
+- Adds: shipping zone for whole world
+- Adds: New currency support for BYN, IRR, MMK
+- Fix: Tax calculation issue based on store state settings
+- Fixed: Skip Inventory not working
+- Fixed: Issue with category parsing ‘&’
+- Fixed: Translation issue
+- Fixed: Item doesn’t get deleted from the cart
+- Fixed: Css loading issue for blocks in template editor
+- Fixed: Report page navigation issue.
+- Fixed: Single Product js issue
+- Added shipping status to order summary (Frontend Customer Portal)
+- Added Block icons and block preview
+- Fixed: add product selection modal on product card block editor instead of variation selection modal
+- Add: currency code and currency sign on pricing of product card
+- Add: add price format setting for product card block editor
+- Fixed: input rounded issue on store address which render under then country input
+- fixed: popover text breaking issue now it is word breaks
+- Add: clearable on tax and shipping class widget
+- Add: add pro notice on upgrade path
+- Fixed: color issue on ProductInventory pro icon
+
+
+= 1.2.1 (Oct 05, 2025) =
+- Added Custom Fields Plugins support for Products
+- Added Terms & Conditions checkbox in the checkout page as settings
+- Improved Reporting
+- Order Confirmation issue fixed
+- Fixed Custom Integration Renderer
+
+= 1.2.0 (Oct 14, 2025) =
+- Hello World!

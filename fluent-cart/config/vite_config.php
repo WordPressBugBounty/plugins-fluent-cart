@@ -170,6 +170,8 @@
         'imports' => [
             '_Arr.js',
             '_dayjs.min.js',
+            '_timezone.js',
+            '_weekOfYear.js',
             '_Translator.js'
         ]
     ],
@@ -335,7 +337,9 @@
             'resources/admin/Bits/Components/Icons/Package.vue',
             'resources/admin/Bits/Components/Icons/Page.vue',
             'resources/admin/Bits/Components/Icons/PaidOrdersIcon.vue',
+            'resources/admin/Bits/Components/Icons/PaintLine.vue',
             'resources/admin/Bits/Components/Icons/Palette.vue',
+            'resources/admin/Bits/Components/Icons/PaletteLine.vue',
             'resources/admin/Bits/Components/Icons/Party.vue',
             'resources/admin/Bits/Components/Icons/PaymentIcon.vue',
             'resources/admin/Bits/Components/Icons/Pending.vue',
@@ -664,6 +668,7 @@
             '_Translator.js',
             '_dayjs.min.js',
             '_timezone.js',
+            '_weekOfYear.js',
             '_CurrencyFormatter.js'
         ]
     ],
@@ -683,7 +688,10 @@
             '_Translator.js',
             '_Str.js',
             '_timezone.js',
+            '_weekOfYear.js',
             '_Arr.js',
+            '_Utils.js',
+            '_CurrencyFormatter.js',
             '_index.js'
         ]
     ],
@@ -742,7 +750,8 @@
             '_vue.esm-bundler.js',
             '_index.js',
             '_index4.js',
-            '_dayjs.min.js'
+            '_dayjs.min.js',
+            '_weekOfYear.js'
         ]
     ],
     '_index3.js' => [
@@ -826,6 +835,13 @@
         'file' => 'chunks/vue.esm-bundler.js',
         'name' => 'vue.esm-bundler'
     ],
+    '_weekOfYear.js' => [
+        'file' => 'chunks/weekOfYear.js',
+        'name' => 'weekOfYear',
+        'imports' => [
+            '_dayjs.min.js'
+        ]
+    ],
     'resources/addon-assets/addon-assets.js' => [
         'file' => 'addon-assets.js',
         'name' => 'addon-assets',
@@ -841,6 +857,9 @@
             '_dayjs.min.js',
             '_Str.js',
             '_timezone.js',
+            '_weekOfYear.js',
+            '_Utils.js',
+            '_CurrencyFormatter.js',
             '_index.js',
             '_IconButton.js',
             '_DynamicIcon.js',
@@ -941,6 +960,9 @@
             '_dayjs.min.js',
             '_Str.js',
             '_timezone.js',
+            '_weekOfYear.js',
+            '_Utils.js',
+            '_CurrencyFormatter.js',
             '_index.js',
             '_vue-router.js',
             '_Url.js',
@@ -949,8 +971,6 @@
             '__plugin-vue_export-helper.js',
             '_index3.js',
             '_IconButton.js',
-            '_Utils.js',
-            '_CurrencyFormatter.js',
             '_TransitionAccordion.js',
             '_Animation.js',
             '_Empty.js',
@@ -977,6 +997,9 @@
             '_dayjs.min.js',
             '_Str.js',
             '_timezone.js',
+            '_weekOfYear.js',
+            '_Utils.js',
+            '_CurrencyFormatter.js',
             '_index.js',
             '_Model.js',
             '_Rest.js',
@@ -988,8 +1011,6 @@
             '__plugin-vue_export-helper.js',
             '_index3.js',
             '_IconButton.js',
-            '_Utils.js',
-            '_CurrencyFormatter.js',
             '_TransitionAccordion.js'
         ]
     ],
@@ -1020,6 +1041,74 @@
             '_Animation.js',
             '__plugin-vue_export-helper.js',
             '_TransitionAccordion.js'
+        ]
+    ],
+    'resources/admin/Bits/Components/Form/Components/StoreSettings/AppearanceComponent.vue' => [
+        'file' => 'chunks/AppearanceComponent.js',
+        'name' => 'AppearanceComponent',
+        'src' => 'resources/admin/Bits/Components/Form/Components/StoreSettings/AppearanceComponent.vue',
+        'isDynamicEntry' => true,
+        'imports' => [
+            '_vue.esm-bundler.js',
+            'resources/admin/bootstrap/app.js',
+            '_DynamicIcon.js',
+            'resources/admin/Bits/Components/Form/Components/StoreSettings/AppearancePreview.vue',
+            '_Translator.js',
+            '_IconButton.js',
+            '_vue-router.js',
+            '_preload-helper.js',
+            '_Badge.js',
+            '_Model.js',
+            '_Rest.js',
+            '_common.js',
+            '_dayjs.min.js',
+            '_Str.js',
+            '_timezone.js',
+            '_weekOfYear.js',
+            '_Arr.js',
+            '_Utils.js',
+            '_CurrencyFormatter.js',
+            '_index.js',
+            '_Url.js',
+            '_Notify.js',
+            '__plugin-vue_export-helper.js',
+            '_index3.js',
+            '_TransitionAccordion.js',
+            '_Empty.js',
+            '_OrderCustomerInformation.js',
+            '_Animation.js',
+            '_CardBody.js',
+            '_UserCan.js',
+            '_Asset.js',
+            '_AddressComponent2.js',
+            '_NotFound.js',
+            '_productService.js',
+            '_Activity.js',
+            '_BundleProducts.js',
+            '_dateShortCuts.js',
+            '_index4.js',
+            '_countries.js',
+            '_index2.js',
+            '_AttrGroups.js',
+            '_DynamicTemplateParser.js',
+            '_ProductVariationSelector.js',
+            '_galleryTabs.js',
+            '_FileUploaderDialog.js',
+            'resources/admin/Bits/Components/Icons/Screenshot.vue',
+            '_useElementPlusComponents.js'
+        ]
+    ],
+    'resources/admin/Bits/Components/Form/Components/StoreSettings/AppearancePreview.vue' => [
+        'file' => 'chunks/AppearancePreview.js',
+        'name' => 'AppearancePreview',
+        'src' => 'resources/admin/Bits/Components/Form/Components/StoreSettings/AppearancePreview.vue',
+        'isDynamicEntry' => true,
+        'imports' => [
+            '_vue.esm-bundler.js',
+            '_DynamicIcon.js',
+            '_Translator.js',
+            '_preload-helper.js',
+            '_Arr.js'
         ]
     ],
     'resources/admin/Bits/Components/Form/Components/StoreSettings/CreatePageButton.vue' => [
@@ -1079,6 +1168,9 @@
             '_dayjs.min.js',
             '_Str.js',
             '_timezone.js',
+            '_weekOfYear.js',
+            '_Utils.js',
+            '_CurrencyFormatter.js',
             '_index.js',
             '_vue-router.js',
             '_Url.js',
@@ -1086,9 +1178,7 @@
             '_preload-helper.js',
             '__plugin-vue_export-helper.js',
             '_index3.js',
-            '_IconButton.js',
-            '_Utils.js',
-            '_CurrencyFormatter.js'
+            '_IconButton.js'
         ]
     ],
     'resources/admin/Bits/Components/Form/Components/TurnstileSettings.vue' => [
@@ -1107,6 +1197,9 @@
             '_dayjs.min.js',
             '_Str.js',
             '_timezone.js',
+            '_weekOfYear.js',
+            '_Utils.js',
+            '_CurrencyFormatter.js',
             '_index.js',
             '_vue-router.js',
             '_Url.js',
@@ -1116,8 +1209,6 @@
             '__plugin-vue_export-helper.js',
             '_index3.js',
             '_IconButton.js',
-            '_Utils.js',
-            '_CurrencyFormatter.js',
             '_TransitionAccordion.js'
         ]
     ],
@@ -2571,10 +2662,30 @@
             '__plugin-vue_export-helper.js'
         ]
     ],
+    'resources/admin/Bits/Components/Icons/PaintLine.vue' => [
+        'file' => 'chunks/PaintLine.js',
+        'name' => 'PaintLine',
+        'src' => 'resources/admin/Bits/Components/Icons/PaintLine.vue',
+        'isDynamicEntry' => true,
+        'imports' => [
+            '_vue.esm-bundler.js',
+            '__plugin-vue_export-helper.js'
+        ]
+    ],
     'resources/admin/Bits/Components/Icons/Palette.vue' => [
         'file' => 'chunks/Palette.js',
         'name' => 'Palette',
         'src' => 'resources/admin/Bits/Components/Icons/Palette.vue',
+        'isDynamicEntry' => true,
+        'imports' => [
+            '_vue.esm-bundler.js',
+            '__plugin-vue_export-helper.js'
+        ]
+    ],
+    'resources/admin/Bits/Components/Icons/PaletteLine.vue' => [
+        'file' => 'chunks/PaletteLine.js',
+        'name' => 'PaletteLine',
+        'src' => 'resources/admin/Bits/Components/Icons/PaletteLine.vue',
         'isDynamicEntry' => true,
         'imports' => [
             '_vue.esm-bundler.js',
@@ -3998,11 +4109,12 @@
             '_preload-helper.js',
             '_vue-router.js',
             '_dayjs.min.js',
+            '_timezone.js',
+            '_weekOfYear.js',
             '_Badge.js',
             '_Model.js',
             '_Url.js',
             '_Str.js',
-            '_timezone.js',
             '_Notify.js',
             '_index.js',
             '_index3.js',
@@ -4059,10 +4171,11 @@
             '_dayjs.min.js',
             '_Str.js',
             '_timezone.js',
-            '_Url.js',
-            '_index3.js',
+            '_weekOfYear.js',
             '_Utils.js',
             '_CurrencyFormatter.js',
+            '_Url.js',
+            '_index3.js',
             '_TransitionAccordion.js',
             '_preload-helper.js',
             '_Asset.js'
@@ -4089,7 +4202,10 @@
             '_UserCan.js',
             '_CardBody.js',
             '_Str.js',
+            '_dayjs.min.js',
+            '_Utils.js',
             '_Notify.js',
+            '_CurrencyFormatter.js',
             '_NotFound.js',
             '_Arr.js',
             '_common.js',
@@ -4097,19 +4213,17 @@
             '_Rest.js',
             '_vue-router.js',
             '_Url.js',
-            '_dayjs.min.js',
             '_timezone.js',
             '_index3.js',
             '_IconButton.js',
-            '_Utils.js',
-            '_CurrencyFormatter.js',
             '_TransitionAccordion.js',
             '_BundleProducts.js',
             '_preload-helper.js',
             '_Animation.js',
             '_Asset.js',
             '_AddressComponent2.js',
-            '_productService.js'
+            '_productService.js',
+            '_weekOfYear.js'
         ],
         'css' => [
             'assets/subscription.css'
@@ -4170,6 +4284,7 @@
             'resources/admin/Bits/Components/Icons/Screenshot.vue',
             '_useElementPlusComponents.js',
             '_AddressComponent2.js',
+            '_weekOfYear.js',
             '_index4.js'
         ],
         'dynamicImports' => [
@@ -4185,6 +4300,8 @@
             'resources/admin/Bits/Components/Form/Components/ModuleSettings.vue',
             'resources/admin/Bits/Components/Form/Components/PaymentView.vue',
             'resources/admin/Bits/Components/Form/Components/StoreSettings/AddressComponent.vue',
+            'resources/admin/Bits/Components/Form/Components/StoreSettings/AppearanceComponent.vue',
+            'resources/admin/Bits/Components/Form/Components/StoreSettings/AppearancePreview.vue',
             'resources/admin/Bits/Components/Form/Components/StoreSettings/CreatePageButton.vue',
             'resources/admin/Bits/Components/Form/Components/StoreSettings/PageSelector.vue',
             'resources/admin/Bits/Components/Form/Components/StoreSettings/SubscriptionModeManager.vue',
@@ -4216,6 +4333,7 @@
             '_index2.js',
             '_index4.js',
             '_dayjs.min.js',
+            '_weekOfYear.js',
             '_index3.js',
             '_Arr.js',
             '_DynamicIcon.js',
@@ -4224,6 +4342,7 @@
             '_Str.js',
             '_productService.js',
             '_CurrencyFormatter.js',
+            '_timezone.js',
             '_Model.js',
             '_Rest.js',
             '_Asset.js',
@@ -4249,6 +4368,7 @@
             '_index2.js',
             '_index4.js',
             '_dayjs.min.js',
+            '_weekOfYear.js',
             '_index3.js',
             '_Arr.js',
             '__plugin-vue_export-helper.js',
@@ -4274,6 +4394,7 @@
             '_index2.js',
             '_index4.js',
             '_dayjs.min.js',
+            '_weekOfYear.js',
             '_index3.js',
             '_DynamicIcon.js',
             '_preload-helper.js',
@@ -4282,6 +4403,7 @@
             '_productService.js',
             '_CurrencyFormatter.js',
             '_Arr.js',
+            '_timezone.js',
             '_Model.js',
             '_Rest.js',
             '_Asset.js',
@@ -4314,12 +4436,14 @@
             '_index2.js',
             '_index4.js',
             '_dayjs.min.js',
+            '_weekOfYear.js',
             '_index3.js',
             '_DynamicIcon.js',
             '_preload-helper.js',
             '_Str.js',
             '_productService.js',
             '_CurrencyFormatter.js',
+            '_timezone.js',
             '_Model.js',
             '_Asset.js',
             '_Url.js',
@@ -4346,6 +4470,7 @@
             '_index2.js',
             '_index4.js',
             '_dayjs.min.js',
+            '_weekOfYear.js',
             '_index3.js',
             '_Arr.js'
         ]
@@ -4364,6 +4489,7 @@
             '_index2.js',
             '_index4.js',
             '_dayjs.min.js',
+            '_weekOfYear.js',
             '_index3.js',
             '__plugin-vue_export-helper.js',
             '_Arr.js'
@@ -4406,6 +4532,9 @@
             '_dayjs.min.js',
             '_Str.js',
             '_timezone.js',
+            '_weekOfYear.js',
+            '_Utils.js',
+            '_CurrencyFormatter.js',
             '_index.js',
             '_Notify.js',
             '_DynamicIcon.js',
@@ -4441,8 +4570,10 @@
             '_Rest.js',
             '_IconButton.js',
             '_UserCan.js',
+            '_Utils.js',
             '_Str.js',
             '_Arr.js',
+            '_CurrencyFormatter.js',
             '_vue-router.js',
             '_Asset.js',
             '_Url.js',
@@ -4451,9 +4582,8 @@
             '_timezone.js',
             '_Notify.js',
             '_index3.js',
-            '_Utils.js',
-            '_CurrencyFormatter.js',
             '_TransitionAccordion.js',
+            '_weekOfYear.js',
             '_Animation.js',
             '_AddressComponent2.js',
             '_productService.js'
@@ -4490,6 +4620,7 @@
             '_timezone.js',
             '_index3.js',
             '_Utils.js',
+            '_weekOfYear.js',
             '_CurrencyFormatter.js',
             '_TransitionAccordion.js',
             '_preload-helper.js'
@@ -4625,6 +4756,7 @@
             '_vue.esm-bundler.js',
             '_dayjs.min.js',
             '_timezone.js',
+            '_weekOfYear.js',
             '_DynamicIcon.js',
             '_Str.js',
             '__plugin-vue_export-helper.js',
@@ -4645,6 +4777,8 @@
             '_index2.js',
             '_preload-helper.js',
             '_Arr.js',
+            '_Utils.js',
+            '_CurrencyFormatter.js',
             '_TransitionAccordion.js',
             '_index4.js'
         ],
@@ -4822,6 +4956,7 @@
             '_Arr.js',
             '_dayjs.min.js',
             '_timezone.js',
+            '_weekOfYear.js',
             '_CurrencyFormatter.js'
         ]
     ],
@@ -4901,11 +5036,12 @@
             '_dayjs.min.js',
             '_Str.js',
             '_timezone.js',
+            '_weekOfYear.js',
+            '_Utils.js',
             '_index.js',
             '_vue-router.js',
             '_Url.js',
             '_index3.js',
-            '_Utils.js',
             '_TransitionAccordion.js',
             '_preload-helper.js'
         ],
