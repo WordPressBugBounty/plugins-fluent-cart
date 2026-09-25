@@ -1,4 +1,4 @@
-import{y as H,j as st,a3 as it,a4 as ct,C as at,K as Ge,u as Q,a5 as lt,L as ut,l as T,Y as Ve,S as le,h as ft,v as ht,x as dt}from"./vue.esm-bundler.js?ver=1.6.5";/*!
+import{y as H,j as st,a3 as it,a4 as ct,C as at,K as Ge,u as Q,a5 as lt,L as ut,l as T,Y as Ve,S as le,h as ft,v as ht,x as dt}from"./vue.esm-bundler.js?ver=1.6.6";/*!
   * vue-router v4.5.1
   * (c) 2025 Eduardo San Martin Morote
   * @license MIT

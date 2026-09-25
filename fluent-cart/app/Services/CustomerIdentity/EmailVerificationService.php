@@ -18,7 +18,7 @@ class EmailVerificationService
 
     public static function capturePasswordResetProof($user): void
     {
-        unset(static::$passwordResetProof[$user->ID]);
+        unset(self::$passwordResetProof[$user->ID]);
         $cookie = Arr::get($_COOKIE, 'wp-resetpass-' . COOKIEHASH, '');
         $postedKey = Arr::get($_POST, 'rp_key', '');
         if (!is_string($cookie) || !is_string($postedKey) || !$postedKey) {
@@ -33,7 +33,7 @@ class EmailVerificationService
         if (is_wp_error($validated) || (int) $validated->ID !== (int) $user->ID) {
             return;
         }
-        static::$passwordResetProof[$user->ID] = [
+        self::$passwordResetProof[$user->ID] = [
             'email' => $validated->user_email,
             'password_hash' => $validated->user_pass,
         ];
@@ -41,8 +41,8 @@ class EmailVerificationService
 
     public static function verifyAfterPasswordReset($user): void
     {
-        $proof = static::$passwordResetProof[$user->ID] ?? null;
-        unset(static::$passwordResetProof[$user->ID]);
+        $proof = self::$passwordResetProof[$user->ID] ?? null;
+        unset(self::$passwordResetProof[$user->ID]);
         if (!$proof) {
             return;
         }

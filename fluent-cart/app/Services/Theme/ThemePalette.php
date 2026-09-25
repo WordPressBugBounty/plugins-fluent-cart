@@ -2,6 +2,12 @@
 
 namespace FluentCart\App\Services\Theme;
 
+use FluentCart\App\Services\Theme\Readers\AstraSettingsReader;
+use FluentCart\App\Services\Theme\Readers\BlocksySettingsReader;
+use FluentCart\App\Services\Theme\Readers\BricksSettingsReader;
+use FluentCart\App\Services\Theme\Readers\DiviSettingsReader;
+use FluentCart\App\Services\Theme\Readers\GeneratePressSettingsReader;
+use FluentCart\App\Services\Theme\Readers\KadenceSettingsReader;
 use FluentCart\Framework\Support\Arr;
 
 /**
@@ -23,7 +29,8 @@ class ThemePalette
      * These are the slugs themes agree on — `base`/`contrast` come from Twenty
      * Twenty-Four and the themes that copied it, `primary`/`accent` from the
      * classic-adjacent ones, and GeneratePress publishes the same names as
-     * references its own stylesheets resolve.
+     * references its own stylesheets resolve (measured through its Global
+     * Colors; see vendorValues()).
      *
      * Three vendors are supported by name — the ones popular enough to be worth
      * carrying, each mapping written down from the theme's own sources rather
@@ -82,6 +89,48 @@ class ThemePalette
     protected static $cachedVendorValues = null;
 
     /**
+     * Request-level cache for the roles the theme's own settings state.
+     *
+     * @var array|null
+     */
+    protected static $cachedSettingsRoles = null;
+
+    /**
+     * Theme settings readers, keyed by the theme name passed to the
+     * `fluent_cart/theme/settings_roles` filter. The first that applies wins.
+     *
+     * Only one theme runs on a site, so the order only matters when several
+     * vendors' functions are loaded at once (the test stubs). The stricter
+     * checks go first: Blocksy's and Kadence's each need a live instance from
+     * the vendor's API, Divi's needs the `$shortname` global to name Divi, and
+     * Bricks' needs its running `Bricks\Theme` singleton, and GeneratePress's
+     * needs its dynamic-CSS printer hooked on `wp_enqueue_scripts`, none of
+     * which a loaded-but-idle stub provides, while Astra's is a bare
+     * `function_exists()` that stays true once its stub is loaded — so Astra
+     * is asked last. Among the strict ones the order is arbitrary.
+     *
+     * @var array
+     */
+    protected static $settingsReaders = [
+        'blocksy'       => BlocksySettingsReader::class,
+        'kadence'       => KadenceSettingsReader::class,
+        'divi'          => DiviSettingsReader::class,
+        'bricks'        => BricksSettingsReader::class,
+        'generatepress' => GeneratePressSettingsReader::class,
+        'astra'         => AstraSettingsReader::class,
+    ];
+
+    /**
+     * The roles a theme settings reader may state.
+     *
+     * @var array
+     */
+    protected static $settingsRoleKeys = [
+        'surface', 'text', 'accent', 'border',
+        'button_bg', 'button_text', 'button_hover_bg', 'button_hover_text',
+    ];
+
+    /**
      * Drop the request-level caches.
      *
      * Reading theme.json and resolving eleven roles is repeated work within a
@@ -96,6 +145,7 @@ class ThemePalette
         self::$cachedPalette = null;
         self::$cachedRoles = null;
         self::$cachedVendorValues = null;
+        self::$cachedSettingsRoles = null;
     }
 
     /**
@@ -262,8 +312,17 @@ class ThemePalette
      * `astra_get_option('global-color-palette')` (its
      * `generate_global_palette_style()`), and Kadence prints
      * `--global-paletteN` from `kadence()->palette_option('paletteN')` (its
-     * styles component). Blocksy needs no entry: its palette already ships
-     * with hex fallbacks.
+     * styles component; see KadenceSettingsReader::paletteValues()).
+     * Blocksy's editor palette already ships with hex fallbacks, but its Customizer settings point at the bare
+     * `--theme-palette-color-N`, so its palette is read too, from
+     * `blocksy_manager()->colors->get_color_palette()` (the list it prints
+     * the properties from; see BlocksySettingsReader::paletteValues()).
+     * Bricks prints `--bricks-color-{id}` from its colour palette (or the
+     * property a palette colour's raw value names; see
+     * BricksSettingsReader::paletteValues()). GeneratePress prints `--{slug}`
+     * on :root from its Global Colors and publishes them to the editor
+     * palette as bare `var(--{slug})` (see
+     * GeneratePressSettingsReader::paletteValues()).
      *
      * The values are only ever used as the fallback half of `var(--x, #hex)`,
      * so a wrong or stale answer cannot repaint anything — the browser keeps
@@ -289,15 +348,20 @@ class ThemePalette
             }
         }
 
-        if (function_exists('Kadence\\kadence')) {
-            try {
-                foreach (range(1, 15) as $index) {
-                    $values['--global-palette' . $index] = (string)\Kadence\kadence()->palette_option('palette' . $index);
-                }
-            } catch (\Throwable $e) {
-                // The vendor's API misbehaving means no vendor values — the
-                // stand-down paths below already handle that.
-            }
+        foreach (BlocksySettingsReader::paletteValues() as $property => $color) {
+            $values[$property] = $color;
+        }
+
+        foreach (KadenceSettingsReader::paletteValues() as $property => $color) {
+            $values[$property] = $color;
+        }
+
+        foreach (BricksSettingsReader::paletteValues() as $property => $color) {
+            $values[$property] = $color;
+        }
+
+        foreach (GeneratePressSettingsReader::paletteValues() as $property => $color) {
+            $values[$property] = $color;
         }
 
         /**
@@ -392,6 +456,113 @@ class ThemePalette
     }
 
     /**
+     * Normalise a colour a theme setting states into a value we can write.
+     *
+     * A hex is itself, lowercased. A custom-property reference stays a live
+     * reference; a bare one gains the vendor's current value as its hex
+     * fallback (see vendorValues()), so the browser still follows the
+     * property while PHP measures the fallback. Anything else — rgba(),
+     * named colours, expressions — is refused: the result is written into a
+     * declaration on every storefront page and must pass
+     * FrontendTheme::sanitizeDeclarationValue().
+     *
+     * @param mixed $raw
+     * @return string Hex, `var(--x)`, `var(--x, #hex)`, or ''.
+     */
+    public static function settingValue($raw): string
+    {
+        if (!is_string($raw)) {
+            return '';
+        }
+
+        $raw = trim($raw);
+
+        if (preg_match('/^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/', $raw)) {
+            return ColorMath::hex($raw);
+        }
+
+        $reference = self::safeReference($raw);
+
+        if ($reference === '' || self::measurable($reference) !== '') {
+            return $reference;
+        }
+
+        $property = substr($reference, 4, -1);
+        $vendorHex = (string)Arr::get(self::vendorValues(), $property, '');
+
+        return $vendorHex !== '' ? 'var(' . $property . ', ' . $vendorHex . ')' : $reference;
+    }
+
+    /**
+     * The colours the active theme's own settings state, by role.
+     *
+     * Palette slots say which colours a theme offers; its settings say which
+     * one the owner put where. A reader for the active theme (see
+     * Readers\ThemeSettingsReader) reports what the owner set — Astra's,
+     * Blocksy's, Kadence's, Divi's, Bricks' or GeneratePress's Accent, Body Text, Content Background, Borders
+     * and Button colours — and those outrank the palette-slot guesses in anchors() and resolve().
+     * Only the site editor's own button (buttonGlobals()) outranks them.
+     *
+     * Roles: surface, text, accent, border, button_bg, button_text,
+     * button_hover_bg, button_hover_text. A role the theme does not state is
+     * absent, and is derived exactly as it would be without a reader.
+     *
+     * @return array Role => hex or reference.
+     */
+    public static function settingsRoles(): array
+    {
+        if (self::$cachedSettingsRoles !== null) {
+            return self::$cachedSettingsRoles;
+        }
+
+        $roles = [];
+        $theme = '';
+
+        foreach (self::$settingsReaders as $name => $reader) {
+            if ($reader::applies()) {
+                $theme = $name;
+                $roles = $reader::roles();
+                break;
+            }
+        }
+
+        /**
+         * Filter the colours the active theme's settings state, by role.
+         *
+         * Runs whether or not a built-in reader applied, so a theme FluentCart
+         * does not read can be supplied here; return [] to turn the reader off
+         * and fall back to palette slots. Values must be a hex or a
+         * `var(--x)` / `var(--x, #hex)` reference — anything else is dropped,
+         * and a bare reference to a vendor property gains its hex fallback.
+         *
+         * @param array $roles   Role => colour. Keys: surface, text, accent,
+         *                       border, button_bg, button_text,
+         *                       button_hover_bg, button_hover_text.
+         * @param array $context ['theme' => reader name ('blocksy', 'kadence', 'divi', 'bricks', 'generatepress', 'astra'), or '' when
+         *                       no built-in reader applies].
+         */
+        $roles = apply_filters('fluent_cart/theme/settings_roles', $roles, [
+            'theme' => $theme,
+        ]);
+
+        // A filter is just another source of values: only known roles with a
+        // writable colour survive.
+        $clean = [];
+
+        if (is_array($roles)) {
+            foreach (self::$settingsRoleKeys as $role) {
+                $value = self::settingValue(Arr::get($roles, $role, ''));
+
+                if ($value !== '') {
+                    $clean[$role] = $value;
+                }
+            }
+        }
+
+        return self::$cachedSettingsRoles = $clean;
+    }
+
+    /**
      * Whether the active theme gave us anything usable.
      *
      * @return bool
@@ -425,6 +596,10 @@ class ThemePalette
         $globals = self::globalColors();
 
         if (Arr::get($globals, 'background', '') !== '' || Arr::get($globals, 'text', '') !== '') {
+            return true;
+        }
+
+        if (self::settingsRoles()) {
             return true;
         }
 
@@ -519,11 +694,15 @@ class ThemePalette
      * (`var:preset|color|contrast`), which resolves through the palette the
      * same way the page pair's do.
      *
-     * @return array ['background' => hex, 'text' => hex]; either may be ''.
+     * The `:hover` pair (`styles.elements.button.:hover.color`) is read the
+     * same way, into `hover_background` / `hover_text`.
+     *
+     * @return array ['background' => hex, 'text' => hex, 'hover_background' => hex,
+     *               'hover_text' => hex]; any may be ''.
      */
     public static function buttonGlobals(): array
     {
-        $colors = ['background' => '', 'text' => ''];
+        $colors = ['background' => '', 'text' => '', 'hover_background' => '', 'hover_text' => ''];
 
         if (!class_exists('WP_Theme_JSON_Resolver')) {
             return $colors;
@@ -540,13 +719,19 @@ class ThemePalette
                 continue;
             }
 
-            $pair = Arr::get((array)$data->get_raw_data(), 'styles.elements.button.color', []);
+            $raw = (array)$data->get_raw_data();
+            $pairs = [
+                ''       => Arr::get($raw, 'styles.elements.button.color', []),
+                'hover_' => Arr::get($raw, 'styles.elements.button.:hover.color', []),
+            ];
 
-            foreach (['background', 'text'] as $half) {
-                $value = self::resolveReference((string)Arr::get((array)$pair, $half, ''));
+            foreach ($pairs as $prefix => $pair) {
+                foreach (['background', 'text'] as $half) {
+                    $value = self::resolveReference((string)Arr::get((array)$pair, $half, ''));
 
-                if ($value !== '') {
-                    $colors[$half] = $value;
+                    if ($value !== '') {
+                        $colors[$prefix . $half] = $value;
+                    }
                 }
             }
         }
@@ -628,6 +813,7 @@ class ThemePalette
     {
         $map = self::anchorMap();
         $globals = self::globalColors();
+        $settings = self::settingsRoles();
 
         // Surface and body text resolve as a PAIR from one source, never mixed
         // from two. Global styles outrank the palette — the palette lists the
@@ -641,10 +827,31 @@ class ThemePalette
         $gsSurface = (string)Arr::get($globals, 'background', '');
         $gsText = (string)Arr::get($globals, 'text', '');
 
+        $setSurface = (string)Arr::get($settings, 'surface', '');
+
         if ($gsSurface !== '' && $gsText !== '') {
             // The rendered pair.
             $surface = $gsSurface;
             $text = $gsText;
+        } elseif ($setSurface !== '') {
+            // The pair the theme's settings state (Astra's Content Background
+            // and Body Text). The same pair law: a lone stated text is never
+            // mixed onto a guessed surface. A lone surface takes the palette's
+            // own text when it reads there (4.5:1) — Astra saves Body Text
+            // empty and still means its text swatch — and only an unreadable
+            // one is replaced by a measured partner.
+            $surface = $setSurface;
+            $text = (string)Arr::get($settings, 'text', '');
+            $surfaceHex = self::measurable($surface);
+
+            if ($text === '' && $surfaceHex !== '') {
+                $paletteText = self::value(Arr::get($map, 'text', ''));
+                $paletteTextHex = self::measurable($paletteText);
+
+                $text = $paletteTextHex !== '' && ColorMath::contrast($surfaceHex, $paletteTextHex) >= 4.5
+                    ? $paletteText
+                    : ColorMath::readableOn($surfaceHex, '#F3F4F6', '#2F3448');
+            }
         } else {
             // The published pair. A lone global-styles fragment is dropped
             // rather than paired with a guess.
@@ -660,7 +867,11 @@ class ThemePalette
             }
         }
 
-        $accent = self::value(Arr::get($map, 'accent', ''));
+        $accent = (string)Arr::get($settings, 'accent', '');
+
+        if ($accent === '') {
+            $accent = self::value(Arr::get($map, 'accent', ''));
+        }
 
         // The button follows the same law as the page pair: what the owner
         // set in the site editor (Styles → Buttons) outranks every guess the
@@ -674,6 +885,10 @@ class ThemePalette
         if ($button['background'] !== '') {
             $buttonBg = $button['background'];
             $buttonText = $button['text'];
+        } elseif (Arr::get($settings, 'button_bg', '') !== '') {
+            // Next, the button the theme's settings state, with its partner.
+            $buttonBg = (string)$settings['button_bg'];
+            $buttonText = (string)Arr::get($settings, 'button_text', '');
         } else {
             $buttonBg = self::value(Arr::get($map, 'button_bg', ''));
 
@@ -735,7 +950,10 @@ class ThemePalette
                 'divider'          => ColorMath::mix($textHex, $surfaceHex, 10),
                 'border'           => ColorMath::mix($textHex, $surfaceHex, 18),
                 'text_placeholder' => ColorMath::mix($textHex, $surfaceHex, 45),
-                'text_muted'       => ColorMath::mix($textHex, $surfaceHex, 68),
+                // Muted text is still text: it moves toward the body text only
+                // as far as it must to read (4.5:1). A mid-grey body text
+                // (Divi's #666666) otherwise mixed down to 2.92:1.
+                'text_muted'       => ColorMath::readableMix($textHex, $surfaceHex, 68),
             ]
             : [
                 'surface_alt'      => '',
@@ -746,6 +964,14 @@ class ThemePalette
                 'text_muted'       => '',
             ];
 
+        // A border the theme's settings state is the border (Astra's Borders);
+        // only an unstated one is mixed.
+        $settings = self::settingsRoles();
+
+        if (Arr::get($settings, 'border', '') !== '') {
+            $derived['border'] = (string)$settings['border'];
+        }
+
         // Contrast needs a real colour to measure against for the same reason.
         // And the button is owned as a pair or not at all: a background whose
         // value cannot be measured (a bare reference — the theme resolves it on
@@ -753,15 +979,58 @@ class ThemePalette
         // readable text can be paired with here, so neither half is written and
         // the stylesheets' own paired fallback styles the button instead. Text
         // the owner chose alongside the background (the site editor's button
-        // pair) is worn as given; only a missing partner is measured.
+        // pair, or a theme settings reader's) is worn as given unless it cannot
+        // be read on it (below 3:1); a missing or unreadable partner is measured.
         $buttonBgHex = self::measurable($buttonBg);
-        $ownText = (string)Arr::get($anchors, 'button_text', '');
+        $ownText = self::statedTextOn((string)Arr::get($anchors, 'button_text', ''), $buttonBgHex);
 
         if ($buttonBgHex !== '') {
-            $derived['button_text'] = $ownText !== '' ? $ownText : ColorMath::readableOn($buttonBgHex);
+            $derived['button_text'] = $ownText !== '' ? $ownText : ColorMath::readableText($buttonBgHex);
         } else {
             $anchors['button_bg'] = '';
             $derived['button_text'] = '';
+        }
+
+        // The hover follows the button it belongs to: unwritten when the button
+        // is. The site editor's `:hover` pair outranks any guess; otherwise the
+        // button colour moves away from itself — darker for a light button,
+        // lighter for a dark one. Hover text given with it is worn as given;
+        // otherwise the resting text carries over while it still reads (WCAG
+        // 4.5:1), and a partner is measured when it does not.
+        $derived['button_hover_bg'] = '';
+        $derived['button_hover_text'] = '';
+
+        if ($buttonBgHex !== '') {
+            $stated = self::buttonGlobals();
+            $hoverBg = $stated['hover_background'];
+            $hoverText = $stated['hover_text'];
+
+            // The theme settings' hover belongs to the theme settings' button:
+            // it is only used when that button is the one being worn, never
+            // paired onto a button the site editor states.
+            $settingsButton = $stated['background'] === '' && Arr::get($settings, 'button_bg', '') !== '';
+
+            if ($hoverBg === '' && $settingsButton && Arr::get($settings, 'button_hover_bg', '') !== '') {
+                $hoverBg = (string)$settings['button_hover_bg'];
+
+                if ($hoverText === '') {
+                    $hoverText = (string)Arr::get($settings, 'button_hover_text', '');
+                }
+            }
+
+            if ($hoverBg === '') {
+                $hoverBg = ColorMath::shiftFromItself($buttonBgHex, 12);
+            }
+
+            $hoverBgHex = self::measurable($hoverBg);
+            $hoverText = self::statedTextOn($hoverText, $hoverBgHex);
+
+            if ($hoverText === '' && $hoverBgHex !== '') {
+                $hoverText = self::hoverTextFor($hoverBgHex, (string)$derived['button_text']);
+            }
+
+            $derived['button_hover_bg'] = $hoverBg;
+            $derived['button_hover_text'] = $hoverText;
         }
 
         // The outline secondary button is FluentCart's own invention, and its
@@ -800,6 +1069,51 @@ class ThemePalette
         self::$cachedRoles = apply_filters('fluent_cart/theme/roles', array_merge($anchors, $derived));
 
         return self::$cachedRoles;
+    }
+
+    /**
+     * A text colour a theme or owner stated for a background, if it can be worn.
+     *
+     * Stated text is a choice and is worn as given — including brand pairs
+     * just under AA (white on #ff5500 is 3.21:1). Only one that cannot be read
+     * on its background (below 3:1, the large-text floor) is refused, so a
+     * measured partner takes its place. Twenty Twenty-Five's site-editor pair
+     * #111111 on #503aa8 (2.26:1) is the case this catches. A text or a
+     * background that cannot be measured here is not second-guessed.
+     *
+     * @param string $text         The stated text, or ''.
+     * @param string $backgroundHex The measured background, or ''.
+     * @return string The text, or '' when it must be replaced.
+     */
+    public static function statedTextOn(string $text, string $backgroundHex): string
+    {
+        if ($text === '' || $backgroundHex === '') {
+            return $text;
+        }
+
+        $textHex = self::measurable($text);
+
+        if ($textHex === '') {
+            return $text;
+        }
+
+        return ColorMath::contrast($backgroundHex, $textHex) >= 3 ? $text : '';
+    }
+
+    /**
+     * The text for a hover background nobody gave a text: the button's
+     * resting text carries over while it still reads (WCAG 4.5:1), and a
+     * partner is measured when it does not.
+     *
+     * @param string $hoverBgHex
+     * @param string $restingText
+     * @return string
+     */
+    public static function hoverTextFor(string $hoverBgHex, string $restingText): string
+    {
+        return ColorMath::contrast($hoverBgHex, $restingText) >= 4.5
+            ? $restingText
+            : ColorMath::readableText($hoverBgHex);
     }
 
     /**

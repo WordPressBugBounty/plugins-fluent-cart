@@ -1906,11 +1906,7 @@ class StoreSettings implements ArrayableInterface
                 'label' => __('Inherit from the active theme', 'fluent-cart'),
                 'value' => ColorPalette::SOURCE_THEME,
                 'icon'  => 'PaintLine',
-                'note'  => sprintf(
-                    '%1$s %2$s',
-                    __('The storefront palette is rebuilt from your theme, and follows it when the theme changes.', 'fluent-cart'),
-                    ThemePalette::sourceLabel()
-                ),
+                'note'  => __('FluentCart uses your active theme\'s colors for the storefront. If they don\'t come through as expected, choose Customize to set them yourself.', 'fluent-cart'),
             ],
             [
                 'label' => __('Customize', 'fluent-cart'),
@@ -2051,8 +2047,11 @@ class StoreSettings implements ArrayableInterface
             return __('The active theme publishes nothing to inherit, so the storefront keeps FluentCart\'s own colors.', 'fluent-cart');
         }
 
+        // Only a colour with no hex anywhere is unpreviewable. A live
+        // reference with a hex fallback — what the theme-settings readers and
+        // Blocksy write — previews as that fallback.
         foreach (ThemePalette::resolve() as $value) {
-            if (!sanitize_hex_color((string)$value)) {
+            if ((string)$value !== '' && ThemePalette::measurable((string)$value) === '') {
                 return __('This theme publishes its palette as CSS variables. The storefront reads them, but they cannot be resolved here — the preview shows FluentCart\'s colors in their place.', 'fluent-cart');
             }
         }
@@ -2080,11 +2079,13 @@ class StoreSettings implements ArrayableInterface
         $roles = [];
 
         foreach (ThemePalette::resolve() as $role => $value) {
-            // A theme that publishes `var(--x)` is written to the storefront
-            // verbatim and resolved by the browser there, but that property is
-            // not declared in wp-admin. Unpreviewable, so leave it out and let
-            // the slot fall back to its own default.
-            $hex = sanitize_hex_color((string)$value);
+            // A theme that publishes a bare `var(--x)` is written to the
+            // storefront verbatim and resolved by the browser there, but that
+            // property is not declared in wp-admin. Unpreviewable, so leave it
+            // out and let the slot fall back to its own default. A reference
+            // with a hex fallback (`var(--x, #hex)`) previews as that hex —
+            // the same colour the storefront measures it by.
+            $hex = ThemePalette::measurable((string)$value);
 
             if ($hex) {
                 $roles[$role] = $hex;
