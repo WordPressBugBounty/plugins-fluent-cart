@@ -578,8 +578,9 @@ class ThemePalette
      * A theme can publish a palette we cannot read — several popular ones
      * declare theirs as `var(--theme-colour-0)` references — and it can set a
      * global background and text colour without publishing a palette. A site
-     * can also state nothing but its button pair (Styles → Buttons in the
-     * site editor), and that is still an explicit configuration to wear.
+     * can also state nothing but its button colours (Styles → Buttons in the
+     * site editor) — a background, a text, or both — and that is still an
+     * explicit configuration to wear.
      * Only when all of them come back empty is there genuinely nothing to
      * inherit, and in that case inheriting must stay out of the way rather
      * than write FluentCart's own colours back to the page and call them the
@@ -603,7 +604,9 @@ class ThemePalette
             return true;
         }
 
-        return Arr::get(self::buttonGlobals(), 'background', '') !== '';
+        $button = self::buttonGlobals();
+
+        return Arr::get($button, 'background', '') !== '' || Arr::get($button, 'text', '') !== '';
     }
 
     /**
@@ -815,15 +818,12 @@ class ThemePalette
         $globals = self::globalColors();
         $settings = self::settingsRoles();
 
-        // Surface and body text resolve as a PAIR from one source, never mixed
-        // from two. Global styles outrank the palette — the palette lists the
-        // AVAILABLE colours, global styles say what the body actually RENDERS,
-        // and on Twenty Twenty-Five's dark style variation those disagree —
-        // but only when global styles supply BOTH halves. A site that sets
-        // only its text (light, say, over a CSS-painted dark background) must
-        // not have that fragment mixed onto the palette's guessed white
-        // surface: that is light text printed onto a light panel, and the
-        // stylesheets' paired fallbacks never fire because both values exist.
+        // Global styles outrank the palette — the palette lists the AVAILABLE
+        // colours, global styles say what the body actually RENDERS, and on
+        // Twenty Twenty-Five's dark style variation those disagree. The
+        // surface comes from global styles, then the theme's settings, then
+        // the palette. A body text the owner stated is worn as given below,
+        // whichever source the surface came from.
         $gsSurface = (string)Arr::get($globals, 'background', '');
         $gsText = (string)Arr::get($globals, 'text', '');
 
@@ -835,11 +835,10 @@ class ThemePalette
             $text = $gsText;
         } elseif ($setSurface !== '') {
             // The pair the theme's settings state (Astra's Content Background
-            // and Body Text). The same pair law: a lone stated text is never
-            // mixed onto a guessed surface. A lone surface takes the palette's
-            // own text when it reads there (4.5:1) — Astra saves Body Text
-            // empty and still means its text swatch — and only an unreadable
-            // one is replaced by a measured partner.
+            // and Body Text). A surface stated without a text takes the
+            // palette's own text when it reads there (4.5:1) — Astra saves
+            // Body Text empty and still means its text swatch — and only an
+            // unreadable one is replaced by a measured partner.
             $surface = $setSurface;
             $text = (string)Arr::get($settings, 'text', '');
             $surfaceHex = self::measurable($surface);
@@ -853,8 +852,7 @@ class ThemePalette
                     : ColorMath::readableOn($surfaceHex, '#F3F4F6', '#2F3448');
             }
         } else {
-            // The published pair. A lone global-styles fragment is dropped
-            // rather than paired with a guess.
+            // The published pair.
             $surface = self::value(Arr::get($map, 'surface', ''));
             $text = self::value(Arr::get($map, 'text', ''));
 
@@ -867,18 +865,25 @@ class ThemePalette
             }
         }
 
+        // A body text the owner chose is worn as given, even without a stated
+        // background — global styles first, then the theme's settings.
+        $statedText = $gsText !== '' ? $gsText : (string)Arr::get($settings, 'text', '');
+
+        if ($statedText !== '') {
+            $text = $statedText;
+        }
+
         $accent = (string)Arr::get($settings, 'accent', '');
 
         if ($accent === '') {
             $accent = self::value(Arr::get($map, 'accent', ''));
         }
 
-        // The button follows the same law as the page pair: what the owner
-        // set in the site editor (Styles → Buttons) outranks every guess the
-        // palette could offer — but only led by its background. A background
-        // brings its own text partner, or gets one measured against it in
-        // resolve(); a lone text fragment is dropped rather than printed onto
-        // a background it was never chosen for.
+        // What the owner set in the site editor (Styles → Buttons) outranks
+        // every guess the palette could offer, then the theme's settings. A
+        // background brings its own text, or gets one measured against it in
+        // resolve(); a text the owner set alone is worn as given on whatever
+        // background the button otherwise gets.
         $button = self::buttonGlobals();
         $buttonText = '';
 
@@ -897,6 +902,8 @@ class ThemePalette
                 // theme that names one button colour almost always means by it.
                 $buttonBg = $accent;
             }
+
+            $buttonText = $button['text'] !== '' ? $button['text'] : (string)Arr::get($settings, 'button_text', '');
         }
 
         return [
@@ -973,35 +980,39 @@ class ThemePalette
         }
 
         // Contrast needs a real colour to measure against for the same reason.
-        // And the button is owned as a pair or not at all: a background whose
-        // value cannot be measured (a bare reference — the theme resolves it on
-        // the page, and the store owner can recolour it to anything) is one no
-        // readable text can be paired with here, so neither half is written and
-        // the stylesheets' own paired fallback styles the button instead. Text
-        // the owner chose alongside the background (the site editor's button
-        // pair, or a theme settings reader's) is worn as given unless it cannot
-        // be read on it (below 3:1); a missing or unreadable partner is measured.
+        // Colours the owner chose (the site editor's, or a theme settings
+        // reader's) are worn exactly as given, at any contrast; only a missing
+        // one is measured. A background nobody chose whose value cannot be
+        // measured (a bare palette reference) is not worn at all: no readable
+        // text can be paired with it here, so the stylesheets' own fallback
+        // styles the button instead. One the owner chose is still worn, with
+        // nothing invented beside it.
         $buttonBgHex = self::measurable($buttonBg);
-        $ownText = self::statedTextOn((string)Arr::get($anchors, 'button_text', ''), $buttonBgHex);
+        $ownText = (string)Arr::get($anchors, 'button_text', '');
+        $stated = self::buttonGlobals();
+        $buttonStated = $stated['background'] !== '' || Arr::get($settings, 'button_bg', '') !== '';
 
         if ($buttonBgHex !== '') {
             $derived['button_text'] = $ownText !== '' ? $ownText : ColorMath::readableText($buttonBgHex);
         } else {
-            $anchors['button_bg'] = '';
-            $derived['button_text'] = '';
+            if (!$buttonStated) {
+                $anchors['button_bg'] = '';
+            }
+
+            $derived['button_text'] = $ownText;
         }
 
         // The hover follows the button it belongs to: unwritten when the button
         // is. The site editor's `:hover` pair outranks any guess; otherwise the
         // button colour moves away from itself — darker for a light button,
-        // lighter for a dark one. Hover text given with it is worn as given;
-        // otherwise the resting text carries over while it still reads (WCAG
-        // 4.5:1), and a partner is measured when it does not.
+        // lighter for a dark one, and never for a button that cannot be
+        // measured. Hover text given with it is worn as given; otherwise the
+        // resting text carries over while it still reads (WCAG 4.5:1), and a
+        // partner is measured when it does not.
         $derived['button_hover_bg'] = '';
         $derived['button_hover_text'] = '';
 
-        if ($buttonBgHex !== '') {
-            $stated = self::buttonGlobals();
+        if ($buttonBgHex !== '' || $buttonStated) {
             $hoverBg = $stated['hover_background'];
             $hoverText = $stated['hover_text'];
 
@@ -1018,12 +1029,11 @@ class ThemePalette
                 }
             }
 
-            if ($hoverBg === '') {
+            if ($hoverBg === '' && $buttonBgHex !== '') {
                 $hoverBg = ColorMath::shiftFromItself($buttonBgHex, 12);
             }
 
             $hoverBgHex = self::measurable($hoverBg);
-            $hoverText = self::statedTextOn($hoverText, $hoverBgHex);
 
             if ($hoverText === '' && $hoverBgHex !== '') {
                 $hoverText = self::hoverTextFor($hoverBgHex, (string)$derived['button_text']);
@@ -1069,35 +1079,6 @@ class ThemePalette
         self::$cachedRoles = apply_filters('fluent_cart/theme/roles', array_merge($anchors, $derived));
 
         return self::$cachedRoles;
-    }
-
-    /**
-     * A text colour a theme or owner stated for a background, if it can be worn.
-     *
-     * Stated text is a choice and is worn as given — including brand pairs
-     * just under AA (white on #ff5500 is 3.21:1). Only one that cannot be read
-     * on its background (below 3:1, the large-text floor) is refused, so a
-     * measured partner takes its place. Twenty Twenty-Five's site-editor pair
-     * #111111 on #503aa8 (2.26:1) is the case this catches. A text or a
-     * background that cannot be measured here is not second-guessed.
-     *
-     * @param string $text         The stated text, or ''.
-     * @param string $backgroundHex The measured background, or ''.
-     * @return string The text, or '' when it must be replaced.
-     */
-    public static function statedTextOn(string $text, string $backgroundHex): string
-    {
-        if ($text === '' || $backgroundHex === '') {
-            return $text;
-        }
-
-        $textHex = self::measurable($text);
-
-        if ($textHex === '') {
-            return $text;
-        }
-
-        return ColorMath::contrast($backgroundHex, $textHex) >= 3 ? $text : '';
     }
 
     /**

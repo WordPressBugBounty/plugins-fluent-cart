@@ -34,6 +34,10 @@ class Pages
                 'title'   => 'Receipt',
                 'content' => '[fluent_cart_receipt]'
             ],
+            'order_review'     => [
+                'title'   => 'Review Your Order',
+                'content' => '[fluent_cart_order_review]'
+            ],
             'shop'             => [
                 'title'   => 'Shop',
                 'content' => static::getShopPageContent()

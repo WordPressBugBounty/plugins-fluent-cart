@@ -4,7 +4,7 @@ Tags: ecommerce, cart, checkout, subscriptions, payments
 Requires at least: 6.7
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 1.6.6
+Stable tag: 1.7.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -312,6 +312,11 @@ This service is provided by PayPal: [Terms of Service](https://www.paypal.com/le
 
 
 == Changelog ==
+
+= 1.7.0 (Sep 29, 2026) =
+- Adds Product Reviews with star ratings, verified purchase badges, moderation, store replies, customer review management, and configurable review settings.
+- Adds Product schema (JSON-LD) on the product page, with offers, aggregate rating, and reviews, for rich results in search
+- Adds Compliance settings to disable customer email verification
 
 = 1.6.6 (Sep 25, 2026) =
 - Enhance theme support for Astra, Blocksy, Kadence, Divi, GeneratePress, Bricks, and more.
