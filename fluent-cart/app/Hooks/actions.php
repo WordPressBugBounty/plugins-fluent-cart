@@ -108,9 +108,16 @@ if (\FluentCart\Api\ModuleSettings::isActive('stock_management')) {
     \FluentCart\App\Hooks\Handlers\BlockEditors\SoldOutBadgeBlockEditor::register();
 }
 
+// Registered whether or not the reviews module is active: the block ships
+// inside the Shop App, Product Info and Related Products card templates, so
+// an unregistered block would greet the editor with "your site doesn't
+// include support for this block" on every card. With the module off it
+// stays out of the inserter and renders nothing, in the editor and on the
+// page — see ProductRatingBlockEditor.
+\FluentCart\App\Hooks\Handlers\BlockEditors\ProductRatingBlockEditor::register();
+
 if (\FluentCart\Api\ModuleSettings::isActive('reviews') && class_exists(\FluentCart\App\Hooks\Handlers\BlockEditors\ProductReviewsBlockEditor::class)) {
     \FluentCart\App\Hooks\Handlers\BlockEditors\ProductReviewsBlockEditor::register();
-    \FluentCart\App\Hooks\Handlers\BlockEditors\ProductRatingBlockEditor::register();
     \FluentCart\App\Hooks\Handlers\BlockEditors\WriteAReviewButtonBlockEditor::register();
     \FluentCart\App\Hooks\Handlers\BlockEditors\ProductReviewFormBlockEditor::register();
     \FluentCart\App\Hooks\Handlers\BlockEditors\ProductReviewSummaryBlockEditor::register();

@@ -104,7 +104,8 @@
       "_index.js",
       "_Notify.js",
       "_DynamicIcon.js",
-      "__plugin-vue_export-helper.js"
+      "__plugin-vue_export-helper.js",
+      "_PageHeading.js"
     ]
   },
   "_Badge.js": {
@@ -360,6 +361,7 @@
       "resources/admin/Bits/Components/Icons/Reset.vue",
       "resources/admin/Bits/Components/Icons/Revenue.vue",
       "resources/admin/Bits/Components/Icons/ReviewCard.vue",
+      "resources/admin/Bits/Components/Icons/ReviewStar.vue",
       "resources/admin/Bits/Components/Icons/Rotate.vue",
       "resources/admin/Bits/Components/Icons/RunningShoe.vue",
       "resources/admin/Bits/Components/Icons/Save.vue",
@@ -437,9 +439,8 @@
     "file": "chunks/Empty.js",
     "name": "Empty",
     "imports": [
-      "_DynamicIcon.js",
       "_vue.esm-bundler.js",
-      "__plugin-vue_export-helper.js"
+      "_DynamicIcon.js"
     ]
   },
   "_ErrorBoundary.js": {
@@ -476,7 +477,8 @@
     "file": "chunks/Icons.js",
     "name": "Icons",
     "imports": [
-      "_jsx-runtime.js"
+      "_jsx-runtime.js",
+      "_reviewStar2.js"
     ]
   },
   "_Model.js": {
@@ -531,6 +533,15 @@
       "_AddressComponent.js",
       "_NotFound.js",
       "_productService.js"
+    ]
+  },
+  "_PageHeading.js": {
+    "file": "chunks/PageHeading.js",
+    "name": "PageHeading",
+    "imports": [
+      "_DynamicIcon.js",
+      "_vue.esm-bundler.js",
+      "__plugin-vue_export-helper.js"
     ]
   },
   "_ProductContainerContext.js": {
@@ -824,6 +835,10 @@
       "_add-query-args.js"
     ]
   },
+  "_reviewStar2.js": {
+    "file": "chunks/reviewStar2.js",
+    "name": "reviewStar"
+  },
   "_timezone.js": {
     "file": "chunks/timezone.js",
     "name": "timezone",
@@ -1097,9 +1112,10 @@
       "__plugin-vue_export-helper.js",
       "_index3.js",
       "_TransitionAccordion.js",
-      "_Empty.js",
+      "_PageHeading.js",
       "_OrderCustomerInformation.js",
       "_Animation.js",
+      "_Empty.js",
       "_CardBody.js",
       "_UserCan.js",
       "_Asset.js",
@@ -1115,6 +1131,8 @@
       "_AttrGroups.js",
       "_DynamicTemplateParser.js",
       "_ProductVariationSelector.js",
+      "resources/admin/Bits/Components/Icons/ReviewStar.vue",
+      "_reviewStar2.js",
       "_galleryTabs.js",
       "_FileUploaderDialog.js",
       "resources/admin/Bits/Components/Icons/Screenshot.vue",
@@ -1130,8 +1148,52 @@
       "_vue.esm-bundler.js",
       "_DynamicIcon.js",
       "_Translator.js",
+      "resources/admin/bootstrap/app.js",
       "_preload-helper.js",
-      "_Arr.js"
+      "_Arr.js",
+      "_vue-router.js",
+      "_Badge.js",
+      "_Model.js",
+      "_Rest.js",
+      "_common.js",
+      "_dayjs.min.js",
+      "_Str.js",
+      "_timezone.js",
+      "_weekOfYear.js",
+      "_Utils.js",
+      "_CurrencyFormatter.js",
+      "_index.js",
+      "_Url.js",
+      "_Notify.js",
+      "__plugin-vue_export-helper.js",
+      "_index3.js",
+      "_IconButton.js",
+      "_TransitionAccordion.js",
+      "_PageHeading.js",
+      "_OrderCustomerInformation.js",
+      "_Animation.js",
+      "_Empty.js",
+      "_CardBody.js",
+      "_UserCan.js",
+      "_Asset.js",
+      "_AddressComponent.js",
+      "_NotFound.js",
+      "_productService.js",
+      "_Activity.js",
+      "_BundleProducts.js",
+      "_dateShortCuts.js",
+      "_index4.js",
+      "_countries.js",
+      "_index2.js",
+      "_AttrGroups.js",
+      "_DynamicTemplateParser.js",
+      "_ProductVariationSelector.js",
+      "resources/admin/Bits/Components/Icons/ReviewStar.vue",
+      "_reviewStar2.js",
+      "_galleryTabs.js",
+      "_FileUploaderDialog.js",
+      "resources/admin/Bits/Components/Icons/Screenshot.vue",
+      "_useElementPlusComponents.js"
     ]
   },
   "resources/admin/Bits/Components/Form/Components/StoreSettings/CreatePageButton.vue": {
@@ -2915,6 +2977,16 @@
       "__plugin-vue_export-helper.js"
     ]
   },
+  "resources/admin/Bits/Components/Icons/ReviewStar.vue": {
+    "file": "chunks/ReviewStar.js",
+    "name": "ReviewStar",
+    "src": "resources/admin/Bits/Components/Icons/ReviewStar.vue",
+    "isDynamicEntry": true,
+    "imports": [
+      "_vue.esm-bundler.js",
+      "_reviewStar2.js"
+    ]
+  },
   "resources/admin/Bits/Components/Icons/Rotate.vue": {
     "file": "chunks/Rotate.js",
     "name": "Rotate",
@@ -3378,6 +3450,7 @@
       "_Icons.js",
       "_SelectVariationModal.js",
       "_add-query-args.js",
+      "_reviewStar2.js",
       "_ProductListItem.js",
       "_index5.js"
     ]
@@ -3395,7 +3468,8 @@
       "_Icons.js",
       "_add-query-args.js",
       "_ProductListItem.js",
-      "_index5.js"
+      "_index5.js",
+      "_reviewStar2.js"
     ]
   },
   "resources/admin/BlockEditor/Buttons/style/button-block-editor.scss": {
@@ -3423,7 +3497,8 @@
       "_Icons.js",
       "_add-query-args.js",
       "_index5.js",
-      "_ProductListItem.js"
+      "_ProductListItem.js",
+      "_reviewStar2.js"
     ],
     "assets": [
       "assets/BuySection.png"
@@ -3441,7 +3516,8 @@
     "isEntry": true,
     "imports": [
       "_jsx-runtime.js",
-      "_Icons.js"
+      "_Icons.js",
+      "_reviewStar2.js"
     ]
   },
   "resources/admin/BlockEditor/Cart/InnerBlocks/InnerBlocks.jsx": {
@@ -3466,7 +3542,8 @@
       "_index6.js",
       "_SingleProductContext.js",
       "_Icons.js",
-      "_BlockEditorTranslator.js"
+      "_BlockEditorTranslator.js",
+      "_reviewStar2.js"
     ]
   },
   "resources/admin/BlockEditor/Cart/style/cart-block-editor.scss": {
@@ -3490,6 +3567,7 @@
     "isEntry": true,
     "imports": [
       "_jsx-runtime.js",
+      "_reviewStar2.js",
       "_EditorPanel.js",
       "_ColorPickerField.js",
       "_BlockEditorTranslator.js",
@@ -3527,7 +3605,8 @@
     "imports": [
       "_jsx-runtime.js",
       "_BlockEditorTranslator.js",
-      "_Icons.js"
+      "_Icons.js",
+      "_reviewStar2.js"
     ]
   },
   "resources/admin/BlockEditor/CustomerDashboardButton/style/customer-dashboard-button-block-editor.scss": {
@@ -3547,7 +3626,8 @@
     "imports": [
       "_jsx-runtime.js",
       "_Icons.js",
-      "_BlockEditorTranslator.js"
+      "_BlockEditorTranslator.js",
+      "_reviewStar2.js"
     ],
     "assets": [
       "assets/CustomerProfile.png"
@@ -3574,7 +3654,8 @@
       "_Icons.js",
       "_add-query-args.js",
       "_ProductListItem.js",
-      "_index5.js"
+      "_index5.js",
+      "_reviewStar2.js"
     ]
   },
   "resources/admin/BlockEditor/Excerpt/style/excerpt-block-editor.scss": {
@@ -3593,7 +3674,8 @@
       "_SingleProductContext.js",
       "_Icons.js",
       "_ProductContext.js",
-      "_ProductContainerContext.js"
+      "_ProductContainerContext.js",
+      "_reviewStar2.js"
     ]
   },
   "resources/admin/BlockEditor/MediaCarousel/MediaCarouselBlockEditor.jsx": {
@@ -3612,6 +3694,7 @@
       "_SingleProductContext.js",
       "_ProductContext.js",
       "_add-query-args.js",
+      "_reviewStar2.js",
       "_ProductListItem.js",
       "_index5.js"
     ],
@@ -3645,7 +3728,8 @@
       "_Icons.js",
       "_add-query-args.js",
       "_ProductListItem.js",
-      "_index5.js"
+      "_index5.js",
+      "_reviewStar2.js"
     ]
   },
   "resources/admin/BlockEditor/PriceRange/style/price-range-block-editor.scss": {
@@ -3673,7 +3757,8 @@
       "_EditorPanel.js",
       "_BlockEditorTranslator.js",
       "_CustomSelect.js",
-      "_add-query-args.js"
+      "_add-query-args.js",
+      "_reviewStar2.js"
     ],
     "assets": [
       "assets/PricingTable.png"
@@ -3704,6 +3789,7 @@
       "_SelectProductModal.js",
       "_ErrorBoundary.js",
       "_add-query-args.js",
+      "_reviewStar2.js",
       "_index5.js",
       "_ProductListItem.js"
     ],
@@ -3751,6 +3837,7 @@
       "_SingleProductContext.js",
       "_ProductContext.js",
       "_add-query-args.js",
+      "_reviewStar2.js",
       "_index5.js",
       "_ProductListItem.js"
     ],
@@ -3771,7 +3858,8 @@
     "imports": [
       "_jsx-runtime.js",
       "_BlockEditorTranslator.js",
-      "_Icons.js"
+      "_Icons.js",
+      "_reviewStar2.js"
     ]
   },
   "resources/admin/BlockEditor/ProductCategoriesList/style/product-categories-list-block-editor.scss": {
@@ -3796,7 +3884,8 @@
       "_Icons.js",
       "_add-query-args.js",
       "_ProductListItem.js",
-      "_index5.js"
+      "_index5.js",
+      "_reviewStar2.js"
     ]
   },
   "resources/admin/BlockEditor/ProductDescription/style/product-description-block-editor.scss": {
@@ -3825,6 +3914,7 @@
       "_SelectProductModal.js",
       "_SingleProductContext.js",
       "_add-query-args.js",
+      "_reviewStar2.js",
       "_ProductListItem.js",
       "_index5.js"
     ],
@@ -3853,7 +3943,8 @@
       "_Icons.js",
       "_add-query-args.js",
       "_ProductListItem.js",
-      "_index5.js"
+      "_index5.js",
+      "_reviewStar2.js"
     ]
   },
   "resources/admin/BlockEditor/ProductImage/style/product-image-block-editor.scss": {
@@ -3880,6 +3971,7 @@
       "_BlockEditorTranslator.js",
       "_SingleProductContext.js",
       "_add-query-args.js",
+      "_reviewStar2.js",
       "_ProductListItem.js",
       "_index5.js"
     ],
@@ -3905,7 +3997,8 @@
       "_EditorPanelRow.js",
       "_ErrorBoundary.js",
       "_SingleProductContext.js",
-      "_Icons.js"
+      "_Icons.js",
+      "_reviewStar2.js"
     ]
   },
   "resources/admin/BlockEditor/ProductPackageDescription/style/product-package-description-block-editor.scss": {
@@ -3930,7 +4023,8 @@
       "_ProductListItem.js",
       "_index5.js",
       "_add-query-args.js",
-      "_SingleProductContext.js"
+      "_SingleProductContext.js",
+      "_reviewStar2.js"
     ]
   },
   "resources/admin/BlockEditor/ProductRating/style/product-rating-block-editor.scss": {
@@ -3955,7 +4049,8 @@
       "_ProductListItem.js",
       "_index5.js",
       "_add-query-args.js",
-      "_SingleProductContext.js"
+      "_SingleProductContext.js",
+      "_reviewStar2.js"
     ]
   },
   "resources/admin/BlockEditor/ProductReviewForm/style/product-review-form-block-editor.scss": {
@@ -3971,7 +4066,8 @@
     "imports": [
       "_jsx-runtime.js",
       "_BlockEditorTranslator.js",
-      "_Icons.js"
+      "_Icons.js",
+      "_reviewStar2.js"
     ]
   },
   "resources/admin/BlockEditor/ProductReviewList/ProductReviewListBlockEditor.jsx": {
@@ -3991,7 +4087,8 @@
       "_ProductListItem.js",
       "_index5.js",
       "_add-query-args.js",
-      "_SingleProductContext.js"
+      "_SingleProductContext.js",
+      "_reviewStar2.js"
     ]
   },
   "resources/admin/BlockEditor/ProductReviewList/style/product-review-list-block-editor.css": {
@@ -4016,7 +4113,8 @@
       "_ProductListItem.js",
       "_index5.js",
       "_add-query-args.js",
-      "_SingleProductContext.js"
+      "_SingleProductContext.js",
+      "_reviewStar2.js"
     ]
   },
   "resources/admin/BlockEditor/ProductReviewSummaryGroup/ProductReviewSummaryGroupBlockEditor.jsx": {
@@ -4036,7 +4134,8 @@
       "_index6.js",
       "_ProductListItem.js",
       "_index5.js",
-      "_add-query-args.js"
+      "_add-query-args.js",
+      "_reviewStar2.js"
     ]
   },
   "resources/admin/BlockEditor/ProductReviews/ProductReviewsBlockEditor.jsx": {
@@ -4056,7 +4155,8 @@
       "_index6.js",
       "_ProductListItem.js",
       "_index5.js",
-      "_add-query-args.js"
+      "_add-query-args.js",
+      "_reviewStar2.js"
     ]
   },
   "resources/admin/BlockEditor/ProductReviews/style/product-reviews-block-editor.scss": {
@@ -4081,7 +4181,8 @@
       "_Icons.js",
       "_add-query-args.js",
       "_ProductListItem.js",
-      "_index5.js"
+      "_index5.js",
+      "_reviewStar2.js"
     ]
   },
   "resources/admin/BlockEditor/ProductSku/style/product-sku-block-editor.scss": {
@@ -4105,7 +4206,8 @@
       "_Icons.js",
       "_add-query-args.js",
       "_ProductListItem.js",
-      "_index5.js"
+      "_index5.js",
+      "_reviewStar2.js"
     ]
   },
   "resources/admin/BlockEditor/ProductTitle/style/product-title-block-editor.scss": {
@@ -4130,7 +4232,8 @@
       "_index6.js",
       "_BlockEditorTranslator.js",
       "_add-query-args.js",
-      "_SingleProductContext.js"
+      "_SingleProductContext.js",
+      "_reviewStar2.js"
     ]
   },
   "resources/admin/BlockEditor/RelatedProduct/style/related-product-block-editor.scss": {
@@ -4155,7 +4258,8 @@
       "_ErrorBoundary.js",
       "_add-query-args.js",
       "_ProductListItem.js",
-      "_index5.js"
+      "_index5.js",
+      "_reviewStar2.js"
     ]
   },
   "resources/admin/BlockEditor/SaleBadge/style/sale-badge-block-editor.scss": {
@@ -4176,7 +4280,8 @@
       "_jsx-runtime.js",
       "_BlockEditorTranslator.js",
       "_index5.js",
-      "_Icons.js"
+      "_Icons.js",
+      "_reviewStar2.js"
     ],
     "assets": [
       "assets/ProductCard.png"
@@ -4215,7 +4320,8 @@
       "_ErrorBoundary.js",
       "_ProductContext.js",
       "_index6.js",
-      "_index5.js"
+      "_index5.js",
+      "_reviewStar2.js"
     ],
     "assets": [
       "assets/Products.png"
@@ -4238,7 +4344,8 @@
       "_EditorPanelRow.js",
       "_SingleProductContext.js",
       "_Icons.js",
-      "_ErrorBoundary.js"
+      "_ErrorBoundary.js",
+      "_reviewStar2.js"
     ]
   },
   "resources/admin/BlockEditor/SoldOutBadge/style/sold-out-badge-block-editor.scss": {
@@ -4261,6 +4368,7 @@
       "_index6.js",
       "_SingleProductContext.js",
       "_add-query-args.js",
+      "_reviewStar2.js",
       "_ProductListItem.js",
       "_index5.js"
     ]
@@ -4273,7 +4381,8 @@
     "imports": [
       "_jsx-runtime.js",
       "_BlockEditorTranslator.js",
-      "_Icons.js"
+      "_Icons.js",
+      "_reviewStar2.js"
     ]
   },
   "resources/admin/BlockEditor/WriteAReviewButton/WriteAReviewButtonBlockEditor.jsx": {
@@ -4293,7 +4402,8 @@
       "_add-query-args.js",
       "_SelectProductModal.js",
       "_ProductListItem.js",
-      "_index5.js"
+      "_index5.js",
+      "_reviewStar2.js"
     ]
   },
   "resources/admin/BlockEditor/WriteAReviewButton/style/write-a-review-button-block-editor.scss": {
@@ -4353,6 +4463,7 @@
       "_Rest.js",
       "_CurrencyFormatter.js",
       "resources/admin/bootstrap/app.js",
+      "_PageHeading.js",
       "_common.js",
       "_Arr.js",
       "_preload-helper.js",
@@ -4385,6 +4496,8 @@
       "_AttrGroups.js",
       "_DynamicTemplateParser.js",
       "_ProductVariationSelector.js",
+      "resources/admin/Bits/Components/Icons/ReviewStar.vue",
+      "_reviewStar2.js",
       "_galleryTabs.js",
       "_FileUploaderDialog.js",
       "resources/admin/Bits/Components/Icons/Screenshot.vue",
@@ -4441,7 +4554,7 @@
     "imports": [
       "_vue.esm-bundler.js",
       "_Badge.js",
-      "_Empty.js",
+      "_PageHeading.js",
       "_Translator.js",
       "_Activity.js",
       "__plugin-vue_export-helper.js",
@@ -4466,6 +4579,7 @@
       "_index3.js",
       "_IconButton.js",
       "_TransitionAccordion.js",
+      "_Empty.js",
       "_BundleProducts.js",
       "_preload-helper.js",
       "_Animation.js",
@@ -4495,12 +4609,13 @@
       "_preload-helper.js",
       "_Translator.js",
       "_Badge.js",
-      "_Empty.js",
+      "_PageHeading.js",
       "_index.js",
       "_OrderCustomerInformation.js",
       "_UserCan.js",
       "_CurrencyFormatter.js",
       "_Activity.js",
+      "_Empty.js",
       "_CardBody.js",
       "_DynamicIcon.js",
       "__plugin-vue_export-helper.js",
@@ -4526,6 +4641,7 @@
       "_ProductVariationSelector.js",
       "_productService.js",
       "_BundleProducts.js",
+      "resources/admin/Bits/Components/Icons/ReviewStar.vue",
       "_galleryTabs.js",
       "_index3.js",
       "_TransitionAccordion.js",
@@ -4534,7 +4650,8 @@
       "_useElementPlusComponents.js",
       "_AddressComponent.js",
       "_weekOfYear.js",
-      "_index4.js"
+      "_index4.js",
+      "_reviewStar2.js"
     ],
     "dynamicImports": [
       "resources/admin/Bits/Components/Form/Components/Affix/Test.vue",
@@ -4787,7 +4904,8 @@
       "_index.js",
       "_Notify.js",
       "_DynamicIcon.js",
-      "_preload-helper.js"
+      "_preload-helper.js",
+      "_PageHeading.js"
     ]
   },
   "resources/images/pro-feature-pattern.png": {
@@ -4811,6 +4929,7 @@
       "_DynamicIcon.js",
       "_Asset.js",
       "_Badge.js",
+      "_PageHeading.js",
       "_common.js",
       "_index.js",
       "_OrderCustomerInformation.js",
@@ -4850,6 +4969,7 @@
       "_Translator.js",
       "_vue.esm-bundler.js",
       "_Badge.js",
+      "_PageHeading.js",
       "_Empty.js",
       "_CardBody.js",
       "_DynamicIcon.js",
@@ -5023,13 +5143,15 @@
       "_Notify.js",
       "_DynamicTemplateParser.js",
       "_index3.js",
+      "resources/admin/Bits/Components/Icons/ReviewStar.vue",
       "_index2.js",
       "_preload-helper.js",
       "_Arr.js",
       "_Utils.js",
       "_CurrencyFormatter.js",
       "_TransitionAccordion.js",
-      "_index4.js"
+      "_index4.js",
+      "_reviewStar2.js"
     ],
     "css": [
       "assets/Start3.css"
@@ -5311,8 +5433,9 @@
       "_Translator.js",
       "_vue.esm-bundler.js",
       "_Badge.js",
-      "_Empty.js",
+      "_PageHeading.js",
       "_UserCan.js",
+      "_Empty.js",
       "_Rest.js",
       "_Notify.js",
       "_CurrencyFormatter.js",
@@ -5668,16 +5791,10 @@
     "src": "resources/images/no-modules.svg",
     "isEntry": true
   },
-  "resources/images/payment-methods/airwallex-icon.svg": {
-    "file": "images/payment-methods/airwallex-icon.svg",
+  "resources/images/payment-methods/airwallex-icon.png": {
+    "file": "images/payment-methods/airwallex-icon.png",
     "name": "airwallex-icon",
-    "src": "resources/images/payment-methods/airwallex-icon.svg",
-    "isEntry": true
-  },
-  "resources/images/payment-methods/airwallex-logo-light.svg": {
-    "file": "images/payment-methods/airwallex-logo-light.svg",
-    "name": "airwallex-logo-light",
-    "src": "resources/images/payment-methods/airwallex-logo-light.svg",
+    "src": "resources/images/payment-methods/airwallex-icon.png",
     "isEntry": true
   },
   "resources/images/payment-methods/airwallex-logo.svg": {

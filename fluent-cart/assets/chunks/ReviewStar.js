@@ -1,0 +1,1 @@
+import{g as e,j as t,C as s,u as a}from"./vue.esm-bundler.js?ver=1.7.1";import{R as r}from"./reviewStar2.js?ver=1.7.1";const o={class:"fct-star-svg",width:"1em",height:"1em",viewBox:"0 0 24 24",fill:"currentColor","aria-hidden":"true",focusable:"false"},c=["d"],d={__name:"ReviewStar",setup(_){return(n,i)=>(t(),e("svg",o,[s("path",{d:a(r)},null,8,c)]))}};export{d as default};

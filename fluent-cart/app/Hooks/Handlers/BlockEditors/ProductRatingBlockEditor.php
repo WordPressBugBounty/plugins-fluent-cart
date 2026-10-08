@@ -2,6 +2,7 @@
 
 namespace FluentCart\App\Hooks\Handlers\BlockEditors;
 
+use FluentCart\Api\ModuleSettings;
 use FluentCart\App\Services\Renderer\ProductCardRender;
 use FluentCart\App\Services\Translations\TransStrings;
 use FluentCart\Framework\Support\Arr;
@@ -13,6 +14,10 @@ class ProductRatingBlockEditor extends BlockEditor
     public function supports(): array
     {
         return [
+            // Out of the inserter while the reviews module is off; the block
+            // is still registered so the card templates that carry it keep
+            // parsing (see actions.php). Mirrored in the JS registration.
+            'inserter'             => ModuleSettings::isActive('reviews'),
             'html'                 => false,
             'align'                => ['left', 'center', 'right'],
             'typography'           => [
@@ -75,6 +80,8 @@ class ProductRatingBlockEditor extends BlockEditor
                 'name'        => static::getEditorName(),
                 'title'       => __('Product Rating', 'fluent-cart'),
                 'description' => __('Display the star rating for a product.', 'fluent-cart'),
+                // The editor draws nothing while the module is off.
+                'reviews_active' => ModuleSettings::isActive('reviews'),
             ],
             'fluent_cart_block_translation' => TransStrings::blockStrings(),
         ];
@@ -89,6 +96,11 @@ class ProductRatingBlockEditor extends BlockEditor
 
     public function render(array $shortCodeAttribute, $block = null)
     {
+        // No reviews module, no rating — whatever template carries the block.
+        if (!ModuleSettings::isActive('reviews')) {
+            return '';
+        }
+
         // Store-level kill switch: Settings → Store Settings → Product Page
         // → Product Rating. The block controls per-layout presence (it ships
         // in the loop templates and editors remove it freely); these toggles
@@ -110,37 +122,12 @@ class ProductRatingBlockEditor extends BlockEditor
             return '';
         }
 
-        // An average over one or two reviews says very little, and five empty
-        // stars on a new product reads as a bad rating rather than as no
-        // rating. This is where a store draws that line.
-        //
-        // Counted from detail->other_info, the canonical aggregate the
-        // renderer itself displays — recounting the rows here could disagree
-        // with the number printed beside the stars.
-        $minReviewCount = max(0, (int) Arr::get($shortCodeAttribute, 'minReviewCount', 0));
-
-        if ($minReviewCount > 0 && $this->reviewCount($product) < $minReviewCount) {
-            return '';
-        }
-
-        // The second half of the same question: how good the rating has to be
-        // before it is worth printing. A store showing ratings as a selling
-        // point can keep the two-star ones off the shelf edge.
-        //
-        // Clamped to the five the stars can draw — a threshold above 5 would
-        // hide every product, which is a setting no one means to choose.
-        $minAverageRating = min(5.0, max(0.0, (float) Arr::get($shortCodeAttribute, 'minAverageRating', 0)));
-
-        if ($minAverageRating > 0 && $this->averageRating($product) < $minAverageRating) {
-            return '';
-        }
-
         $wrapper_attributes = get_block_wrapper_attributes([
             'class' => 'fct-product-card-rating',
         ]);
 
         ob_start();
-        (new ProductCardRender($product))->renderStarRatingBlock($wrapper_attributes);
+        (new ProductCardRender($product))->renderStarRatingBlock($wrapper_attributes, $shortCodeAttribute, $block);
         return ob_get_clean();
     }
 

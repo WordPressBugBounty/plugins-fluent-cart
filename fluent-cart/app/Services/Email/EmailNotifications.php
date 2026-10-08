@@ -2,6 +2,7 @@
 
 namespace FluentCart\App\Services\Email;
 
+use FluentCart\Api\ModuleSettings;
 use FluentCart\App\Models\Meta;
 use FluentCart\App\Services\Cache;
 use FluentCart\App\Services\TemplateService;
@@ -18,10 +19,22 @@ class EmailNotifications
 
     const META_KEY = 'email_notifications_config';
 
+    /** The events the reviews module raises. */
+    const REVIEW_EVENTS = ['review_created', 'review_approved_done', 'review_replied_done'];
+
     public static function getNotifications(): array
     {
         $settings = static::getDefaultNotifications();
         $settings = apply_filters('fluent_cart/email_notifications', $settings);
+
+        // Review notifications are neither offered nor sent while the module
+        // is off; their stored settings are kept by name.
+        if (!ModuleSettings::isActive('reviews')) {
+            $settings = array_filter($settings, function ($setting) {
+                return !in_array(Arr::get($setting, 'event'), static::REVIEW_EVENTS, true);
+            });
+        }
+
         $config = Arr::get(static::cachedSettings(), 'notification_config', []);
 
         foreach ($settings as $key => &$setting) {

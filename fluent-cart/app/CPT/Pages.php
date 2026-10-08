@@ -2,6 +2,7 @@
 
 namespace FluentCart\App\CPT;
 
+use FluentCart\Api\ModuleSettings;
 use FluentCart\Api\StoreSettings;
 use FluentCart\App\Models\DynamicModel;
 use FluentCart\Framework\Support\Arr;
@@ -21,7 +22,7 @@ class Pages
 
     public function corePages(): array
     {
-        return [
+        $pages = [
             'checkout'         => [
                 'title'   => 'Checkout',
                 'content' => '[fluent_cart_checkout]'
@@ -47,6 +48,17 @@ class Pages
                 'content' => '<!-- wp:fluent-cart/customer-profile /-->'
             ]
         ];
+
+        // The order review page serves the reviews module. While the module
+        // is off it is not a page the store is missing: the dashboard must
+        // not ask for it, onboarding must not create it, and Pages Setup
+        // does not offer it (StoreSettings::fields()). Read per call, so
+        // switching the module on makes it wanted again at once.
+        if (!ModuleSettings::isActive('reviews')) {
+            unset($pages['order_review']);
+        }
+
+        return $pages;
     }
 
 
