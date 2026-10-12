@@ -1,0 +1,1 @@
+import{j as e}from"./jsx-runtime.js?ver=1.8.0";import{b as s}from"./BlockEditorTranslator.js?ver=1.8.0";const{Notice:t}=wp.components,n=()=>e.jsx(t,{status:"warning",isDismissible:!1,className:"fct-review-single-product-notice",children:s("Hidden on the page: a review needs a single product, and the Product Reviews block is showing several.")});export{n as S};

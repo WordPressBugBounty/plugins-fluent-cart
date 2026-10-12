@@ -633,6 +633,14 @@
         'file' => 'chunks/SingleProductContext.js',
         'name' => 'SingleProductContext'
     ],
+    '_SingleProductOnlyNotice.js' => [
+        'file' => 'chunks/SingleProductOnlyNotice.js',
+        'name' => 'SingleProductOnlyNotice',
+        'imports' => [
+            '_jsx-runtime.js',
+            '_BlockEditorTranslator.js'
+        ]
+    ],
     '_Str.js' => [
         'file' => 'chunks/Str.js',
         'name' => 'Str'
@@ -831,9 +839,14 @@
             '_SelectProductModal.js',
             '_BlockEditorTranslator.js',
             '_index6.js',
-            '_SingleProductContext.js',
-            '_add-query-args.js'
+            '_Icons.js',
+            '_add-query-args.js',
+            '_SingleProductContext.js'
         ]
+    ],
+    '_reviewPresets.js' => [
+        'file' => 'chunks/reviewPresets.js',
+        'name' => 'reviewPresets'
     ],
     '_reviewStar2.js' => [
         'file' => 'chunks/reviewStar2.js',
@@ -4043,6 +4056,7 @@
             '_EditorPanel.js',
             '_EditorPanelRow.js',
             '_reviewBlockShared.js',
+            '_SingleProductOnlyNotice.js',
             '_Icons.js',
             '_SelectProductModal.js',
             '_index6.js',
@@ -4125,6 +4139,7 @@
         'imports' => [
             '_jsx-runtime.js',
             '_reviewBlockShared.js',
+            '_reviewPresets.js',
             '_SingleProductContext.js',
             '_Icons.js',
             '_EditorPanel.js',
@@ -4147,6 +4162,7 @@
             '_jsx-runtime.js',
             '_reviewBlockShared.js',
             '_BlockEditorTranslator.js',
+            '_reviewPresets.js',
             '_SingleProductContext.js',
             '_Icons.js',
             '_EditorPanel.js',
@@ -4397,6 +4413,7 @@
             '_EditorPanel.js',
             '_EditorPanelRow.js',
             '_reviewBlockShared.js',
+            '_SingleProductOnlyNotice.js',
             '_SingleProductContext.js',
             '_Icons.js',
             '_add-query-args.js',
