@@ -3580,11 +3580,18 @@
     "isEntry": true,
     "imports": [
       "_jsx-runtime.js",
+      "_BlockEditorTranslator.js",
       "_reviewStar2.js",
       "_EditorPanel.js",
       "_ColorPickerField.js",
-      "_BlockEditorTranslator.js",
-      "_Icons.js"
+      "_Icons.js",
+      "_SelectVariationModal.js",
+      "_SelectProductModal.js",
+      "_EditorPanelRow.js",
+      "_ProductListItem.js",
+      "_index5.js",
+      "_index6.js",
+      "_add-query-args.js"
     ],
     "assets": [
       "assets/Checkout.png"
