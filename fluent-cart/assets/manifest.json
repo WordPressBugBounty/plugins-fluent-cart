@@ -11,7 +11,7 @@
       "_Url.js",
       "_IconButton.js",
       "_DynamicIcon.js",
-      "_CardBody.js",
+      "_RouteCell.js",
       "_CurrencyFormatter.js",
       "_OrderCustomerInformation.js",
       "_Rest.js",
@@ -101,7 +101,7 @@
       "_Translator.js",
       "_Rest.js",
       "_common.js",
-      "_index.js",
+      "_index3.js",
       "_Notify.js",
       "_DynamicIcon.js",
       "__plugin-vue_export-helper.js",
@@ -125,8 +125,8 @@
       "_Notify.js",
       "_DynamicIcon.js",
       "__plugin-vue_export-helper.js",
+      "_index4.js",
       "_index3.js",
-      "_index.js",
       "_IconButton.js",
       "_Utils.js",
       "_TransitionAccordion.js",
@@ -151,7 +151,6 @@
     "name": "CardBody",
     "imports": [
       "_vue.esm-bundler.js",
-      "_vue-router.js",
       "__plugin-vue_export-helper.js",
       "_DynamicIcon.js"
     ]
@@ -181,7 +180,7 @@
     "name": "CustomSelect",
     "imports": [
       "_jsx-runtime.js",
-      "_index5.js",
+      "_index6.js",
       "_BlockEditorTranslator.js"
     ]
   },
@@ -415,10 +414,11 @@
     "imports": [
       "_index.js",
       "_vue.esm-bundler.js",
-      "_index2.js",
       "_index3.js",
+      "_index2.js",
+      "_index4.js",
       "_dayjs.min.js",
-      "_index4.js"
+      "_index5.js"
     ]
   },
   "_EditorPanel.js": {
@@ -519,17 +519,19 @@
       "_Translator.js",
       "_Animation.js",
       "_Badge.js",
-      "_Rest.js",
-      "_Notify.js",
       "__plugin-vue_export-helper.js",
       "_Empty.js",
       "_common.js",
       "_IconButton.js",
       "_DynamicIcon.js",
-      "_CardBody.js",
+      "_RouteCell.js",
       "_UserCan.js",
       "_Arr.js",
       "_Asset.js",
+      "_CardBody.js",
+      "_Notify.js",
+      "_Rest.js",
+      "_index3.js",
       "_AddressComponent.js",
       "_NotFound.js",
       "_productService.js"
@@ -586,6 +588,14 @@
     "file": "chunks/Rest.js",
     "name": "Rest"
   },
+  "_RouteCell.js": {
+    "file": "chunks/RouteCell.js",
+    "name": "RouteCell",
+    "imports": [
+      "_vue.esm-bundler.js",
+      "_vue-router.js"
+    ]
+  },
   "_SelectProductModal.js": {
     "file": "chunks/SelectProductModal.js",
     "name": "SelectProductModal",
@@ -593,9 +603,9 @@
       "_jsx-runtime.js",
       "_Icons.js",
       "_BlockEditorTranslator.js",
-      "_index6.js",
+      "_index7.js",
       "_ProductListItem.js",
-      "_index5.js",
+      "_index6.js",
       "_add-query-args.js"
     ]
   },
@@ -606,8 +616,8 @@
       "_jsx-runtime.js",
       "_ProductListItem.js",
       "_Icons.js",
-      "_index5.js",
       "_index6.js",
+      "_index7.js",
       "_BlockEditorTranslator.js",
       "_add-query-args.js"
     ]
@@ -716,7 +726,8 @@
       "_Arr.js",
       "_Utils.js",
       "_CurrencyFormatter.js",
-      "_index.js"
+      "_index.js",
+      "_index3.js"
     ]
   },
   "_countries.js": {
@@ -741,7 +752,7 @@
     "imports": [
       "_vue.esm-bundler.js",
       "_Translator.js",
-      "_index4.js",
+      "_index5.js",
       "_IconButton.js",
       "_DynamicIcon.js",
       "_index.js",
@@ -773,7 +784,8 @@
     "imports": [
       "_vue.esm-bundler.js",
       "_index.js",
-      "_index4.js",
+      "_index3.js",
+      "_index5.js",
       "_dayjs.min.js",
       "_weekOfYear.js"
     ]
@@ -791,18 +803,27 @@
     "name": "index",
     "imports": [
       "_vue.esm-bundler.js",
-      "_index.js"
+      "_index.js",
+      "_index3.js"
     ]
   },
   "_index5.js": {
     "file": "chunks/index5.js",
     "name": "index",
     "imports": [
-      "_jsx-runtime.js"
+      "_vue.esm-bundler.js",
+      "_index.js"
     ]
   },
   "_index6.js": {
     "file": "chunks/index6.js",
+    "name": "index",
+    "imports": [
+      "_jsx-runtime.js"
+    ]
+  },
+  "_index7.js": {
+    "file": "chunks/index7.js",
     "name": "index"
   },
   "_jsx-runtime.js": {
@@ -838,7 +859,7 @@
       "_EditorPanelRow.js",
       "_SelectProductModal.js",
       "_BlockEditorTranslator.js",
-      "_index6.js",
+      "_index7.js",
       "_Icons.js",
       "_add-query-args.js",
       "_SingleProductContext.js"
@@ -865,7 +886,8 @@
     "imports": [
       "_index.js",
       "_index2.js",
-      "_index3.js"
+      "_index3.js",
+      "_index4.js"
     ]
   },
   "_useElementor.js": {
@@ -873,6 +895,16 @@
     "name": "useElementor",
     "imports": [
       "_Arr.js"
+    ]
+  },
+  "_useExport.js": {
+    "file": "chunks/useExport.js",
+    "name": "useExport",
+    "imports": [
+      "_vue.esm-bundler.js",
+      "_Rest.js",
+      "_Notify.js",
+      "_Translator.js"
     ]
   },
   "_vue-router.js": {
@@ -891,6 +923,26 @@
     "name": "weekOfYear",
     "imports": [
       "_dayjs.min.js"
+    ]
+  },
+  "resources/accounting-export/accounting-export.js": {
+    "file": "accounting-export.js",
+    "name": "accounting-export",
+    "src": "resources/accounting-export/accounting-export.js",
+    "isEntry": true,
+    "imports": [
+      "_Translator.js",
+      "_vue.esm-bundler.js",
+      "_CardBody.js",
+      "_useExport.js",
+      "_Arr.js",
+      "__plugin-vue_export-helper.js",
+      "_DynamicIcon.js",
+      "_preload-helper.js",
+      "_Rest.js",
+      "_Notify.js",
+      "_Str.js",
+      "_index.js"
     ]
   },
   "resources/addon-assets/addon-assets.js": {
@@ -912,6 +964,7 @@
       "_Utils.js",
       "_CurrencyFormatter.js",
       "_index.js",
+      "_index3.js",
       "_IconButton.js",
       "_DynamicIcon.js",
       "_preload-helper.js",
@@ -1015,19 +1068,21 @@
       "_Utils.js",
       "_CurrencyFormatter.js",
       "_index.js",
+      "_index3.js",
       "_vue-router.js",
       "_Url.js",
       "_DynamicIcon.js",
       "_preload-helper.js",
       "__plugin-vue_export-helper.js",
-      "_index3.js",
+      "_index4.js",
       "_IconButton.js",
       "_TransitionAccordion.js",
       "_Animation.js",
       "_Empty.js",
-      "_CardBody.js",
+      "_RouteCell.js",
       "_UserCan.js",
       "_Asset.js",
+      "_CardBody.js",
       "_AddressComponent.js",
       "_NotFound.js",
       "_productService.js"
@@ -1052,6 +1107,7 @@
       "_Utils.js",
       "_CurrencyFormatter.js",
       "_index.js",
+      "_index3.js",
       "_Model.js",
       "_Rest.js",
       "_vue-router.js",
@@ -1060,7 +1116,7 @@
       "_DynamicIcon.js",
       "_preload-helper.js",
       "__plugin-vue_export-helper.js",
-      "_index3.js",
+      "_index4.js",
       "_IconButton.js",
       "_TransitionAccordion.js"
     ]
@@ -1120,25 +1176,28 @@
       "_Utils.js",
       "_CurrencyFormatter.js",
       "_index.js",
+      "_index3.js",
       "_Url.js",
       "_Notify.js",
       "__plugin-vue_export-helper.js",
-      "_index3.js",
+      "_index4.js",
       "_TransitionAccordion.js",
       "_PageHeading.js",
       "_OrderCustomerInformation.js",
       "_Animation.js",
       "_Empty.js",
-      "_CardBody.js",
+      "_RouteCell.js",
       "_UserCan.js",
       "_Asset.js",
+      "_CardBody.js",
       "_AddressComponent.js",
       "_NotFound.js",
       "_productService.js",
       "_Activity.js",
       "_BundleProducts.js",
+      "_useExport.js",
       "_dateShortCuts.js",
-      "_index4.js",
+      "_index5.js",
       "_countries.js",
       "_index2.js",
       "_AttrGroups.js",
@@ -1176,26 +1235,29 @@
       "_Utils.js",
       "_CurrencyFormatter.js",
       "_index.js",
+      "_index3.js",
       "_Url.js",
       "_Notify.js",
       "__plugin-vue_export-helper.js",
-      "_index3.js",
+      "_index4.js",
       "_IconButton.js",
       "_TransitionAccordion.js",
       "_PageHeading.js",
       "_OrderCustomerInformation.js",
       "_Animation.js",
       "_Empty.js",
-      "_CardBody.js",
+      "_RouteCell.js",
       "_UserCan.js",
       "_Asset.js",
+      "_CardBody.js",
       "_AddressComponent.js",
       "_NotFound.js",
       "_productService.js",
       "_Activity.js",
       "_BundleProducts.js",
+      "_useExport.js",
       "_dateShortCuts.js",
-      "_index4.js",
+      "_index5.js",
       "_countries.js",
       "_index2.js",
       "_AttrGroups.js",
@@ -1270,12 +1332,13 @@
       "_Utils.js",
       "_CurrencyFormatter.js",
       "_index.js",
+      "_index3.js",
       "_vue-router.js",
       "_Url.js",
       "_DynamicIcon.js",
       "_preload-helper.js",
       "__plugin-vue_export-helper.js",
-      "_index3.js",
+      "_index4.js",
       "_IconButton.js"
     ]
   },
@@ -1299,13 +1362,14 @@
       "_Utils.js",
       "_CurrencyFormatter.js",
       "_index.js",
+      "_index3.js",
       "_vue-router.js",
       "_Url.js",
       "_Notify.js",
       "_DynamicIcon.js",
       "_preload-helper.js",
       "__plugin-vue_export-helper.js",
-      "_index3.js",
+      "_index4.js",
       "_IconButton.js",
       "_TransitionAccordion.js"
     ]
@@ -3458,14 +3522,14 @@
     "imports": [
       "_jsx-runtime.js",
       "_BlockEditorTranslator.js",
-      "_index6.js",
+      "_index7.js",
       "_SingleProductContext.js",
       "_Icons.js",
       "_SelectVariationModal.js",
       "_add-query-args.js",
       "_reviewStar2.js",
       "_ProductListItem.js",
-      "_index5.js"
+      "_index6.js"
     ]
   },
   "resources/admin/BlockEditor/Buttons/BuyNowButtonBlockEditor.jsx": {
@@ -3476,12 +3540,12 @@
     "imports": [
       "_jsx-runtime.js",
       "_BlockEditorTranslator.js",
-      "_index6.js",
+      "_index7.js",
       "_SelectVariationModal.js",
       "_Icons.js",
       "_add-query-args.js",
       "_ProductListItem.js",
-      "_index5.js",
+      "_index6.js",
       "_reviewStar2.js"
     ]
   },
@@ -3502,14 +3566,14 @@
     "imports": [
       "_jsx-runtime.js",
       "_BlockEditorTranslator.js",
-      "_index6.js",
+      "_index7.js",
       "_EditorPanel.js",
       "_EditorPanelRow.js",
       "_CustomSelect.js",
       "_SelectProductModal.js",
       "_Icons.js",
       "_add-query-args.js",
-      "_index5.js",
+      "_index6.js",
       "_ProductListItem.js",
       "_reviewStar2.js"
     ],
@@ -3552,7 +3616,7 @@
     "isEntry": true,
     "imports": [
       "_jsx-runtime.js",
-      "_index6.js",
+      "_index7.js",
       "_SingleProductContext.js",
       "_Icons.js",
       "_BlockEditorTranslator.js",
@@ -3589,8 +3653,8 @@
       "_SelectProductModal.js",
       "_EditorPanelRow.js",
       "_ProductListItem.js",
-      "_index5.js",
       "_index6.js",
+      "_index7.js",
       "_add-query-args.js"
     ],
     "assets": [
@@ -3616,6 +3680,23 @@
     "file": "assets/fct-global-block-editor.css",
     "src": "resources/admin/BlockEditor/Components/style/fct-global-block-editor.scss",
     "isEntry": true
+  },
+  "resources/admin/BlockEditor/Components/style/fct-pro-feature.scss": {
+    "file": "assets/fct-pro-feature.css",
+    "src": "resources/admin/BlockEditor/Components/style/fct-pro-feature.scss",
+    "isEntry": true
+  },
+  "resources/admin/BlockEditor/CurrencySwitcher/CurrencySwitcherBlockEditor.jsx": {
+    "file": "CurrencySwitcherBlockEditor.js",
+    "name": "CurrencySwitcherBlockEditor",
+    "src": "resources/admin/BlockEditor/CurrencySwitcher/CurrencySwitcherBlockEditor.jsx",
+    "isEntry": true,
+    "imports": [
+      "_jsx-runtime.js",
+      "_BlockEditorTranslator.js",
+      "_Icons.js",
+      "_reviewStar2.js"
+    ]
   },
   "resources/admin/BlockEditor/CustomerDashboardButton/CustomerDashboardButtonBlockEditor.jsx": {
     "file": "CustomerDashboardButtonBlockEditor.js",
@@ -3666,7 +3747,7 @@
     "imports": [
       "_jsx-runtime.js",
       "_BlockEditorTranslator.js",
-      "_index6.js",
+      "_index7.js",
       "_SelectProductModal.js",
       "_EditorPanel.js",
       "_EditorPanelRow.js",
@@ -3674,7 +3755,7 @@
       "_Icons.js",
       "_add-query-args.js",
       "_ProductListItem.js",
-      "_index5.js",
+      "_index6.js",
       "_reviewStar2.js"
     ]
   },
@@ -3706,7 +3787,7 @@
     "imports": [
       "_jsx-runtime.js",
       "_Icons.js",
-      "_index6.js",
+      "_index7.js",
       "_EditorPanel.js",
       "_EditorPanelRow.js",
       "_BlockEditorTranslator.js",
@@ -3716,7 +3797,7 @@
       "_add-query-args.js",
       "_reviewStar2.js",
       "_ProductListItem.js",
-      "_index5.js"
+      "_index6.js"
     ],
     "assets": [
       "assets/ProductGallery.png"
@@ -3738,7 +3819,7 @@
     "isEntry": true,
     "imports": [
       "_jsx-runtime.js",
-      "_index6.js",
+      "_index7.js",
       "_SelectProductModal.js",
       "_CustomSelect.js",
       "_EditorPanel.js",
@@ -3748,7 +3829,7 @@
       "_Icons.js",
       "_add-query-args.js",
       "_ProductListItem.js",
-      "_index5.js",
+      "_index6.js",
       "_reviewStar2.js"
     ]
   },
@@ -3768,11 +3849,11 @@
     "isEntry": true,
     "imports": [
       "_jsx-runtime.js",
-      "_index5.js",
+      "_index6.js",
       "_Icons.js",
       "_ProductListItem.js",
       "_SelectVariationModal.js",
-      "_index6.js",
+      "_index7.js",
       "_ColorPickerField.js",
       "_EditorPanel.js",
       "_BlockEditorTranslator.js",
@@ -3802,7 +3883,7 @@
       "_jsx-runtime.js",
       "_Icons.js",
       "_BlockEditorTranslator.js",
-      "_index6.js",
+      "_index7.js",
       "_EditorPanel.js",
       "_EditorPanelRow.js",
       "_CustomSelect.js",
@@ -3810,7 +3891,7 @@
       "_ErrorBoundary.js",
       "_add-query-args.js",
       "_reviewStar2.js",
-      "_index5.js",
+      "_index6.js",
       "_ProductListItem.js"
     ],
     "assets": [
@@ -3848,7 +3929,7 @@
     "imports": [
       "_jsx-runtime.js",
       "_Icons.js",
-      "_index6.js",
+      "_index7.js",
       "_EditorPanel.js",
       "_EditorPanelRow.js",
       "_BlockEditorTranslator.js",
@@ -3858,7 +3939,7 @@
       "_ProductContext.js",
       "_add-query-args.js",
       "_reviewStar2.js",
-      "_index5.js",
+      "_index6.js",
       "_ProductListItem.js"
     ],
     "assets": [
@@ -3895,7 +3976,7 @@
     "imports": [
       "_jsx-runtime.js",
       "_BlockEditorTranslator.js",
-      "_index6.js",
+      "_index7.js",
       "_SelectProductModal.js",
       "_EditorPanel.js",
       "_EditorPanelRow.js",
@@ -3904,7 +3985,7 @@
       "_Icons.js",
       "_add-query-args.js",
       "_ProductListItem.js",
-      "_index5.js",
+      "_index6.js",
       "_reviewStar2.js"
     ]
   },
@@ -3927,7 +4008,7 @@
       "_Icons.js",
       "_SelectVariationModal.js",
       "_BlockEditorTranslator.js",
-      "_index6.js",
+      "_index7.js",
       "_EditorPanel.js",
       "_EditorPanelRow.js",
       "_CustomSelect.js",
@@ -3936,7 +4017,7 @@
       "_add-query-args.js",
       "_reviewStar2.js",
       "_ProductListItem.js",
-      "_index5.js"
+      "_index6.js"
     ],
     "assets": [
       "assets/ProductGallery.png"
@@ -3954,7 +4035,7 @@
     "isEntry": true,
     "imports": [
       "_jsx-runtime.js",
-      "_index6.js",
+      "_index7.js",
       "_SelectProductModal.js",
       "_EditorPanel.js",
       "_EditorPanelRow.js",
@@ -3963,7 +4044,7 @@
       "_Icons.js",
       "_add-query-args.js",
       "_ProductListItem.js",
-      "_index5.js",
+      "_index6.js",
       "_reviewStar2.js"
     ]
   },
@@ -3984,7 +4065,7 @@
     "imports": [
       "_jsx-runtime.js",
       "_Icons.js",
-      "_index6.js",
+      "_index7.js",
       "_SelectProductModal.js",
       "_EditorPanel.js",
       "_EditorPanelRow.js",
@@ -3993,7 +4074,7 @@
       "_add-query-args.js",
       "_reviewStar2.js",
       "_ProductListItem.js",
-      "_index5.js"
+      "_index6.js"
     ],
     "assets": [
       "assets/ProductInfo.png"
@@ -4012,7 +4093,7 @@
     "imports": [
       "_jsx-runtime.js",
       "_BlockEditorTranslator.js",
-      "_index6.js",
+      "_index7.js",
       "_EditorPanel.js",
       "_EditorPanelRow.js",
       "_ErrorBoundary.js",
@@ -4039,9 +4120,9 @@
       "_reviewBlockShared.js",
       "_Icons.js",
       "_SelectProductModal.js",
-      "_index6.js",
+      "_index7.js",
       "_ProductListItem.js",
-      "_index5.js",
+      "_index6.js",
       "_add-query-args.js",
       "_SingleProductContext.js",
       "_reviewStar2.js"
@@ -4066,9 +4147,9 @@
       "_SingleProductOnlyNotice.js",
       "_Icons.js",
       "_SelectProductModal.js",
-      "_index6.js",
+      "_index7.js",
       "_ProductListItem.js",
-      "_index5.js",
+      "_index6.js",
       "_add-query-args.js",
       "_SingleProductContext.js",
       "_reviewStar2.js"
@@ -4104,9 +4185,9 @@
       "_reviewBlockShared.js",
       "_Icons.js",
       "_SelectProductModal.js",
-      "_index6.js",
+      "_index7.js",
       "_ProductListItem.js",
-      "_index5.js",
+      "_index6.js",
       "_add-query-args.js",
       "_SingleProductContext.js",
       "_reviewStar2.js"
@@ -4130,9 +4211,9 @@
       "_reviewBlockShared.js",
       "_Icons.js",
       "_SelectProductModal.js",
-      "_index6.js",
+      "_index7.js",
       "_ProductListItem.js",
-      "_index5.js",
+      "_index6.js",
       "_add-query-args.js",
       "_SingleProductContext.js",
       "_reviewStar2.js"
@@ -4153,9 +4234,9 @@
       "_EditorPanelRow.js",
       "_SelectProductModal.js",
       "_BlockEditorTranslator.js",
-      "_index6.js",
+      "_index7.js",
       "_ProductListItem.js",
-      "_index5.js",
+      "_index6.js",
       "_add-query-args.js",
       "_reviewStar2.js"
     ]
@@ -4175,9 +4256,9 @@
       "_EditorPanel.js",
       "_EditorPanelRow.js",
       "_SelectProductModal.js",
-      "_index6.js",
+      "_index7.js",
       "_ProductListItem.js",
-      "_index5.js",
+      "_index6.js",
       "_add-query-args.js",
       "_reviewStar2.js"
     ]
@@ -4195,7 +4276,7 @@
     "imports": [
       "_jsx-runtime.js",
       "_BlockEditorTranslator.js",
-      "_index6.js",
+      "_index7.js",
       "_SelectVariationModal.js",
       "_EditorPanel.js",
       "_EditorPanelRow.js",
@@ -4204,7 +4285,7 @@
       "_Icons.js",
       "_add-query-args.js",
       "_ProductListItem.js",
-      "_index5.js",
+      "_index6.js",
       "_reviewStar2.js"
     ]
   },
@@ -4221,7 +4302,7 @@
     "imports": [
       "_jsx-runtime.js",
       "_BlockEditorTranslator.js",
-      "_index6.js",
+      "_index7.js",
       "_SelectProductModal.js",
       "_EditorPanel.js",
       "_EditorPanelRow.js",
@@ -4229,7 +4310,7 @@
       "_Icons.js",
       "_add-query-args.js",
       "_ProductListItem.js",
-      "_index5.js",
+      "_index6.js",
       "_reviewStar2.js"
     ]
   },
@@ -4252,7 +4333,7 @@
     "imports": [
       "_jsx-runtime.js",
       "_Icons.js",
-      "_index6.js",
+      "_index7.js",
       "_BlockEditorTranslator.js",
       "_add-query-args.js",
       "_SingleProductContext.js",
@@ -4272,7 +4353,7 @@
     "imports": [
       "_jsx-runtime.js",
       "_BlockEditorTranslator.js",
-      "_index6.js",
+      "_index7.js",
       "_SelectProductModal.js",
       "_EditorPanel.js",
       "_EditorPanelRow.js",
@@ -4281,7 +4362,7 @@
       "_ErrorBoundary.js",
       "_add-query-args.js",
       "_ProductListItem.js",
-      "_index5.js",
+      "_index6.js",
       "_reviewStar2.js"
     ]
   },
@@ -4302,7 +4383,7 @@
     "imports": [
       "_jsx-runtime.js",
       "_BlockEditorTranslator.js",
-      "_index5.js",
+      "_index6.js",
       "_Icons.js",
       "_reviewStar2.js"
     ],
@@ -4342,8 +4423,8 @@
       "_Icons.js",
       "_ErrorBoundary.js",
       "_ProductContext.js",
+      "_index7.js",
       "_index6.js",
-      "_index5.js",
       "_reviewStar2.js"
     ],
     "assets": [
@@ -4388,12 +4469,12 @@
       "_EditorPanel.js",
       "_EditorPanelRow.js",
       "_BlockEditorTranslator.js",
-      "_index6.js",
+      "_index7.js",
       "_SingleProductContext.js",
       "_add-query-args.js",
       "_reviewStar2.js",
       "_ProductListItem.js",
-      "_index5.js"
+      "_index6.js"
     ]
   },
   "resources/admin/BlockEditor/StoreLogo/StoreLogoBlockEditor.jsx": {
@@ -4415,7 +4496,7 @@
     "isEntry": true,
     "imports": [
       "_jsx-runtime.js",
-      "_index6.js",
+      "_index7.js",
       "_BlockEditorTranslator.js",
       "_EditorPanel.js",
       "_EditorPanelRow.js",
@@ -4426,7 +4507,7 @@
       "_add-query-args.js",
       "_SelectProductModal.js",
       "_ProductListItem.js",
-      "_index5.js",
+      "_index6.js",
       "_reviewStar2.js"
     ]
   },
@@ -4464,8 +4545,9 @@
       "_Translator.js",
       "_DynamicIcon.js",
       "resources/admin/Modules/Products/FluentPlayer/fluent-player-gallery.js",
-      "_index.js",
+      "_index3.js",
       "_Str.js",
+      "_index.js",
       "_Arr.js",
       "_preload-helper.js",
       "_galleryTabs.js"
@@ -4491,30 +4573,33 @@
       "_common.js",
       "_Arr.js",
       "_preload-helper.js",
-      "_vue-router.js",
       "_dayjs.min.js",
       "_timezone.js",
       "_weekOfYear.js",
+      "_vue-router.js",
       "_Badge.js",
       "_Model.js",
       "_Url.js",
       "_Str.js",
       "_Notify.js",
       "_index.js",
+      "_index4.js",
       "_index3.js",
       "_IconButton.js",
       "_Utils.js",
       "_TransitionAccordion.js",
       "_OrderCustomerInformation.js",
       "_Animation.js",
+      "_RouteCell.js",
       "_Asset.js",
       "_AddressComponent.js",
       "_NotFound.js",
       "_productService.js",
       "_Activity.js",
       "_BundleProducts.js",
+      "_useExport.js",
       "_dateShortCuts.js",
-      "_index4.js",
+      "_index5.js",
       "_countries.js",
       "_index2.js",
       "_AttrGroups.js",
@@ -4541,7 +4626,7 @@
       "_Badge.js",
       "_Translator.js",
       "_Arr.js",
-      "_CardBody.js",
+      "_RouteCell.js",
       "_Rest.js",
       "_IconButton.js",
       "_DynamicIcon.js",
@@ -4549,9 +4634,11 @@
       "__plugin-vue_export-helper.js",
       "_vue-router.js",
       "_countries.js",
+      "_CardBody.js",
       "_index.js",
       "_NotFound.js",
       "_Animation.js",
+      "_index3.js",
       "_Model.js",
       "_common.js",
       "_dayjs.min.js",
@@ -4561,7 +4648,7 @@
       "_Utils.js",
       "_CurrencyFormatter.js",
       "_Url.js",
-      "_index3.js",
+      "_index4.js",
       "_TransitionAccordion.js",
       "_preload-helper.js",
       "_Asset.js"
@@ -4586,11 +4673,13 @@
       "_DynamicIcon.js",
       "_OrderCustomerInformation.js",
       "_UserCan.js",
+      "_useExport.js",
       "_CardBody.js",
       "_Str.js",
       "_dayjs.min.js",
       "_Utils.js",
       "_Notify.js",
+      "_index3.js",
       "_CurrencyFormatter.js",
       "_NotFound.js",
       "_Arr.js",
@@ -4600,10 +4689,11 @@
       "_vue-router.js",
       "_Url.js",
       "_timezone.js",
-      "_index3.js",
+      "_index4.js",
       "_IconButton.js",
       "_TransitionAccordion.js",
       "_Empty.js",
+      "_RouteCell.js",
       "_BundleProducts.js",
       "_preload-helper.js",
       "_Animation.js",
@@ -4640,16 +4730,19 @@
       "_CurrencyFormatter.js",
       "_Activity.js",
       "_Empty.js",
-      "_CardBody.js",
+      "_RouteCell.js",
       "_DynamicIcon.js",
       "__plugin-vue_export-helper.js",
+      "_useExport.js",
       "_common.js",
       "_IconButton.js",
+      "_CardBody.js",
       "_Model.js",
       "_Rest.js",
       "_dayjs.min.js",
       "_Notify.js",
       "_Animation.js",
+      "_index3.js",
       "_dateShortCuts.js",
       "_countries.js",
       "_NotFound.js",
@@ -4667,14 +4760,14 @@
       "_BundleProducts.js",
       "resources/admin/Bits/Components/Icons/ReviewStar.vue",
       "_galleryTabs.js",
-      "_index3.js",
+      "_index4.js",
       "_TransitionAccordion.js",
       "_FileUploaderDialog.js",
       "resources/admin/Bits/Components/Icons/Screenshot.vue",
       "_useElementPlusComponents.js",
       "_AddressComponent.js",
       "_weekOfYear.js",
-      "_index4.js",
+      "_index5.js",
       "_reviewStar2.js"
     ],
     "dynamicImports": [
@@ -4721,10 +4814,11 @@
       "__plugin-vue_export-helper.js",
       "_index.js",
       "_index2.js",
-      "_index4.js",
+      "_index3.js",
+      "_index5.js",
       "_dayjs.min.js",
       "_weekOfYear.js",
-      "_index3.js",
+      "_index4.js",
       "_Arr.js",
       "_DynamicIcon.js",
       "_preload-helper.js",
@@ -4756,10 +4850,11 @@
       "_Translator.js",
       "_index.js",
       "_index2.js",
-      "_index4.js",
+      "_index3.js",
+      "_index5.js",
       "_dayjs.min.js",
       "_weekOfYear.js",
-      "_index3.js",
+      "_index4.js",
       "_Arr.js",
       "__plugin-vue_export-helper.js",
       "_add-query-args.js"
@@ -4782,10 +4877,11 @@
       "__plugin-vue_export-helper.js",
       "_index.js",
       "_index2.js",
-      "_index4.js",
+      "_index3.js",
+      "_index5.js",
       "_dayjs.min.js",
       "_weekOfYear.js",
-      "_index3.js",
+      "_index4.js",
       "_DynamicIcon.js",
       "_preload-helper.js",
       "resources/admin/Bits/Components/Icons/CaretRight.vue",
@@ -4824,10 +4920,11 @@
       "resources/admin/Bits/Components/Icons/Delete.vue",
       "_index.js",
       "_index2.js",
-      "_index4.js",
+      "_index3.js",
+      "_index5.js",
       "_dayjs.min.js",
       "_weekOfYear.js",
-      "_index3.js",
+      "_index4.js",
       "_DynamicIcon.js",
       "_preload-helper.js",
       "_Str.js",
@@ -4858,10 +4955,11 @@
       "_Rest.js",
       "_index.js",
       "_index2.js",
-      "_index4.js",
+      "_index3.js",
+      "_index5.js",
       "_dayjs.min.js",
       "_weekOfYear.js",
-      "_index3.js",
+      "_index4.js",
       "_Arr.js"
     ]
   },
@@ -4877,10 +4975,11 @@
       "_Translator.js",
       "_index.js",
       "_index2.js",
-      "_index4.js",
+      "_index3.js",
+      "_index5.js",
       "_dayjs.min.js",
       "_weekOfYear.js",
-      "_index3.js",
+      "_index4.js",
       "__plugin-vue_export-helper.js",
       "_Arr.js"
     ]
@@ -4926,6 +5025,7 @@
       "_Utils.js",
       "_CurrencyFormatter.js",
       "_index.js",
+      "_index3.js",
       "_Notify.js",
       "_DynamicIcon.js",
       "_preload-helper.js",
@@ -4963,16 +5063,19 @@
       "_Rest.js",
       "_IconButton.js",
       "_UserCan.js",
+      "_RouteCell.js",
+      "_useExport.js",
       "_Utils.js",
       "_Str.js",
       "_Arr.js",
       "_CurrencyFormatter.js",
       "_vue-router.js",
-      "_index4.js",
+      "_index5.js",
       "_preload-helper.js",
       "_Url.js",
       "_timezone.js",
       "_Notify.js",
+      "_index4.js",
       "_index3.js",
       "_TransitionAccordion.js",
       "_weekOfYear.js",
@@ -4995,13 +5098,14 @@
       "_Badge.js",
       "_PageHeading.js",
       "_Empty.js",
-      "_CardBody.js",
+      "_RouteCell.js",
       "_DynamicIcon.js",
       "_common.js",
       "_Notify.js",
       "_Rest.js",
       "_ProductVariationSelector.js",
       "_vue-router.js",
+      "_CardBody.js",
       "_index.js",
       "_IconButton.js",
       "__plugin-vue_export-helper.js",
@@ -5011,6 +5115,7 @@
       "_Str.js",
       "_dayjs.min.js",
       "_timezone.js",
+      "_index4.js",
       "_index3.js",
       "_Utils.js",
       "_weekOfYear.js",
@@ -5157,6 +5262,7 @@
       "_common.js",
       "_IconButton.js",
       "_index.js",
+      "_index3.js",
       "_vue-router.js",
       "_Translator.js",
       "resources/admin/Bits/Components/Icons/ArrowDown.vue",
@@ -5166,7 +5272,7 @@
       "_Animation.js",
       "_Notify.js",
       "_DynamicTemplateParser.js",
-      "_index3.js",
+      "_index4.js",
       "resources/admin/Bits/Components/Icons/ReviewStar.vue",
       "_index2.js",
       "_preload-helper.js",
@@ -5174,7 +5280,7 @@
       "_Utils.js",
       "_CurrencyFormatter.js",
       "_TransitionAccordion.js",
-      "_index4.js",
+      "_index5.js",
       "_reviewStar2.js"
     ],
     "css": [
@@ -5475,9 +5581,10 @@
       "_weekOfYear.js",
       "_Utils.js",
       "_index.js",
+      "_index3.js",
       "_vue-router.js",
       "_Url.js",
-      "_index3.js",
+      "_index4.js",
       "_TransitionAccordion.js",
       "_preload-helper.js"
     ],
