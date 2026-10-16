@@ -3,7 +3,8 @@
     "file": "chunks/Activity.js",
     "name": "Activity",
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
+      "_OrderCustomerInformation.js",
       "_Empty.js",
       "_Badge.js",
       "_Translator.js",
@@ -13,7 +14,6 @@
       "_DynamicIcon.js",
       "_RouteCell.js",
       "_CurrencyFormatter.js",
-      "_OrderCustomerInformation.js",
       "_Rest.js",
       "_Notify.js",
       "_NotFound.js",
@@ -21,8 +21,9 @@
       "_Arr.js",
       "_common.js",
       "_BundleProducts.js",
+      "_UserCan.js",
       "__plugin-vue_export-helper.js",
-      "_Utils.js"
+      "_module-dayjs.js"
     ]
   },
   "_AddProductItemModal.css": {
@@ -33,7 +34,7 @@
     "file": "chunks/AddProductItemModal.js",
     "name": "AddProductItemModal",
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "_DynamicIcon.js",
       "resources/admin/Bits/Components/Icons/CaretRight.vue",
       "_Str.js",
@@ -56,7 +57,7 @@
     "file": "chunks/AddressComponent.js",
     "name": "AddressComponent",
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "_Rest.js",
       "_Translator.js",
       "_Animation.js"
@@ -73,7 +74,7 @@
     "file": "chunks/Animation.js",
     "name": "Animation",
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js",
       "_TransitionAccordion.js"
     ],
@@ -97,11 +98,11 @@
     "file": "chunks/AttrGroups.js",
     "name": "AttrGroups",
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "_Translator.js",
       "_Rest.js",
+      "_index.js",
       "_common.js",
-      "_index3.js",
       "_Notify.js",
       "_DynamicIcon.js",
       "__plugin-vue_export-helper.js",
@@ -113,22 +114,20 @@
     "name": "Badge",
     "imports": [
       "_Model.js",
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "_common.js",
       "_Rest.js",
       "_vue-router.js",
       "_Url.js",
       "_Arr.js",
       "_Translator.js",
-      "_dayjs.min.js",
-      "_timezone.js",
+      "_vendor-dayjs.js",
       "_Notify.js",
+      "_index.js",
       "_DynamicIcon.js",
       "__plugin-vue_export-helper.js",
-      "_index4.js",
-      "_index3.js",
       "_IconButton.js",
-      "_Utils.js",
+      "_module-dayjs.js",
       "_TransitionAccordion.js",
       "_Str.js"
     ]
@@ -142,7 +141,7 @@
     "name": "BundleProducts",
     "imports": [
       "_DynamicIcon.js",
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -150,7 +149,7 @@
     "file": "chunks/CardBody.js",
     "name": "CardBody",
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js",
       "_DynamicIcon.js"
     ]
@@ -169,9 +168,7 @@
     "name": "CurrencyFormatter",
     "imports": [
       "_Arr.js",
-      "_dayjs.min.js",
-      "_timezone.js",
-      "_weekOfYear.js",
+      "_vendor-dayjs.js",
       "_Translator.js"
     ]
   },
@@ -180,7 +177,7 @@
     "name": "CustomSelect",
     "imports": [
       "_jsx-runtime.js",
-      "_index6.js",
+      "_index2.js",
       "_BlockEditorTranslator.js"
     ]
   },
@@ -189,7 +186,7 @@
     "name": "DynamicIcon",
     "imports": [
       "_preload-helper.js",
-      "_vue.esm-bundler.js"
+      "_vendor-vue.js"
     ],
     "dynamicImports": [
       "resources/admin/Bits/Components/Icons/Access.vue",
@@ -236,6 +233,7 @@
       "resources/admin/Bits/Components/Icons/Collapse.vue",
       "resources/admin/Bits/Components/Icons/ColorPicker.vue",
       "resources/admin/Bits/Components/Icons/ColumnIcon.vue",
+      "resources/admin/Bits/Components/Icons/Compliance.vue",
       "resources/admin/Bits/Components/Icons/Condition.vue",
       "resources/admin/Bits/Components/Icons/Configuration.vue",
       "resources/admin/Bits/Components/Icons/Copy.vue",
@@ -412,13 +410,7 @@
     "file": "chunks/DynamicTemplateParser.js",
     "name": "DynamicTemplateParser",
     "imports": [
-      "_index.js",
-      "_vue.esm-bundler.js",
-      "_index3.js",
-      "_index2.js",
-      "_index4.js",
-      "_dayjs.min.js",
-      "_index5.js"
+      "_vendor-vue.js"
     ]
   },
   "_EditorPanel.js": {
@@ -439,7 +431,7 @@
     "file": "chunks/Empty.js",
     "name": "Empty",
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "_DynamicIcon.js"
     ]
   },
@@ -455,7 +447,7 @@
     "file": "chunks/FileUploaderDialog.js",
     "name": "FileUploaderDialog",
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "_common.js",
       "_IconButton.js",
       "_DynamicIcon.js",
@@ -469,7 +461,7 @@
     "file": "chunks/IconButton.js",
     "name": "IconButton",
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -486,7 +478,7 @@
     "name": "Model",
     "imports": [
       "_Rest.js",
-      "_vue.esm-bundler.js"
+      "_vendor-vue.js"
     ]
   },
   "_NotFound.js": {
@@ -494,7 +486,7 @@
     "name": "NotFound",
     "imports": [
       "_DynamicIcon.js",
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js",
       "_Asset.js",
       "_Translator.js",
@@ -505,33 +497,28 @@
     "file": "chunks/Notify.js",
     "name": "Notify",
     "imports": [
+      "_index.js",
       "_Str.js",
-      "_Translator.js",
-      "_index.js"
+      "_Translator.js"
     ]
   },
   "_OrderCustomerInformation.js": {
     "file": "chunks/OrderCustomerInformation.js",
     "name": "OrderCustomerInformation",
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "_index.js",
       "_Translator.js",
       "_Animation.js",
       "_Badge.js",
       "__plugin-vue_export-helper.js",
-      "_Empty.js",
-      "_common.js",
+      "_CardBody.js",
+      "_UserCan.js",
       "_IconButton.js",
       "_DynamicIcon.js",
-      "_RouteCell.js",
-      "_UserCan.js",
-      "_Arr.js",
-      "_Asset.js",
-      "_CardBody.js",
+      "_common.js",
       "_Notify.js",
       "_Rest.js",
-      "_index3.js",
       "_AddressComponent.js",
       "_NotFound.js",
       "_productService.js"
@@ -542,7 +529,7 @@
     "name": "PageHeading",
     "imports": [
       "_DynamicIcon.js",
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -563,6 +550,24 @@
       "_BlockEditorTranslator.js"
     ]
   },
+  "_ProductInfo.js": {
+    "file": "chunks/ProductInfo.js",
+    "name": "ProductInfo",
+    "imports": [
+      "_vendor-vue.js",
+      "__plugin-vue_export-helper.js",
+      "_index.js",
+      "_Translator.js",
+      "_IconButton.js",
+      "_DynamicIcon.js",
+      "_Rest.js",
+      "_Arr.js",
+      "_Badge.js",
+      "_common.js",
+      "_vendor-dayjs.js",
+      "_Asset.js"
+    ]
+  },
   "_ProductListItem.js": {
     "file": "chunks/ProductListItem.js",
     "name": "ProductListItem",
@@ -576,11 +581,12 @@
     "file": "chunks/ProductVariationSelector.js",
     "name": "ProductVariationSelector",
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "_DynamicIcon.js",
       "_vue-router.js",
       "_Translator.js",
-      "_Utils.js",
+      "_module-dayjs.js",
+      "_Badge.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -592,7 +598,7 @@
     "file": "chunks/RouteCell.js",
     "name": "RouteCell",
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "_vue-router.js"
     ]
   },
@@ -603,9 +609,9 @@
       "_jsx-runtime.js",
       "_Icons.js",
       "_BlockEditorTranslator.js",
-      "_index7.js",
+      "_index3.js",
       "_ProductListItem.js",
-      "_index6.js",
+      "_index2.js",
       "_add-query-args.js"
     ]
   },
@@ -616,8 +622,8 @@
       "_jsx-runtime.js",
       "_ProductListItem.js",
       "_Icons.js",
-      "_index6.js",
-      "_index7.js",
+      "_index2.js",
+      "_index3.js",
       "_BlockEditorTranslator.js",
       "_add-query-args.js"
     ]
@@ -630,7 +636,7 @@
     "file": "chunks/ServerSidePreview.js",
     "name": "ServerSidePreview",
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "_useElementor.js",
       "__plugin-vue_export-helper.js",
       "_add-query-args.js"
@@ -663,7 +669,7 @@
     "file": "chunks/TransitionAccordion.js",
     "name": "TransitionAccordion",
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ],
     "css": [
@@ -674,7 +680,7 @@
     "file": "chunks/Translator.js",
     "name": "Translator",
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "_Arr.js"
     ]
   },
@@ -691,19 +697,8 @@
     "file": "chunks/UserCan.js",
     "name": "UserCan",
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "_Arr.js"
-    ]
-  },
-  "_Utils.js": {
-    "file": "chunks/Utils.js",
-    "name": "Utils",
-    "imports": [
-      "_Translator.js",
-      "_dayjs.min.js",
-      "_timezone.js",
-      "_weekOfYear.js",
-      "_CurrencyFormatter.js"
     ]
   },
   "__plugin-vue_export-helper.js": {
@@ -714,20 +709,95 @@
     "file": "chunks/add-query-args.js",
     "name": "add-query-args"
   },
+  "_app.css": {
+    "file": "assets/app.css",
+    "src": "_app.css"
+  },
+  "_app.js": {
+    "file": "chunks/app.js",
+    "name": "app",
+    "imports": [
+      "_vendor-vue.js",
+      "_vue-router.js",
+      "_preload-helper.js",
+      "_Translator.js",
+      "_Badge.js",
+      "_PageHeading.js",
+      "_index.js",
+      "_OrderCustomerInformation.js",
+      "_UserCan.js",
+      "_CurrencyFormatter.js",
+      "_Activity.js",
+      "_Empty.js",
+      "_RouteCell.js",
+      "_DynamicIcon.js",
+      "__plugin-vue_export-helper.js",
+      "_useExport.js",
+      "_common.js",
+      "_IconButton.js",
+      "_CardBody.js",
+      "_Model.js",
+      "_Rest.js",
+      "_vendor-dayjs.js",
+      "_Notify.js",
+      "_Animation.js",
+      "_ProductInfo.js",
+      "_countries.js",
+      "_NotFound.js",
+      "_vendor-echarts.js",
+      "_module-dayjs.js",
+      "_Asset.js",
+      "_Str.js",
+      "_Arr.js",
+      "_AttrGroups.js",
+      "_Url.js",
+      "_DynamicTemplateParser.js",
+      "_ProductVariationSelector.js",
+      "_productService.js",
+      "_BundleProducts.js",
+      "resources/admin/Bits/Components/Icons/ReviewStar.vue",
+      "_galleryTabs.js",
+      "_TransitionAccordion.js",
+      "_FileUploaderDialog.js",
+      "resources/admin/Bits/Components/Icons/Screenshot.vue",
+      "_useElementPlusComponents.js"
+    ],
+    "dynamicImports": [
+      "resources/admin/Bits/Components/Form/Components/Affix/Test.vue",
+      "resources/admin/Bits/Components/Form/Components/Coupon/BuyProducts.vue",
+      "resources/admin/Bits/Components/Form/Components/Coupon/Categories.vue",
+      "resources/admin/Bits/Components/Form/Components/Coupon/Code.vue",
+      "resources/admin/Bits/Components/Form/Components/Coupon/GetProducts.vue",
+      "resources/admin/Bits/Components/Form/Components/Coupon/IncludeExclude/Categories.vue",
+      "resources/admin/Bits/Components/Form/Components/Coupon/IncludeExclude/Product.vue",
+      "resources/admin/Bits/Components/Form/Components/Coupon/Products.vue",
+      "resources/admin/Bits/Components/Form/Components/McpSettings.vue",
+      "resources/admin/Bits/Components/Form/Components/ModuleSettings.vue",
+      "resources/admin/Bits/Components/Form/Components/PaymentView.vue",
+      "resources/admin/Bits/Components/Form/Components/StoreSettings/AddressComponent.vue",
+      "resources/admin/Bits/Components/Form/Components/StoreSettings/AppearanceComponent.vue",
+      "resources/admin/Bits/Components/Form/Components/StoreSettings/AppearancePreview.vue",
+      "resources/admin/Bits/Components/Form/Components/StoreSettings/CreatePageButton.vue",
+      "resources/admin/Bits/Components/Form/Components/StoreSettings/PageSelector.vue",
+      "resources/admin/Bits/Components/Form/Components/StoreSettings/SubscriptionModeManager.vue",
+      "resources/admin/Bits/Components/Form/Components/TurnstileSettings.vue",
+      "resources/admin/Modules/Reports/Subscription/Cohort.vue"
+    ],
+    "css": [
+      "assets/app.css"
+    ]
+  },
   "_common.js": {
     "file": "chunks/common.js",
     "name": "common",
     "imports": [
-      "_dayjs.min.js",
+      "_index.js",
+      "_vendor-dayjs.js",
       "_Translator.js",
       "_Str.js",
-      "_timezone.js",
-      "_weekOfYear.js",
       "_Arr.js",
-      "_Utils.js",
-      "_CurrencyFormatter.js",
-      "_index.js",
-      "_index3.js"
+      "_module-dayjs.js",
+      "_CurrencyFormatter.js"
     ]
   },
   "_countries.js": {
@@ -736,7 +806,7 @@
     "imports": [
       "_Translator.js",
       "_DynamicIcon.js",
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js",
       "_vue-router.js",
       "_Badge.js",
@@ -746,26 +816,19 @@
       "_NotFound.js"
     ]
   },
-  "_dateShortCuts.js": {
-    "file": "chunks/dateShortCuts.js",
-    "name": "dateShortCuts",
+  "_fluent-player-gallery.js": {
+    "file": "chunks/fluent-player-gallery.js",
+    "name": "fluent-player-gallery",
     "imports": [
-      "_vue.esm-bundler.js",
+      "_preload-helper.js",
       "_Translator.js",
-      "_index5.js",
-      "_IconButton.js",
-      "_DynamicIcon.js",
-      "_index.js",
-      "_Rest.js",
-      "_Arr.js",
-      "_Badge.js",
-      "_common.js",
-      "_dayjs.min.js"
+      "_vendor-vue.js",
+      "_galleryTabs.js",
+      "_Rest.js"
+    ],
+    "dynamicImports": [
+      "resources/admin/Modules/Products/parts/FluentPlayerVideoTab.vue"
     ]
-  },
-  "_dayjs.min.js": {
-    "file": "chunks/dayjs.min.js",
-    "name": "dayjs.min"
   },
   "_galleryTabs.js": {
     "file": "chunks/galleryTabs.js",
@@ -775,55 +838,19 @@
     "file": "chunks/index.js",
     "name": "index",
     "imports": [
-      "_vue.esm-bundler.js"
+      "_vendor-vue.js",
+      "_vendor-dayjs.js"
     ]
   },
   "_index2.js": {
     "file": "chunks/index2.js",
     "name": "index",
     "imports": [
-      "_vue.esm-bundler.js",
-      "_index.js",
-      "_index3.js",
-      "_index5.js",
-      "_dayjs.min.js",
-      "_weekOfYear.js"
+      "_jsx-runtime.js"
     ]
   },
   "_index3.js": {
     "file": "chunks/index3.js",
-    "name": "index",
-    "imports": [
-      "_vue.esm-bundler.js",
-      "_index.js"
-    ]
-  },
-  "_index4.js": {
-    "file": "chunks/index4.js",
-    "name": "index",
-    "imports": [
-      "_vue.esm-bundler.js",
-      "_index.js",
-      "_index3.js"
-    ]
-  },
-  "_index5.js": {
-    "file": "chunks/index5.js",
-    "name": "index",
-    "imports": [
-      "_vue.esm-bundler.js",
-      "_index.js"
-    ]
-  },
-  "_index6.js": {
-    "file": "chunks/index6.js",
-    "name": "index",
-    "imports": [
-      "_jsx-runtime.js"
-    ]
-  },
-  "_index7.js": {
-    "file": "chunks/index7.js",
     "name": "index"
   },
   "_jsx-runtime.js": {
@@ -833,6 +860,15 @@
   "_lightbox.js": {
     "file": "chunks/lightbox.js",
     "name": "lightbox"
+  },
+  "_module-dayjs.js": {
+    "file": "chunks/module-dayjs.js",
+    "name": "module-dayjs",
+    "imports": [
+      "_Translator.js",
+      "_vendor-dayjs.js",
+      "_CurrencyFormatter.js"
+    ]
   },
   "_payment-loader.js": {
     "file": "chunks/payment-loader.js",
@@ -859,7 +895,7 @@
       "_EditorPanelRow.js",
       "_SelectProductModal.js",
       "_BlockEditorTranslator.js",
-      "_index7.js",
+      "_index3.js",
       "_Icons.js",
       "_add-query-args.js",
       "_SingleProductContext.js"
@@ -873,21 +909,11 @@
     "file": "chunks/reviewStar2.js",
     "name": "reviewStar"
   },
-  "_timezone.js": {
-    "file": "chunks/timezone.js",
-    "name": "timezone",
-    "imports": [
-      "_dayjs.min.js"
-    ]
-  },
   "_useElementPlusComponents.js": {
     "file": "chunks/useElementPlusComponents.js",
     "name": "useElementPlusComponents",
     "imports": [
-      "_index.js",
-      "_index2.js",
-      "_index3.js",
-      "_index4.js"
+      "_index.js"
     ]
   },
   "_useElementor.js": {
@@ -901,28 +927,29 @@
     "file": "chunks/useExport.js",
     "name": "useExport",
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "_Rest.js",
       "_Notify.js",
       "_Translator.js"
     ]
   },
+  "_vendor-dayjs.js": {
+    "file": "chunks/vendor-dayjs.js",
+    "name": "vendor-dayjs"
+  },
+  "_vendor-echarts.js": {
+    "file": "chunks/vendor-echarts.js",
+    "name": "vendor-echarts"
+  },
+  "_vendor-vue.js": {
+    "file": "chunks/vendor-vue.js",
+    "name": "vendor-vue"
+  },
   "_vue-router.js": {
     "file": "chunks/vue-router.js",
     "name": "vue-router",
     "imports": [
-      "_vue.esm-bundler.js"
-    ]
-  },
-  "_vue.esm-bundler.js": {
-    "file": "chunks/vue.esm-bundler.js",
-    "name": "vue.esm-bundler"
-  },
-  "_weekOfYear.js": {
-    "file": "chunks/weekOfYear.js",
-    "name": "weekOfYear",
-    "imports": [
-      "_dayjs.min.js"
+      "_vendor-vue.js"
     ]
   },
   "resources/accounting-export/accounting-export.js": {
@@ -932,7 +959,7 @@
     "isEntry": true,
     "imports": [
       "_Translator.js",
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "_CardBody.js",
       "_useExport.js",
       "_Arr.js",
@@ -941,8 +968,9 @@
       "_preload-helper.js",
       "_Rest.js",
       "_Notify.js",
-      "_Str.js",
-      "_index.js"
+      "_index.js",
+      "_vendor-dayjs.js",
+      "_Str.js"
     ]
   },
   "resources/addon-assets/addon-assets.js": {
@@ -953,18 +981,15 @@
     "imports": [
       "_Translator.js",
       "_FileUploaderDialog.js",
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js",
       "_Arr.js",
       "_common.js",
-      "_dayjs.min.js",
-      "_Str.js",
-      "_timezone.js",
-      "_weekOfYear.js",
-      "_Utils.js",
-      "_CurrencyFormatter.js",
       "_index.js",
-      "_index3.js",
+      "_vendor-dayjs.js",
+      "_Str.js",
+      "_module-dayjs.js",
+      "_CurrencyFormatter.js",
       "_IconButton.js",
       "_DynamicIcon.js",
       "_preload-helper.js",
@@ -979,7 +1004,7 @@
     "src": "resources/admin/Bits/Components/Form/Components/Affix/Test.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -989,7 +1014,7 @@
     "src": "resources/admin/Bits/Components/Form/Components/Coupon/BuyProducts.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js"
+      "_vendor-vue.js"
     ]
   },
   "resources/admin/Bits/Components/Form/Components/Coupon/Categories.vue": {
@@ -998,7 +1023,7 @@
     "src": "resources/admin/Bits/Components/Form/Components/Coupon/Categories.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js"
+      "_vendor-vue.js"
     ]
   },
   "resources/admin/Bits/Components/Form/Components/Coupon/Code.vue": {
@@ -1007,7 +1032,7 @@
     "src": "resources/admin/Bits/Components/Form/Components/Coupon/Code.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js"
+      "_vendor-vue.js"
     ]
   },
   "resources/admin/Bits/Components/Form/Components/Coupon/GetProducts.vue": {
@@ -1016,7 +1041,7 @@
     "src": "resources/admin/Bits/Components/Form/Components/Coupon/GetProducts.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js"
+      "_vendor-vue.js"
     ]
   },
   "resources/admin/Bits/Components/Form/Components/Coupon/IncludeExclude/Categories.vue": {
@@ -1025,7 +1050,7 @@
     "src": "resources/admin/Bits/Components/Form/Components/Coupon/IncludeExclude/Categories.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js"
+      "_vendor-vue.js"
     ]
   },
   "resources/admin/Bits/Components/Form/Components/Coupon/IncludeExclude/Product.vue": {
@@ -1034,7 +1059,7 @@
     "src": "resources/admin/Bits/Components/Form/Components/Coupon/IncludeExclude/Product.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js"
+      "_vendor-vue.js"
     ]
   },
   "resources/admin/Bits/Components/Form/Components/Coupon/Products.vue": {
@@ -1043,7 +1068,7 @@
     "src": "resources/admin/Bits/Components/Form/Components/Coupon/Products.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js"
+      "_vendor-vue.js"
     ]
   },
   "resources/admin/Bits/Components/Form/Components/McpSettings.vue": {
@@ -1052,7 +1077,7 @@
     "src": "resources/admin/Bits/Components/Form/Components/McpSettings.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "_Translator.js",
       "_Badge.js",
       "_Rest.js",
@@ -1061,30 +1086,24 @@
       "_Arr.js",
       "_Model.js",
       "_common.js",
-      "_dayjs.min.js",
-      "_Str.js",
-      "_timezone.js",
-      "_weekOfYear.js",
-      "_Utils.js",
-      "_CurrencyFormatter.js",
       "_index.js",
-      "_index3.js",
+      "_vendor-dayjs.js",
+      "_Str.js",
+      "_module-dayjs.js",
+      "_CurrencyFormatter.js",
       "_vue-router.js",
       "_Url.js",
       "_DynamicIcon.js",
       "_preload-helper.js",
       "__plugin-vue_export-helper.js",
-      "_index4.js",
       "_IconButton.js",
       "_TransitionAccordion.js",
       "_Animation.js",
-      "_Empty.js",
-      "_RouteCell.js",
-      "_UserCan.js",
-      "_Asset.js",
       "_CardBody.js",
+      "_UserCan.js",
       "_AddressComponent.js",
       "_NotFound.js",
+      "_Asset.js",
       "_productService.js"
     ]
   },
@@ -1094,20 +1113,17 @@
     "src": "resources/admin/Bits/Components/Form/Components/ModuleSettings.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "_Translator.js",
       "_common.js",
       "_Badge.js",
       "_Animation.js",
       "_Arr.js",
-      "_dayjs.min.js",
-      "_Str.js",
-      "_timezone.js",
-      "_weekOfYear.js",
-      "_Utils.js",
-      "_CurrencyFormatter.js",
       "_index.js",
-      "_index3.js",
+      "_vendor-dayjs.js",
+      "_Str.js",
+      "_module-dayjs.js",
+      "_CurrencyFormatter.js",
       "_Model.js",
       "_Rest.js",
       "_vue-router.js",
@@ -1116,7 +1132,6 @@
       "_DynamicIcon.js",
       "_preload-helper.js",
       "__plugin-vue_export-helper.js",
-      "_index4.js",
       "_IconButton.js",
       "_TransitionAccordion.js"
     ]
@@ -1127,7 +1142,7 @@
     "src": "resources/admin/Bits/Components/Form/Components/PaymentView.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "_Translator.js",
       "_DynamicIcon.js",
       "_Arr.js",
@@ -1140,7 +1155,7 @@
     "src": "resources/admin/Bits/Components/Form/Components/StoreSettings/AddressComponent.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "_Rest.js",
       "_Translator.js",
       "_AddressComponent.js",
@@ -1156,8 +1171,8 @@
     "src": "resources/admin/Bits/Components/Form/Components/StoreSettings/AppearanceComponent.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
-      "resources/admin/bootstrap/app.js",
+      "_vendor-vue.js",
+      "_app.js",
       "_DynamicIcon.js",
       "resources/admin/Bits/Components/Form/Components/StoreSettings/AppearancePreview.vue",
       "_Translator.js",
@@ -1168,38 +1183,33 @@
       "_Model.js",
       "_Rest.js",
       "_common.js",
-      "_dayjs.min.js",
-      "_Str.js",
-      "_timezone.js",
-      "_weekOfYear.js",
-      "_Arr.js",
-      "_Utils.js",
-      "_CurrencyFormatter.js",
       "_index.js",
-      "_index3.js",
+      "_vendor-dayjs.js",
+      "_Str.js",
+      "_Arr.js",
+      "_module-dayjs.js",
+      "_CurrencyFormatter.js",
       "_Url.js",
       "_Notify.js",
       "__plugin-vue_export-helper.js",
-      "_index4.js",
       "_TransitionAccordion.js",
       "_PageHeading.js",
       "_OrderCustomerInformation.js",
       "_Animation.js",
-      "_Empty.js",
-      "_RouteCell.js",
-      "_UserCan.js",
-      "_Asset.js",
       "_CardBody.js",
+      "_UserCan.js",
       "_AddressComponent.js",
       "_NotFound.js",
+      "_Asset.js",
       "_productService.js",
       "_Activity.js",
+      "_Empty.js",
+      "_RouteCell.js",
       "_BundleProducts.js",
       "_useExport.js",
-      "_dateShortCuts.js",
-      "_index5.js",
+      "_ProductInfo.js",
       "_countries.js",
-      "_index2.js",
+      "_vendor-echarts.js",
       "_AttrGroups.js",
       "_DynamicTemplateParser.js",
       "_ProductVariationSelector.js",
@@ -1217,10 +1227,10 @@
     "src": "resources/admin/Bits/Components/Form/Components/StoreSettings/AppearancePreview.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "_DynamicIcon.js",
       "_Translator.js",
-      "resources/admin/bootstrap/app.js",
+      "_app.js",
       "_preload-helper.js",
       "_Arr.js",
       "_vue-router.js",
@@ -1228,38 +1238,33 @@
       "_Model.js",
       "_Rest.js",
       "_common.js",
-      "_dayjs.min.js",
-      "_Str.js",
-      "_timezone.js",
-      "_weekOfYear.js",
-      "_Utils.js",
-      "_CurrencyFormatter.js",
       "_index.js",
-      "_index3.js",
+      "_vendor-dayjs.js",
+      "_Str.js",
+      "_module-dayjs.js",
+      "_CurrencyFormatter.js",
       "_Url.js",
       "_Notify.js",
       "__plugin-vue_export-helper.js",
-      "_index4.js",
       "_IconButton.js",
       "_TransitionAccordion.js",
       "_PageHeading.js",
       "_OrderCustomerInformation.js",
       "_Animation.js",
-      "_Empty.js",
-      "_RouteCell.js",
-      "_UserCan.js",
-      "_Asset.js",
       "_CardBody.js",
+      "_UserCan.js",
       "_AddressComponent.js",
       "_NotFound.js",
+      "_Asset.js",
       "_productService.js",
       "_Activity.js",
+      "_Empty.js",
+      "_RouteCell.js",
       "_BundleProducts.js",
       "_useExport.js",
-      "_dateShortCuts.js",
-      "_index5.js",
+      "_ProductInfo.js",
       "_countries.js",
-      "_index2.js",
+      "_vendor-echarts.js",
       "_AttrGroups.js",
       "_DynamicTemplateParser.js",
       "_ProductVariationSelector.js",
@@ -1277,7 +1282,7 @@
     "src": "resources/admin/Bits/Components/Form/Components/StoreSettings/CreatePageButton.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "_DynamicIcon.js",
       "_Translator.js",
       "_Notify.js",
@@ -1285,8 +1290,9 @@
       "_IconButton.js",
       "_preload-helper.js",
       "_Arr.js",
-      "_Str.js",
       "_index.js",
+      "_vendor-dayjs.js",
+      "_Str.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -1296,15 +1302,16 @@
     "src": "resources/admin/Bits/Components/Form/Components/StoreSettings/PageSelector.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "_Translator.js",
       "_DynamicIcon.js",
       "_Arr.js",
       "resources/admin/Bits/Components/Form/Components/StoreSettings/CreatePageButton.vue",
       "_preload-helper.js",
       "_Notify.js",
-      "_Str.js",
       "_index.js",
+      "_vendor-dayjs.js",
+      "_Str.js",
       "_Rest.js",
       "_IconButton.js",
       "__plugin-vue_export-helper.js"
@@ -1316,7 +1323,7 @@
     "src": "resources/admin/Bits/Components/Form/Components/StoreSettings/SubscriptionModeManager.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "_Translator.js",
       "_Badge.js",
       "_TransitionAccordion.js",
@@ -1325,20 +1332,16 @@
       "_Arr.js",
       "_Model.js",
       "_common.js",
-      "_dayjs.min.js",
-      "_Str.js",
-      "_timezone.js",
-      "_weekOfYear.js",
-      "_Utils.js",
-      "_CurrencyFormatter.js",
       "_index.js",
-      "_index3.js",
+      "_vendor-dayjs.js",
+      "_Str.js",
+      "_module-dayjs.js",
+      "_CurrencyFormatter.js",
       "_vue-router.js",
       "_Url.js",
       "_DynamicIcon.js",
       "_preload-helper.js",
       "__plugin-vue_export-helper.js",
-      "_index4.js",
       "_IconButton.js"
     ]
   },
@@ -1348,28 +1351,24 @@
     "src": "resources/admin/Bits/Components/Form/Components/TurnstileSettings.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "_Translator.js",
       "_Badge.js",
       "_Rest.js",
       "_Arr.js",
       "_Model.js",
       "_common.js",
-      "_dayjs.min.js",
-      "_Str.js",
-      "_timezone.js",
-      "_weekOfYear.js",
-      "_Utils.js",
-      "_CurrencyFormatter.js",
       "_index.js",
-      "_index3.js",
+      "_vendor-dayjs.js",
+      "_Str.js",
+      "_module-dayjs.js",
+      "_CurrencyFormatter.js",
       "_vue-router.js",
       "_Url.js",
       "_Notify.js",
       "_DynamicIcon.js",
       "_preload-helper.js",
       "__plugin-vue_export-helper.js",
-      "_index4.js",
       "_IconButton.js",
       "_TransitionAccordion.js"
     ]
@@ -1380,7 +1379,7 @@
     "src": "resources/admin/Bits/Components/Icons/Access.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -1390,7 +1389,7 @@
     "src": "resources/admin/Bits/Components/Icons/AddProduct.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -1400,7 +1399,7 @@
     "src": "resources/admin/Bits/Components/Icons/AdvancedFilter.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -1410,7 +1409,7 @@
     "src": "resources/admin/Bits/Components/Icons/AlertIcon.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -1420,7 +1419,7 @@
     "src": "resources/admin/Bits/Components/Icons/All.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -1430,7 +1429,7 @@
     "src": "resources/admin/Bits/Components/Icons/AllOrdersIcon.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -1440,7 +1439,7 @@
     "src": "resources/admin/Bits/Components/Icons/AppsLine.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -1450,7 +1449,7 @@
     "src": "resources/admin/Bits/Components/Icons/Archived.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -1460,7 +1459,7 @@
     "src": "resources/admin/Bits/Components/Icons/ArrowDown.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -1470,7 +1469,7 @@
     "src": "resources/admin/Bits/Components/Icons/ArrowLeft.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -1480,7 +1479,7 @@
     "src": "resources/admin/Bits/Components/Icons/ArrowLeftRight.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -1490,7 +1489,7 @@
     "src": "resources/admin/Bits/Components/Icons/ArrowLongRight.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -1500,7 +1499,7 @@
     "src": "resources/admin/Bits/Components/Icons/ArrowRight.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -1510,7 +1509,7 @@
     "src": "resources/admin/Bits/Components/Icons/ArrowUp.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -1520,7 +1519,7 @@
     "src": "resources/admin/Bits/Components/Icons/ArrowUpDown.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -1530,7 +1529,7 @@
     "src": "resources/admin/Bits/Components/Icons/AtmCard.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -1540,7 +1539,7 @@
     "src": "resources/admin/Bits/Components/Icons/BankCard.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -1550,7 +1549,7 @@
     "src": "resources/admin/Bits/Components/Icons/BarChart.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -1560,7 +1559,7 @@
     "src": "resources/admin/Bits/Components/Icons/Box.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -1570,7 +1569,7 @@
     "src": "resources/admin/Bits/Components/Icons/Bundle.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -1580,7 +1579,7 @@
     "src": "resources/admin/Bits/Components/Icons/Calendar.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -1590,7 +1589,7 @@
     "src": "resources/admin/Bits/Components/Icons/Camera.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -1600,7 +1599,7 @@
     "src": "resources/admin/Bits/Components/Icons/CaretDown.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -1610,7 +1609,7 @@
     "src": "resources/admin/Bits/Components/Icons/CaretRight.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -1620,7 +1619,7 @@
     "src": "resources/admin/Bits/Components/Icons/CaretUp.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -1630,7 +1629,7 @@
     "src": "resources/admin/Bits/Components/Icons/Cart.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -1640,7 +1639,7 @@
     "src": "resources/admin/Bits/Components/Icons/ChartLine.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -1650,7 +1649,7 @@
     "src": "resources/admin/Bits/Components/Icons/Check.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -1660,7 +1659,7 @@
     "src": "resources/admin/Bits/Components/Icons/CheckCircle.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -1670,7 +1669,7 @@
     "src": "resources/admin/Bits/Components/Icons/CheckCircleFill.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -1680,7 +1679,7 @@
     "src": "resources/admin/Bits/Components/Icons/Checkout.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -1690,7 +1689,7 @@
     "src": "resources/admin/Bits/Components/Icons/ChevronDown.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -1700,7 +1699,7 @@
     "src": "resources/admin/Bits/Components/Icons/ChevronLeft.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -1710,7 +1709,7 @@
     "src": "resources/admin/Bits/Components/Icons/ChevronRight.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -1720,7 +1719,7 @@
     "src": "resources/admin/Bits/Components/Icons/ChevronUp.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -1730,7 +1729,7 @@
     "src": "resources/admin/Bits/Components/Icons/ChevronUpDown.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -1740,7 +1739,7 @@
     "src": "resources/admin/Bits/Components/Icons/CircleClose.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -1750,7 +1749,7 @@
     "src": "resources/admin/Bits/Components/Icons/Clock.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -1760,7 +1759,7 @@
     "src": "resources/admin/Bits/Components/Icons/Close.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -1770,7 +1769,7 @@
     "src": "resources/admin/Bits/Components/Icons/Cloth.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -1780,7 +1779,7 @@
     "src": "resources/admin/Bits/Components/Icons/Code.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -1790,7 +1789,7 @@
     "src": "resources/admin/Bits/Components/Icons/Collapse.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -1800,7 +1799,7 @@
     "src": "resources/admin/Bits/Components/Icons/ColorPicker.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -1810,7 +1809,17 @@
     "src": "resources/admin/Bits/Components/Icons/ColumnIcon.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
+      "__plugin-vue_export-helper.js"
+    ]
+  },
+  "resources/admin/Bits/Components/Icons/Compliance.vue": {
+    "file": "chunks/Compliance.js",
+    "name": "Compliance",
+    "src": "resources/admin/Bits/Components/Icons/Compliance.vue",
+    "isDynamicEntry": true,
+    "imports": [
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -1820,7 +1829,7 @@
     "src": "resources/admin/Bits/Components/Icons/Condition.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -1830,7 +1839,7 @@
     "src": "resources/admin/Bits/Components/Icons/Configuration.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -1840,7 +1849,7 @@
     "src": "resources/admin/Bits/Components/Icons/Copy.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -1850,7 +1859,7 @@
     "src": "resources/admin/Bits/Components/Icons/Core.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -1860,7 +1869,7 @@
     "src": "resources/admin/Bits/Components/Icons/Coupon.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -1870,7 +1879,7 @@
     "src": "resources/admin/Bits/Components/Icons/CreditCard.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -1880,7 +1889,7 @@
     "src": "resources/admin/Bits/Components/Icons/Crm.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -1890,7 +1899,7 @@
     "src": "resources/admin/Bits/Components/Icons/Cross.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -1900,7 +1909,7 @@
     "src": "resources/admin/Bits/Components/Icons/CrossCircle.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -1910,7 +1919,7 @@
     "src": "resources/admin/Bits/Components/Icons/Crown.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -1920,7 +1929,7 @@
     "src": "resources/admin/Bits/Components/Icons/Currency.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -1930,7 +1939,7 @@
     "src": "resources/admin/Bits/Components/Icons/DarkIcons/Empty/CheckoutAction.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -1940,7 +1949,7 @@
     "src": "resources/admin/Bits/Components/Icons/DarkIcons/Empty/EmailNotification.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -1950,7 +1959,7 @@
     "src": "resources/admin/Bits/Components/Icons/DarkIcons/Empty/ListView.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -1960,7 +1969,7 @@
     "src": "resources/admin/Bits/Components/Icons/DarkIcons/Empty/Order.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -1970,7 +1979,7 @@
     "src": "resources/admin/Bits/Components/Icons/DarkIcons/Empty/RoleAndPermission.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -1980,7 +1989,7 @@
     "src": "resources/admin/Bits/Components/Icons/Database.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -1990,7 +1999,7 @@
     "src": "resources/admin/Bits/Components/Icons/Delete.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -2000,7 +2009,7 @@
     "src": "resources/admin/Bits/Components/Icons/Discount.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -2010,7 +2019,7 @@
     "src": "resources/admin/Bits/Components/Icons/Document.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -2020,7 +2029,7 @@
     "src": "resources/admin/Bits/Components/Icons/Dollar.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -2030,7 +2039,7 @@
     "src": "resources/admin/Bits/Components/Icons/Download.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -2040,7 +2049,7 @@
     "src": "resources/admin/Bits/Components/Icons/Duplicate.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -2050,7 +2059,7 @@
     "src": "resources/admin/Bits/Components/Icons/Edit.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -2060,7 +2069,7 @@
     "src": "resources/admin/Bits/Components/Icons/EditDiscount.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -2070,7 +2079,7 @@
     "src": "resources/admin/Bits/Components/Icons/EditProduct.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -2080,7 +2089,7 @@
     "src": "resources/admin/Bits/Components/Icons/Empty/Chart.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -2090,7 +2099,7 @@
     "src": "resources/admin/Bits/Components/Icons/Empty/CheckoutAction.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -2100,7 +2109,7 @@
     "src": "resources/admin/Bits/Components/Icons/Empty/EmailNotification.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -2110,7 +2119,7 @@
     "src": "resources/admin/Bits/Components/Icons/Empty/GlobalSearch.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -2120,7 +2129,7 @@
     "src": "resources/admin/Bits/Components/Icons/Empty/Integrations.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -2130,7 +2139,7 @@
     "src": "resources/admin/Bits/Components/Icons/Empty/ListView.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -2140,7 +2149,7 @@
     "src": "resources/admin/Bits/Components/Icons/Empty/Order.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -2150,7 +2159,7 @@
     "src": "resources/admin/Bits/Components/Icons/Empty/RoleAndPermission.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -2160,7 +2169,7 @@
     "src": "resources/admin/Bits/Components/Icons/Empty/WebPage.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -2170,7 +2179,7 @@
     "src": "resources/admin/Bits/Components/Icons/Enter.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -2180,7 +2189,7 @@
     "src": "resources/admin/Bits/Components/Icons/Envelope.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -2190,7 +2199,7 @@
     "src": "resources/admin/Bits/Components/Icons/EqualizerLine.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -2200,7 +2209,7 @@
     "src": "resources/admin/Bits/Components/Icons/Expand.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -2210,7 +2219,7 @@
     "src": "resources/admin/Bits/Components/Icons/External.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -2220,7 +2229,7 @@
     "src": "resources/admin/Bits/Components/Icons/Eye.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -2230,7 +2239,7 @@
     "src": "resources/admin/Bits/Components/Icons/EyeOff.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -2240,7 +2249,7 @@
     "src": "resources/admin/Bits/Components/Icons/Failed.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -2250,7 +2259,7 @@
     "src": "resources/admin/Bits/Components/Icons/FailedCircle.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -2260,7 +2269,7 @@
     "src": "resources/admin/Bits/Components/Icons/FileWrite.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -2270,7 +2279,7 @@
     "src": "resources/admin/Bits/Components/Icons/Files.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -2280,7 +2289,7 @@
     "src": "resources/admin/Bits/Components/Icons/Filter.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -2290,7 +2299,7 @@
     "src": "resources/admin/Bits/Components/Icons/FlagIcon.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -2300,7 +2309,7 @@
     "src": "resources/admin/Bits/Components/Icons/Folder.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -2310,7 +2319,7 @@
     "src": "resources/admin/Bits/Components/Icons/FolderCloud.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -2320,7 +2329,7 @@
     "src": "resources/admin/Bits/Components/Icons/Frame.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -2330,7 +2339,7 @@
     "src": "resources/admin/Bits/Components/Icons/FullScreen.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -2340,7 +2349,7 @@
     "src": "resources/admin/Bits/Components/Icons/GalleryAdd.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -2350,7 +2359,7 @@
     "src": "resources/admin/Bits/Components/Icons/GearIcon.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -2360,7 +2369,7 @@
     "src": "resources/admin/Bits/Components/Icons/Generate.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -2370,7 +2379,7 @@
     "src": "resources/admin/Bits/Components/Icons/Gift.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -2380,7 +2389,7 @@
     "src": "resources/admin/Bits/Components/Icons/Globe.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -2390,7 +2399,7 @@
     "src": "resources/admin/Bits/Components/Icons/GradientCheckCircle.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -2400,7 +2409,7 @@
     "src": "resources/admin/Bits/Components/Icons/GradientWarningCircle.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -2410,7 +2419,7 @@
     "src": "resources/admin/Bits/Components/Icons/HamBurger.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -2420,7 +2429,7 @@
     "src": "resources/admin/Bits/Components/Icons/HandHold.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -2430,7 +2439,7 @@
     "src": "resources/admin/Bits/Components/Icons/HourGlass.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -2440,7 +2449,7 @@
     "src": "resources/admin/Bits/Components/Icons/InActive.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -2450,7 +2459,7 @@
     "src": "resources/admin/Bits/Components/Icons/Information.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -2460,7 +2469,7 @@
     "src": "resources/admin/Bits/Components/Icons/InformationFill.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -2470,7 +2479,7 @@
     "src": "resources/admin/Bits/Components/Icons/Insert.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -2480,7 +2489,7 @@
     "src": "resources/admin/Bits/Components/Icons/Integrations.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -2490,7 +2499,7 @@
     "src": "resources/admin/Bits/Components/Icons/InventoryFill.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -2500,7 +2509,7 @@
     "src": "resources/admin/Bits/Components/Icons/Invoice.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -2510,7 +2519,7 @@
     "src": "resources/admin/Bits/Components/Icons/LayoutGrid.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -2520,7 +2529,7 @@
     "src": "resources/admin/Bits/Components/Icons/License.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -2530,7 +2539,7 @@
     "src": "resources/admin/Bits/Components/Icons/LicensedInactive.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -2540,7 +2549,7 @@
     "src": "resources/admin/Bits/Components/Icons/LicensedProduct.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -2550,7 +2559,7 @@
     "src": "resources/admin/Bits/Components/Icons/LineChart.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -2560,7 +2569,7 @@
     "src": "resources/admin/Bits/Components/Icons/Link.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -2570,7 +2579,7 @@
     "src": "resources/admin/Bits/Components/Icons/List.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -2580,7 +2589,7 @@
     "src": "resources/admin/Bits/Components/Icons/ListView.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -2590,7 +2599,7 @@
     "src": "resources/admin/Bits/Components/Icons/LiveMode.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -2600,7 +2609,7 @@
     "src": "resources/admin/Bits/Components/Icons/Lms.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -2610,7 +2619,7 @@
     "src": "resources/admin/Bits/Components/Icons/Loading.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -2620,7 +2629,7 @@
     "src": "resources/admin/Bits/Components/Icons/LocationPin.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -2630,7 +2639,7 @@
     "src": "resources/admin/Bits/Components/Icons/Lock.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -2640,7 +2649,7 @@
     "src": "resources/admin/Bits/Components/Icons/Logout.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -2650,7 +2659,7 @@
     "src": "resources/admin/Bits/Components/Icons/Mac.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -2660,7 +2669,7 @@
     "src": "resources/admin/Bits/Components/Icons/MagicPen.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -2670,7 +2679,7 @@
     "src": "resources/admin/Bits/Components/Icons/Menu.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -2680,7 +2689,7 @@
     "src": "resources/admin/Bits/Components/Icons/Message.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -2690,7 +2699,7 @@
     "src": "resources/admin/Bits/Components/Icons/Minus.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -2700,7 +2709,7 @@
     "src": "resources/admin/Bits/Components/Icons/MinusCircle.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -2710,7 +2719,7 @@
     "src": "resources/admin/Bits/Components/Icons/MinusSignCircle.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -2720,7 +2729,7 @@
     "src": "resources/admin/Bits/Components/Icons/Module.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -2730,7 +2739,7 @@
     "src": "resources/admin/Bits/Components/Icons/Money.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -2740,7 +2749,7 @@
     "src": "resources/admin/Bits/Components/Icons/MoneySend.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -2750,7 +2759,7 @@
     "src": "resources/admin/Bits/Components/Icons/Moon.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -2760,7 +2769,7 @@
     "src": "resources/admin/Bits/Components/Icons/MoonIcon.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -2770,7 +2779,7 @@
     "src": "resources/admin/Bits/Components/Icons/More.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -2780,7 +2789,7 @@
     "src": "resources/admin/Bits/Components/Icons/OrderItemsIcon.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -2790,7 +2799,7 @@
     "src": "resources/admin/Bits/Components/Icons/OrderValueIcon.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -2800,7 +2809,7 @@
     "src": "resources/admin/Bits/Components/Icons/Overview.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -2810,7 +2819,7 @@
     "src": "resources/admin/Bits/Components/Icons/Package.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -2820,7 +2829,7 @@
     "src": "resources/admin/Bits/Components/Icons/Page.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -2830,7 +2839,7 @@
     "src": "resources/admin/Bits/Components/Icons/PaidOrdersIcon.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -2840,7 +2849,7 @@
     "src": "resources/admin/Bits/Components/Icons/PaintLine.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -2850,7 +2859,7 @@
     "src": "resources/admin/Bits/Components/Icons/Palette.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -2860,7 +2869,7 @@
     "src": "resources/admin/Bits/Components/Icons/PaletteLine.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -2870,7 +2879,7 @@
     "src": "resources/admin/Bits/Components/Icons/Party.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -2880,7 +2889,7 @@
     "src": "resources/admin/Bits/Components/Icons/PaymentIcon.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -2890,7 +2899,7 @@
     "src": "resources/admin/Bits/Components/Icons/Pending.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -2900,7 +2909,7 @@
     "src": "resources/admin/Bits/Components/Icons/PlayCircle.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -2910,7 +2919,7 @@
     "src": "resources/admin/Bits/Components/Icons/Plus.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -2920,7 +2929,7 @@
     "src": "resources/admin/Bits/Components/Icons/PlusCircle.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -2930,7 +2939,7 @@
     "src": "resources/admin/Bits/Components/Icons/Print.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -2940,7 +2949,7 @@
     "src": "resources/admin/Bits/Components/Icons/Product.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -2950,7 +2959,7 @@
     "src": "resources/admin/Bits/Components/Icons/Question.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -2960,7 +2969,7 @@
     "src": "resources/admin/Bits/Components/Icons/RadioSelector.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -2970,7 +2979,7 @@
     "src": "resources/admin/Bits/Components/Icons/Receipt.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -2980,7 +2989,7 @@
     "src": "resources/admin/Bits/Components/Icons/Redirect.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -2990,7 +2999,7 @@
     "src": "resources/admin/Bits/Components/Icons/Refresh.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -3000,7 +3009,7 @@
     "src": "resources/admin/Bits/Components/Icons/Refund.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -3010,7 +3019,7 @@
     "src": "resources/admin/Bits/Components/Icons/Reload.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -3020,7 +3029,7 @@
     "src": "resources/admin/Bits/Components/Icons/ReorderDotsVertical.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -3030,7 +3039,7 @@
     "src": "resources/admin/Bits/Components/Icons/Reset.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -3040,7 +3049,7 @@
     "src": "resources/admin/Bits/Components/Icons/Revenue.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -3050,7 +3059,7 @@
     "src": "resources/admin/Bits/Components/Icons/ReviewCard.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -3060,7 +3069,7 @@
     "src": "resources/admin/Bits/Components/Icons/ReviewStar.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "_reviewStar2.js"
     ]
   },
@@ -3070,7 +3079,7 @@
     "src": "resources/admin/Bits/Components/Icons/Rotate.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -3080,7 +3089,7 @@
     "src": "resources/admin/Bits/Components/Icons/RunningShoe.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -3090,7 +3099,7 @@
     "src": "resources/admin/Bits/Components/Icons/Save.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -3100,7 +3109,7 @@
     "src": "resources/admin/Bits/Components/Icons/Scratch.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -3110,7 +3119,7 @@
     "src": "resources/admin/Bits/Components/Icons/Screenshot.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -3120,7 +3129,7 @@
     "src": "resources/admin/Bits/Components/Icons/Search.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -3130,7 +3139,7 @@
     "src": "resources/admin/Bits/Components/Icons/SearchAdd.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -3140,7 +3149,7 @@
     "src": "resources/admin/Bits/Components/Icons/SearchV2.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -3150,7 +3159,7 @@
     "src": "resources/admin/Bits/Components/Icons/Send.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -3160,7 +3169,7 @@
     "src": "resources/admin/Bits/Components/Icons/Setting.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -3170,7 +3179,7 @@
     "src": "resources/admin/Bits/Components/Icons/ShieldCheck.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -3180,7 +3189,7 @@
     "src": "resources/admin/Bits/Components/Icons/ShipmentStatus.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -3190,7 +3199,7 @@
     "src": "resources/admin/Bits/Components/Icons/Shipping.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -3200,7 +3209,7 @@
     "src": "resources/admin/Bits/Components/Icons/ShoppingBag.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -3210,7 +3219,7 @@
     "src": "resources/admin/Bits/Components/Icons/ShoppingCartIcon.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -3220,7 +3229,7 @@
     "src": "resources/admin/Bits/Components/Icons/Sites.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -3230,7 +3239,7 @@
     "src": "resources/admin/Bits/Components/Icons/SoftPackage.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -3240,7 +3249,7 @@
     "src": "resources/admin/Bits/Components/Icons/Source.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -3250,7 +3259,7 @@
     "src": "resources/admin/Bits/Components/Icons/SpeedFill.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -3260,7 +3269,7 @@
     "src": "resources/admin/Bits/Components/Icons/Stars.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -3270,7 +3279,7 @@
     "src": "resources/admin/Bits/Components/Icons/Stop.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -3280,7 +3289,7 @@
     "src": "resources/admin/Bits/Components/Icons/StoreIcon.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -3290,7 +3299,7 @@
     "src": "resources/admin/Bits/Components/Icons/Subscription.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -3300,7 +3309,7 @@
     "src": "resources/admin/Bits/Components/Icons/Sun.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -3310,7 +3319,7 @@
     "src": "resources/admin/Bits/Components/Icons/SunIcon.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -3320,7 +3329,7 @@
     "src": "resources/admin/Bits/Components/Icons/Tag.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -3330,7 +3339,7 @@
     "src": "resources/admin/Bits/Components/Icons/Tax.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -3340,7 +3349,7 @@
     "src": "resources/admin/Bits/Components/Icons/TestMode.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -3350,7 +3359,7 @@
     "src": "resources/admin/Bits/Components/Icons/ThumbDown.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -3360,7 +3369,7 @@
     "src": "resources/admin/Bits/Components/Icons/ThumbUp.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -3370,7 +3379,7 @@
     "src": "resources/admin/Bits/Components/Icons/Tools.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -3380,7 +3389,7 @@
     "src": "resources/admin/Bits/Components/Icons/TrashIcon.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -3390,7 +3399,7 @@
     "src": "resources/admin/Bits/Components/Icons/Trigger.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -3400,7 +3409,7 @@
     "src": "resources/admin/Bits/Components/Icons/Truck.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -3410,7 +3419,7 @@
     "src": "resources/admin/Bits/Components/Icons/Unfulfilled.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -3420,7 +3429,7 @@
     "src": "resources/admin/Bits/Components/Icons/Unlink.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -3430,7 +3439,7 @@
     "src": "resources/admin/Bits/Components/Icons/Upload.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -3440,7 +3449,7 @@
     "src": "resources/admin/Bits/Components/Icons/User.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -3450,7 +3459,7 @@
     "src": "resources/admin/Bits/Components/Icons/Users.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -3460,7 +3469,7 @@
     "src": "resources/admin/Bits/Components/Icons/VideoAdd.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -3470,7 +3479,7 @@
     "src": "resources/admin/Bits/Components/Icons/Wallet.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -3480,7 +3489,7 @@
     "src": "resources/admin/Bits/Components/Icons/Warning.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -3490,7 +3499,7 @@
     "src": "resources/admin/Bits/Components/Icons/WarningFill.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -3500,7 +3509,7 @@
     "src": "resources/admin/Bits/Components/Icons/Webhooks.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -3510,7 +3519,7 @@
     "src": "resources/admin/Bits/Components/Icons/Window.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
     ]
   },
@@ -3522,14 +3531,14 @@
     "imports": [
       "_jsx-runtime.js",
       "_BlockEditorTranslator.js",
-      "_index7.js",
+      "_index3.js",
       "_SingleProductContext.js",
       "_Icons.js",
       "_SelectVariationModal.js",
       "_add-query-args.js",
       "_reviewStar2.js",
       "_ProductListItem.js",
-      "_index6.js"
+      "_index2.js"
     ]
   },
   "resources/admin/BlockEditor/Buttons/BuyNowButtonBlockEditor.jsx": {
@@ -3540,12 +3549,12 @@
     "imports": [
       "_jsx-runtime.js",
       "_BlockEditorTranslator.js",
-      "_index7.js",
+      "_index3.js",
       "_SelectVariationModal.js",
       "_Icons.js",
       "_add-query-args.js",
       "_ProductListItem.js",
-      "_index6.js",
+      "_index2.js",
       "_reviewStar2.js"
     ]
   },
@@ -3566,14 +3575,14 @@
     "imports": [
       "_jsx-runtime.js",
       "_BlockEditorTranslator.js",
-      "_index7.js",
+      "_index3.js",
       "_EditorPanel.js",
       "_EditorPanelRow.js",
       "_CustomSelect.js",
       "_SelectProductModal.js",
       "_Icons.js",
       "_add-query-args.js",
-      "_index6.js",
+      "_index2.js",
       "_ProductListItem.js",
       "_reviewStar2.js"
     ],
@@ -3616,7 +3625,7 @@
     "isEntry": true,
     "imports": [
       "_jsx-runtime.js",
-      "_index7.js",
+      "_index3.js",
       "_SingleProductContext.js",
       "_Icons.js",
       "_BlockEditorTranslator.js",
@@ -3653,8 +3662,8 @@
       "_SelectProductModal.js",
       "_EditorPanelRow.js",
       "_ProductListItem.js",
-      "_index6.js",
-      "_index7.js",
+      "_index2.js",
+      "_index3.js",
       "_add-query-args.js"
     ],
     "assets": [
@@ -3747,7 +3756,7 @@
     "imports": [
       "_jsx-runtime.js",
       "_BlockEditorTranslator.js",
-      "_index7.js",
+      "_index3.js",
       "_SelectProductModal.js",
       "_EditorPanel.js",
       "_EditorPanelRow.js",
@@ -3755,7 +3764,7 @@
       "_Icons.js",
       "_add-query-args.js",
       "_ProductListItem.js",
-      "_index6.js",
+      "_index2.js",
       "_reviewStar2.js"
     ]
   },
@@ -3787,7 +3796,7 @@
     "imports": [
       "_jsx-runtime.js",
       "_Icons.js",
-      "_index7.js",
+      "_index3.js",
       "_EditorPanel.js",
       "_EditorPanelRow.js",
       "_BlockEditorTranslator.js",
@@ -3797,7 +3806,7 @@
       "_add-query-args.js",
       "_reviewStar2.js",
       "_ProductListItem.js",
-      "_index6.js"
+      "_index2.js"
     ],
     "assets": [
       "assets/ProductGallery.png"
@@ -3819,7 +3828,7 @@
     "isEntry": true,
     "imports": [
       "_jsx-runtime.js",
-      "_index7.js",
+      "_index3.js",
       "_SelectProductModal.js",
       "_CustomSelect.js",
       "_EditorPanel.js",
@@ -3829,7 +3838,7 @@
       "_Icons.js",
       "_add-query-args.js",
       "_ProductListItem.js",
-      "_index6.js",
+      "_index2.js",
       "_reviewStar2.js"
     ]
   },
@@ -3849,11 +3858,11 @@
     "isEntry": true,
     "imports": [
       "_jsx-runtime.js",
-      "_index6.js",
+      "_index2.js",
       "_Icons.js",
       "_ProductListItem.js",
       "_SelectVariationModal.js",
-      "_index7.js",
+      "_index3.js",
       "_ColorPickerField.js",
       "_EditorPanel.js",
       "_BlockEditorTranslator.js",
@@ -3883,7 +3892,7 @@
       "_jsx-runtime.js",
       "_Icons.js",
       "_BlockEditorTranslator.js",
-      "_index7.js",
+      "_index3.js",
       "_EditorPanel.js",
       "_EditorPanelRow.js",
       "_CustomSelect.js",
@@ -3891,7 +3900,7 @@
       "_ErrorBoundary.js",
       "_add-query-args.js",
       "_reviewStar2.js",
-      "_index6.js",
+      "_index2.js",
       "_ProductListItem.js"
     ],
     "assets": [
@@ -3929,7 +3938,7 @@
     "imports": [
       "_jsx-runtime.js",
       "_Icons.js",
-      "_index7.js",
+      "_index3.js",
       "_EditorPanel.js",
       "_EditorPanelRow.js",
       "_BlockEditorTranslator.js",
@@ -3939,7 +3948,7 @@
       "_ProductContext.js",
       "_add-query-args.js",
       "_reviewStar2.js",
-      "_index6.js",
+      "_index2.js",
       "_ProductListItem.js"
     ],
     "assets": [
@@ -3976,7 +3985,7 @@
     "imports": [
       "_jsx-runtime.js",
       "_BlockEditorTranslator.js",
-      "_index7.js",
+      "_index3.js",
       "_SelectProductModal.js",
       "_EditorPanel.js",
       "_EditorPanelRow.js",
@@ -3985,7 +3994,7 @@
       "_Icons.js",
       "_add-query-args.js",
       "_ProductListItem.js",
-      "_index6.js",
+      "_index2.js",
       "_reviewStar2.js"
     ]
   },
@@ -4008,7 +4017,7 @@
       "_Icons.js",
       "_SelectVariationModal.js",
       "_BlockEditorTranslator.js",
-      "_index7.js",
+      "_index3.js",
       "_EditorPanel.js",
       "_EditorPanelRow.js",
       "_CustomSelect.js",
@@ -4017,7 +4026,7 @@
       "_add-query-args.js",
       "_reviewStar2.js",
       "_ProductListItem.js",
-      "_index6.js"
+      "_index2.js"
     ],
     "assets": [
       "assets/ProductGallery.png"
@@ -4035,7 +4044,7 @@
     "isEntry": true,
     "imports": [
       "_jsx-runtime.js",
-      "_index7.js",
+      "_index3.js",
       "_SelectProductModal.js",
       "_EditorPanel.js",
       "_EditorPanelRow.js",
@@ -4044,7 +4053,7 @@
       "_Icons.js",
       "_add-query-args.js",
       "_ProductListItem.js",
-      "_index6.js",
+      "_index2.js",
       "_reviewStar2.js"
     ]
   },
@@ -4065,7 +4074,7 @@
     "imports": [
       "_jsx-runtime.js",
       "_Icons.js",
-      "_index7.js",
+      "_index3.js",
       "_SelectProductModal.js",
       "_EditorPanel.js",
       "_EditorPanelRow.js",
@@ -4074,7 +4083,7 @@
       "_add-query-args.js",
       "_reviewStar2.js",
       "_ProductListItem.js",
-      "_index6.js"
+      "_index2.js"
     ],
     "assets": [
       "assets/ProductInfo.png"
@@ -4093,7 +4102,7 @@
     "imports": [
       "_jsx-runtime.js",
       "_BlockEditorTranslator.js",
-      "_index7.js",
+      "_index3.js",
       "_EditorPanel.js",
       "_EditorPanelRow.js",
       "_ErrorBoundary.js",
@@ -4120,9 +4129,9 @@
       "_reviewBlockShared.js",
       "_Icons.js",
       "_SelectProductModal.js",
-      "_index7.js",
+      "_index3.js",
       "_ProductListItem.js",
-      "_index6.js",
+      "_index2.js",
       "_add-query-args.js",
       "_SingleProductContext.js",
       "_reviewStar2.js"
@@ -4147,9 +4156,9 @@
       "_SingleProductOnlyNotice.js",
       "_Icons.js",
       "_SelectProductModal.js",
-      "_index7.js",
+      "_index3.js",
       "_ProductListItem.js",
-      "_index6.js",
+      "_index2.js",
       "_add-query-args.js",
       "_SingleProductContext.js",
       "_reviewStar2.js"
@@ -4185,9 +4194,9 @@
       "_reviewBlockShared.js",
       "_Icons.js",
       "_SelectProductModal.js",
-      "_index7.js",
+      "_index3.js",
       "_ProductListItem.js",
-      "_index6.js",
+      "_index2.js",
       "_add-query-args.js",
       "_SingleProductContext.js",
       "_reviewStar2.js"
@@ -4211,9 +4220,9 @@
       "_reviewBlockShared.js",
       "_Icons.js",
       "_SelectProductModal.js",
-      "_index7.js",
+      "_index3.js",
       "_ProductListItem.js",
-      "_index6.js",
+      "_index2.js",
       "_add-query-args.js",
       "_SingleProductContext.js",
       "_reviewStar2.js"
@@ -4234,9 +4243,9 @@
       "_EditorPanelRow.js",
       "_SelectProductModal.js",
       "_BlockEditorTranslator.js",
-      "_index7.js",
+      "_index3.js",
       "_ProductListItem.js",
-      "_index6.js",
+      "_index2.js",
       "_add-query-args.js",
       "_reviewStar2.js"
     ]
@@ -4256,9 +4265,9 @@
       "_EditorPanel.js",
       "_EditorPanelRow.js",
       "_SelectProductModal.js",
-      "_index7.js",
+      "_index3.js",
       "_ProductListItem.js",
-      "_index6.js",
+      "_index2.js",
       "_add-query-args.js",
       "_reviewStar2.js"
     ]
@@ -4276,7 +4285,7 @@
     "imports": [
       "_jsx-runtime.js",
       "_BlockEditorTranslator.js",
-      "_index7.js",
+      "_index3.js",
       "_SelectVariationModal.js",
       "_EditorPanel.js",
       "_EditorPanelRow.js",
@@ -4285,7 +4294,7 @@
       "_Icons.js",
       "_add-query-args.js",
       "_ProductListItem.js",
-      "_index6.js",
+      "_index2.js",
       "_reviewStar2.js"
     ]
   },
@@ -4302,7 +4311,7 @@
     "imports": [
       "_jsx-runtime.js",
       "_BlockEditorTranslator.js",
-      "_index7.js",
+      "_index3.js",
       "_SelectProductModal.js",
       "_EditorPanel.js",
       "_EditorPanelRow.js",
@@ -4310,7 +4319,7 @@
       "_Icons.js",
       "_add-query-args.js",
       "_ProductListItem.js",
-      "_index6.js",
+      "_index2.js",
       "_reviewStar2.js"
     ]
   },
@@ -4333,7 +4342,7 @@
     "imports": [
       "_jsx-runtime.js",
       "_Icons.js",
-      "_index7.js",
+      "_index3.js",
       "_BlockEditorTranslator.js",
       "_add-query-args.js",
       "_SingleProductContext.js",
@@ -4353,7 +4362,7 @@
     "imports": [
       "_jsx-runtime.js",
       "_BlockEditorTranslator.js",
-      "_index7.js",
+      "_index3.js",
       "_SelectProductModal.js",
       "_EditorPanel.js",
       "_EditorPanelRow.js",
@@ -4362,7 +4371,7 @@
       "_ErrorBoundary.js",
       "_add-query-args.js",
       "_ProductListItem.js",
-      "_index6.js",
+      "_index2.js",
       "_reviewStar2.js"
     ]
   },
@@ -4383,7 +4392,7 @@
     "imports": [
       "_jsx-runtime.js",
       "_BlockEditorTranslator.js",
-      "_index6.js",
+      "_index2.js",
       "_Icons.js",
       "_reviewStar2.js"
     ],
@@ -4423,8 +4432,8 @@
       "_Icons.js",
       "_ErrorBoundary.js",
       "_ProductContext.js",
-      "_index7.js",
-      "_index6.js",
+      "_index3.js",
+      "_index2.js",
       "_reviewStar2.js"
     ],
     "assets": [
@@ -4469,12 +4478,12 @@
       "_EditorPanel.js",
       "_EditorPanelRow.js",
       "_BlockEditorTranslator.js",
-      "_index7.js",
+      "_index3.js",
       "_SingleProductContext.js",
       "_add-query-args.js",
       "_reviewStar2.js",
       "_ProductListItem.js",
-      "_index6.js"
+      "_index2.js"
     ]
   },
   "resources/admin/BlockEditor/StoreLogo/StoreLogoBlockEditor.jsx": {
@@ -4496,7 +4505,7 @@
     "isEntry": true,
     "imports": [
       "_jsx-runtime.js",
-      "_index7.js",
+      "_index3.js",
       "_BlockEditorTranslator.js",
       "_EditorPanel.js",
       "_EditorPanelRow.js",
@@ -4507,7 +4516,7 @@
       "_add-query-args.js",
       "_SelectProductModal.js",
       "_ProductListItem.js",
-      "_index6.js",
+      "_index2.js",
       "_reviewStar2.js"
     ]
   },
@@ -4524,13 +4533,11 @@
     "imports": [
       "_preload-helper.js",
       "_Translator.js",
-      "_vue.esm-bundler.js",
+      "_fluent-player-gallery.js",
+      "_vendor-vue.js",
+      "_Arr.js",
       "_galleryTabs.js",
-      "_Rest.js",
-      "_Arr.js"
-    ],
-    "dynamicImports": [
-      "resources/admin/Modules/Products/parts/FluentPlayerVideoTab.vue"
+      "_Rest.js"
     ]
   },
   "resources/admin/Modules/Products/parts/FluentPlayerVideoTab.vue": {
@@ -4539,15 +4546,15 @@
     "src": "resources/admin/Modules/Products/parts/FluentPlayerVideoTab.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
+      "_index.js",
       "_Rest.js",
       "_Notify.js",
       "_Translator.js",
       "_DynamicIcon.js",
-      "resources/admin/Modules/Products/FluentPlayer/fluent-player-gallery.js",
-      "_index3.js",
+      "_fluent-player-gallery.js",
+      "_vendor-dayjs.js",
       "_Str.js",
-      "_index.js",
       "_Arr.js",
       "_preload-helper.js",
       "_galleryTabs.js"
@@ -4559,23 +4566,22 @@
     "src": "resources/admin/Modules/Reports/Subscription/Cohort.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "_UserCan.js",
       "_DynamicIcon.js",
       "_CardBody.js",
       "__plugin-vue_export-helper.js",
       "_Empty.js",
       "_Translator.js",
+      "_module-dayjs.js",
       "_Rest.js",
-      "_CurrencyFormatter.js",
-      "resources/admin/bootstrap/app.js",
+      "_app.js",
       "_PageHeading.js",
       "_common.js",
       "_Arr.js",
       "_preload-helper.js",
-      "_dayjs.min.js",
-      "_timezone.js",
-      "_weekOfYear.js",
+      "_vendor-dayjs.js",
+      "_CurrencyFormatter.js",
       "_vue-router.js",
       "_Badge.js",
       "_Model.js",
@@ -4583,25 +4589,21 @@
       "_Str.js",
       "_Notify.js",
       "_index.js",
-      "_index4.js",
-      "_index3.js",
       "_IconButton.js",
-      "_Utils.js",
       "_TransitionAccordion.js",
       "_OrderCustomerInformation.js",
       "_Animation.js",
-      "_RouteCell.js",
-      "_Asset.js",
       "_AddressComponent.js",
       "_NotFound.js",
+      "_Asset.js",
       "_productService.js",
       "_Activity.js",
+      "_RouteCell.js",
       "_BundleProducts.js",
       "_useExport.js",
-      "_dateShortCuts.js",
-      "_index5.js",
+      "_ProductInfo.js",
       "_countries.js",
-      "_index2.js",
+      "_vendor-echarts.js",
       "_AttrGroups.js",
       "_DynamicTemplateParser.js",
       "_ProductVariationSelector.js",
@@ -4622,7 +4624,7 @@
     "src": "resources/admin/Modules/Shipping/shipping.js",
     "isEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "_Badge.js",
       "_Translator.js",
       "_Arr.js",
@@ -4638,17 +4640,13 @@
       "_index.js",
       "_NotFound.js",
       "_Animation.js",
-      "_index3.js",
       "_Model.js",
       "_common.js",
-      "_dayjs.min.js",
+      "_vendor-dayjs.js",
       "_Str.js",
-      "_timezone.js",
-      "_weekOfYear.js",
-      "_Utils.js",
+      "_module-dayjs.js",
       "_CurrencyFormatter.js",
       "_Url.js",
-      "_index4.js",
       "_TransitionAccordion.js",
       "_preload-helper.js",
       "_Asset.js"
@@ -4663,7 +4661,7 @@
     "src": "resources/admin/Modules/Subscriptions/subscription.js",
     "isEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "_Badge.js",
       "_PageHeading.js",
       "_Translator.js",
@@ -4676,10 +4674,9 @@
       "_useExport.js",
       "_CardBody.js",
       "_Str.js",
-      "_dayjs.min.js",
-      "_Utils.js",
+      "_vendor-dayjs.js",
+      "_module-dayjs.js",
       "_Notify.js",
-      "_index3.js",
       "_CurrencyFormatter.js",
       "_NotFound.js",
       "_Arr.js",
@@ -4688,8 +4685,6 @@
       "_Rest.js",
       "_vue-router.js",
       "_Url.js",
-      "_timezone.js",
-      "_index4.js",
       "_IconButton.js",
       "_TransitionAccordion.js",
       "_Empty.js",
@@ -4697,10 +4692,9 @@
       "_BundleProducts.js",
       "_preload-helper.js",
       "_Animation.js",
-      "_Asset.js",
       "_AddressComponent.js",
       "_productService.js",
-      "_weekOfYear.js"
+      "_Asset.js"
     ],
     "css": [
       "assets/subscription.css"
@@ -4718,81 +4712,53 @@
     "src": "resources/admin/bootstrap/app.js",
     "isEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "_vue-router.js",
-      "_preload-helper.js",
-      "_Translator.js",
-      "_Badge.js",
-      "_PageHeading.js",
+      "_app.js",
       "_index.js",
-      "_OrderCustomerInformation.js",
-      "_UserCan.js",
-      "_CurrencyFormatter.js",
-      "_Activity.js",
-      "_Empty.js",
-      "_RouteCell.js",
-      "_DynamicIcon.js",
-      "__plugin-vue_export-helper.js",
-      "_useExport.js",
-      "_common.js",
-      "_IconButton.js",
-      "_CardBody.js",
-      "_Model.js",
-      "_Rest.js",
-      "_dayjs.min.js",
-      "_Notify.js",
-      "_Animation.js",
-      "_index3.js",
-      "_dateShortCuts.js",
-      "_countries.js",
+      "_useElementPlusComponents.js",
+      "_Translator.js",
       "_NotFound.js",
-      "_Utils.js",
-      "_Asset.js",
-      "_index2.js",
+      "_Rest.js",
+      "_Activity.js",
+      "_preload-helper.js",
+      "_Badge.js",
+      "_Model.js",
+      "_common.js",
+      "_vendor-dayjs.js",
       "_Str.js",
       "_Arr.js",
-      "_AttrGroups.js",
+      "_module-dayjs.js",
+      "_CurrencyFormatter.js",
       "_Url.js",
-      "_DynamicTemplateParser.js",
-      "_timezone.js",
-      "_ProductVariationSelector.js",
+      "_Notify.js",
+      "_DynamicIcon.js",
+      "__plugin-vue_export-helper.js",
+      "_IconButton.js",
+      "_TransitionAccordion.js",
+      "_PageHeading.js",
+      "_OrderCustomerInformation.js",
+      "_Animation.js",
+      "_CardBody.js",
+      "_UserCan.js",
+      "_AddressComponent.js",
       "_productService.js",
+      "_Empty.js",
+      "_RouteCell.js",
+      "_useExport.js",
+      "_ProductInfo.js",
+      "_Asset.js",
+      "_countries.js",
+      "_vendor-echarts.js",
+      "_AttrGroups.js",
+      "_DynamicTemplateParser.js",
+      "_ProductVariationSelector.js",
       "_BundleProducts.js",
       "resources/admin/Bits/Components/Icons/ReviewStar.vue",
+      "_reviewStar2.js",
       "_galleryTabs.js",
-      "_index4.js",
-      "_TransitionAccordion.js",
       "_FileUploaderDialog.js",
-      "resources/admin/Bits/Components/Icons/Screenshot.vue",
-      "_useElementPlusComponents.js",
-      "_AddressComponent.js",
-      "_weekOfYear.js",
-      "_index5.js",
-      "_reviewStar2.js"
-    ],
-    "dynamicImports": [
-      "resources/admin/Bits/Components/Form/Components/Affix/Test.vue",
-      "resources/admin/Bits/Components/Form/Components/Coupon/BuyProducts.vue",
-      "resources/admin/Bits/Components/Form/Components/Coupon/Categories.vue",
-      "resources/admin/Bits/Components/Form/Components/Coupon/Code.vue",
-      "resources/admin/Bits/Components/Form/Components/Coupon/GetProducts.vue",
-      "resources/admin/Bits/Components/Form/Components/Coupon/IncludeExclude/Categories.vue",
-      "resources/admin/Bits/Components/Form/Components/Coupon/IncludeExclude/Product.vue",
-      "resources/admin/Bits/Components/Form/Components/Coupon/Products.vue",
-      "resources/admin/Bits/Components/Form/Components/McpSettings.vue",
-      "resources/admin/Bits/Components/Form/Components/ModuleSettings.vue",
-      "resources/admin/Bits/Components/Form/Components/PaymentView.vue",
-      "resources/admin/Bits/Components/Form/Components/StoreSettings/AddressComponent.vue",
-      "resources/admin/Bits/Components/Form/Components/StoreSettings/AppearanceComponent.vue",
-      "resources/admin/Bits/Components/Form/Components/StoreSettings/AppearancePreview.vue",
-      "resources/admin/Bits/Components/Form/Components/StoreSettings/CreatePageButton.vue",
-      "resources/admin/Bits/Components/Form/Components/StoreSettings/PageSelector.vue",
-      "resources/admin/Bits/Components/Form/Components/StoreSettings/SubscriptionModeManager.vue",
-      "resources/admin/Bits/Components/Form/Components/TurnstileSettings.vue",
-      "resources/admin/Modules/Reports/Subscription/Cohort.vue"
-    ],
-    "css": [
-      "assets/app.css"
+      "resources/admin/Bits/Components/Icons/Screenshot.vue"
     ]
   },
   "resources/admin/dark-mode-toggle.js": {
@@ -4807,18 +4773,13 @@
     "src": "resources/admin/elementor/AddToCart/Start.js",
     "isEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "_useElementPlusComponents.js",
       "_Translator.js",
       "_AddProductItemModal.js",
       "__plugin-vue_export-helper.js",
       "_index.js",
-      "_index2.js",
-      "_index3.js",
-      "_index5.js",
-      "_dayjs.min.js",
-      "_weekOfYear.js",
-      "_index4.js",
+      "_vendor-dayjs.js",
       "_Arr.js",
       "_DynamicIcon.js",
       "_preload-helper.js",
@@ -4826,7 +4787,6 @@
       "_Str.js",
       "_productService.js",
       "_CurrencyFormatter.js",
-      "_timezone.js",
       "_Model.js",
       "_Rest.js",
       "_Asset.js",
@@ -4843,18 +4803,13 @@
     "src": "resources/admin/elementor/CustomerProfile/Start.js",
     "isEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "_useElementPlusComponents.js",
       "_useElementor.js",
       "_ServerSidePreview.js",
       "_Translator.js",
       "_index.js",
-      "_index2.js",
-      "_index3.js",
-      "_index5.js",
-      "_dayjs.min.js",
-      "_weekOfYear.js",
-      "_index4.js",
+      "_vendor-dayjs.js",
       "_Arr.js",
       "__plugin-vue_export-helper.js",
       "_add-query-args.js"
@@ -4869,19 +4824,14 @@
     "src": "resources/admin/elementor/DirectCheckout/Start.js",
     "isEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "_useElementPlusComponents.js",
       "_AddProductItemModal.js",
       "_Translator.js",
       "_useElementor.js",
       "__plugin-vue_export-helper.js",
       "_index.js",
-      "_index2.js",
-      "_index3.js",
-      "_index5.js",
-      "_dayjs.min.js",
-      "_weekOfYear.js",
-      "_index4.js",
+      "_vendor-dayjs.js",
       "_DynamicIcon.js",
       "_preload-helper.js",
       "resources/admin/Bits/Components/Icons/CaretRight.vue",
@@ -4889,7 +4839,6 @@
       "_productService.js",
       "_CurrencyFormatter.js",
       "_Arr.js",
-      "_timezone.js",
       "_Model.js",
       "_Rest.js",
       "_Asset.js",
@@ -4907,7 +4856,7 @@
     "src": "resources/admin/elementor/PricingTable/Start.js",
     "isEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "_useElementPlusComponents.js",
       "_AddProductItemModal.js",
       "_Translator.js",
@@ -4919,18 +4868,12 @@
       "resources/admin/Bits/Components/Icons/CaretRight.vue",
       "resources/admin/Bits/Components/Icons/Delete.vue",
       "_index.js",
-      "_index2.js",
-      "_index3.js",
-      "_index5.js",
-      "_dayjs.min.js",
-      "_weekOfYear.js",
-      "_index4.js",
+      "_vendor-dayjs.js",
       "_DynamicIcon.js",
       "_preload-helper.js",
       "_Str.js",
       "_productService.js",
       "_CurrencyFormatter.js",
-      "_timezone.js",
       "_Model.js",
       "_Asset.js",
       "_Url.js",
@@ -4948,18 +4891,13 @@
     "src": "resources/admin/elementor/ProductDetailsButton/Start.js",
     "isEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "_useElementPlusComponents.js",
       "_Translator.js",
       "_useElementor.js",
       "_Rest.js",
       "_index.js",
-      "_index2.js",
-      "_index3.js",
-      "_index5.js",
-      "_dayjs.min.js",
-      "_weekOfYear.js",
-      "_index4.js",
+      "_vendor-dayjs.js",
       "_Arr.js"
     ]
   },
@@ -4969,17 +4907,12 @@
     "src": "resources/admin/elementor/ProductSearchBar/Start.js",
     "isEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "_useElementPlusComponents.js",
       "resources/admin/Bits/Components/Icons/Search.vue",
       "_Translator.js",
       "_index.js",
-      "_index2.js",
-      "_index3.js",
-      "_index5.js",
-      "_dayjs.min.js",
-      "_weekOfYear.js",
-      "_index4.js",
+      "_vendor-dayjs.js",
       "__plugin-vue_export-helper.js",
       "_Arr.js"
     ]
@@ -4999,6 +4932,80 @@
     "src": "resources/admin/global.js",
     "isEntry": true
   },
+  "resources/admin/shared/module-dayjs.js": {
+    "file": "module-dayjs.js",
+    "name": "module-dayjs",
+    "src": "resources/admin/shared/module-dayjs.js",
+    "isEntry": true,
+    "imports": [
+      "_module-dayjs.js",
+      "_vendor-dayjs.js",
+      "_Translator.js",
+      "_vendor-vue.js",
+      "_Arr.js",
+      "_CurrencyFormatter.js"
+    ]
+  },
+  "resources/admin/shared/module-echarts.js": {
+    "file": "module-echarts.js",
+    "name": "module-echarts",
+    "src": "resources/admin/shared/module-echarts.js",
+    "isEntry": true,
+    "imports": [
+      "_vendor-echarts.js"
+    ]
+  },
+  "resources/admin/shared/module-ui.js": {
+    "file": "module-ui.js",
+    "name": "module-ui",
+    "src": "resources/admin/shared/module-ui.js",
+    "isEntry": true,
+    "imports": [
+      "_CardBody.js",
+      "_ProductInfo.js",
+      "_Badge.js",
+      "_OrderCustomerInformation.js",
+      "_DynamicIcon.js",
+      "_Empty.js",
+      "_vendor-vue.js",
+      "_IconButton.js",
+      "_NotFound.js",
+      "_PageHeading.js",
+      "_RouteCell.js",
+      "_UserCan.js",
+      "_Translator.js",
+      "_Rest.js",
+      "__plugin-vue_export-helper.js",
+      "_common.js",
+      "_Arr.js",
+      "_Str.js",
+      "_Asset.js",
+      "_Model.js",
+      "_useExport.js",
+      "_module-dayjs.js",
+      "_CurrencyFormatter.js",
+      "_index.js",
+      "_vendor-dayjs.js",
+      "_vue-router.js",
+      "_Url.js",
+      "_Notify.js",
+      "_TransitionAccordion.js",
+      "_Animation.js",
+      "_AddressComponent.js",
+      "_productService.js",
+      "_preload-helper.js"
+    ]
+  },
+  "resources/admin/shared/module-vue.js": {
+    "file": "module-vue.js",
+    "name": "module-vue",
+    "src": "resources/admin/shared/module-vue.js",
+    "isEntry": true,
+    "imports": [
+      "_vendor-vue.js",
+      "_vendor-echarts.js"
+    ]
+  },
   "resources/admin/utils/edit-wp-user-global.js": {
     "file": "edit-wp-user-global.js",
     "name": "edit-wp-user-global",
@@ -5012,20 +5019,17 @@
     "isEntry": true,
     "imports": [
       "_Translator.js",
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "__plugin-vue_export-helper.js",
       "_AttrGroups.js",
       "_Arr.js",
       "_Rest.js",
-      "_common.js",
-      "_dayjs.min.js",
-      "_Str.js",
-      "_timezone.js",
-      "_weekOfYear.js",
-      "_Utils.js",
-      "_CurrencyFormatter.js",
       "_index.js",
-      "_index3.js",
+      "_vendor-dayjs.js",
+      "_common.js",
+      "_Str.js",
+      "_module-dayjs.js",
+      "_CurrencyFormatter.js",
       "_Notify.js",
       "_DynamicIcon.js",
       "_preload-helper.js",
@@ -5038,55 +5042,6 @@
     "src": "resources/images/pro-feature-pattern.png",
     "isEntry": true
   },
-  "resources/licensing/license.js": {
-    "file": "license.js",
-    "name": "license",
-    "src": "resources/licensing/license.js",
-    "isEntry": true,
-    "imports": [
-      "_Translator.js",
-      "_vue.esm-bundler.js",
-      "_CardBody.js",
-      "_NotFound.js",
-      "_dateShortCuts.js",
-      "_Empty.js",
-      "_DynamicIcon.js",
-      "_Asset.js",
-      "_Badge.js",
-      "_PageHeading.js",
-      "_common.js",
-      "_index.js",
-      "_OrderCustomerInformation.js",
-      "__plugin-vue_export-helper.js",
-      "_dayjs.min.js",
-      "_Model.js",
-      "_Rest.js",
-      "_IconButton.js",
-      "_UserCan.js",
-      "_RouteCell.js",
-      "_useExport.js",
-      "_Utils.js",
-      "_Str.js",
-      "_Arr.js",
-      "_CurrencyFormatter.js",
-      "_vue-router.js",
-      "_index5.js",
-      "_preload-helper.js",
-      "_Url.js",
-      "_timezone.js",
-      "_Notify.js",
-      "_index4.js",
-      "_index3.js",
-      "_TransitionAccordion.js",
-      "_weekOfYear.js",
-      "_Animation.js",
-      "_AddressComponent.js",
-      "_productService.js"
-    ],
-    "css": [
-      "assets/license.css"
-    ]
-  },
   "resources/order-bump/order-bump.js": {
     "file": "order-bump.js",
     "name": "order-bump",
@@ -5094,7 +5049,7 @@
     "isEntry": true,
     "imports": [
       "_Translator.js",
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "_Badge.js",
       "_PageHeading.js",
       "_Empty.js",
@@ -5113,12 +5068,8 @@
       "_Model.js",
       "_Url.js",
       "_Str.js",
-      "_dayjs.min.js",
-      "_timezone.js",
-      "_index4.js",
-      "_index3.js",
-      "_Utils.js",
-      "_weekOfYear.js",
+      "_vendor-dayjs.js",
+      "_module-dayjs.js",
       "_CurrencyFormatter.js",
       "_TransitionAccordion.js",
       "_preload-helper.js"
@@ -5179,12 +5130,11 @@
     "imports": [
       "_payment-loader.js",
       "_Url.js",
-      "_timezone.js",
-      "_dayjs.min.js",
+      "_vendor-dayjs.js",
       "_Str.js",
       "_Arr.js",
       "_vue-router.js",
-      "_vue.esm-bundler.js"
+      "_vendor-vue.js"
     ]
   },
   "resources/public/checkout/ModalCheckoutForm.js": {
@@ -5241,8 +5191,8 @@
     "isEntry": true
   },
   "resources/public/customer-dashboard-button/customer-dashboard-button.scss": {
-    "file": "assets/customer-dashboard-button-block-editor.css",
-    "src": "resources/admin/BlockEditor/CustomerDashboardButton/style/customer-dashboard-button-block-editor.scss",
+    "file": "assets/customer-dashboard-button.css",
+    "src": "resources/public/customer-dashboard-button/customer-dashboard-button.scss",
     "isEntry": true
   },
   "resources/public/customer-profile/Start.js": {
@@ -5251,10 +5201,8 @@
     "src": "resources/public/customer-profile/Start.js",
     "isEntry": true,
     "imports": [
-      "_vue.esm-bundler.js",
-      "_dayjs.min.js",
-      "_timezone.js",
-      "_weekOfYear.js",
+      "_vendor-vue.js",
+      "_vendor-dayjs.js",
       "_DynamicIcon.js",
       "_Str.js",
       "__plugin-vue_export-helper.js",
@@ -5262,7 +5210,6 @@
       "_common.js",
       "_IconButton.js",
       "_index.js",
-      "_index3.js",
       "_vue-router.js",
       "_Translator.js",
       "resources/admin/Bits/Components/Icons/ArrowDown.vue",
@@ -5272,15 +5219,12 @@
       "_Animation.js",
       "_Notify.js",
       "_DynamicTemplateParser.js",
-      "_index4.js",
       "resources/admin/Bits/Components/Icons/ReviewStar.vue",
-      "_index2.js",
       "_preload-helper.js",
       "_Arr.js",
-      "_Utils.js",
+      "_module-dayjs.js",
       "_CurrencyFormatter.js",
       "_TransitionAccordion.js",
-      "_index5.js",
       "_reviewStar2.js"
     ],
     "css": [
@@ -5351,7 +5295,7 @@
       "_Str.js",
       "_Arr.js",
       "_vue-router.js",
-      "_vue.esm-bundler.js"
+      "_vendor-vue.js"
     ]
   },
   "resources/public/payment-methods/cod-checkout.js": {
@@ -5462,13 +5406,11 @@
     "src": "resources/public/search-bar-app/SearchBarApp.js",
     "isEntry": true,
     "imports": [
-      "_Utils.js",
+      "_module-dayjs.js",
       "_Translator.js",
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "_Arr.js",
-      "_dayjs.min.js",
-      "_timezone.js",
-      "_weekOfYear.js",
+      "_vendor-dayjs.js",
       "_CurrencyFormatter.js"
     ]
   },
@@ -5561,7 +5503,7 @@
     "isEntry": true,
     "imports": [
       "_Translator.js",
-      "_vue.esm-bundler.js",
+      "_vendor-vue.js",
       "_Badge.js",
       "_PageHeading.js",
       "_UserCan.js",
@@ -5575,16 +5517,12 @@
       "_Arr.js",
       "_Model.js",
       "_common.js",
-      "_dayjs.min.js",
-      "_Str.js",
-      "_timezone.js",
-      "_weekOfYear.js",
-      "_Utils.js",
       "_index.js",
-      "_index3.js",
+      "_vendor-dayjs.js",
+      "_Str.js",
+      "_module-dayjs.js",
       "_vue-router.js",
       "_Url.js",
-      "_index4.js",
       "_TransitionAccordion.js",
       "_preload-helper.js"
     ],
