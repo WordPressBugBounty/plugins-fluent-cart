@@ -389,7 +389,7 @@ This service is provided by PayPal: [Terms of Service](https://www.paypal.com/le
 - Adds RTL (Right-to-Left) language support.
 - Adds Multi-currency support for admin orders.
 - Enhances Tax information on PDF receipts.
-- Fixes Regular security audits.
+- Improves security through routine audits and hardening, with thanks to Mutantgun.
 
 = 2.1.0 (Oct 15, 2026) =
 - Enhances Full Report system with multi-currency support
