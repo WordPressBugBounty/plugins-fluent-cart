@@ -1,1 +1,1 @@
-import{i as r}from"./chunks/vendor-echarts.js?ver=2.2.0";export{r as init};
+import{i as a,r as e}from"./chunks/vendor-echarts.js?ver=2.3.0";export{a as init,e as registerMap};

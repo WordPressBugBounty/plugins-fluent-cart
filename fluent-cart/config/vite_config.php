@@ -8,7 +8,6 @@
             '_Empty.js',
             '_Badge.js',
             '_Translator.js',
-            '_Str.js',
             '_Url.js',
             '_IconButton.js',
             '_DynamicIcon.js',
@@ -16,12 +15,14 @@
             '_CurrencyFormatter.js',
             '_Rest.js',
             '_Notify.js',
-            '_NotFound.js',
+            '_LabelHint.js',
             '_index.js',
             '_Arr.js',
             '_common.js',
             '_BundleProducts.js',
+            '_Str.js',
             '_UserCan.js',
+            '_TableWrapper.js',
             '__plugin-vue_export-helper.js',
             '_module-dayjs.js'
         ]
@@ -66,6 +67,26 @@
             'assets/AddressComponent.css'
         ]
     ],
+    '_AdminNotice.js' => [
+        'file' => 'chunks/AdminNotice.js',
+        'name' => 'AdminNotice',
+        'imports' => [
+            '_vendor-vue.js',
+            '_vue-router.js',
+            '_Alert.js'
+        ],
+        'css' => [
+            'assets/TransitionAccordion.css'
+        ]
+    ],
+    '_Alert.js' => [
+        'file' => 'chunks/Alert.js',
+        'name' => 'Alert',
+        'imports' => [
+            '_vendor-vue.js',
+            '_DynamicIcon.js'
+        ]
+    ],
     '_Animation.css' => [
         'file' => 'assets/Animation.css',
         'src' => '_Animation.css'
@@ -101,7 +122,7 @@
             '_vendor-vue.js',
             '_Translator.js',
             '_Rest.js',
-            '_index.js',
+            '_index2.js',
             '_common.js',
             '_Notify.js',
             '_DynamicIcon.js',
@@ -113,23 +134,11 @@
         'file' => 'chunks/Badge.js',
         'name' => 'Badge',
         'imports' => [
-            '_Model.js',
-            '_vendor-vue.js',
-            '_common.js',
-            '_Rest.js',
-            '_vue-router.js',
-            '_Url.js',
-            '_Arr.js',
-            '_Translator.js',
-            '_vendor-dayjs.js',
-            '_Notify.js',
-            '_index.js',
             '_DynamicIcon.js',
-            '__plugin-vue_export-helper.js',
-            '_IconButton.js',
-            '_module-dayjs.js',
-            '_TransitionAccordion.js',
-            '_Str.js'
+            '_Str.js',
+            '_Translator.js',
+            '_vendor-vue.js',
+            '__plugin-vue_export-helper.js'
         ]
     ],
     '_BlockEditorTranslator.js' => [
@@ -150,8 +159,16 @@
         'name' => 'CardBody',
         'imports' => [
             '_vendor-vue.js',
-            '__plugin-vue_export-helper.js',
-            '_DynamicIcon.js'
+            '__plugin-vue_export-helper.js'
+        ]
+    ],
+    '_CardHeader.js' => [
+        'file' => 'chunks/CardHeader.js',
+        'name' => 'CardHeader',
+        'imports' => [
+            '_DynamicIcon.js',
+            '_vendor-vue.js',
+            '__plugin-vue_export-helper.js'
         ]
     ],
     '_ColorPickerField.js' => [
@@ -161,6 +178,18 @@
             '_jsx-runtime.js',
             '_Icons.js',
             '_BlockEditorTranslator.js'
+        ]
+    ],
+    '_CopyToClipboard.js' => [
+        'file' => 'chunks/CopyToClipboard.js',
+        'name' => 'CopyToClipboard',
+        'imports' => [
+            '_vendor-vue.js',
+            '_DynamicIcon.js',
+            '_index2.js',
+            '_Translator.js',
+            '_Notify.js',
+            '_common.js'
         ]
     ],
     '_CurrencyFormatter.js' => [
@@ -177,7 +206,7 @@
         'name' => 'CustomSelect',
         'imports' => [
             '_jsx-runtime.js',
-            '_index2.js',
+            '_index3.js',
             '_BlockEditorTranslator.js'
         ]
     ],
@@ -443,6 +472,32 @@
             '_BlockEditorTranslator.js'
         ]
     ],
+    '_ExportReport.js' => [
+        'file' => 'chunks/ExportReport.js',
+        'name' => 'ExportReport',
+        'imports' => [
+            '_vendor-vue.js',
+            '__plugin-vue_export-helper.js',
+            '_index2.js',
+            '_Translator.js',
+            '_IconButton.js',
+            '_DynamicIcon.js',
+            '_index.js',
+            '_Model.js',
+            '_common.js',
+            '_TableWrapper.js',
+            '_Arr.js',
+            '_Asset.js',
+            '_CurrencyFormatter.js',
+            '_vendor-dayjs.js',
+            '_Rest.js',
+            '_vue-router.js',
+            '_vendor-echarts.js',
+            '_CardBody.js',
+            '_CardHeader.js',
+            '_module-dayjs.js'
+        ]
+    ],
     '_FileUploaderDialog.js' => [
         'file' => 'chunks/FileUploaderDialog.js',
         'name' => 'FileUploaderDialog',
@@ -473,6 +528,19 @@
             '_reviewStar2.js'
         ]
     ],
+    '_KeyboardShortcut.js' => [
+        'file' => 'chunks/KeyboardShortcut.js',
+        'name' => 'KeyboardShortcut'
+    ],
+    '_LabelHint.js' => [
+        'file' => 'chunks/LabelHint.js',
+        'name' => 'LabelHint',
+        'imports' => [
+            '_DynamicIcon.js',
+            '_vendor-vue.js',
+            '__plugin-vue_export-helper.js'
+        ]
+    ],
     '_Model.js' => [
         'file' => 'chunks/Model.js',
         'name' => 'Model',
@@ -485,9 +553,7 @@
         'file' => 'chunks/NotFound.js',
         'name' => 'NotFound',
         'imports' => [
-            '_DynamicIcon.js',
             '_vendor-vue.js',
-            '__plugin-vue_export-helper.js',
             '_Asset.js',
             '_Translator.js',
             '_vue-router.js'
@@ -497,7 +563,7 @@
         'file' => 'chunks/Notify.js',
         'name' => 'Notify',
         'imports' => [
-            '_index.js',
+            '_index2.js',
             '_Str.js',
             '_Translator.js'
         ]
@@ -510,17 +576,20 @@
             '_index.js',
             '_Translator.js',
             '_Animation.js',
-            '_Badge.js',
+            '_TableWrapper.js',
             '__plugin-vue_export-helper.js',
             '_CardBody.js',
+            '_CardHeader.js',
             '_UserCan.js',
             '_IconButton.js',
             '_DynamicIcon.js',
             '_common.js',
             '_Notify.js',
             '_Rest.js',
+            '_CopyToClipboard.js',
             '_AddressComponent.js',
-            '_NotFound.js',
+            '_LabelHint.js',
+            '_saveButtonShortcutMixin.js',
             '_productService.js'
         ]
     ],
@@ -550,24 +619,6 @@
             '_BlockEditorTranslator.js'
         ]
     ],
-    '_ProductInfo.js' => [
-        'file' => 'chunks/ProductInfo.js',
-        'name' => 'ProductInfo',
-        'imports' => [
-            '_vendor-vue.js',
-            '__plugin-vue_export-helper.js',
-            '_index.js',
-            '_Translator.js',
-            '_IconButton.js',
-            '_DynamicIcon.js',
-            '_Rest.js',
-            '_Arr.js',
-            '_Badge.js',
-            '_common.js',
-            '_vendor-dayjs.js',
-            '_Asset.js'
-        ]
-    ],
     '_ProductListItem.js' => [
         'file' => 'chunks/ProductListItem.js',
         'name' => 'ProductListItem',
@@ -581,12 +632,10 @@
         'file' => 'chunks/ProductVariationSelector.js',
         'name' => 'ProductVariationSelector',
         'imports' => [
-            '_vendor-vue.js',
-            '_DynamicIcon.js',
-            '_vue-router.js',
-            '_Translator.js',
             '_module-dayjs.js',
-            '_Badge.js',
+            '_TableWrapper.js',
+            '_Translator.js',
+            '_vendor-vue.js',
             '__plugin-vue_export-helper.js'
         ]
     ],
@@ -602,6 +651,16 @@
             '_vue-router.js'
         ]
     ],
+    '_SaveBar.js' => [
+        'file' => 'chunks/SaveBar.js',
+        'name' => 'SaveBar',
+        'imports' => [
+            '_vendor-vue.js',
+            '_DynamicIcon.js',
+            '_vue-router.js',
+            '_Translator.js'
+        ]
+    ],
     '_SelectProductModal.js' => [
         'file' => 'chunks/SelectProductModal.js',
         'name' => 'SelectProductModal',
@@ -609,9 +668,9 @@
             '_jsx-runtime.js',
             '_Icons.js',
             '_BlockEditorTranslator.js',
-            '_index3.js',
+            '_index4.js',
             '_ProductListItem.js',
-            '_index2.js',
+            '_index3.js',
             '_add-query-args.js'
         ]
     ],
@@ -622,8 +681,8 @@
             '_jsx-runtime.js',
             '_ProductListItem.js',
             '_Icons.js',
-            '_index2.js',
             '_index3.js',
+            '_index4.js',
             '_BlockEditorTranslator.js',
             '_add-query-args.js'
         ]
@@ -645,6 +704,27 @@
             'assets/ServerSidePreview.css'
         ]
     ],
+    '_SettingsHeader.js' => [
+        'file' => 'chunks/SettingsHeader.js',
+        'name' => 'SettingsHeader',
+        'imports' => [
+            '_Translator.js',
+            '_DynamicIcon.js',
+            '_vendor-vue.js',
+            '__plugin-vue_export-helper.js'
+        ]
+    ],
+    '_ShippingClassDrawer.js' => [
+        'file' => 'chunks/ShippingClassDrawer.js',
+        'name' => 'ShippingClassDrawer',
+        'imports' => [
+            '_vendor-vue.js',
+            '_Translator.js',
+            '_Rest.js',
+            '_Notify.js',
+            '_LabelHint.js'
+        ]
+    ],
     '_SingleProductContext.js' => [
         'file' => 'chunks/SingleProductContext.js',
         'name' => 'SingleProductContext'
@@ -660,6 +740,29 @@
     '_Str.js' => [
         'file' => 'chunks/Str.js',
         'name' => 'Str'
+    ],
+    '_TableWrapper.js' => [
+        'file' => 'chunks/TableWrapper.js',
+        'name' => 'TableWrapper',
+        'imports' => [
+            '_Model.js',
+            '_vendor-vue.js',
+            '_common.js',
+            '_Rest.js',
+            '_vue-router.js',
+            '_Url.js',
+            '_Arr.js',
+            '_Translator.js',
+            '_vendor-dayjs.js',
+            '_Notify.js',
+            '_index2.js',
+            '_DynamicIcon.js',
+            '__plugin-vue_export-helper.js',
+            '_IconButton.js',
+            '_Alert.js',
+            '_module-dayjs.js',
+            '_TransitionAccordion.js'
+        ]
     ],
     '_TransitionAccordion.css' => [
         'file' => 'assets/TransitionAccordion.css',
@@ -721,7 +824,7 @@
             '_vue-router.js',
             '_preload-helper.js',
             '_Translator.js',
-            '_Badge.js',
+            '_TableWrapper.js',
             '_PageHeading.js',
             '_index.js',
             '_OrderCustomerInformation.js',
@@ -734,33 +837,46 @@
             '__plugin-vue_export-helper.js',
             '_useExport.js',
             '_common.js',
+            '_ExportReport.js',
             '_IconButton.js',
             '_CardBody.js',
+            '_CardHeader.js',
             '_Model.js',
             '_Rest.js',
-            '_vendor-dayjs.js',
+            '_Arr.js',
+            '_index2.js',
             '_Notify.js',
             '_Animation.js',
-            '_ProductInfo.js',
-            '_countries.js',
-            '_NotFound.js',
+            '_SettingsHeader.js',
+            '_saveButtonShortcutMixin.js',
+            '_Alert.js',
+            '_AdminNotice.js',
             '_vendor-echarts.js',
             '_module-dayjs.js',
             '_Asset.js',
             '_Str.js',
-            '_Arr.js',
             '_AttrGroups.js',
+            '_LabelHint.js',
             '_Url.js',
             '_DynamicTemplateParser.js',
-            '_ProductVariationSelector.js',
+            '_vendor-dayjs.js',
+            '_Badge.js',
+            '_NotFound.js',
+            '_SaveBar.js',
             '_productService.js',
+            '_CopyToClipboard.js',
+            '_orderConstants.js',
             '_BundleProducts.js',
+            '_restError.js',
+            '_useCarriers.js',
+            '_KeyboardShortcut.js',
             'resources/admin/Bits/Components/Icons/ReviewStar.vue',
             '_galleryTabs.js',
+            '_shippingPackagesConfig.js',
             '_TransitionAccordion.js',
             '_FileUploaderDialog.js',
-            'resources/admin/Bits/Components/Icons/Screenshot.vue',
-            '_useElementPlusComponents.js'
+            '_ShippingClassDrawer.js',
+            '_ProductVariationSelector.js'
         ],
         'dynamicImports' => [
             'resources/admin/Bits/Components/Form/Components/Affix/Test.vue',
@@ -781,39 +897,28 @@
             'resources/admin/Bits/Components/Form/Components/StoreSettings/PageSelector.vue',
             'resources/admin/Bits/Components/Form/Components/StoreSettings/SubscriptionModeManager.vue',
             'resources/admin/Bits/Components/Form/Components/TurnstileSettings.vue',
-            'resources/admin/Modules/Reports/Subscription/Cohort.vue'
+            'resources/admin/Modules/Reports/Subscription/Cohort.vue',
+            'resources/admin/Modules/Reports/Subscription/InstallmentsReport.vue'
         ],
         'css' => [
             'assets/app.css'
         ]
     ],
+    '_carrierNotices.js' => [
+        'file' => 'chunks/carrierNotices.js',
+        'name' => 'carrierNotices'
+    ],
     '_common.js' => [
         'file' => 'chunks/common.js',
         'name' => 'common',
         'imports' => [
-            '_index.js',
+            '_index2.js',
             '_vendor-dayjs.js',
             '_Translator.js',
             '_Str.js',
             '_Arr.js',
             '_module-dayjs.js',
             '_CurrencyFormatter.js'
-        ]
-    ],
-    '_countries.js' => [
-        'file' => 'chunks/countries.js',
-        'name' => 'countries',
-        'imports' => [
-            '_Translator.js',
-            '_DynamicIcon.js',
-            '_vendor-vue.js',
-            '__plugin-vue_export-helper.js',
-            '_vue-router.js',
-            '_Badge.js',
-            '_TransitionAccordion.js',
-            '_Rest.js',
-            '_Notify.js',
-            '_NotFound.js'
         ]
     ],
     '_fluent-player-gallery.js' => [
@@ -838,19 +943,27 @@
         'file' => 'chunks/index.js',
         'name' => 'index',
         'imports' => [
-            '_vendor-vue.js',
-            '_vendor-dayjs.js'
+            '_vendor-vue.js'
         ]
     ],
     '_index2.js' => [
         'file' => 'chunks/index2.js',
         'name' => 'index',
         'imports' => [
-            '_jsx-runtime.js'
+            '_vendor-vue.js',
+            '_index.js',
+            '_vendor-dayjs.js'
         ]
     ],
     '_index3.js' => [
         'file' => 'chunks/index3.js',
+        'name' => 'index',
+        'imports' => [
+            '_jsx-runtime.js'
+        ]
+    ],
+    '_index4.js' => [
+        'file' => 'chunks/index4.js',
         'name' => 'index'
     ],
     '_jsx-runtime.js' => [
@@ -870,6 +983,10 @@
             '_CurrencyFormatter.js'
         ]
     ],
+    '_orderConstants.js' => [
+        'file' => 'chunks/orderConstants.js',
+        'name' => 'orderConstants'
+    ],
     '_payment-loader.js' => [
         'file' => 'chunks/payment-loader.js',
         'name' => 'payment-loader'
@@ -886,6 +1003,10 @@
             '_CurrencyFormatter.js'
         ]
     ],
+    '_restError.js' => [
+        'file' => 'chunks/restError.js',
+        'name' => 'restError'
+    ],
     '_reviewBlockShared.js' => [
         'file' => 'chunks/reviewBlockShared.js',
         'name' => 'reviewBlockShared',
@@ -895,7 +1016,7 @@
             '_EditorPanelRow.js',
             '_SelectProductModal.js',
             '_BlockEditorTranslator.js',
-            '_index3.js',
+            '_index4.js',
             '_Icons.js',
             '_add-query-args.js',
             '_SingleProductContext.js'
@@ -909,11 +1030,34 @@
         'file' => 'chunks/reviewStar2.js',
         'name' => 'reviewStar'
     ],
+    '_saveButtonShortcutMixin.js' => [
+        'file' => 'chunks/saveButtonShortcutMixin.js',
+        'name' => 'saveButtonShortcutMixin',
+        'imports' => [
+            '_vendor-vue.js'
+        ]
+    ],
+    '_shippingPackagesConfig.js' => [
+        'file' => 'chunks/shippingPackagesConfig.js',
+        'name' => 'shippingPackagesConfig',
+        'imports' => [
+            '_vendor-vue.js',
+            '_Translator.js',
+            '_DynamicIcon.js'
+        ]
+    ],
+    '_useCarriers.js' => [
+        'file' => 'chunks/useCarriers.js',
+        'name' => 'useCarriers',
+        'imports' => [
+            '_Rest.js'
+        ]
+    ],
     '_useElementPlusComponents.js' => [
         'file' => 'chunks/useElementPlusComponents.js',
         'name' => 'useElementPlusComponents',
         'imports' => [
-            '_index.js'
+            '_index2.js'
         ]
     ],
     '_useElementor.js' => [
@@ -961,6 +1105,7 @@
             '_Translator.js',
             '_vendor-vue.js',
             '_CardBody.js',
+            '_CardHeader.js',
             '_useExport.js',
             '_Arr.js',
             '__plugin-vue_export-helper.js',
@@ -968,6 +1113,7 @@
             '_preload-helper.js',
             '_Rest.js',
             '_Notify.js',
+            '_index2.js',
             '_index.js',
             '_vendor-dayjs.js',
             '_Str.js'
@@ -985,6 +1131,7 @@
             '__plugin-vue_export-helper.js',
             '_Arr.js',
             '_common.js',
+            '_index2.js',
             '_index.js',
             '_vendor-dayjs.js',
             '_Str.js',
@@ -1082,29 +1229,19 @@
             '_Badge.js',
             '_Rest.js',
             '_Notify.js',
-            '_OrderCustomerInformation.js',
+            '_CopyToClipboard.js',
+            '_Alert.js',
             '_Arr.js',
-            '_Model.js',
-            '_common.js',
-            '_index.js',
-            '_vendor-dayjs.js',
-            '_Str.js',
-            '_module-dayjs.js',
-            '_CurrencyFormatter.js',
-            '_vue-router.js',
-            '_Url.js',
             '_DynamicIcon.js',
             '_preload-helper.js',
+            '_Str.js',
             '__plugin-vue_export-helper.js',
-            '_IconButton.js',
-            '_TransitionAccordion.js',
-            '_Animation.js',
-            '_CardBody.js',
-            '_UserCan.js',
-            '_AddressComponent.js',
-            '_NotFound.js',
-            '_Asset.js',
-            '_productService.js'
+            '_index2.js',
+            '_index.js',
+            '_vendor-dayjs.js',
+            '_common.js',
+            '_module-dayjs.js',
+            '_CurrencyFormatter.js'
         ]
     ],
     'resources/admin/Bits/Components/Form/Components/ModuleSettings.vue' => [
@@ -1119,21 +1256,19 @@
             '_Badge.js',
             '_Animation.js',
             '_Arr.js',
+            '_index2.js',
             '_index.js',
             '_vendor-dayjs.js',
             '_Str.js',
             '_module-dayjs.js',
             '_CurrencyFormatter.js',
-            '_Model.js',
-            '_Rest.js',
-            '_vue-router.js',
-            '_Url.js',
-            '_Notify.js',
             '_DynamicIcon.js',
             '_preload-helper.js',
             '__plugin-vue_export-helper.js',
-            '_IconButton.js',
             '_TransitionAccordion.js'
+        ],
+        'css' => [
+            'assets/TransitionAccordion.css'
         ]
     ],
     'resources/admin/Bits/Components/Form/Components/PaymentView.vue' => [
@@ -1163,6 +1298,9 @@
             '_Animation.js',
             '__plugin-vue_export-helper.js',
             '_TransitionAccordion.js'
+        ],
+        'css' => [
+            'assets/TransitionAccordion.css'
         ]
     ],
     'resources/admin/Bits/Components/Form/Components/StoreSettings/AppearanceComponent.vue' => [
@@ -1179,10 +1317,11 @@
             '_IconButton.js',
             '_vue-router.js',
             '_preload-helper.js',
-            '_Badge.js',
+            '_TableWrapper.js',
             '_Model.js',
             '_Rest.js',
             '_common.js',
+            '_index2.js',
             '_index.js',
             '_vendor-dayjs.js',
             '_Str.js',
@@ -1192,33 +1331,48 @@
             '_Url.js',
             '_Notify.js',
             '__plugin-vue_export-helper.js',
+            '_Alert.js',
             '_TransitionAccordion.js',
             '_PageHeading.js',
             '_OrderCustomerInformation.js',
             '_Animation.js',
             '_CardBody.js',
+            '_CardHeader.js',
             '_UserCan.js',
+            '_CopyToClipboard.js',
             '_AddressComponent.js',
-            '_NotFound.js',
-            '_Asset.js',
+            '_LabelHint.js',
+            '_saveButtonShortcutMixin.js',
             '_productService.js',
             '_Activity.js',
             '_Empty.js',
+            '_Badge.js',
             '_RouteCell.js',
             '_BundleProducts.js',
             '_useExport.js',
-            '_ProductInfo.js',
-            '_countries.js',
+            '_ExportReport.js',
+            '_Asset.js',
             '_vendor-echarts.js',
+            '_SettingsHeader.js',
+            '_AdminNotice.js',
             '_AttrGroups.js',
             '_DynamicTemplateParser.js',
-            '_ProductVariationSelector.js',
+            '_NotFound.js',
+            '_SaveBar.js',
+            '_orderConstants.js',
+            '_restError.js',
+            '_useCarriers.js',
+            '_KeyboardShortcut.js',
             'resources/admin/Bits/Components/Icons/ReviewStar.vue',
             '_reviewStar2.js',
             '_galleryTabs.js',
+            '_shippingPackagesConfig.js',
             '_FileUploaderDialog.js',
-            'resources/admin/Bits/Components/Icons/Screenshot.vue',
-            '_useElementPlusComponents.js'
+            '_ShippingClassDrawer.js',
+            '_ProductVariationSelector.js'
+        ],
+        'css' => [
+            'assets/TransitionAccordion.css'
         ]
     ],
     'resources/admin/Bits/Components/Form/Components/StoreSettings/AppearancePreview.vue' => [
@@ -1234,10 +1388,11 @@
             '_preload-helper.js',
             '_Arr.js',
             '_vue-router.js',
-            '_Badge.js',
+            '_TableWrapper.js',
             '_Model.js',
             '_Rest.js',
             '_common.js',
+            '_index2.js',
             '_index.js',
             '_vendor-dayjs.js',
             '_Str.js',
@@ -1247,33 +1402,48 @@
             '_Notify.js',
             '__plugin-vue_export-helper.js',
             '_IconButton.js',
+            '_Alert.js',
             '_TransitionAccordion.js',
             '_PageHeading.js',
             '_OrderCustomerInformation.js',
             '_Animation.js',
             '_CardBody.js',
+            '_CardHeader.js',
             '_UserCan.js',
+            '_CopyToClipboard.js',
             '_AddressComponent.js',
-            '_NotFound.js',
-            '_Asset.js',
+            '_LabelHint.js',
+            '_saveButtonShortcutMixin.js',
             '_productService.js',
             '_Activity.js',
             '_Empty.js',
+            '_Badge.js',
             '_RouteCell.js',
             '_BundleProducts.js',
             '_useExport.js',
-            '_ProductInfo.js',
-            '_countries.js',
+            '_ExportReport.js',
+            '_Asset.js',
             '_vendor-echarts.js',
+            '_SettingsHeader.js',
+            '_AdminNotice.js',
             '_AttrGroups.js',
             '_DynamicTemplateParser.js',
-            '_ProductVariationSelector.js',
+            '_NotFound.js',
+            '_SaveBar.js',
+            '_orderConstants.js',
+            '_restError.js',
+            '_useCarriers.js',
+            '_KeyboardShortcut.js',
             'resources/admin/Bits/Components/Icons/ReviewStar.vue',
             '_reviewStar2.js',
             '_galleryTabs.js',
+            '_shippingPackagesConfig.js',
             '_FileUploaderDialog.js',
-            'resources/admin/Bits/Components/Icons/Screenshot.vue',
-            '_useElementPlusComponents.js'
+            '_ShippingClassDrawer.js',
+            '_ProductVariationSelector.js'
+        ],
+        'css' => [
+            'assets/TransitionAccordion.css'
         ]
     ],
     'resources/admin/Bits/Components/Form/Components/StoreSettings/CreatePageButton.vue' => [
@@ -1290,6 +1460,7 @@
             '_IconButton.js',
             '_preload-helper.js',
             '_Arr.js',
+            '_index2.js',
             '_index.js',
             '_vendor-dayjs.js',
             '_Str.js',
@@ -1309,6 +1480,7 @@
             'resources/admin/Bits/Components/Form/Components/StoreSettings/CreatePageButton.vue',
             '_preload-helper.js',
             '_Notify.js',
+            '_index2.js',
             '_index.js',
             '_vendor-dayjs.js',
             '_Str.js',
@@ -1330,19 +1502,16 @@
             '_Rest.js',
             '_Notify.js',
             '_Arr.js',
-            '_Model.js',
-            '_common.js',
-            '_index.js',
-            '_vendor-dayjs.js',
-            '_Str.js',
-            '_module-dayjs.js',
-            '_CurrencyFormatter.js',
-            '_vue-router.js',
-            '_Url.js',
             '_DynamicIcon.js',
             '_preload-helper.js',
+            '_Str.js',
             '__plugin-vue_export-helper.js',
-            '_IconButton.js'
+            '_index2.js',
+            '_index.js',
+            '_vendor-dayjs.js'
+        ],
+        'css' => [
+            'assets/TransitionAccordion.css'
         ]
     ],
     'resources/admin/Bits/Components/Form/Components/TurnstileSettings.vue' => [
@@ -1356,21 +1525,10 @@
             '_Badge.js',
             '_Rest.js',
             '_Arr.js',
-            '_Model.js',
-            '_common.js',
-            '_index.js',
-            '_vendor-dayjs.js',
-            '_Str.js',
-            '_module-dayjs.js',
-            '_CurrencyFormatter.js',
-            '_vue-router.js',
-            '_Url.js',
-            '_Notify.js',
             '_DynamicIcon.js',
             '_preload-helper.js',
-            '__plugin-vue_export-helper.js',
-            '_IconButton.js',
-            '_TransitionAccordion.js'
+            '_Str.js',
+            '__plugin-vue_export-helper.js'
         ]
     ],
     'resources/admin/Bits/Components/Icons/Access.vue' => [
@@ -3531,14 +3689,14 @@
         'imports' => [
             '_jsx-runtime.js',
             '_BlockEditorTranslator.js',
-            '_index3.js',
+            '_index4.js',
             '_SingleProductContext.js',
             '_Icons.js',
             '_SelectVariationModal.js',
             '_add-query-args.js',
             '_reviewStar2.js',
             '_ProductListItem.js',
-            '_index2.js'
+            '_index3.js'
         ]
     ],
     'resources/admin/BlockEditor/Buttons/BuyNowButtonBlockEditor.jsx' => [
@@ -3549,12 +3707,12 @@
         'imports' => [
             '_jsx-runtime.js',
             '_BlockEditorTranslator.js',
-            '_index3.js',
+            '_index4.js',
             '_SelectVariationModal.js',
             '_Icons.js',
             '_add-query-args.js',
             '_ProductListItem.js',
-            '_index2.js',
+            '_index3.js',
             '_reviewStar2.js'
         ]
     ],
@@ -3575,14 +3733,14 @@
         'imports' => [
             '_jsx-runtime.js',
             '_BlockEditorTranslator.js',
-            '_index3.js',
+            '_index4.js',
             '_EditorPanel.js',
             '_EditorPanelRow.js',
             '_CustomSelect.js',
             '_SelectProductModal.js',
             '_Icons.js',
             '_add-query-args.js',
-            '_index2.js',
+            '_index3.js',
             '_ProductListItem.js',
             '_reviewStar2.js'
         ],
@@ -3625,7 +3783,7 @@
         'isEntry' => true,
         'imports' => [
             '_jsx-runtime.js',
-            '_index3.js',
+            '_index4.js',
             '_SingleProductContext.js',
             '_Icons.js',
             '_BlockEditorTranslator.js',
@@ -3662,8 +3820,8 @@
             '_SelectProductModal.js',
             '_EditorPanelRow.js',
             '_ProductListItem.js',
-            '_index2.js',
             '_index3.js',
+            '_index4.js',
             '_add-query-args.js'
         ],
         'assets' => [
@@ -3756,7 +3914,7 @@
         'imports' => [
             '_jsx-runtime.js',
             '_BlockEditorTranslator.js',
-            '_index3.js',
+            '_index4.js',
             '_SelectProductModal.js',
             '_EditorPanel.js',
             '_EditorPanelRow.js',
@@ -3764,7 +3922,7 @@
             '_Icons.js',
             '_add-query-args.js',
             '_ProductListItem.js',
-            '_index2.js',
+            '_index3.js',
             '_reviewStar2.js'
         ]
     ],
@@ -3796,7 +3954,7 @@
         'imports' => [
             '_jsx-runtime.js',
             '_Icons.js',
-            '_index3.js',
+            '_index4.js',
             '_EditorPanel.js',
             '_EditorPanelRow.js',
             '_BlockEditorTranslator.js',
@@ -3806,7 +3964,7 @@
             '_add-query-args.js',
             '_reviewStar2.js',
             '_ProductListItem.js',
-            '_index2.js'
+            '_index3.js'
         ],
         'assets' => [
             'assets/ProductGallery.png'
@@ -3828,7 +3986,7 @@
         'isEntry' => true,
         'imports' => [
             '_jsx-runtime.js',
-            '_index3.js',
+            '_index4.js',
             '_SelectProductModal.js',
             '_CustomSelect.js',
             '_EditorPanel.js',
@@ -3838,7 +3996,7 @@
             '_Icons.js',
             '_add-query-args.js',
             '_ProductListItem.js',
-            '_index2.js',
+            '_index3.js',
             '_reviewStar2.js'
         ]
     ],
@@ -3858,11 +4016,11 @@
         'isEntry' => true,
         'imports' => [
             '_jsx-runtime.js',
-            '_index2.js',
+            '_index3.js',
             '_Icons.js',
             '_ProductListItem.js',
             '_SelectVariationModal.js',
-            '_index3.js',
+            '_index4.js',
             '_ColorPickerField.js',
             '_EditorPanel.js',
             '_BlockEditorTranslator.js',
@@ -3892,7 +4050,7 @@
             '_jsx-runtime.js',
             '_Icons.js',
             '_BlockEditorTranslator.js',
-            '_index3.js',
+            '_index4.js',
             '_EditorPanel.js',
             '_EditorPanelRow.js',
             '_CustomSelect.js',
@@ -3900,7 +4058,7 @@
             '_ErrorBoundary.js',
             '_add-query-args.js',
             '_reviewStar2.js',
-            '_index2.js',
+            '_index3.js',
             '_ProductListItem.js'
         ],
         'assets' => [
@@ -3938,7 +4096,7 @@
         'imports' => [
             '_jsx-runtime.js',
             '_Icons.js',
-            '_index3.js',
+            '_index4.js',
             '_EditorPanel.js',
             '_EditorPanelRow.js',
             '_BlockEditorTranslator.js',
@@ -3948,7 +4106,7 @@
             '_ProductContext.js',
             '_add-query-args.js',
             '_reviewStar2.js',
-            '_index2.js',
+            '_index3.js',
             '_ProductListItem.js'
         ],
         'assets' => [
@@ -3985,7 +4143,7 @@
         'imports' => [
             '_jsx-runtime.js',
             '_BlockEditorTranslator.js',
-            '_index3.js',
+            '_index4.js',
             '_SelectProductModal.js',
             '_EditorPanel.js',
             '_EditorPanelRow.js',
@@ -3994,7 +4152,7 @@
             '_Icons.js',
             '_add-query-args.js',
             '_ProductListItem.js',
-            '_index2.js',
+            '_index3.js',
             '_reviewStar2.js'
         ]
     ],
@@ -4017,7 +4175,7 @@
             '_Icons.js',
             '_SelectVariationModal.js',
             '_BlockEditorTranslator.js',
-            '_index3.js',
+            '_index4.js',
             '_EditorPanel.js',
             '_EditorPanelRow.js',
             '_CustomSelect.js',
@@ -4026,7 +4184,7 @@
             '_add-query-args.js',
             '_reviewStar2.js',
             '_ProductListItem.js',
-            '_index2.js'
+            '_index3.js'
         ],
         'assets' => [
             'assets/ProductGallery.png'
@@ -4044,7 +4202,7 @@
         'isEntry' => true,
         'imports' => [
             '_jsx-runtime.js',
-            '_index3.js',
+            '_index4.js',
             '_SelectProductModal.js',
             '_EditorPanel.js',
             '_EditorPanelRow.js',
@@ -4053,7 +4211,7 @@
             '_Icons.js',
             '_add-query-args.js',
             '_ProductListItem.js',
-            '_index2.js',
+            '_index3.js',
             '_reviewStar2.js'
         ]
     ],
@@ -4074,7 +4232,7 @@
         'imports' => [
             '_jsx-runtime.js',
             '_Icons.js',
-            '_index3.js',
+            '_index4.js',
             '_SelectProductModal.js',
             '_EditorPanel.js',
             '_EditorPanelRow.js',
@@ -4083,7 +4241,7 @@
             '_add-query-args.js',
             '_reviewStar2.js',
             '_ProductListItem.js',
-            '_index2.js'
+            '_index3.js'
         ],
         'assets' => [
             'assets/ProductInfo.png'
@@ -4102,7 +4260,7 @@
         'imports' => [
             '_jsx-runtime.js',
             '_BlockEditorTranslator.js',
-            '_index3.js',
+            '_index4.js',
             '_EditorPanel.js',
             '_EditorPanelRow.js',
             '_ErrorBoundary.js',
@@ -4129,9 +4287,9 @@
             '_reviewBlockShared.js',
             '_Icons.js',
             '_SelectProductModal.js',
-            '_index3.js',
+            '_index4.js',
             '_ProductListItem.js',
-            '_index2.js',
+            '_index3.js',
             '_add-query-args.js',
             '_SingleProductContext.js',
             '_reviewStar2.js'
@@ -4156,9 +4314,9 @@
             '_SingleProductOnlyNotice.js',
             '_Icons.js',
             '_SelectProductModal.js',
-            '_index3.js',
+            '_index4.js',
             '_ProductListItem.js',
-            '_index2.js',
+            '_index3.js',
             '_add-query-args.js',
             '_SingleProductContext.js',
             '_reviewStar2.js'
@@ -4194,9 +4352,9 @@
             '_reviewBlockShared.js',
             '_Icons.js',
             '_SelectProductModal.js',
-            '_index3.js',
+            '_index4.js',
             '_ProductListItem.js',
-            '_index2.js',
+            '_index3.js',
             '_add-query-args.js',
             '_SingleProductContext.js',
             '_reviewStar2.js'
@@ -4220,9 +4378,9 @@
             '_reviewBlockShared.js',
             '_Icons.js',
             '_SelectProductModal.js',
-            '_index3.js',
+            '_index4.js',
             '_ProductListItem.js',
-            '_index2.js',
+            '_index3.js',
             '_add-query-args.js',
             '_SingleProductContext.js',
             '_reviewStar2.js'
@@ -4243,9 +4401,9 @@
             '_EditorPanelRow.js',
             '_SelectProductModal.js',
             '_BlockEditorTranslator.js',
-            '_index3.js',
+            '_index4.js',
             '_ProductListItem.js',
-            '_index2.js',
+            '_index3.js',
             '_add-query-args.js',
             '_reviewStar2.js'
         ]
@@ -4265,9 +4423,9 @@
             '_EditorPanel.js',
             '_EditorPanelRow.js',
             '_SelectProductModal.js',
-            '_index3.js',
+            '_index4.js',
             '_ProductListItem.js',
-            '_index2.js',
+            '_index3.js',
             '_add-query-args.js',
             '_reviewStar2.js'
         ]
@@ -4285,7 +4443,7 @@
         'imports' => [
             '_jsx-runtime.js',
             '_BlockEditorTranslator.js',
-            '_index3.js',
+            '_index4.js',
             '_SelectVariationModal.js',
             '_EditorPanel.js',
             '_EditorPanelRow.js',
@@ -4294,7 +4452,7 @@
             '_Icons.js',
             '_add-query-args.js',
             '_ProductListItem.js',
-            '_index2.js',
+            '_index3.js',
             '_reviewStar2.js'
         ]
     ],
@@ -4311,7 +4469,7 @@
         'imports' => [
             '_jsx-runtime.js',
             '_BlockEditorTranslator.js',
-            '_index3.js',
+            '_index4.js',
             '_SelectProductModal.js',
             '_EditorPanel.js',
             '_EditorPanelRow.js',
@@ -4319,7 +4477,7 @@
             '_Icons.js',
             '_add-query-args.js',
             '_ProductListItem.js',
-            '_index2.js',
+            '_index3.js',
             '_reviewStar2.js'
         ]
     ],
@@ -4342,7 +4500,7 @@
         'imports' => [
             '_jsx-runtime.js',
             '_Icons.js',
-            '_index3.js',
+            '_index4.js',
             '_BlockEditorTranslator.js',
             '_add-query-args.js',
             '_SingleProductContext.js',
@@ -4362,7 +4520,7 @@
         'imports' => [
             '_jsx-runtime.js',
             '_BlockEditorTranslator.js',
-            '_index3.js',
+            '_index4.js',
             '_SelectProductModal.js',
             '_EditorPanel.js',
             '_EditorPanelRow.js',
@@ -4371,7 +4529,7 @@
             '_ErrorBoundary.js',
             '_add-query-args.js',
             '_ProductListItem.js',
-            '_index2.js',
+            '_index3.js',
             '_reviewStar2.js'
         ]
     ],
@@ -4392,7 +4550,7 @@
         'imports' => [
             '_jsx-runtime.js',
             '_BlockEditorTranslator.js',
-            '_index2.js',
+            '_index3.js',
             '_Icons.js',
             '_reviewStar2.js'
         ],
@@ -4432,8 +4590,8 @@
             '_Icons.js',
             '_ErrorBoundary.js',
             '_ProductContext.js',
+            '_index4.js',
             '_index3.js',
-            '_index2.js',
             '_reviewStar2.js'
         ],
         'assets' => [
@@ -4478,12 +4636,12 @@
             '_EditorPanel.js',
             '_EditorPanelRow.js',
             '_BlockEditorTranslator.js',
-            '_index3.js',
+            '_index4.js',
             '_SingleProductContext.js',
             '_add-query-args.js',
             '_reviewStar2.js',
             '_ProductListItem.js',
-            '_index2.js'
+            '_index3.js'
         ]
     ],
     'resources/admin/BlockEditor/StoreLogo/StoreLogoBlockEditor.jsx' => [
@@ -4505,7 +4663,7 @@
         'isEntry' => true,
         'imports' => [
             '_jsx-runtime.js',
-            '_index3.js',
+            '_index4.js',
             '_BlockEditorTranslator.js',
             '_EditorPanel.js',
             '_EditorPanelRow.js',
@@ -4516,7 +4674,7 @@
             '_add-query-args.js',
             '_SelectProductModal.js',
             '_ProductListItem.js',
-            '_index2.js',
+            '_index3.js',
             '_reviewStar2.js'
         ]
     ],
@@ -4547,12 +4705,14 @@
         'isDynamicEntry' => true,
         'imports' => [
             '_vendor-vue.js',
-            '_index.js',
+            '_index2.js',
             '_Rest.js',
+            '_restError.js',
             '_Notify.js',
             '_Translator.js',
             '_DynamicIcon.js',
             '_fluent-player-gallery.js',
+            '_index.js',
             '_vendor-dayjs.js',
             '_Str.js',
             '_Arr.js',
@@ -4570,52 +4730,359 @@
             '_UserCan.js',
             '_DynamicIcon.js',
             '_CardBody.js',
-            '__plugin-vue_export-helper.js',
+            '_CardHeader.js',
             '_Empty.js',
             '_Translator.js',
             '_module-dayjs.js',
             '_Rest.js',
-            '_app.js',
+            '_ExportReport.js',
             '_PageHeading.js',
             '_common.js',
+            '_vendor-echarts.js',
+            '_Activity.js',
+            '_app.js',
             '_Arr.js',
             '_preload-helper.js',
+            '__plugin-vue_export-helper.js',
             '_vendor-dayjs.js',
             '_CurrencyFormatter.js',
-            '_vue-router.js',
-            '_Badge.js',
+            '_index2.js',
+            '_index.js',
+            '_IconButton.js',
             '_Model.js',
+            '_TableWrapper.js',
+            '_vue-router.js',
             '_Url.js',
             '_Str.js',
             '_Notify.js',
+            '_Alert.js',
+            '_TransitionAccordion.js',
+            '_Asset.js',
+            '_OrderCustomerInformation.js',
+            '_Animation.js',
+            '_CopyToClipboard.js',
+            '_AddressComponent.js',
+            '_LabelHint.js',
+            '_saveButtonShortcutMixin.js',
+            '_productService.js',
+            '_Badge.js',
+            '_RouteCell.js',
+            '_BundleProducts.js',
+            '_useExport.js',
+            '_SettingsHeader.js',
+            '_AdminNotice.js',
+            '_AttrGroups.js',
+            '_DynamicTemplateParser.js',
+            '_NotFound.js',
+            '_SaveBar.js',
+            '_orderConstants.js',
+            '_restError.js',
+            '_useCarriers.js',
+            '_KeyboardShortcut.js',
+            'resources/admin/Bits/Components/Icons/ReviewStar.vue',
+            '_reviewStar2.js',
+            '_galleryTabs.js',
+            '_shippingPackagesConfig.js',
+            '_FileUploaderDialog.js',
+            '_ShippingClassDrawer.js',
+            '_ProductVariationSelector.js'
+        ],
+        'css' => [
+            'assets/TransitionAccordion.css'
+        ]
+    ],
+    'resources/admin/Modules/Reports/Subscription/InstallmentsReport.vue' => [
+        'file' => 'chunks/InstallmentsReport.js',
+        'name' => 'InstallmentsReport',
+        'src' => 'resources/admin/Modules/Reports/Subscription/InstallmentsReport.vue',
+        'isDynamicEntry' => true,
+        'imports' => [
+            '_vendor-vue.js',
+            '_ExportReport.js',
+            '_vendor-echarts.js',
+            '_UserCan.js',
+            '_CardBody.js',
+            '_CardHeader.js',
+            '_PageHeading.js',
+            '_DynamicIcon.js',
+            '_TableWrapper.js',
+            '_module-dayjs.js',
+            '_vendor-dayjs.js',
+            '_Rest.js',
+            '_Notify.js',
+            '_CopyToClipboard.js',
+            '_Translator.js',
+            '_Activity.js',
+            '_app.js',
+            '_CurrencyFormatter.js',
+            '__plugin-vue_export-helper.js',
+            '_index2.js',
             '_index.js',
             '_IconButton.js',
+            '_Model.js',
+            '_common.js',
+            '_Str.js',
+            '_Arr.js',
+            '_Asset.js',
+            '_Url.js',
+            '_vue-router.js',
+            '_preload-helper.js',
+            '_Alert.js',
             '_TransitionAccordion.js',
             '_OrderCustomerInformation.js',
             '_Animation.js',
             '_AddressComponent.js',
-            '_NotFound.js',
-            '_Asset.js',
+            '_LabelHint.js',
+            '_saveButtonShortcutMixin.js',
             '_productService.js',
-            '_Activity.js',
+            '_Empty.js',
+            '_Badge.js',
             '_RouteCell.js',
             '_BundleProducts.js',
             '_useExport.js',
-            '_ProductInfo.js',
-            '_countries.js',
-            '_vendor-echarts.js',
+            '_SettingsHeader.js',
+            '_AdminNotice.js',
             '_AttrGroups.js',
             '_DynamicTemplateParser.js',
-            '_ProductVariationSelector.js',
+            '_NotFound.js',
+            '_SaveBar.js',
+            '_orderConstants.js',
+            '_restError.js',
+            '_useCarriers.js',
+            '_KeyboardShortcut.js',
             'resources/admin/Bits/Components/Icons/ReviewStar.vue',
             '_reviewStar2.js',
             '_galleryTabs.js',
+            '_shippingPackagesConfig.js',
             '_FileUploaderDialog.js',
-            'resources/admin/Bits/Components/Icons/Screenshot.vue',
-            '_useElementPlusComponents.js'
+            '_ShippingClassDrawer.js',
+            '_ProductVariationSelector.js'
         ],
         'css' => [
-            'assets/Cohort.css'
+            'assets/TransitionAccordion.css'
+        ]
+    ],
+    'resources/admin/Modules/Shipping/AllShippingClasses.vue' => [
+        'file' => 'chunks/AllShippingClasses.js',
+        'name' => 'AllShippingClasses',
+        'src' => 'resources/admin/Modules/Shipping/AllShippingClasses.vue',
+        'isDynamicEntry' => true,
+        'imports' => [
+            '_vendor-vue.js',
+            '_TableWrapper.js',
+            '_Translator.js',
+            '_Rest.js',
+            '_IconButton.js',
+            '_DynamicIcon.js',
+            '_Notify.js',
+            '_ShippingClassDrawer.js',
+            '_SettingsHeader.js',
+            '_AdminNotice.js',
+            '_Model.js',
+            '_common.js',
+            '_index2.js',
+            '_index.js',
+            '_vendor-dayjs.js',
+            '_Str.js',
+            '_Arr.js',
+            '_module-dayjs.js',
+            '_CurrencyFormatter.js',
+            '_vue-router.js',
+            '_Url.js',
+            '__plugin-vue_export-helper.js',
+            '_Alert.js',
+            '_TransitionAccordion.js',
+            '_preload-helper.js',
+            '_LabelHint.js'
+        ],
+        'css' => [
+            'assets/TransitionAccordion.css'
+        ]
+    ],
+    'resources/admin/Modules/Shipping/AllShippingPackages.vue' => [
+        'file' => 'chunks/AllShippingPackages.js',
+        'name' => 'AllShippingPackages',
+        'src' => 'resources/admin/Modules/Shipping/AllShippingPackages.vue',
+        'isDynamicEntry' => true,
+        'imports' => [
+            '_vendor-vue.js',
+            '_Translator.js',
+            '_Rest.js',
+            '_Notify.js',
+            '_index2.js',
+            '_DynamicIcon.js',
+            '_shippingPackagesConfig.js',
+            '_SettingsHeader.js',
+            '_AdminNotice.js',
+            '_Arr.js',
+            '_Str.js',
+            '_index.js',
+            '_vendor-dayjs.js',
+            '_preload-helper.js',
+            '__plugin-vue_export-helper.js',
+            '_vue-router.js',
+            '_Alert.js'
+        ],
+        'css' => [
+            'assets/TransitionAccordion.css'
+        ]
+    ],
+    'resources/admin/Modules/Shipping/Carriers.vue' => [
+        'file' => 'chunks/Carriers.js',
+        'name' => 'Carriers',
+        'src' => 'resources/admin/Modules/Shipping/Carriers.vue',
+        'isDynamicEntry' => true,
+        'imports' => [
+            '_vendor-vue.js',
+            '_Translator.js',
+            '_CardBody.js',
+            '_Badge.js',
+            '_Alert.js',
+            '_SettingsHeader.js',
+            '_useCarriers.js',
+            '_carrierNotices.js',
+            '_Arr.js',
+            '__plugin-vue_export-helper.js',
+            '_DynamicIcon.js',
+            '_preload-helper.js',
+            '_Str.js',
+            '_Rest.js'
+        ]
+    ],
+    'resources/admin/Modules/Shipping/ShippingZonesMoved.vue' => [
+        'file' => 'chunks/ShippingZonesMoved.js',
+        'name' => 'ShippingZonesMoved',
+        'src' => 'resources/admin/Modules/Shipping/ShippingZonesMoved.vue',
+        'isDynamicEntry' => true,
+        'imports' => [
+            '_vendor-vue.js',
+            '_Translator.js',
+            '_CardBody.js',
+            '_SettingsHeader.js',
+            '_orderConstants.js',
+            '_index.js',
+            '_Arr.js',
+            '__plugin-vue_export-helper.js',
+            '_DynamicIcon.js',
+            '_preload-helper.js'
+        ]
+    ],
+    'resources/admin/Modules/Shipping/SingleCarrier.vue' => [
+        'file' => 'chunks/SingleCarrier.js',
+        'name' => 'SingleCarrier',
+        'src' => 'resources/admin/Modules/Shipping/SingleCarrier.vue',
+        'isDynamicEntry' => true,
+        'imports' => [
+            '_vendor-vue.js',
+            '_vue-router.js',
+            '_index.js',
+            '_Translator.js',
+            '_Rest.js',
+            '_Notify.js',
+            '_CardBody.js',
+            '_CardHeader.js',
+            '_Alert.js',
+            '_KeyboardShortcut.js',
+            '_SettingsHeader.js',
+            '_TableWrapper.js',
+            '_Arr.js',
+            '_RouteCell.js',
+            '_IconButton.js',
+            '_DynamicIcon.js',
+            '__plugin-vue_export-helper.js',
+            '_Animation.js',
+            '_carrierNotices.js',
+            '_CopyToClipboard.js',
+            '_SaveBar.js',
+            '_orderConstants.js',
+            '_useCarriers.js',
+            '_index2.js',
+            '_vendor-dayjs.js',
+            '_Str.js',
+            '_Model.js',
+            '_common.js',
+            '_module-dayjs.js',
+            '_CurrencyFormatter.js',
+            '_Url.js',
+            '_TransitionAccordion.js',
+            '_preload-helper.js'
+        ],
+        'css' => [
+            'assets/SingleCarrier.css',
+            'assets/TransitionAccordion.css'
+        ]
+    ],
+    'resources/admin/Modules/Shipping/SingleShippingClass.vue' => [
+        'file' => 'chunks/SingleShippingClass.js',
+        'name' => 'SingleShippingClass',
+        'src' => 'resources/admin/Modules/Shipping/SingleShippingClass.vue',
+        'isDynamicEntry' => true,
+        'imports' => [
+            '_vendor-vue.js',
+            '_vue-router.js',
+            '_CardBody.js',
+            '_CardHeader.js',
+            '_Translator.js',
+            '_index.js',
+            '_NotFound.js',
+            '_Rest.js',
+            '_Notify.js',
+            '_saveButtonShortcutMixin.js',
+            '_SettingsHeader.js',
+            '_AdminNotice.js',
+            '_LabelHint.js',
+            '__plugin-vue_export-helper.js',
+            '_DynamicIcon.js',
+            '_preload-helper.js',
+            '_Arr.js',
+            '_Asset.js',
+            '_Url.js',
+            '_Str.js',
+            '_index2.js',
+            '_vendor-dayjs.js',
+            '_Alert.js'
+        ],
+        'css' => [
+            'assets/TransitionAccordion.css'
+        ]
+    ],
+    'resources/admin/Modules/Shipping/SingleShippingZone.vue' => [
+        'file' => 'chunks/SingleShippingZone.js',
+        'name' => 'SingleShippingZone',
+        'src' => 'resources/admin/Modules/Shipping/SingleShippingZone.vue',
+        'isDynamicEntry' => true,
+        'imports' => [
+            '_vendor-vue.js',
+            '_vue-router.js',
+            '_CardBody.js',
+            '_CardHeader.js',
+            '_Translator.js',
+            '_index.js',
+            '_NotFound.js',
+            '_Rest.js',
+            '_Notify.js',
+            '__plugin-vue_export-helper.js',
+            '_Badge.js',
+            '_IconButton.js',
+            '_DynamicIcon.js',
+            '_KeyboardShortcut.js',
+            '_SettingsHeader.js',
+            '_Animation.js',
+            '_AdminNotice.js',
+            '_orderConstants.js',
+            '_Arr.js',
+            '_Asset.js',
+            '_Url.js',
+            '_Str.js',
+            '_index2.js',
+            '_vendor-dayjs.js',
+            '_preload-helper.js',
+            '_TransitionAccordion.js',
+            '_Alert.js'
+        ],
+        'css' => [
+            'assets/SingleShippingZone.css',
+            'assets/TransitionAccordion.css'
         ]
     ],
     'resources/admin/Modules/Shipping/shipping.js' => [
@@ -4624,35 +5091,19 @@
         'src' => 'resources/admin/Modules/Shipping/shipping.js',
         'isEntry' => true,
         'imports' => [
-            '_vendor-vue.js',
-            '_Badge.js',
-            '_Translator.js',
-            '_Arr.js',
-            '_RouteCell.js',
-            '_Rest.js',
-            '_IconButton.js',
-            '_DynamicIcon.js',
-            '_Notify.js',
-            '__plugin-vue_export-helper.js',
-            '_vue-router.js',
-            '_countries.js',
-            '_CardBody.js',
-            '_index.js',
-            '_NotFound.js',
-            '_Animation.js',
-            '_Model.js',
-            '_common.js',
-            '_vendor-dayjs.js',
-            '_Str.js',
-            '_module-dayjs.js',
-            '_CurrencyFormatter.js',
-            '_Url.js',
-            '_TransitionAccordion.js',
             '_preload-helper.js',
-            '_Asset.js'
+            '_Translator.js',
+            '_vendor-vue.js',
+            '_Arr.js'
         ],
-        'css' => [
-            'assets/shipping.css'
+        'dynamicImports' => [
+            'resources/admin/Modules/Shipping/ShippingZonesMoved.vue',
+            'resources/admin/Modules/Shipping/SingleShippingZone.vue',
+            'resources/admin/Modules/Shipping/AllShippingClasses.vue',
+            'resources/admin/Modules/Shipping/SingleShippingClass.vue',
+            'resources/admin/Modules/Shipping/AllShippingPackages.vue',
+            'resources/admin/Modules/Shipping/Carriers.vue',
+            'resources/admin/Modules/Shipping/SingleCarrier.vue'
         ]
     ],
     'resources/admin/Modules/Subscriptions/subscription.js' => [
@@ -4662,7 +5113,7 @@
         'isEntry' => true,
         'imports' => [
             '_vendor-vue.js',
-            '_Badge.js',
+            '_TableWrapper.js',
             '_PageHeading.js',
             '_Translator.js',
             '_Activity.js',
@@ -4673,31 +5124,39 @@
             '_UserCan.js',
             '_useExport.js',
             '_CardBody.js',
+            '_CardHeader.js',
+            '_CopyToClipboard.js',
             '_Str.js',
+            '_index2.js',
             '_vendor-dayjs.js',
             '_module-dayjs.js',
             '_Notify.js',
             '_CurrencyFormatter.js',
             '_NotFound.js',
             '_Arr.js',
+            '_Badge.js',
             '_common.js',
             '_Model.js',
             '_Rest.js',
             '_vue-router.js',
             '_Url.js',
             '_IconButton.js',
+            '_Alert.js',
             '_TransitionAccordion.js',
             '_Empty.js',
             '_RouteCell.js',
+            '_LabelHint.js',
             '_BundleProducts.js',
             '_preload-helper.js',
             '_Animation.js',
             '_AddressComponent.js',
+            '_saveButtonShortcutMixin.js',
             '_productService.js',
             '_Asset.js'
         ],
         'css' => [
-            'assets/subscription.css'
+            'assets/subscription.css',
+            'assets/TransitionAccordion.css'
         ]
     ],
     'resources/admin/admin_hooks.js' => [
@@ -4715,14 +5174,14 @@
             '_vendor-vue.js',
             '_vue-router.js',
             '_app.js',
+            '_index2.js',
             '_index.js',
-            '_useElementPlusComponents.js',
             '_Translator.js',
             '_NotFound.js',
             '_Rest.js',
             '_Activity.js',
             '_preload-helper.js',
-            '_Badge.js',
+            '_TableWrapper.js',
             '_Model.js',
             '_common.js',
             '_vendor-dayjs.js',
@@ -4735,30 +5194,46 @@
             '_DynamicIcon.js',
             '__plugin-vue_export-helper.js',
             '_IconButton.js',
+            '_Alert.js',
             '_TransitionAccordion.js',
             '_PageHeading.js',
             '_OrderCustomerInformation.js',
             '_Animation.js',
             '_CardBody.js',
+            '_CardHeader.js',
             '_UserCan.js',
+            '_CopyToClipboard.js',
             '_AddressComponent.js',
+            '_LabelHint.js',
+            '_saveButtonShortcutMixin.js',
             '_productService.js',
             '_Empty.js',
             '_RouteCell.js',
             '_useExport.js',
-            '_ProductInfo.js',
+            '_ExportReport.js',
             '_Asset.js',
-            '_countries.js',
             '_vendor-echarts.js',
+            '_SettingsHeader.js',
+            '_AdminNotice.js',
             '_AttrGroups.js',
             '_DynamicTemplateParser.js',
-            '_ProductVariationSelector.js',
+            '_Badge.js',
+            '_SaveBar.js',
+            '_orderConstants.js',
             '_BundleProducts.js',
+            '_restError.js',
+            '_useCarriers.js',
+            '_KeyboardShortcut.js',
             'resources/admin/Bits/Components/Icons/ReviewStar.vue',
             '_reviewStar2.js',
             '_galleryTabs.js',
+            '_shippingPackagesConfig.js',
             '_FileUploaderDialog.js',
-            'resources/admin/Bits/Components/Icons/Screenshot.vue'
+            '_ShippingClassDrawer.js',
+            '_ProductVariationSelector.js'
+        ],
+        'css' => [
+            'assets/TransitionAccordion.css'
         ]
     ],
     'resources/admin/dark-mode-toggle.js' => [
@@ -4778,6 +5253,7 @@
             '_Translator.js',
             '_AddProductItemModal.js',
             '__plugin-vue_export-helper.js',
+            '_index2.js',
             '_index.js',
             '_vendor-dayjs.js',
             '_Arr.js',
@@ -4808,6 +5284,7 @@
             '_useElementor.js',
             '_ServerSidePreview.js',
             '_Translator.js',
+            '_index2.js',
             '_index.js',
             '_vendor-dayjs.js',
             '_Arr.js',
@@ -4830,6 +5307,7 @@
             '_Translator.js',
             '_useElementor.js',
             '__plugin-vue_export-helper.js',
+            '_index2.js',
             '_index.js',
             '_vendor-dayjs.js',
             '_DynamicIcon.js',
@@ -4867,6 +5345,7 @@
             '_Notify.js',
             'resources/admin/Bits/Components/Icons/CaretRight.vue',
             'resources/admin/Bits/Components/Icons/Delete.vue',
+            '_index2.js',
             '_index.js',
             '_vendor-dayjs.js',
             '_DynamicIcon.js',
@@ -4896,6 +5375,7 @@
             '_Translator.js',
             '_useElementor.js',
             '_Rest.js',
+            '_index2.js',
             '_index.js',
             '_vendor-dayjs.js',
             '_Arr.js'
@@ -4911,6 +5391,7 @@
             '_useElementPlusComponents.js',
             'resources/admin/Bits/Components/Icons/Search.vue',
             '_Translator.js',
+            '_index2.js',
             '_index.js',
             '_vendor-dayjs.js',
             '__plugin-vue_export-helper.js',
@@ -4962,20 +5443,25 @@
         'isEntry' => true,
         'imports' => [
             '_CardBody.js',
-            '_ProductInfo.js',
+            '_CardHeader.js',
+            '_ExportReport.js',
             '_Badge.js',
-            '_OrderCustomerInformation.js',
+            '_CopyToClipboard.js',
             '_DynamicIcon.js',
             '_Empty.js',
+            '_OrderCustomerInformation.js',
             '_vendor-vue.js',
             '_IconButton.js',
-            '_NotFound.js',
+            '_LabelHint.js',
             '_PageHeading.js',
+            '_TableWrapper.js',
             '_RouteCell.js',
             '_UserCan.js',
             '_Translator.js',
             '_Rest.js',
             '__plugin-vue_export-helper.js',
+            '_NotFound.js',
+            '_Notify.js',
             '_common.js',
             '_Arr.js',
             '_Str.js',
@@ -4984,16 +5470,22 @@
             '_useExport.js',
             '_module-dayjs.js',
             '_CurrencyFormatter.js',
+            '_index2.js',
             '_index.js',
             '_vendor-dayjs.js',
             '_vue-router.js',
-            '_Url.js',
-            '_Notify.js',
-            '_TransitionAccordion.js',
+            '_vendor-echarts.js',
+            '_preload-helper.js',
             '_Animation.js',
+            '_TransitionAccordion.js',
             '_AddressComponent.js',
+            '_saveButtonShortcutMixin.js',
             '_productService.js',
-            '_preload-helper.js'
+            '_Url.js',
+            '_Alert.js'
+        ],
+        'css' => [
+            'assets/TransitionAccordion.css'
         ]
     ],
     'resources/admin/shared/module-vue.js' => [
@@ -5024,6 +5516,7 @@
             '_AttrGroups.js',
             '_Arr.js',
             '_Rest.js',
+            '_index2.js',
             '_index.js',
             '_vendor-dayjs.js',
             '_common.js',
@@ -5050,10 +5543,11 @@
         'imports' => [
             '_Translator.js',
             '_vendor-vue.js',
-            '_Badge.js',
+            '_TableWrapper.js',
             '_PageHeading.js',
             '_Empty.js',
             '_RouteCell.js',
+            '_Badge.js',
             '_DynamicIcon.js',
             '_common.js',
             '_Notify.js',
@@ -5061,7 +5555,9 @@
             '_ProductVariationSelector.js',
             '_vue-router.js',
             '_CardBody.js',
+            '_CardHeader.js',
             '_index.js',
+            '_SaveBar.js',
             '_IconButton.js',
             '__plugin-vue_export-helper.js',
             '_Arr.js',
@@ -5069,10 +5565,15 @@
             '_Url.js',
             '_Str.js',
             '_vendor-dayjs.js',
+            '_index2.js',
+            '_Alert.js',
             '_module-dayjs.js',
             '_CurrencyFormatter.js',
             '_TransitionAccordion.js',
             '_preload-helper.js'
+        ],
+        'css' => [
+            'assets/TransitionAccordion.css'
         ]
     ],
     'resources/public/buttons/add-to-cart/style/style.scss' => [
@@ -5209,9 +5710,10 @@
             '_BundleProducts.js',
             '_common.js',
             '_IconButton.js',
-            '_index.js',
+            '_index2.js',
             '_vue-router.js',
             '_Translator.js',
+            '_index.js',
             'resources/admin/Bits/Components/Icons/ArrowDown.vue',
             'resources/admin/Bits/Components/Icons/ArrowUp.vue',
             '_AddressComponent.js',
@@ -5228,7 +5730,8 @@
             '_reviewStar2.js'
         ],
         'css' => [
-            'assets/Start3.css'
+            'assets/Start3.css',
+            'assets/TransitionAccordion.css'
         ]
     ],
     'resources/public/customer-profile/style/customer-profile-global.scss' => [
@@ -5504,9 +6007,10 @@
         'imports' => [
             '_Translator.js',
             '_vendor-vue.js',
-            '_Badge.js',
+            '_TableWrapper.js',
             '_PageHeading.js',
             '_UserCan.js',
+            '_Badge.js',
             '_Empty.js',
             '_Rest.js',
             '_Notify.js',
@@ -5517,17 +6021,20 @@
             '_Arr.js',
             '_Model.js',
             '_common.js',
+            '_index2.js',
             '_index.js',
             '_vendor-dayjs.js',
             '_Str.js',
             '_module-dayjs.js',
             '_vue-router.js',
             '_Url.js',
+            '_Alert.js',
             '_TransitionAccordion.js',
             '_preload-helper.js'
         ],
         'css' => [
-            'assets/withdrawal.css'
+            'assets/withdrawal.css',
+            'assets/TransitionAccordion.css'
         ]
     ],
     'resources/images/404.svg' => [
@@ -6062,6 +6569,18 @@
         'file' => 'images/register-icon.svg',
         'name' => 'register-icon',
         'src' => 'resources/images/register-icon.svg',
+        'isEntry' => true
+    ],
+    'resources/images/shipping/black.svg' => [
+        'file' => 'images/shipping/black.svg',
+        'name' => 'black',
+        'src' => 'resources/images/shipping/black.svg',
+        'isEntry' => true
+    ],
+    'resources/images/shipping/white.svg' => [
+        'file' => 'images/shipping/white.svg',
+        'name' => 'white',
+        'src' => 'resources/images/shipping/white.svg',
         'isEntry' => true
     ],
     'resources/images/storage-drivers/local.svg' => [
