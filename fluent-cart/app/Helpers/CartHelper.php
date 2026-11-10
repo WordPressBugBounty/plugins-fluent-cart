@@ -255,7 +255,7 @@ class CartHelper
         return ($shippingClass->cost * 100) * $factor;
     }
 
-    private static function itemHasFreeShipping($item): bool
+    public static function itemHasFreeShipping($item): bool
     {
         return Arr::get($item, 'other_info.free_shipping', 'no') === 'yes';
     }
@@ -554,7 +554,8 @@ class CartHelper
         $totalShippingCharge = array_sum($lineClassCharges);
 
         // Flat amounts are authored in the base currency; percentage rates
-        // already work on converted item prices (multi-currency plan §2.5.2)
+        // already work on converted item prices
+        // (dev-docs/multi-currency/05-storefront-cart-checkout.md, "The cart")
         if ($configureRate === 'per_order') {
             $shippingMethodAmount = StorefrontPrice::fee($method->amount * 100);
         } else if ($configureRate === 'per_price') {
@@ -724,7 +725,8 @@ class CartHelper
         $classAggregation = Arr::get($settings, 'class_aggregation', 'sum_all');
 
         // Flat amounts are authored in the base currency; percentage rates
-        // already work on converted item prices (multi-currency plan §2.5.2)
+        // already work on converted item prices
+        // (dev-docs/multi-currency/05-storefront-cart-checkout.md, "The cart")
         if ($configureRate === 'per_order') {
             $methodBaseRate = StorefrontPrice::fee(Helper::toCent($selectedMethod->amount));
         } elseif ($configureRate === 'per_price') {

@@ -611,7 +611,7 @@ class OrderFilter extends BaseFilter
                     ],
                     [
                         // Filter to one currency, then sort by amount — mixed
-                        // currencies do not sort meaningfully (multi-currency plan §2.5.5)
+                        // currencies do not sort meaningfully
                         'label'       => __('Currency', 'fluent-cart'),
                         'value'       => 'currency',
                         'type'        => 'selections',

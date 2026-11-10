@@ -23,6 +23,7 @@ use FluentCart\App\Http\Routes\WebRoutes;
 (new \FluentCart\App\Hooks\Handlers\AdminMenuBarHandler)->register();
 (new \FluentCart\App\Hooks\Handlers\FluentCartHandler)->register();
 (new \FluentCart\App\Hooks\Handlers\ReminderHandler)->register();
+(new \FluentCart\App\Hooks\Handlers\TermProductsHandler)->register();
 
 (new \FluentCart\App\Hooks\Handlers\ShortCodes\ShopAppHandler)->register();
 (new \FluentCart\App\Hooks\Handlers\ShortCodes\OrderReviewShortCode)->register();

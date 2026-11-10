@@ -534,7 +534,7 @@ class AssetLoader
         Vite::enqueueScript(
             'fluentcart-customer-js',
             'public/customer-profile/Start.js',
-            ['wp-i18n']
+            ['wp-i18n', 'wp-hooks']
         )->with(CustomerProfileHandler::getLocalizationData());
 
         /**
@@ -760,6 +760,9 @@ class AssetLoader
                     'billing'  => array_merge([], ...array_values(AddressHelper::quoteContactFields(false))),
                     'shipping' => array_merge([], ...array_values(AddressHelper::quoteContactFields(true))),
                 ] : [],
+                // A carrier that builds its own request may quote from any of these; saving one re-quotes.
+                'shipping_quote_form_fields'                   => $cart->requireShipping() && AddressHelper::carriersBuildRequests()
+                    ? array_keys(AddressHelper::quoteFormFields()) : [],
 
             ],
             'fluentcart_checkout_info' => [

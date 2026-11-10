@@ -114,12 +114,14 @@ class  Vite
 
         $version = empty($version) ? FLUENTCART_VERSION : $version;
 
+        // A module in the storefront head comes before a block theme's import map,
+        // which Firefox then ignores, so Interactivity API blocks stop working.
         wp_enqueue_script(
             $handle,
             $srcPath,
             $dependency,
             $version,
-            $inFooter
+            $inFooter || !is_admin()
         );
         return $this;
     }
@@ -248,12 +250,13 @@ class  Vite
     private function enqueue_static_script($handle, $src, $dependency = [], $version = null, $inFooter = false): Vite
     {
         $version = empty($version) ? FLUENTCART_VERSION : $version;
+        // These libraries depend on module scripts, and a head script pulls its dependencies into the head.
         wp_enqueue_script(
             $handle,
             $this->getStaticEnqueuePath($src),
             $dependency,
             $version,
-            $inFooter
+            $inFooter || !is_admin()
         );
 
         return $this;

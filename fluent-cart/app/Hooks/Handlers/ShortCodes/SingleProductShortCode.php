@@ -22,7 +22,7 @@ class SingleProductShortCode extends ShortCode
         add_action('wp_enqueue_scripts', function () {
             if (
                 is_singular(FluentProducts::CPT_NAME) ||
-                has_shortcode(get_the_content(), static::$shortCodeName)
+                has_shortcode(static::currentPostContent(), static::$shortCodeName)
             ) {
                 (new static())->enqueueStyles();
             }

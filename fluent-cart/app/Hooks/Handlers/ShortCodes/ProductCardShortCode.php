@@ -21,7 +21,7 @@ class ProductCardShortCode extends ShortCode
             if (App::request()->get('action') === 'elementor') {
                 return;
             }
-            if (has_shortcode(get_the_content(), static::SHORT_CODE) || has_block('fluent-cart/product-card')) {
+            if (has_shortcode(static::currentPostContent(), static::SHORT_CODE) || has_block('fluent-cart/product-card')) {
                 AssetLoader::loadSingleProductAssets();
             }
         }, 10);

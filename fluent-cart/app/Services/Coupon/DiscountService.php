@@ -256,9 +256,9 @@ class DiscountService
         // earlier must keep their share untouched.
         $preCouponDiscounts = [];
         $preRecurringDiscounts = [];
-        foreach ($preValidatedItems as $preItem) {
-            $preCouponDiscounts[$preItem['id']] = (int) Arr::get($preItem, 'coupon_discount', 0);
-            $preRecurringDiscounts[$preItem['id']] = (int) Arr::get($preItem, 'recurring_discounts.amount', 0);
+        foreach ($preValidatedItems as $index => $preItem) {
+            $preCouponDiscounts[$index] = (int) Arr::get($preItem, 'coupon_discount', 0);
+            $preRecurringDiscounts[$index] = (int) Arr::get($preItem, 'recurring_discounts.amount', 0);
         }
 
         list($preValidatedItems, $couponDiscountTotal) = $this->applyDiscountToItems($preValidatedItems, $percent, $coupon);
@@ -393,7 +393,8 @@ class DiscountService
             return true;
         });
 
-        return array_values(array_filter($filtered));
+        // Keep cart keys: two lines can share a variation id.
+        return $filtered;
     }
 
     private function calculateItemsSubtotal(array $items)
@@ -471,8 +472,8 @@ class DiscountService
      * Clamp this coupon's total contribution under $valueKey to $maxAmount,
      * scaling each item's share proportionally (cents in, cents out).
      *
-     * $preValues holds each item's value before this coupon ran, keyed by item
-     * id — only the delta above it (this coupon's share) is ever reduced.
+     * $preValues holds each item's value before this coupon ran, keyed by cart
+     * line index — only the delta above it (this coupon's share) is ever reduced.
      *
      * @return array [items, appliedTotalForThisCoupon]
      */
@@ -484,7 +485,7 @@ class DiscountService
         $totalShare = 0;
         foreach ($items as $index => $item) {
             $current = (int) Arr::get($item, $valueKey, 0);
-            $pre = (int) Arr::get($preValues, $item['id'], 0);
+            $pre = (int) Arr::get($preValues, $index, 0);
             $share = max(0, $current - $pre);
             if ($share > 0) {
                 $shares[$index] = $share;
@@ -520,7 +521,7 @@ class DiscountService
         }
 
         foreach ($capped as $index => $cappedShare) {
-            $pre = (int) Arr::get($preValues, $items[$index]['id'], 0);
+            $pre = (int) Arr::get($preValues, $index, 0);
             Arr::set($items, $index . '.' . $valueKey, $pre + $cappedShare);
         }
 
@@ -571,16 +572,7 @@ class DiscountService
 
     private function mergeValidatedItems(array $cartItems, array $validatedItems)
     {
-        foreach ($cartItems as $index => $item) {
-            foreach ($validatedItems as $preItem) {
-                if ($item['id'] == $preItem['id']) {
-                    $cartItems[$index] = $preItem;
-                    break;
-                }
-            }
-        }
-
-        return $cartItems;
+        return array_replace($cartItems, $validatedItems);
     }
 
     private function updateItemTotals(array $cartItems)

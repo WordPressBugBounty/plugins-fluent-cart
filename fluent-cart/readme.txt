@@ -4,7 +4,7 @@ Tags: ecommerce, online store, subscriptions, digital downloads, licensing
 Requires at least: 6.7
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 2.3.0
+Stable tag: 2.3.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -328,6 +328,31 @@ This service is provided by PayPal: [Terms of Service](https://www.paypal.com/le
 8. VAT/TAX Settings
 
 == Changelog ==
+
+= 2.3.1 (Nov 10, 2026) =
+* Adds New order bump placements, six card layouts, custom cards, and optional images.
+* Adds Licenses report under Reports.
+* Adds Address field rearranging in Checkout Fields settings.
+* Adds Shipping methods and charges to manual order creation.
+* Adds Products field to categories and brands.
+* Adds Checkout payment loading placeholder.
+* Adds CNY and RUB support for PayPal.
+* Adds Recommended add-ons and new developer hooks.
+* Improves PayPal, Mollie, Authorize.Net, and Paddle subscription and payments.
+* Improves Update payment method on customer profile
+* Improves Order bump management, discount validation, and subtotal conditions.
+* Improves Payment Settings, add-on installation, and reorder controls.
+* Improves Product Compare and E-Invoice setup.
+* Improves Admin accessibility and screen reader support.
+* Fixes Shipping tax calculations, renewal taxes, and accounting exports.
+* Fixes Refunded order totals and missing bundle items.
+* Fixes Coupon expiry dates, repeated variations, and grouped price formatting.
+* Fixes Saved cards appearing on free orders and unlimited license counts.
+* Fixes Payment method settings and shipping tier errors.
+* Fixes Integration settings, report dialogs, and keyboard accessibility.
+* Fixes Variation pricing, table layouts, and advanced filtering.
+* Fixes Customer portal translations, badges, and labels.
+* Fixes Firefox compatibility and SEO plugin/Breakdance conflicts
 
 = 2.3.0 (Nov 3, 2026) =
 * Adds Shippo live rates, labels, and tracking through the free Shipping For FluentCart add-on.

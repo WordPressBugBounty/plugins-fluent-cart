@@ -40,7 +40,7 @@ class ShopAppHandler
 
             if (TemplateService::getCurrentFcPageType() === 'shop') {
                 $this->enqueueStyles();
-            } else if (has_shortcode(get_the_content(), static::SHORT_CODE) || has_block('fluent-cart/products')) {
+            } else if (has_shortcode(ShortCode::currentPostContent(), static::SHORT_CODE) || has_block('fluent-cart/products')) {
                 $this->enqueueStyles();
             }
         }, 5);

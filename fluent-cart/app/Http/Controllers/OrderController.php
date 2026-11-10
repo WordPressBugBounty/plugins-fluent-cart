@@ -150,6 +150,7 @@ class OrderController extends Controller
             'order_items'           => array_values($pricing['items']),
             'applied_coupons'       => $pricing['applied_coupons'],
             'shipping_total'        => $pricing['shipping_total'],
+            'shipping'              => $pricing['shipping'],
             'subtotal'              => $pricing['subtotal'],
             'coupon_discount_total' => $pricing['coupon_discount_total'],
             'manual_discount_total' => $pricing['manual_discount_total'],
@@ -1197,7 +1198,7 @@ class OrderController extends Controller
         }
 
         // Money already counted into the order cannot be changed from a dropdown; returning
-        // it is a refund, which records a refund transaction through the refund action (FC-SEC-09).
+        // it is a refund, which records a refund transaction through the refund action.
         if ($transaction->status === Status::TRANSACTION_SUCCEEDED) {
             return $this->sendError([
                 'message' => __('A succeeded transaction cannot be changed here. Use the refund action to return the payment.', 'fluent-cart')
@@ -1290,12 +1291,17 @@ class OrderController extends Controller
     public function updateShipping(Request $request)
     {
         $orderItems = $request->get('order_items');
-        $shippingMethodId = $request->get('shipping_id');
+        $shippingMethodId = $request->getInt('shipping_id');
 
         $orderItems = $this->prepareOrderItemsWithVariations($orderItems);
 
 
-        $method = ShippingMethod::query()->find($shippingMethodId);
+        $method = ShippingMethod::query()->where('is_enabled', 1)->find($shippingMethodId);
+        if (!$method) {
+            return $this->sendError([
+                'message' => __('The selected shipping method is unavailable.', 'fluent-cart'),
+            ], 422);
+        }
 
         $totalShippingCharge = CartHelper::calculateShippingMethodCharge($method, $orderItems);
 

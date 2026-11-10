@@ -1769,10 +1769,14 @@ class TaxModule
         // Build exact per-rate shipping tax map from checkout-time calculation when available.
         // Falls back to proportional split for admin order recalculation and legacy callers.
         $shippingTaxByRateId = [];
+        $shippingBaseByRateId = [];
         foreach ($shippingTaxLines as $stl) {
             $stlRateId = (int) Arr::get($stl, 'rate_id', 0);
             if ($stlRateId !== 0) {
                 $shippingTaxByRateId[$stlRateId] = (int) Arr::get($stl, 'shipping_tax', 0);
+                if (isset($stl['shipping_taxable_amount'])) {
+                    $shippingBaseByRateId[$stlRateId] = (int) round($stl['shipping_taxable_amount']);
+                }
             }
         }
 
@@ -1822,6 +1826,10 @@ class TaxModule
                 'inclusive'      => Arr::get($taxLine, 'inclusive', null),
                 'is_mixed_inclusive' => (bool) Arr::get($taxLine, 'is_mixed_inclusive', false),
             ]);
+            // Exact shipping base, so the breakdown need not derive it from the rounded tax.
+            if (isset($shippingBaseByRateId[$rateId])) {
+                $lineMeta['shipping_taxable_amount'] = $shippingBaseByRateId[$rateId];
+            }
 
             $existing = OrderTaxRate::query()
                 ->where('order_id', $orderId)

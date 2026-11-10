@@ -335,6 +335,14 @@ class OrderParser extends BaseParser
             ]);
         }
 
+        // Documented in app/Views/emails/order/paid/customer.php; skips preview stub orders.
+        if ($order instanceof \FluentCart\App\Models\Order) {
+            do_action('fluent_cart/email/order_entitlements', [
+                'order'   => $order,
+                'context' => 'payment_receipt',
+            ]);
+        }
+
         $downloads = $order->getDownloads();
         if ($downloads) {
             \FluentCart\App\App::make('view')->render('emails.parts.downloads', [

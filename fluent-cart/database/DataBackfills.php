@@ -67,7 +67,7 @@ class DataBackfills
             'order_address_index' => [
                 'title' => __('Order Address Index', 'fluent-cart'),
             ],
-            // 2026-09-27 — multi-currency (dev-docs/multi-currency/plan.md §10).
+            // 2026-09-27 — multi-currency (dev-docs/multi-currency/02-database-schema.md, "Data backfills").
             // Orders that predate currency snapshots get one: legacy_base when
             // in the base currency, legacy_unknown otherwise — never a guessed
             // rate. Remove after one or two releases once installs have upgraded.
@@ -677,7 +677,7 @@ class DataBackfills
     /**
      * Give every order that predates currency snapshots a config.fx block.
      * Idempotent: only rows without one are selected. Amounts and the rate
-     * column are never touched (plan §10).
+     * column are never touched.
      *
      * @return bool true when done; false = budget spent, more remains
      */
