@@ -1,1 +1,1 @@
-import{j as e,t}from"./vendor-vue.js?ver=2.3.1";import{_ as o}from"./_plugin-vue_export-helper.js?ver=2.3.1";const r={};function c(n,s){return t(),e("p",null,"My custom Component prefix")}const f=o(r,[["render",c]]);export{f as default};
+import{j as e,t}from"./vendor-vue.js?ver=2.3.2";import{_ as o}from"./_plugin-vue_export-helper.js?ver=2.3.2";const r={};function c(n,s){return t(),e("p",null,"My custom Component prefix")}const f=o(r,[["render",c]]);export{f as default};

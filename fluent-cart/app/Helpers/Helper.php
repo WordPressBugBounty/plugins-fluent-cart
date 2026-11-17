@@ -2114,6 +2114,22 @@ class Helper
         return $variants;
     }
 
+    public static function formatBundleChildTitle($productTitle, $variationTitle): string
+    {
+        $productTitle = (string) $productTitle;
+        $variationTitle = (string) $variationTitle;
+
+        if ($variationTitle === '' || $productTitle === $variationTitle) {
+            return $productTitle;
+        }
+
+        if ($productTitle === '') {
+            return $variationTitle;
+        }
+
+        return $productTitle . ' - ' . $variationTitle;
+    }
+
     /**
      * Translate digits in a number according to the configured numeric system.
      *

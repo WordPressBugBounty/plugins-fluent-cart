@@ -72,6 +72,8 @@ add_action('init', function () {
 \FluentCart\App\Hooks\Handlers\BlockEditors\ProductInfoBlockEditor::register();
 \FluentCart\App\Hooks\Handlers\BlockEditors\BuySectionBlockEditor::register();
 \FluentCart\App\Hooks\Handlers\BlockEditors\ProductTitleBlockEditor::register();
+\FluentCart\App\Hooks\Handlers\BlockEditors\ProductSwatchesBlockEditor::register();
+\FluentCart\App\Hooks\Handlers\BlockEditors\ProductQuickViewBlockEditor::register();
 \FluentCart\App\Hooks\Handlers\BlockEditors\ProductImageBlockEditor::register();
 \FluentCart\App\Hooks\Handlers\BlockEditors\PriceRangeBlockEditor::register();
 \FluentCart\App\Hooks\Handlers\BlockEditors\SaleBadgeBlockEditor::register();

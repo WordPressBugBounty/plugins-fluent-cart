@@ -122,6 +122,10 @@ class PayPal extends AbstractPaymentGateway
                     }
 
                     $paymentArgs['vault_on_success'] = true;
+                } else if (\FluentCart\App\Modules\Subscriptions\Services\SubscriptionManagementMode::flagSystemConversion($paymentInstance, $this)) {
+                    // Manual sub paying its renewal invoice: the disclosure shown at
+                    // checkout and PayPal's approval UI are the consent.
+                    $paymentArgs['vault_on_success'] = true;
                 }
 
                 return (new Processor())->handleSinglePayment($paymentInstance, $paymentArgs);
@@ -1353,6 +1357,11 @@ class PayPal extends AbstractPaymentGateway
             if ($totalPrice <= 0) {
                 $paymentDetails['mode'] = 'setup';
             }
+        } elseif (!$renderAsSubscription
+            && $totalPrice > 0
+            && \FluentCart\App\Modules\Subscriptions\Services\SubscriptionManagementMode::currentCheckoutCanConvertToSystem($this)
+        ) {
+            $systemConsent = __('Your PayPal account will be saved securely and charged automatically on each renewal date. You can cancel any time from your account.', 'fluent-cart');
         }
 
         $this->checkCurrencySupport();

@@ -495,7 +495,7 @@ $router->prefix('settings/')
         $router->get('mcp/config-snippets', [McpSettingsController::class, 'getConfigSnippets'])->meta([
             'permissions' => 'is_super_admin'
         ]);
-
+        $router->post('mcp/enable-hub', [McpSettingsController::class, 'enableHub'])->meta(['permissions' => 'is_super_admin']);
 
         $router->post('confirmation', [SettingsController::class, 'saveConfirmation'])->meta([
             'permissions' => 'is_super_admin'

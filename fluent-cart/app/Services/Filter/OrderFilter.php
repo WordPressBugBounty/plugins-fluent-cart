@@ -83,7 +83,7 @@ class OrderFilter extends BaseFilter
     {
         $ids = [];
         foreach ($orders as $order) {
-            if (in_array($order->sale_type, ['installment', 'installment_payment'], true)) {
+            if (in_array($order->getAttribute('sale_type'), ['installment', 'installment_payment'], true)) {
                 $ids[] = (int) $order->id;
             }
         }
@@ -135,9 +135,9 @@ class OrderFilter extends BaseFilter
             if (!$plan) {
                 continue;
             }
-            $number = Arr::get($position, (int) $charge->id, 0) + Arr::get($shift, (int) $plan->id, 0);
-            $order->installment_number = $number > 0 ? $number : null;
-            $order->installment_total = (int) $plan->bill_times;
+            $number = (int) Arr::get($position, (int) $charge->id, 0) + (int) Arr::get($shift, (int) $plan->id, 0);
+            $order->setAttribute('installment_number', $number > 0 ? $number : null);
+            $order->setAttribute('installment_total', (int) $plan->bill_times);
         }
     }
 

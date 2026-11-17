@@ -4,7 +4,7 @@ Tags: ecommerce, online store, subscriptions, digital downloads, licensing
 Requires at least: 6.7
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 2.3.1
+Stable tag: 2.3.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -329,30 +329,24 @@ This service is provided by PayPal: [Terms of Service](https://www.paypal.com/le
 
 == Changelog ==
 
-= 2.3.1 (Nov 10, 2026) =
-* Adds New order bump placements, six card layouts, custom cards, and optional images.
-* Adds Licenses report under Reports.
-* Adds Address field rearranging in Checkout Fields settings.
-* Adds Shipping methods and charges to manual order creation.
-* Adds Products field to categories and brands.
-* Adds Checkout payment loading placeholder.
-* Adds CNY and RUB support for PayPal.
-* Adds Recommended add-ons and new developer hooks.
-* Improves PayPal, Mollie, Authorize.Net, and Paddle subscription and payments.
-* Improves Update payment method on customer profile
-* Improves Order bump management, discount validation, and subtotal conditions.
-* Improves Payment Settings, add-on installation, and reorder controls.
-* Improves Product Compare and E-Invoice setup.
-* Improves Admin accessibility and screen reader support.
-* Fixes Shipping tax calculations, renewal taxes, and accounting exports.
-* Fixes Refunded order totals and missing bundle items.
-* Fixes Coupon expiry dates, repeated variations, and grouped price formatting.
-* Fixes Saved cards appearing on free orders and unlimited license counts.
-* Fixes Payment method settings and shipping tier errors.
-* Fixes Integration settings, report dialogs, and keyboard accessibility.
-* Fixes Variation pricing, table layouts, and advanced filtering.
-* Fixes Customer portal translations, badges, and labels.
-* Fixes Firefox compatibility and SEO plugin/Breakdance conflicts
+= 2.3.2 (Nov 17, 2026) =
+* Adds Attribute filters to the shop sidebar, with filter limits.
+* Adds Product swatches for attribute and list products, with up to 12 options, sold-out styles, and selected Choice.
+* Adds Four product card layouts (Classic, Compact, Floating, Framed) with a Masonry grid switch for every layout.
+* Adds Card layouts to Products, Related Products, Product Carousel, and Product Card.
+* Adds Card layouts, Masonry grid, swatches, and Quick View settings to Products and Related Products shortcodes.
+* Adds Quick View on the card image or after the button.
+* Adds Layout card to the new Shop page and category template, with Sort and filters.
+* Adds Layout settings to the Products block.
+* Adds Manual subscription conversion to automatic charging when a renewal invoice saves a card.
+* Adds Customize and Reset on PDF template cards.
+* Adds Bricks notice that core elements moved to the Bricks add-on.
+* Improves Shop pager, scroll paginator, and shop box sizing in content-box themes.
+* Improves Customer profile payment form and report dark mode.
+* Fixes Unknown shortcode categories, duplicate bundle child titles, and empty variation titles.
+* Fixes coupon Apply button hover, and SKU transfers in bulk edits.
+* Improves Authorize.Net subscription retries on staging copies in a different store mode.
+* Fixes Mollie and Authorize.Net subscriptions paid off by the last installment.
 
 = 2.3.0 (Nov 3, 2026) =
 * Adds Shippo live rates, labels, and tracking through the free Shipping For FluentCart add-on.

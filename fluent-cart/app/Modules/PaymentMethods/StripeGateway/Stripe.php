@@ -11,6 +11,7 @@ use FluentCart\App\Helpers\Helper;
 use FluentCart\App\Helpers\Status;
 use FluentCart\App\Hooks\Cart\WebCheckoutHandler;
 use FluentCart\App\Models\Subscription;
+use FluentCart\App\Modules\Subscriptions\Services\SubscriptionManagementMode;
 use FluentCart\App\Modules\PaymentMethods\Core\AbstractPaymentGateway;
 use FluentCart\App\Modules\PaymentMethods\Core\BaseGatewaySettings;
 use FluentCart\App\Modules\PaymentMethods\StripeGateway\API\API;
@@ -129,6 +130,8 @@ class Stripe extends AbstractPaymentGateway
                         return (new Processor())->handleSetupOnlyPayment($paymentInstance, $paymentArgs);
                     }
 
+                    $paymentArgs['setup_future_usage'] = 'off_session';
+                } else if (SubscriptionManagementMode::flagSystemConversion($paymentInstance, $this)) {
                     $paymentArgs['setup_future_usage'] = 'off_session';
                 }
 
@@ -830,6 +833,10 @@ class Stripe extends AbstractPaymentGateway
                 if ($payableNow <= 0) {
                     $consentRequired = true;
                 }
+            } elseif (!$this->shouldRenderAsSubscriptionMode($hasSubscription)
+                && \FluentCart\App\Modules\Subscriptions\Services\SubscriptionManagementMode::currentCheckoutCanConvertToSystem($this)
+            ) {
+                $systemConsent = __('Your payment method will be saved securely and charged automatically on each renewal date. You can update or replace it any time from your account.', 'fluent-cart');
             }
 
             wp_send_json(
@@ -946,6 +953,14 @@ class Stripe extends AbstractPaymentGateway
                 ];
                 $consentRequired = true;
             }
+        } elseif (!$renderAsSubscription
+            && \FluentCart\App\Modules\Subscriptions\Services\SubscriptionManagementMode::currentCheckoutCanConvertToSystem($this)
+            && \FluentCart\App\Services\OrderService::getItemsAmountTotal($cart->cart_data ?? [], false, false) > 0
+        ) {
+            // Manual sub paying its renewal invoice converts to auto-charge, same
+            // notice as a new system sub. Must match makePaymentFromPaymentInstance's flag.
+            $intentData['setup_future_usage'] = 'off_session';
+            $systemConsent = __('Your payment method will be saved securely and charged automatically on each renewal date. You can update or replace it any time from your account.', 'fluent-cart');
         }
 
         if ($renderAsSubscription) {

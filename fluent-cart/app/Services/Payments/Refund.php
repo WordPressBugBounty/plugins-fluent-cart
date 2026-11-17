@@ -677,6 +677,7 @@ class Refund
             return;
         }
 
+        /** @var OrderTransaction $charge */
         $charge = OrderTransaction::query()->findOrFail($parentTransaction->id);
         $flaggedElsewhere = 0;
         foreach ($charge->linkedRefunds() as $linked) {

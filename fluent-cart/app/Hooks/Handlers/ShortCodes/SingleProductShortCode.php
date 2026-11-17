@@ -26,7 +26,7 @@ class SingleProductShortCode extends ShortCode
             ) {
                 (new static())->enqueueStyles();
             }
-        }, 10);
+        }, 20); // After the theme's styles: a theme's button reset must not outrank ours.
         parent::register();
     }
 
@@ -51,11 +51,12 @@ class SingleProductShortCode extends ShortCode
 
         //DirectCheckoutShortcode::make()->enqueueAssets();
 
+        // Shared files on AssetLoader's handles, so WordPress prints each once.
         return [
-            'public/single-product/single-product.scss',
-            'public/single-product/similar-product.scss',
-            'public/product-card/style/product-card.scss',
-            'public/single-product/xzoom/xzoom.css'
+            ['source' => 'public/single-product/single-product.scss', 'handle' => 'fluentcart-single-product-css', 'media' => 'all'],
+            ['source' => 'public/single-product/similar-product.scss', 'handle' => 'fluentcart-similar-product-css', 'media' => 'all'],
+            ['source' => 'public/product-card/style/product-card.scss', 'handle' => 'fluentcart-product-card-page-css', 'media' => 'all'],
+            ['source' => 'public/single-product/xzoom/xzoom.css', 'handle' => 'fluentcart-zoom-css', 'media' => 'all'],
         ];
     }
 

@@ -1109,6 +1109,23 @@ class Subscription extends Model
     }
 
     /**
+     * Subscriptions whose parent order matches the store's order mode. With the mode guard
+     * on, a test-mode store never touches live subscriptions (and the reverse).
+     */
+    public function scopeInStoreMode($query)
+    {
+        if (!SubscriptionHelper::isModeGuardEnabled()) {
+            return $query;
+        }
+
+        $storeMode = (new StoreSettings())->get('order_mode');
+
+        return $query->whereHas('order', function ($query) use ($storeMode) {
+            $query->where('mode', $storeMode);
+        });
+    }
+
+    /**
      * @deprecated Use canReactivate(). Kept as a backward-compatible alias.
      * @return bool
      */
@@ -1676,6 +1693,7 @@ class Subscription extends Model
             // Exclude store-billed (manual/system) subscriptions — their expiry is
             // handled by the invoice-based overdue flow
             $subscriptions = Subscription::query()
+                ->inStoreMode()
                 ->whereIn('status', [
                     Status::SUBSCRIPTION_ACTIVE,
                     Status::SUBSCRIPTION_TRIALING,

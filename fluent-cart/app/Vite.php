@@ -41,9 +41,6 @@ class  Vite
     {
         if (static::$instance === null) {
             static::$instance = new static();
-            if (!static::$instance->usingDevMode()) {
-                (static::$instance)->loadViteManifest();
-            }
         }
 
         return static::$instance;
@@ -128,6 +125,8 @@ class  Vite
 
     private function getFileFromManifest($src)
     {
+        // Loaded on first lookup, not when the instance is built: app.env can differ between the two.
+        $this->loadViteManifest();
 
         if (isset($this->manifestData[$this->resourceDirectory . $src])) {
             return $this->manifestData[$this->resourceDirectory . $src];

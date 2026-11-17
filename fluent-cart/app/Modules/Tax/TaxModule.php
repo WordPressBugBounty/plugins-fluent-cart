@@ -196,10 +196,19 @@ class TaxModule
         add_action('fluent_cart/cart/cart_data_items_updated', [$this, 'recalculateTax']);
     }
 
-    private function resolvePriceSuffix($variant)
+    public function getPriceSuffix($variant, ?array $settings = null): string
     {
-        $includedSuffix = Arr::get($this->taxSettings, 'price_suffix_included', '');
-        $excludedSuffix = Arr::get($this->taxSettings, 'price_suffix_excluded', '');
+        // Card suffixes do not need the checkout configuration's VAT registration queries.
+        $settings = $settings ?? (array) get_option('fluent_cart_tax_configuration_settings', []);
+        return Arr::get($settings, 'enable_tax', 'no') === 'yes'
+            ? (string) $this->resolvePriceSuffix($variant, $settings) : '';
+    }
+
+    private function resolvePriceSuffix($variant, ?array $settings = null)
+    {
+        $settings = $settings ?? $this->taxSettings;
+        $includedSuffix = Arr::get($settings, 'price_suffix_included', '');
+        $excludedSuffix = Arr::get($settings, 'price_suffix_excluded', '');
 
         if ($variant !== null) {
             $taxInclusion = Arr::get($variant->other_info ?: [], 'tax_inclusion', '');
@@ -212,13 +221,13 @@ class TaxModule
         } elseif ($taxInclusion === 'excluded') {
             $isInclusive = false;
         } else {
-            $isInclusive = Arr::get($this->taxSettings, 'tax_inclusion') === 'included';
+            $isInclusive = Arr::get($settings, 'tax_inclusion', 'included') === 'included';
         }
 
         $suffix = $isInclusive ? $includedSuffix : $excludedSuffix;
 
         if (!$suffix) {
-            $suffix = Arr::get($this->taxSettings, 'price_suffix', '');
+            $suffix = Arr::get($settings, 'price_suffix', '');
         }
 
         return $suffix;

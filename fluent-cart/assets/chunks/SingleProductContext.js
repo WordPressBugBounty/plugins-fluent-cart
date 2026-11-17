@@ -1,1 +1,1 @@
-const{createContext:n,useContext:o}=wp.element,e=n(),r=e.Provider,u=()=>{const t=o(e);return t||(console.warn("useSingleProductData must be used within a SingleProductDataProvider"),null)};export{r as S,u};
+const{createContext:o,useContext:r}=wp.element,e=o(),a=e.Provider,s=(n=!1)=>{const t=r(e);return!t&&!n?(console.warn("useSingleProductData must be used within a SingleProductDataProvider"),null):t};export{a as S,s as u};

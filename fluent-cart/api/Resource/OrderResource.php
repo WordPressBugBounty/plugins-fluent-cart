@@ -50,6 +50,7 @@ use FluentCart\App\Services\Payments\PaymentInstance;
 use FluentCart\App\Services\Payments\Refund;
 use FluentCart\App\Services\Tax\AdminOrderTaxService;
 use FluentCart\App\Modules\Tax\TaxModule;
+use FluentCart\Framework\Database\QueryException;
 use FluentCart\Framework\Database\Orm\Builder;
 use FluentCart\Framework\Database\Orm\Collection;
 use FluentCart\Framework\Support\Arr;
@@ -250,7 +251,16 @@ class OrderResource extends BaseResourceApi
         $paymentMethod = sanitize_text_field('offline_payment');
 
         $items = Arr::except(Arr::get($order, 'order_items'), ['*']);
-        OrderService::validateProducts($items);
+        try {
+            OrderService::validateProducts($items);
+        } catch (QueryException $e) {
+            // A database failure is not a stock rejection, and its message holds the query.
+            throw $e;
+        } catch (\Exception $e) {
+            return static::makeErrorResponse([
+                ['code' => 'invalid_order_items', 'message' => $e->getMessage()]
+            ], 422);
+        }
 
         $customer = static::getCustomer($data);
 

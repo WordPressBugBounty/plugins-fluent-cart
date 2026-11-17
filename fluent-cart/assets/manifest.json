@@ -48,6 +48,7 @@
       "resources/admin/Bits/Components/Form/Components/Coupon/IncludeExclude/Categories.vue",
       "resources/admin/Bits/Components/Form/Components/Coupon/IncludeExclude/Product.vue",
       "resources/admin/Bits/Components/Form/Components/Coupon/Products.vue",
+      "resources/admin/Bits/Components/Form/Components/McpHubConnect.vue",
       "resources/admin/Bits/Components/Form/Components/McpSettings.vue",
       "resources/admin/Bits/Components/Form/Components/ModuleSettings.vue",
       "resources/admin/Bits/Components/Form/Components/PaymentView.vue",
@@ -85,10 +86,6 @@
     "css": [
       "assets/AddProductItemModal.css"
     ]
-  },
-  "_AddressComponent.css": {
-    "file": "assets/AddressComponent.css",
-    "src": "_AddressComponent.css"
   },
   "_AddressComponent.js": {
     "file": "chunks/AddressComponent.js",
@@ -200,6 +197,16 @@
       "_DynamicIcon.js",
       "_vendor-vue.js",
       "__plugin-vue_export-helper.js"
+    ]
+  },
+  "_CardLayoutSettings.js": {
+    "file": "chunks/CardLayoutSettings.js",
+    "name": "CardLayoutSettings",
+    "imports": [
+      "_jsx-runtime.js",
+      "_EditorPanel.js",
+      "_EditorPanelRow.js",
+      "_BlockEditorTranslator.js"
     ]
   },
   "_Clipboard.js": {
@@ -682,6 +689,17 @@
       "_Arr.js"
     ]
   },
+  "_ProductButtonBlock.js": {
+    "file": "chunks/ProductButtonBlock.js",
+    "name": "ProductButtonBlock",
+    "imports": [
+      "_jsx-runtime.js",
+      "_SingleProductContext.js",
+      "_ErrorBoundary.js",
+      "_BlockEditorTranslator.js",
+      "_useProductSwatchPreview.js"
+    ]
+  },
   "_ProductContainerContext.js": {
     "file": "chunks/ProductContainerContext.js",
     "name": "ProductContainerContext"
@@ -1080,6 +1098,10 @@
       "_LabelHint.js"
     ]
   },
+  "_insideProductInfo.js": {
+    "file": "chunks/insideProductInfo.js",
+    "name": "insideProductInfo"
+  },
   "_jsx-runtime.js": {
     "file": "chunks/jsx-runtime.js",
     "name": "jsx-runtime"
@@ -1119,6 +1141,14 @@
   "_preload-helper.js": {
     "file": "chunks/preload-helper.js",
     "name": "preload-helper"
+  },
+  "_product-attribute-swatches.js": {
+    "file": "chunks/product-attribute-swatches.js",
+    "name": "product-attribute-swatches"
+  },
+  "_product-card-masonry.js": {
+    "file": "chunks/product-card-masonry.js",
+    "name": "product-card-masonry"
   },
   "_productService.js": {
     "file": "chunks/productService.js",
@@ -1204,6 +1234,21 @@
       "_Rest.js",
       "_Notify.js",
       "_Translator.js"
+    ]
+  },
+  "_useMasonryGrid.js": {
+    "file": "chunks/useMasonryGrid.js",
+    "name": "useMasonryGrid",
+    "imports": [
+      "_product-card-masonry.js"
+    ]
+  },
+  "_useProductSwatchPreview.js": {
+    "file": "chunks/useProductSwatchPreview.js",
+    "name": "useProductSwatchPreview",
+    "imports": [
+      "_BlockEditorTranslator.js",
+      "_product-attribute-swatches.js"
     ]
   },
   "_vendor-dayjs.js": {
@@ -1349,6 +1394,30 @@
       "_vendor-vue.js"
     ]
   },
+  "resources/admin/Bits/Components/Form/Components/McpHubConnect.vue": {
+    "file": "chunks/McpHubConnect.js",
+    "name": "McpHubConnect",
+    "src": "resources/admin/Bits/Components/Form/Components/McpHubConnect.vue",
+    "isDynamicEntry": true,
+    "imports": [
+      "_vendor-vue.js",
+      "_Translator.js",
+      "_Badge.js",
+      "_Clipboard.js",
+      "_Arr.js",
+      "_DynamicIcon.js",
+      "_preload-helper.js",
+      "_Str.js",
+      "__plugin-vue_export-helper.js",
+      "_index2.js",
+      "_index.js",
+      "_vendor-dayjs.js",
+      "_Notify.js",
+      "_common.js",
+      "_module-dayjs.js",
+      "_CurrencyFormatter.js"
+    ]
+  },
   "resources/admin/Bits/Components/Form/Components/McpSettings.vue": {
     "file": "chunks/McpSettings.js",
     "name": "McpSettings",
@@ -1362,6 +1431,7 @@
       "_Notify.js",
       "_Clipboard.js",
       "_Alert.js",
+      "resources/admin/Bits/Components/Form/Components/McpHubConnect.vue",
       "_Arr.js",
       "_DynamicIcon.js",
       "_preload-helper.js",
@@ -3869,9 +3939,9 @@
       "_jsx-runtime.js",
       "_BlockEditorTranslator.js",
       "_reviewStar2.js",
+      "_Icons.js",
       "_EditorPanel.js",
       "_ColorPickerField.js",
-      "_Icons.js",
       "_SelectVariationModal.js",
       "_SelectProductModal.js",
       "_EditorPanelRow.js",
@@ -4050,6 +4120,7 @@
       "_BlockEditorTranslator.js",
       "_SingleProductContext.js",
       "_Icons.js",
+      "_insideProductInfo.js",
       "_add-query-args.js",
       "_ProductListItem.js",
       "_index3.js",
@@ -4104,7 +4175,6 @@
     "isEntry": true,
     "imports": [
       "_jsx-runtime.js",
-      "_Icons.js",
       "_BlockEditorTranslator.js",
       "_index4.js",
       "_EditorPanel.js",
@@ -4112,10 +4182,13 @@
       "_CustomSelect.js",
       "_SelectProductModal.js",
       "_ErrorBoundary.js",
+      "_CardLayoutSettings.js",
       "_add-query-args.js",
-      "_reviewStar2.js",
+      "_SingleProductContext.js",
+      "_Icons.js",
       "_index3.js",
-      "_ProductListItem.js"
+      "_ProductListItem.js",
+      "_reviewStar2.js"
     ],
     "assets": [
       "assets/ProductCard.png"
@@ -4134,10 +4207,14 @@
     "imports": [
       "_jsx-runtime.js",
       "_ProductExcerptBlock.js",
+      "_ProductButtonBlock.js",
       "_ProductContext.js",
       "_SingleProductContext.js",
       "_ProductContainerContext.js",
-      "_BlockEditorTranslator.js"
+      "_BlockEditorTranslator.js",
+      "_ErrorBoundary.js",
+      "_useProductSwatchPreview.js",
+      "_product-attribute-swatches.js"
     ]
   },
   "resources/admin/BlockEditor/ProductCarousel/ProductCarousel.png": {
@@ -4265,6 +4342,7 @@
       "_BlockEditorTranslator.js",
       "_SingleProductContext.js",
       "_Icons.js",
+      "_insideProductInfo.js",
       "_add-query-args.js",
       "_ProductListItem.js",
       "_index3.js",
@@ -4328,6 +4406,30 @@
   "resources/admin/BlockEditor/ProductPackageDescription/style/product-package-description-block-editor.scss": {
     "file": "assets/product-package-description-block-editor.css",
     "src": "resources/admin/BlockEditor/ProductPackageDescription/style/product-package-description-block-editor.scss",
+    "isEntry": true
+  },
+  "resources/admin/BlockEditor/ProductQuickView/ProductQuickViewBlockEditor.jsx": {
+    "file": "ProductQuickViewBlockEditor.js",
+    "name": "ProductQuickViewBlockEditor",
+    "src": "resources/admin/BlockEditor/ProductQuickView/ProductQuickViewBlockEditor.jsx",
+    "isEntry": true,
+    "imports": [
+      "_jsx-runtime.js",
+      "_Icons.js",
+      "_ErrorBoundary.js",
+      "_EditorPanel.js",
+      "_EditorPanelRow.js",
+      "_BlockEditorTranslator.js",
+      "_SingleProductContext.js",
+      "_useProductSwatchPreview.js",
+      "_ProductButtonBlock.js",
+      "_reviewStar2.js",
+      "_product-attribute-swatches.js"
+    ]
+  },
+  "resources/admin/BlockEditor/ProductQuickView/style/product-quick-view-block-editor.scss": {
+    "file": "assets/product-quick-view-block-editor.css",
+    "src": "resources/admin/BlockEditor/ProductQuickView/style/product-quick-view-block-editor.scss",
     "isEntry": true
   },
   "resources/admin/BlockEditor/ProductRating/ProductRatingBlockEditor.jsx": {
@@ -4517,6 +4619,26 @@
     "src": "resources/admin/BlockEditor/ProductSku/style/product-sku-block-editor.scss",
     "isEntry": true
   },
+  "resources/admin/BlockEditor/ProductSwatches/ProductSwatchesBlockEditor.jsx": {
+    "file": "ProductSwatchesBlockEditor.js",
+    "name": "ProductSwatchesBlockEditor",
+    "src": "resources/admin/BlockEditor/ProductSwatches/ProductSwatchesBlockEditor.jsx",
+    "isEntry": true,
+    "imports": [
+      "_jsx-runtime.js",
+      "_BlockEditorTranslator.js",
+      "_Icons.js",
+      "_ErrorBoundary.js",
+      "_useProductSwatchPreview.js",
+      "_reviewStar2.js",
+      "_product-attribute-swatches.js"
+    ]
+  },
+  "resources/admin/BlockEditor/ProductSwatches/style/product-swatches-block-editor.scss": {
+    "file": "assets/product-swatches-block-editor.css",
+    "src": "resources/admin/BlockEditor/ProductSwatches/style/product-swatches-block-editor.scss",
+    "isEntry": true
+  },
   "resources/admin/BlockEditor/ProductTitle/ProductTitleBlockEditor.jsx": {
     "file": "ProductTitleBlockEditor.js",
     "name": "ProductTitleBlockEditor",
@@ -4531,6 +4653,7 @@
       "_EditorPanelRow.js",
       "_SingleProductContext.js",
       "_Icons.js",
+      "_insideProductInfo.js",
       "_add-query-args.js",
       "_ProductListItem.js",
       "_index3.js",
@@ -4560,7 +4683,9 @@
       "_BlockEditorTranslator.js",
       "_add-query-args.js",
       "_SingleProductContext.js",
-      "_reviewStar2.js"
+      "_useMasonryGrid.js",
+      "_reviewStar2.js",
+      "_product-card-masonry.js"
     ]
   },
   "resources/admin/BlockEditor/RelatedProduct/style/related-product-block-editor.scss": {
@@ -4622,12 +4747,18 @@
     "imports": [
       "_jsx-runtime.js",
       "_ProductExcerptBlock.js",
+      "_ProductButtonBlock.js",
       "_ProductContext.js",
       "_SingleProductContext.js",
       "_ProductContainerContext.js",
+      "_useMasonryGrid.js",
       "_BlockEditorTranslator.js",
       "_EditorPanel.js",
-      "_EditorPanelRow.js"
+      "_EditorPanelRow.js",
+      "_ErrorBoundary.js",
+      "_useProductSwatchPreview.js",
+      "_product-attribute-swatches.js",
+      "_product-card-masonry.js"
     ]
   },
   "resources/admin/BlockEditor/ShopApp/Products.png": {
@@ -4647,8 +4778,11 @@
       "_ErrorBoundary.js",
       "_ProductContext.js",
       "_index4.js",
+      "_CardLayoutSettings.js",
       "_index3.js",
-      "_reviewStar2.js"
+      "_reviewStar2.js",
+      "_EditorPanel.js",
+      "_EditorPanelRow.js"
     ],
     "assets": [
       "assets/Products.png"
@@ -4666,9 +4800,9 @@
     "isEntry": true,
     "imports": [
       "_jsx-runtime.js",
-      "_BlockEditorTranslator.js",
       "_EditorPanel.js",
       "_EditorPanelRow.js",
+      "_BlockEditorTranslator.js",
       "_SingleProductContext.js",
       "_Icons.js",
       "_ErrorBoundary.js",
@@ -5874,7 +6008,7 @@
       "_Select.js"
     ],
     "css": [
-      "assets/Start3.css",
+      "assets/AddressComponent.css",
       "assets/TransitionAccordion.css"
     ]
   },
@@ -6013,6 +6147,20 @@
     "file": "product-card2.js",
     "name": "product-card",
     "src": "resources/public/product-card/product-card.js",
+    "isEntry": true,
+    "imports": [
+      "_product-attribute-swatches.js",
+      "_product-card-masonry.js"
+    ]
+  },
+  "resources/public/product-card/style/card-layout-picker.scss": {
+    "file": "assets/card-layout-picker.css",
+    "src": "resources/public/product-card/style/card-layout-picker.scss",
+    "isEntry": true
+  },
+  "resources/public/product-card/style/card-layouts.scss": {
+    "file": "assets/card-layouts.css",
+    "src": "resources/public/product-card/style/card-layouts.scss",
     "isEntry": true
   },
   "resources/public/product-card/style/product-card.scss": {
@@ -6147,6 +6295,18 @@
     "file": "images/404.svg",
     "name": "404",
     "src": "resources/images/404.svg",
+    "isEntry": true
+  },
+  "resources/images/address-autofill/black.svg": {
+    "file": "images/address-autofill/black.svg",
+    "name": "black",
+    "src": "resources/images/address-autofill/black.svg",
+    "isEntry": true
+  },
+  "resources/images/address-autofill/white.svg": {
+    "file": "images/address-autofill/white.svg",
+    "name": "white",
+    "src": "resources/images/address-autofill/white.svg",
     "isEntry": true
   },
   "resources/images/avatar-empty.png": {

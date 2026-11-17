@@ -1,0 +1,1 @@
+const r=(o,e)=>{const c={inside_product_info:e?"yes":"no",...e?{}:{query_type:"custom"}},t=Object.fromEntries(Object.entries(c).filter(([n,s])=>o[n]!==s));return Object.keys(t).length?t:null},a=(o,e,c)=>{var n,s;const t=r(o,c);t&&((s=(n=wp.data.dispatch("core/block-editor")).__unstableMarkNextChangeAsNotPersistent)==null||s.call(n),e(t))};export{a as s};

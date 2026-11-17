@@ -650,6 +650,16 @@ class DiscountService
     protected function isCouponValid($coupon)
     {
         $status = $coupon->status;
+        $startDate = $coupon->start_date;
+        $hasStartDate = $startDate && $startDate != '0000-00-00 00:00:00';
+
+        // The stored status stays "scheduled" until an admin opens the coupon list,
+        // so a scheduled coupon is judged by its start date (stored in UTC).
+        $startedWhileScheduled = $status === 'scheduled' && $hasStartDate && strtotime($startDate) <= time();
+        if ($startedWhileScheduled) {
+            $status = 'active';
+        }
+
         if ($status === 'expired') {
             return new \WP_Error('coupon_expired', __('This coupon has expired.', 'fluent-cart'));
         }
@@ -661,13 +671,24 @@ class DiscountService
         }
 
         // let's validate the start date and end date first
-        $startDate = $coupon->start_date;
-        if ($startDate && $startDate != '0000-00-00 00:00:00' && strtotime($startDate) > time()) {
+        if ($hasStartDate && strtotime($startDate) > time()) {
             return new \WP_Error('coupon_not_started', __('This coupon is not yet active.', 'fluent-cart'));
         }
         $endDate = $coupon->end_date;
         if ($endDate && $endDate != '0000-00-00 00:00:00' && strtotime($endDate) < time()) {
             return new \WP_Error('coupon_expired', __('This coupon has expired.', 'fluent-cart'));
+        }
+
+        // Store the new status so the coupon list, filters and MCP agree with checkout.
+        // Virtual coupons from fluent_cart/coupon/resolve_coupons have no row to update.
+        // Only the status is written: a model save would also store what an add-on
+        // changed on the coupon in memory.
+        if ($startedWhileScheduled) {
+            if ($coupon->exists) {
+                Coupon::query()->where('id', $coupon->id)->where('status', 'scheduled')->update(['status' => 'active']);
+            }
+            // Later filters (fluent_cart/coupon/can_use_coupon) get the status checkout used
+            $coupon->setStatus('active');
         }
 
         $conditions = $coupon->conditions;

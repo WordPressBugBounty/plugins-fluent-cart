@@ -526,17 +526,9 @@ class RenewalService
             return $results;
         }
 
-        $query = Subscription::query()
-            ->with(['order.order_items', 'product', 'variation']);
-
-        if (SubscriptionHelper::isModeGuardEnabled()) {
-            $storeMode = (new StoreSettings())->get('order_mode');
-            $query->whereHas('order', function ($query) use ($storeMode) {
-                $query->where('mode', $storeMode);
-            });
-        }
-
-        $subscriptions = $query
+        $subscriptions = Subscription::query()
+            ->with(['order.order_items', 'product', 'variation'])
+            ->inStoreMode()
             ->whereIn('collection_method', ['manual', 'system'])
             ->whereNotIn('status', [
                 Status::SUBSCRIPTION_COMPLETED,

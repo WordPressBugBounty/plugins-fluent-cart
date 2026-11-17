@@ -347,6 +347,22 @@ class ModuleSettingsController extends Controller
                 'repo_link'   => 'https://fluentcart.com/fluentcart-addons/',
                 'settings_route' => '/settings/shipping/carriers'
             ],
+            'address-autofill-for-fluent-cart' => [
+                'title'       => __('Address Autofill for FluentCart', 'fluent-cart'),
+                'description' => __('Fill the prefecture, city and street at checkout from a Japanese postal code.', 'fluent-cart'),
+                'logo'        => Vite::getAssetUrl('images/address-autofill/black.svg'),
+                'dark_logo'   => Vite::getAssetUrl('images/address-autofill/white.svg'),
+                'plugin_slug' => 'address-autofill-for-fluent-cart',
+                'plugin_file' => 'address-autofill-for-fluent-cart/address-autofill-for-fluent-cart.php',
+                'source_type' => 'cdn',
+                'source_link' => 'https://addons-cdn.fluentcart.com/address-autofill-for-fluent-cart.zip',
+                'license_required' => [
+                    'enabled'           => false,
+                    'parent_product_id' => 21480
+                ],
+                'upcoming'    => false,
+                'repo_link'   => 'https://fluentcart.com/fluentcart-addons/',
+            ],
         ];
 
         // Allow other modules/plugins to register their addons.

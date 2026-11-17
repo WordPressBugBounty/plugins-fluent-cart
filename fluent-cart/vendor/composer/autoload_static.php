@@ -13,7 +13,7 @@ class ComposerStaticInitb2eff533900bbaf3c7b668b284ce4755
     );
 
     public static $prefixLengthsPsr4 = array (
-        'F' =>
+        'F' => 
         array (
             'FluentCart\\Framework\\' => 21,
             'FluentCart\\Dev\\' => 15,
@@ -23,19 +23,19 @@ class ComposerStaticInitb2eff533900bbaf3c7b668b284ce4755
     );
 
     public static $prefixDirsPsr4 = array (
-        'FluentCart\\Framework\\' =>
+        'FluentCart\\Framework\\' => 
         array (
             0 => __DIR__ . '/..' . '/wpfluent/framework/src/WPFluent',
         ),
-        'FluentCart\\Dev\\' =>
+        'FluentCart\\Dev\\' => 
         array (
             0 => __DIR__ . '/../..' . '/dev',
         ),
-        'FluentCart\\App\\' =>
+        'FluentCart\\App\\' => 
         array (
             0 => __DIR__ . '/../..' . '/app',
         ),
-        'FluentCart\\Api\\' =>
+        'FluentCart\\Api\\' => 
         array (
             0 => __DIR__ . '/../..' . '/api',
         ),
@@ -195,6 +195,7 @@ class ComposerStaticInitb2eff533900bbaf3c7b668b284ce4755
         'FluentCart\\App\\Hooks\\Handlers\\BlockEditors\\ProductImageBlockEditor' => __DIR__ . '/../..' . '/app/Hooks/Handlers/BlockEditors/ProductImageBlockEditor.php',
         'FluentCart\\App\\Hooks\\Handlers\\BlockEditors\\ProductInfoBlockEditor' => __DIR__ . '/../..' . '/app/Hooks/Handlers/BlockEditors/ProductInfoBlockEditor.php',
         'FluentCart\\App\\Hooks\\Handlers\\BlockEditors\\ProductPackageDescriptionBlockEditor' => __DIR__ . '/../..' . '/app/Hooks/Handlers/BlockEditors/ProductPackageDescriptionBlockEditor.php',
+        'FluentCart\\App\\Hooks\\Handlers\\BlockEditors\\ProductQuickViewBlockEditor' => __DIR__ . '/../..' . '/app/Hooks/Handlers/BlockEditors/ProductQuickViewBlockEditor.php',
         'FluentCart\\App\\Hooks\\Handlers\\BlockEditors\\ProductRatingBlockEditor' => __DIR__ . '/../..' . '/app/Hooks/Handlers/BlockEditors/ProductRatingBlockEditor.php',
         'FluentCart\\App\\Hooks\\Handlers\\BlockEditors\\ProductReviewFormBlockEditor' => __DIR__ . '/../..' . '/app/Hooks/Handlers/BlockEditors/ProductReviewFormBlockEditor.php',
         'FluentCart\\App\\Hooks\\Handlers\\BlockEditors\\ProductReviewList\\InnerBlocks\\InnerBlocks' => __DIR__ . '/../..' . '/app/Hooks/Handlers/BlockEditors/ProductReviewList/InnerBlocks/InnerBlocks.php',
@@ -203,6 +204,7 @@ class ComposerStaticInitb2eff533900bbaf3c7b668b284ce4755
         'FluentCart\\App\\Hooks\\Handlers\\BlockEditors\\ProductReviewSummaryGroupBlockEditor' => __DIR__ . '/../..' . '/app/Hooks/Handlers/BlockEditors/ProductReviewSummaryGroupBlockEditor.php',
         'FluentCart\\App\\Hooks\\Handlers\\BlockEditors\\ProductReviewsBlockEditor' => __DIR__ . '/../..' . '/app/Hooks/Handlers/BlockEditors/ProductReviewsBlockEditor.php',
         'FluentCart\\App\\Hooks\\Handlers\\BlockEditors\\ProductSkuBlockEditor' => __DIR__ . '/../..' . '/app/Hooks/Handlers/BlockEditors/ProductSkuBlockEditor.php',
+        'FluentCart\\App\\Hooks\\Handlers\\BlockEditors\\ProductSwatchesBlockEditor' => __DIR__ . '/../..' . '/app/Hooks/Handlers/BlockEditors/ProductSwatchesBlockEditor.php',
         'FluentCart\\App\\Hooks\\Handlers\\BlockEditors\\ProductTitleBlockEditor' => __DIR__ . '/../..' . '/app/Hooks/Handlers/BlockEditors/ProductTitleBlockEditor.php',
         'FluentCart\\App\\Hooks\\Handlers\\BlockEditors\\RelatedProduct\\InnerBlocks\\InnerBlocks' => __DIR__ . '/../..' . '/app/Hooks/Handlers/BlockEditors/RelatedProduct/InnerBlocks/InnerBlocks.php',
         'FluentCart\\App\\Hooks\\Handlers\\BlockEditors\\RelatedProduct\\RelatedProductBlockEditor' => __DIR__ . '/../..' . '/app/Hooks/Handlers/BlockEditors/RelatedProduct/RelatedProductBlockEditor.php',
@@ -630,6 +632,8 @@ class ComposerStaticInitb2eff533900bbaf3c7b668b284ce4755
         'FluentCart\\App\\Modules\\Templating\\Bricks\\Elements\\ProductStock' => __DIR__ . '/../..' . '/app/Modules/Templating/Bricks/Elements/ProductStock.php',
         'FluentCart\\App\\Modules\\Templating\\Bricks\\Elements\\ProductTitle' => __DIR__ . '/../..' . '/app/Modules/Templating/Bricks/Elements/ProductTitle.php',
         'FluentCart\\App\\Modules\\Templating\\Bricks\\Elements\\ProductsCollection' => __DIR__ . '/../..' . '/app/Modules/Templating/Bricks/Elements/ProductsCollection.php',
+        'FluentCart\\App\\Modules\\Templating\\Bricks\\LayoutCardControls' => __DIR__ . '/../..' . '/app/Modules/Templating/Bricks/LayoutCardControls.php',
+        'FluentCart\\App\\Modules\\Templating\\Bricks\\MovingToBricksAddonNotice' => __DIR__ . '/../..' . '/app/Modules/Templating/Bricks/MovingToBricksAddonNotice.php',
         'FluentCart\\App\\Modules\\Templating\\TemplateActions' => __DIR__ . '/../..' . '/app/Modules/Templating/TemplateActions.php',
         'FluentCart\\App\\Modules\\Templating\\TemplateLoader' => __DIR__ . '/../..' . '/app/Modules/Templating/TemplateLoader.php',
         'FluentCart\\App\\Modules\\Turnstile\\TurnstileBoot' => __DIR__ . '/../..' . '/app/Modules/Turnstile/TurnstileBoot.php',
@@ -706,6 +710,7 @@ class ComposerStaticInitb2eff533900bbaf3c7b668b284ce4755
         'FluentCart\\App\\Services\\Filter\\OrderFilter' => __DIR__ . '/../..' . '/app/Services/Filter/OrderFilter.php',
         'FluentCart\\App\\Services\\Filter\\ProductFilter' => __DIR__ . '/../..' . '/app/Services/Filter/ProductFilter.php',
         'FluentCart\\App\\Services\\Filter\\ReviewFilter' => __DIR__ . '/../..' . '/app/Services/Filter/ReviewFilter.php',
+        'FluentCart\\App\\Services\\Filter\\ShopAttributeFilter' => __DIR__ . '/../..' . '/app/Services/Filter/ShopAttributeFilter.php',
         'FluentCart\\App\\Services\\Filter\\TaxFilter' => __DIR__ . '/../..' . '/app/Services/Filter/TaxFilter.php',
         'FluentCart\\App\\Services\\Filter\\VariationFilter' => __DIR__ . '/../..' . '/app/Services/Filter/VariationFilter.php',
         'FluentCart\\App\\Services\\FrontendView' => __DIR__ . '/../..' . '/app/Services/FrontendView.php',
@@ -753,7 +758,9 @@ class ComposerStaticInitb2eff533900bbaf3c7b668b284ce4755
         'FluentCart\\App\\Services\\Renderer\\OrderReviewRenderer' => __DIR__ . '/../..' . '/app/Services/Renderer/OrderReviewRenderer.php',
         'FluentCart\\App\\Services\\Renderer\\PackageDescriptionRenderer' => __DIR__ . '/../..' . '/app/Services/Renderer/PackageDescriptionRenderer.php',
         'FluentCart\\App\\Services\\Renderer\\PricingTableRenderer' => __DIR__ . '/../..' . '/app/Services/Renderer/PricingTableRenderer.php',
+        'FluentCart\\App\\Services\\Renderer\\ProductCardLayoutPresets' => __DIR__ . '/../..' . '/app/Services/Renderer/ProductCardLayoutPresets.php',
         'FluentCart\\App\\Services\\Renderer\\ProductCardRender' => __DIR__ . '/../..' . '/app/Services/Renderer/ProductCardRender.php',
+        'FluentCart\\App\\Services\\Renderer\\ProductCardSwatchesRenderer' => __DIR__ . '/../..' . '/app/Services/Renderer/ProductCardSwatchesRenderer.php',
         'FluentCart\\App\\Services\\Renderer\\ProductCategoriesListRenderer' => __DIR__ . '/../..' . '/app/Services/Renderer/ProductCategoriesListRenderer.php',
         'FluentCart\\App\\Services\\Renderer\\ProductCollectionRenderer' => __DIR__ . '/../..' . '/app/Services/Renderer/ProductCollectionRenderer.php',
         'FluentCart\\App\\Services\\Renderer\\ProductFilterRender' => __DIR__ . '/../..' . '/app/Services/Renderer/ProductFilterRender.php',
