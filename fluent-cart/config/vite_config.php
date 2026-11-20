@@ -48,7 +48,7 @@
             'resources/admin/Bits/Components/Form/Components/Coupon/IncludeExclude/Categories.vue',
             'resources/admin/Bits/Components/Form/Components/Coupon/IncludeExclude/Product.vue',
             'resources/admin/Bits/Components/Form/Components/Coupon/Products.vue',
-            'resources/admin/Bits/Components/Form/Components/McpHubConnect.vue',
+            '_McpHubConnect.js',
             'resources/admin/Bits/Components/Form/Components/McpSettings.vue',
             'resources/admin/Bits/Components/Form/Components/ModuleSettings.vue',
             'resources/admin/Bits/Components/Form/Components/PaymentView.vue',
@@ -597,6 +597,17 @@
             '__plugin-vue_export-helper.js'
         ]
     ],
+    '_McpHubConnect.js' => [
+        'file' => 'chunks/McpHubConnect.js',
+        'name' => 'McpHubConnect',
+        'isDynamicEntry' => true,
+        'imports' => [
+            '_vendor-vue.js',
+            '_Translator.js',
+            '_Badge.js',
+            '_Clipboard.js'
+        ]
+    ],
     '_MediaButton.js' => [
         'file' => 'chunks/MediaButton.js',
         'name' => 'MediaButton',
@@ -643,6 +654,14 @@
             '_index2.js',
             '_Str.js',
             '_Translator.js'
+        ]
+    ],
+    '_NumberStepper.js' => [
+        'file' => 'chunks/NumberStepper.js',
+        'name' => 'NumberStepper',
+        'imports' => [
+            '_jsx-runtime.js',
+            '_BlockEditorTranslator.js'
         ]
     ],
     '_OrderCustomerInformation.js' => [
@@ -764,6 +783,14 @@
             '_DynamicIcon.js',
             '_vue-router.js',
             '_Translator.js'
+        ]
+    ],
+    '_SegmentedToggle.js' => [
+        'file' => 'chunks/SegmentedToggle.js',
+        'name' => 'SegmentedToggle',
+        'imports' => [
+            '_jsx-runtime.js',
+            '_radioGroupKeyboardNavigation.js'
         ]
     ],
     '_Select.js' => [
@@ -1150,6 +1177,17 @@
         'file' => 'chunks/product-card-masonry.js',
         'name' => 'product-card-masonry'
     ],
+    '_productLoadFailure.js' => [
+        'file' => 'chunks/productLoadFailure.js',
+        'name' => 'productLoadFailure',
+        'imports' => [
+            '_jsx-runtime.js',
+            '_SelectProductModal.js',
+            '_BlockEditorTranslator.js',
+            '_SegmentedToggle.js',
+            '_Icons.js'
+        ]
+    ],
     '_productService.js' => [
         'file' => 'chunks/productService.js',
         'name' => 'productService',
@@ -1157,6 +1195,10 @@
             '_Translator.js',
             '_CurrencyFormatter.js'
         ]
+    ],
+    '_radioGroupKeyboardNavigation.js' => [
+        'file' => 'chunks/radioGroupKeyboardNavigation.js',
+        'name' => 'radioGroupKeyboardNavigation'
     ],
     '_radiusLength.js' => [
         'file' => 'chunks/radiusLength.js',
@@ -1173,12 +1215,14 @@
             '_jsx-runtime.js',
             '_EditorPanel.js',
             '_EditorPanelRow.js',
-            '_SelectProductModal.js',
+            '_productLoadFailure.js',
             '_BlockEditorTranslator.js',
             '_index4.js',
+            '_SelectProductModal.js',
             '_Icons.js',
             '_add-query-args.js',
-            '_SingleProductContext.js'
+            '_SingleProductContext.js',
+            '_safeProductId.js'
         ]
     ],
     '_reviewPresets.js' => [
@@ -1188,6 +1232,10 @@
     '_reviewStar2.js' => [
         'file' => 'chunks/reviewStar2.js',
         'name' => 'reviewStar'
+    ],
+    '_safeProductId.js' => [
+        'file' => 'chunks/safeProductId.js',
+        'name' => 'safeProductId'
     ],
     '_saveButtonShortcutMixin.js' => [
         'file' => 'chunks/saveButtonShortcutMixin.js',
@@ -1394,30 +1442,6 @@
             '_vendor-vue.js'
         ]
     ],
-    'resources/admin/Bits/Components/Form/Components/McpHubConnect.vue' => [
-        'file' => 'chunks/McpHubConnect.js',
-        'name' => 'McpHubConnect',
-        'src' => 'resources/admin/Bits/Components/Form/Components/McpHubConnect.vue',
-        'isDynamicEntry' => true,
-        'imports' => [
-            '_vendor-vue.js',
-            '_Translator.js',
-            '_Badge.js',
-            '_Clipboard.js',
-            '_Arr.js',
-            '_DynamicIcon.js',
-            '_preload-helper.js',
-            '_Str.js',
-            '__plugin-vue_export-helper.js',
-            '_index2.js',
-            '_index.js',
-            '_vendor-dayjs.js',
-            '_Notify.js',
-            '_common.js',
-            '_module-dayjs.js',
-            '_CurrencyFormatter.js'
-        ]
-    ],
     'resources/admin/Bits/Components/Form/Components/McpSettings.vue' => [
         'file' => 'chunks/McpSettings.js',
         'name' => 'McpSettings',
@@ -1431,7 +1455,7 @@
             '_Notify.js',
             '_Clipboard.js',
             '_Alert.js',
-            'resources/admin/Bits/Components/Form/Components/McpHubConnect.vue',
+            '_McpHubConnect.js',
             '_Arr.js',
             '_DynamicIcon.js',
             '_preload-helper.js',
@@ -3862,12 +3886,16 @@
             '_index4.js',
             '_EditorPanel.js',
             '_EditorPanelRow.js',
-            '_CustomSelect.js',
-            '_SelectProductModal.js',
+            '_productLoadFailure.js',
+            '_SingleProductContext.js',
             '_Icons.js',
+            '_safeProductId.js',
             '_add-query-args.js',
-            '_index3.js',
+            '_SelectProductModal.js',
             '_ProductListItem.js',
+            '_index3.js',
+            '_SegmentedToggle.js',
+            '_radioGroupKeyboardNavigation.js',
             '_reviewStar2.js'
         ],
         'assets' => [
@@ -4046,6 +4074,7 @@
             '_EditorPanelRow.js',
             '_SingleProductContext.js',
             '_Icons.js',
+            '_safeProductId.js',
             '_add-query-args.js',
             '_ProductListItem.js',
             '_index3.js',
@@ -4087,6 +4116,7 @@
             '_SelectVariationModal.js',
             '_SingleProductContext.js',
             '_ProductContext.js',
+            '_safeProductId.js',
             '_add-query-args.js',
             '_reviewStar2.js',
             '_ProductListItem.js',
@@ -4121,6 +4151,7 @@
             '_SingleProductContext.js',
             '_Icons.js',
             '_insideProductInfo.js',
+            '_safeProductId.js',
             '_add-query-args.js',
             '_ProductListItem.js',
             '_index3.js',
@@ -4152,6 +4183,7 @@
             '_EditorPanel.js',
             '_BlockEditorTranslator.js',
             '_CustomSelect.js',
+            '_safeProductId.js',
             '_add-query-args.js',
             '_reviewStar2.js'
         ],
@@ -4179,15 +4211,18 @@
             '_index4.js',
             '_EditorPanel.js',
             '_EditorPanelRow.js',
-            '_CustomSelect.js',
-            '_SelectProductModal.js',
+            '_SegmentedToggle.js',
+            '_productLoadFailure.js',
             '_ErrorBoundary.js',
             '_CardLayoutSettings.js',
+            '_safeProductId.js',
             '_add-query-args.js',
             '_SingleProductContext.js',
             '_Icons.js',
-            '_index3.js',
+            '_radioGroupKeyboardNavigation.js',
+            '_SelectProductModal.js',
             '_ProductListItem.js',
+            '_index3.js',
             '_reviewStar2.js'
         ],
         'assets' => [
@@ -4283,6 +4318,7 @@
             '_ErrorBoundary.js',
             '_SingleProductContext.js',
             '_Icons.js',
+            '_safeProductId.js',
             '_add-query-args.js',
             '_ProductListItem.js',
             '_index3.js',
@@ -4314,6 +4350,7 @@
             '_CustomSelect.js',
             '_SelectProductModal.js',
             '_SingleProductContext.js',
+            '_safeProductId.js',
             '_add-query-args.js',
             '_reviewStar2.js',
             '_ProductListItem.js',
@@ -4343,6 +4380,7 @@
             '_SingleProductContext.js',
             '_Icons.js',
             '_insideProductInfo.js',
+            '_safeProductId.js',
             '_add-query-args.js',
             '_ProductListItem.js',
             '_index3.js',
@@ -4367,15 +4405,19 @@
             '_jsx-runtime.js',
             '_Icons.js',
             '_index4.js',
-            '_SelectProductModal.js',
+            '_productLoadFailure.js',
             '_EditorPanel.js',
             '_EditorPanelRow.js',
             '_BlockEditorTranslator.js',
             '_SingleProductContext.js',
+            '_safeProductId.js',
             '_add-query-args.js',
             '_reviewStar2.js',
+            '_SelectProductModal.js',
             '_ProductListItem.js',
-            '_index3.js'
+            '_index3.js',
+            '_SegmentedToggle.js',
+            '_radioGroupKeyboardNavigation.js'
         ],
         'assets' => [
             'assets/ProductInfo.png'
@@ -4444,12 +4486,16 @@
             '_EditorPanelRow.js',
             '_reviewBlockShared.js',
             '_Icons.js',
+            '_productLoadFailure.js',
             '_SelectProductModal.js',
             '_index4.js',
             '_ProductListItem.js',
             '_index3.js',
             '_add-query-args.js',
+            '_SegmentedToggle.js',
+            '_radioGroupKeyboardNavigation.js',
             '_SingleProductContext.js',
+            '_safeProductId.js',
             '_reviewStar2.js'
         ]
     ],
@@ -4471,12 +4517,16 @@
             '_reviewBlockShared.js',
             '_SingleProductOnlyNotice.js',
             '_Icons.js',
+            '_productLoadFailure.js',
             '_SelectProductModal.js',
             '_index4.js',
             '_ProductListItem.js',
             '_index3.js',
             '_add-query-args.js',
+            '_SegmentedToggle.js',
+            '_radioGroupKeyboardNavigation.js',
             '_SingleProductContext.js',
+            '_safeProductId.js',
             '_reviewStar2.js'
         ]
     ],
@@ -4509,12 +4559,16 @@
             '_EditorPanelRow.js',
             '_reviewBlockShared.js',
             '_Icons.js',
+            '_productLoadFailure.js',
             '_SelectProductModal.js',
             '_index4.js',
             '_ProductListItem.js',
             '_index3.js',
             '_add-query-args.js',
+            '_SegmentedToggle.js',
+            '_radioGroupKeyboardNavigation.js',
             '_SingleProductContext.js',
+            '_safeProductId.js',
             '_reviewStar2.js'
         ]
     ],
@@ -4535,12 +4589,16 @@
             '_EditorPanelRow.js',
             '_reviewBlockShared.js',
             '_Icons.js',
+            '_productLoadFailure.js',
             '_SelectProductModal.js',
             '_index4.js',
             '_ProductListItem.js',
             '_index3.js',
             '_add-query-args.js',
+            '_SegmentedToggle.js',
+            '_radioGroupKeyboardNavigation.js',
             '_SingleProductContext.js',
+            '_safeProductId.js',
             '_reviewStar2.js'
         ]
     ],
@@ -4557,12 +4615,16 @@
             '_Icons.js',
             '_EditorPanel.js',
             '_EditorPanelRow.js',
+            '_productLoadFailure.js',
             '_SelectProductModal.js',
             '_BlockEditorTranslator.js',
             '_index4.js',
             '_ProductListItem.js',
             '_index3.js',
             '_add-query-args.js',
+            '_SegmentedToggle.js',
+            '_radioGroupKeyboardNavigation.js',
+            '_safeProductId.js',
             '_reviewStar2.js'
         ]
     ],
@@ -4580,11 +4642,15 @@
             '_Icons.js',
             '_EditorPanel.js',
             '_EditorPanelRow.js',
+            '_productLoadFailure.js',
             '_SelectProductModal.js',
             '_index4.js',
             '_ProductListItem.js',
             '_index3.js',
             '_add-query-args.js',
+            '_SegmentedToggle.js',
+            '_radioGroupKeyboardNavigation.js',
+            '_safeProductId.js',
             '_reviewStar2.js'
         ]
     ],
@@ -4608,6 +4674,7 @@
             '_ErrorBoundary.js',
             '_SingleProductContext.js',
             '_Icons.js',
+            '_safeProductId.js',
             '_add-query-args.js',
             '_ProductListItem.js',
             '_index3.js',
@@ -4627,6 +4694,7 @@
         'imports' => [
             '_jsx-runtime.js',
             '_BlockEditorTranslator.js',
+            '_radioGroupKeyboardNavigation.js',
             '_Icons.js',
             '_ErrorBoundary.js',
             '_useProductSwatchPreview.js',
@@ -4654,6 +4722,7 @@
             '_SingleProductContext.js',
             '_Icons.js',
             '_insideProductInfo.js',
+            '_safeProductId.js',
             '_add-query-args.js',
             '_ProductListItem.js',
             '_index3.js',
@@ -4681,10 +4750,18 @@
             '_Icons.js',
             '_index4.js',
             '_BlockEditorTranslator.js',
+            '_productLoadFailure.js',
+            '_SegmentedToggle.js',
+            '_NumberStepper.js',
             '_add-query-args.js',
             '_SingleProductContext.js',
             '_useMasonryGrid.js',
+            '_safeProductId.js',
             '_reviewStar2.js',
+            '_SelectProductModal.js',
+            '_ProductListItem.js',
+            '_index3.js',
+            '_radioGroupKeyboardNavigation.js',
             '_product-card-masonry.js'
         ]
     ],
@@ -4708,6 +4785,7 @@
             '_SingleProductContext.js',
             '_Icons.js',
             '_ErrorBoundary.js',
+            '_safeProductId.js',
             '_add-query-args.js',
             '_ProductListItem.js',
             '_index3.js',
@@ -4772,6 +4850,8 @@
         'isEntry' => true,
         'imports' => [
             '_jsx-runtime.js',
+            '_SegmentedToggle.js',
+            '_NumberStepper.js',
             '_BlockEditorTranslator.js',
             '_CustomSelect.js',
             '_Icons.js',
@@ -4779,6 +4859,7 @@
             '_ProductContext.js',
             '_index4.js',
             '_CardLayoutSettings.js',
+            '_radioGroupKeyboardNavigation.js',
             '_index3.js',
             '_reviewStar2.js',
             '_EditorPanel.js',
@@ -4828,6 +4909,7 @@
             '_BlockEditorTranslator.js',
             '_index4.js',
             '_SingleProductContext.js',
+            '_safeProductId.js',
             '_add-query-args.js',
             '_reviewStar2.js',
             '_ProductListItem.js',
@@ -4861,11 +4943,15 @@
             '_SingleProductOnlyNotice.js',
             '_SingleProductContext.js',
             '_Icons.js',
+            '_safeProductId.js',
             '_add-query-args.js',
+            '_productLoadFailure.js',
             '_SelectProductModal.js',
             '_ProductListItem.js',
             '_index3.js',
-            '_reviewStar2.js'
+            '_reviewStar2.js',
+            '_SegmentedToggle.js',
+            '_radioGroupKeyboardNavigation.js'
         ]
     ],
     'resources/admin/BlockEditor/WriteAReviewButton/style/write-a-review-button-block-editor.scss' => [
